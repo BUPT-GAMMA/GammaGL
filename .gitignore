@@ -1,3 +1,11 @@
+# For this repo
+.idea
+.vscode
+toytest.py
+gammagraphlibrary/datasets/raw_file/
+examples/best_models/
+examples/*tiaocan.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
