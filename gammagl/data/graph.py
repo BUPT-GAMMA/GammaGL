@@ -17,14 +17,14 @@ class Graph(object):
     r""" 
     A Graph object describe a homogeneous graph. The graph object 
     will hold node-level, link-level and graph-level attributes. In 
-    general, :class:`~gammagraphlibrary.data.Data` tries to mimic the behaviour 
+    general, :class:`~gammagl.data.Data` tries to mimic the behaviour 
     of a regular Python dictionary. In addition, it provides useful 
     functionality for analyzing graph structures, and provides basic 
     tensor functionalities.
 
     .. code-block:: python
 
-        >>> from gammagraphlibrary.data import Graph
+        >>> from gammagl.data import Graph
         >>> import numpy
         >>> import tensorflow as tf
         >>> g = graph.Graph(edge_index=[[0, 0, 0], [1, 2, 3]], num_nodes=5, node_feat=numpy.random.randn(5, 16))

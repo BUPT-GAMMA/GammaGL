@@ -1,6 +1,6 @@
 from tensorflow.python.eager.context import check_alive
 import tensorlayer as tl
-from gammagraphlibrary.layers.conv import GCNConv
+from gammagl.layers.conv import GCNConv
 
 class GCNModel(tl.layers.Module):
     r"""

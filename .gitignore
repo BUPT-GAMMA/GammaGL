@@ -2,7 +2,7 @@
 .idea
 .vscode
 toytest.py
-gammagraphlibrary/datasets/raw_file/
+gammagl/datasets/raw_file/
 examples/best_models/
 examples/*tiaocan.py
 

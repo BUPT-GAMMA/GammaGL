@@ -1,6 +1,6 @@
 import tensorlayer as tl
 import tensorflow as tf
-from gammagraphlibrary.layers import GATConv
+from gammagl.layers import GATConv
 
 class GATModel(tl.layers.Module):
     r"""The graph attentional operator from the `"Graph Attention Networks"

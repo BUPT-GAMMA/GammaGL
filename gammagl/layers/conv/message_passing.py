@@ -16,10 +16,8 @@ class MessagePassing(tl.layers.Module):
     MLPs.
     """
 
-    def __init__(self, node_dim=-2):
+    def __init__(self):
         super().__init__()
-
-        self.node_dim = node_dim
 
     def message(self, x):
         return x
@@ -31,7 +29,7 @@ class MessagePassing(tl.layers.Module):
         x = self.message(x)
         x = self.aggregate(x, index)
         return x
-    
+
     def update(self, x):
         return x
 
