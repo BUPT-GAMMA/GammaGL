@@ -1,7 +1,7 @@
 # coding=utf-8
 
 import tensorflow as tf
-from gammagraphlibrary.sparse.sparse_adj import SparseAdj
+from gammagl.sparse.sparse_adj import SparseAdj
 
 
 # sparse_adj @ diagonal_matrix

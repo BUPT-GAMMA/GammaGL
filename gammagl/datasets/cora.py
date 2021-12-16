@@ -1,12 +1,11 @@
-import os
-import sys
-
-sys.path.insert(0, os.path.abspath("../../"))
+# import os
+# import sys
+# sys.path.insert(0, os.path.abspath("../../"))
 import numpy as np
 import scipy.sparse as sp
 # import tensorflow as tf
 import tensorlayer as tl
-from gammagraphlibrary.data import Graph
+from gammagl.data import Graph
 from .dataset import Dataset
 
 def normalize(mx):
@@ -17,6 +16,12 @@ def normalize(mx):
     mx = r_mat_inv.dot(mx)
     return mx
 
+# def encode_onehot(labels):
+#     classes = set(labels)
+#     classes_dict = {c: np.identity(len(classes))[i, :] for i, c in enumerate(classes)}
+#     labels_onehot = np.array(list(map(classes_dict.get, labels)), dtype=np.int32)
+#     return labels_onehot
+
 def encode_labels(labels):
     classes = set(labels)
     classes_dict = {c:i for i,c in enumerate(classes)}
@@ -25,23 +30,16 @@ def encode_labels(labels):
     return labels # , len(classes)
 
 def load_data(path):
-    idx_features_labels = np.genfromtxt("{}citeseer.content".format(path), dtype=np.dtype(str))
+    idx_features_labels = np.genfromtxt("{}cora.content".format(path), dtype=np.dtype(str))
     features = sp.csr_matrix(idx_features_labels[:, 1:-1], dtype=np.float32)
-    idx = np.array(idx_features_labels[:, 0], dtype=object)
-    num_nodes = len(idx)
+    idx = np.array(idx_features_labels[:, 0], dtype=np.int32)
+    # labels = tf.convert_to_tensor(encode_onehot(idx_features_labels[:, -1]), dtype=tf.float32)
     labels = tl.convert_to_tensor(encode_labels(idx_features_labels[:, -1]), dtype=tl.int32)
     features = tl.convert_to_tensor(np.array(normalize(features).todense()), dtype=tl.float32)
 
     idx_map = {j: i for i, j in enumerate(idx)}
-    edges_unordered = np.genfromtxt("{}citeseer.cites".format(path), dtype=np.dtype(str))
-    edges = []
-    for e in edges_unordered:
-        e0 = idx_map.get(e[0])
-        e1 = idx_map.get(e[1])
-        if e0 is not None and e1 is not None:
-            edges.append(e0)
-            edges.append(e1)
-    edges = np.array(edges).reshape((-1,2))
+    edges_unordered = np.genfromtxt("{}cora.cites".format(path), dtype=np.int32)
+    edges = np.array(list(map(idx_map.get, edges_unordered.flatten())), dtype=np.int32).reshape(edges_unordered.shape).T
     # edges = np.hstack((edges, edges[[1,0], :])) # NOT REASONABLE, some papers cite each other
 
     # build symmetric adjacency matrix
@@ -52,22 +50,20 @@ def load_data(path):
     edges = np.array([adj.col, adj.row]).astype(np.int32)
 
 
-    idx_train = tl.convert_to_tensor(np.arange(120), dtype=tl.int32)
+    idx_train = tl.convert_to_tensor(np.arange(140), dtype=tl.int32)
     idx_val = tl.convert_to_tensor(np.arange(200, 500), dtype=tl.int32)
     idx_test = tl.convert_to_tensor(np.arange(500, 1500), dtype=tl.int32)
 
-    return edges, features, labels, idx_train, idx_val, idx_test, num_nodes
+    return edges, features, labels, idx_train, idx_val, idx_test
 
-
-
-class CiteSeer(Dataset):
+class Cora:
     r"""
-    CiteSeer dataset 
+    A citation network of scientific publications with binary word features.
 
     Statistics:
-        - #Node: 3,327
-        - #Edge: 4,732
-        - #Class: 6
+        - #Node: 2,708
+        - #Edge: 5,429
+        - #Class: 7
 
     Parameters:
         path (str): path to store the dataset
@@ -84,9 +80,11 @@ class CiteSeer(Dataset):
         Returns:
             tuple(graph, idx_train, idx_val, idx_test)
         """
-        edges, features, labels, idx_train, idx_val, idx_test, num_nodes = load_data(self.path)
+        edges, features, labels, idx_train, idx_val, idx_test = load_data(self.path)
         self.num_class = len(set(labels.numpy()))
         self.feature_dim = features.shape[1]
-        graph = Graph(edges, num_nodes=num_nodes, node_feat=features, node_label=labels)
+        graph = Graph(edges, node_feat=features, node_label=labels, num_nodes=labels.shape[0])
 
         return graph, idx_train, idx_val, idx_test
+
+

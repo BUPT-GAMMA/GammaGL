@@ -3,9 +3,9 @@ from abc import ABC
 
 import tensorflow as tf
 import tensorlayer as tl
-from gammagraphlibrary.layers.conv import MessagePassing
-from gammagraphlibrary.sparse.sparse_adj import SparseAdj
-from gammagraphlibrary.sparse.sparse_ops import sparse_diag_matmul, diag_sparse_matmul
+from gammagl.layers.conv import MessagePassing
+from gammagl.sparse.sparse_adj import SparseAdj
+from gammagl.sparse.sparse_ops import sparse_diag_matmul, diag_sparse_matmul
 
 def segment_softmax(data, segment_ids, num_segments):
     max_values = tf.math.unsorted_segment_max(data, segment_ids, num_segments=num_segments)
@@ -67,9 +67,8 @@ class GATConv(MessagePassing):
                  concat=True,
                  negative_slope=0.2,
                  dropout_rate=0,
-                 add_bias=True, 
-                 node_dim=-2):
-        super().__init__(node_dim=node_dim)
+                 add_bias=True):
+        super().__init__()
 
         self.in_channels = in_channels
         self.out_channels = out_channels

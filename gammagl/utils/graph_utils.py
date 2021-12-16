@@ -4,7 +4,7 @@ import numpy as np
 import networkx as nx
 from sklearn.model_selection import train_test_split
 import warnings
-from gammagraphlibrary.utils.union_utils import convert_union_to_numpy
+from gammagl.utils.union_utils import convert_union_to_numpy
 from scipy.sparse.linalg import eigs, eigsh
 import scipy.sparse
 

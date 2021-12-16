@@ -10,14 +10,14 @@
 import os
 import sys
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-sys.path.insert(0, os.path.abspath('../')) # adds path2gammagraphlibrary to execute in command line.
+sys.path.insert(0, os.path.abspath('../')) # adds path2gammagl to execute in command line.
 import time
 import numpy as np
 import tensorflow as tf
 import tensorlayer as tl
-from gammagraphlibrary.datasets import Cora
-from gammagraphlibrary.models.gcn import GCNModel
-from gammagraphlibrary.utils.config import Config
+from gammagl.datasets import Cora
+from gammagl.models.gcn import GCNModel
+from gammagl.utils.config import Config
 
 
 # parameters setting
@@ -29,7 +29,7 @@ l2_norm = 1e-4          # 5e-4
 renorm = True           # True
 improved = False        # False
 
-cora_path = r'../gammagraphlibrary/datasets/raw_file/cora/'
+cora_path = r'../gammagl/datasets/raw_file/cora/'
 best_model_path = r'./best_models/'
 # physical_gpus = tf.config.experimental.list_physical_devices('GPU')
 # if len(physical_gpus) > 0:

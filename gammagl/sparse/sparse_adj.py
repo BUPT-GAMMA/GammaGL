@@ -2,9 +2,9 @@
 
 import tensorflow as tf
 import numpy as np
-from gammagraphlibrary.utils.graph_utils import add_self_loop_edge
-from gammagraphlibrary.data.graph import Graph
-from gammagraphlibrary.layers.kernel.segment import segment_softmax
+from gammagl.utils.graph_utils import add_self_loop_edge
+from gammagl.data.graph import Graph
+from gammagl.layers.kernel.segment import segment_softmax
 
 """
 Sparse Adj for Computation
