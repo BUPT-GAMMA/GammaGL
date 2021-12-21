@@ -18,6 +18,8 @@ import tensorlayer as tl
 from gammagl.datasets import Cora
 from gammagl.models import SGCModel
 from gammagl.utils.config import Config
+from gammagl.utils import calc_A_norm_hat
+from gammagl.sparse.sparse_adj import SparseAdj
 
 # parameters setting
 n_epoch = 200
@@ -36,7 +38,12 @@ best_model_path = r'./best_models/'
 # load cora dataset
 dataset = Cora(cora_path)
 graph, idx_train, idx_val, idx_test = dataset.process()
-graph.add_self_loop()
+sparse_adj = SparseAdj.from_sparse(calc_A_norm_hat(graph.edge_index))
+x = tl.convert_to_tensor(graph.node_feat)
+node_label = tl.convert_to_tensor(graph.node_label)
+idx_train = tl.convert_to_tensor(idx_train)
+idx_test = tl.convert_to_tensor(idx_test)
+idx_val = tl.convert_to_tensor(idx_val)
 
 # configurate and build model
 cfg = Config(feature_dim=dataset.feature_dim,
@@ -51,13 +58,14 @@ best_val_acc = 0.
 # fit the training set
 print('training starts')
 x, edge_index = graph.node_feat, graph.edge_index
+sparse_adj = sparse_adj = SparseAdj.from_sparse(calc_A_norm_hat(edge_index))
 start_time = time.time()
 
 for epoch in range(n_epoch):
     # forward and optimize
     model.set_train()
     with tf.GradientTape() as tape:
-        logits = model(x, edge_index)
+        logits = model(x, sparse_adj)
         train_logits = tl.gather(logits, idx_train)
         train_labels = tl.gather(graph.node_label, idx_train)
         train_loss = tl.cost.softmax_cross_entropy_with_logits(train_logits, train_labels)
@@ -70,7 +78,7 @@ for epoch in range(n_epoch):
 
     # evaluate
     model.set_eval()  # disable dropout
-    logits = model(x, edge_index)
+    logits = model(x, sparse_adj)
     val_logits = tl.gather(logits, idx_val)
     val_labels = tl.gather(graph.node_label, idx_val)
     val_loss = tl.cost.softmax_cross_entropy_with_logits(val_logits, val_labels)
@@ -83,9 +91,9 @@ for epoch in range(n_epoch):
         model.save_weights(best_model_path + model.name + ".npz")
 
     # # test when training
-    # logits = model(x, edge_index)
-    # test_logits = tf.gather(logits, idx_test)
-    # test_labels = tf.gather(graph.node_label, idx_test)
+    # logits = model(x, sparse_adj)
+    # test_logits = tl.gather(logits, idx_test)
+    # test_labels = tl.gather(graph.node_label, idx_test)
     # test_loss = tl.cost.softmax_cross_entropy_with_logits(test_logits, test_labels)
     # test_acc = np.mean(np.equal(np.argmax(test_logits, 1), test_labels))
     # log_info += ",  test loss: {:.4f}, test acc: {:.4f}".format(test_loss, test_acc)
@@ -98,7 +106,7 @@ print("training ends in {t}s".format(t=int(end_time - start_time)))
 # test performance
 model.load_weights(best_model_path + model.name + ".npz")
 model.set_eval()
-logits = model(x, edge_index)
+logits = model(x, sparse_adj)
 test_logits = tl.gather(logits, idx_test)
 test_labels = tl.gather(graph.node_label, idx_test)
 test_loss = tl.cost.softmax_cross_entropy_with_logits(test_logits, test_labels)

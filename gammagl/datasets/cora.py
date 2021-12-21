@@ -1,9 +1,5 @@
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath("../../"))
 import numpy as np
 import scipy.sparse as sp
-# import tensorflow as tf
 import tensorlayer as tl
 from gammagl.data import Graph
 from tensorlayer.dataflow import Dataset

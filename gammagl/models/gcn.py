@@ -26,9 +26,9 @@ class GCNModel(tl.layers.Module):
         self.relu = tl.ReLU()
         self.dropout = tl.Dropout(cfg.keep_rate)
 
-    def forward(self, x, edge_index):
-        x = self.conv1(x, edge_index)
+    def forward(self, x, sparse_adj):
+        x = self.conv1(x, sparse_adj)
         x = self.relu(x)
         x = self.dropout(x)
-        x = self.conv2(x, edge_index)
+        x = self.conv2(x, sparse_adj)
         return x

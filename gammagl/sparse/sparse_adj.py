@@ -45,6 +45,12 @@ class SparseAdj(object):
         else:
             self.shape = shape
 
+    @classmethod
+    def from_sparse(cls, sparse_adj):
+        sparse_adj = sparse_adj.tocoo()
+        edge_index = np.array([sparse_adj.row, sparse_adj.col])
+        return cls(edge_index, sparse_adj.data)
+
     @property
     def row(self):
         return self.edge_index[0]
