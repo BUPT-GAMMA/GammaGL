@@ -45,7 +45,7 @@ class Graph(object):
     def __init__(self, edge_index, edge_feat=None, num_nodes=None, node_feat=None, node_label=None, graph_label=None):
         if edge_index is None:
             raise ValueError("edge_index should not be None")
-        self._edge_index = Graph.cast_edge_index(edge_index)
+        self._edge_index = np.array(edge_index, dtype=np.int32)
 
         if num_nodes is None:
             warnings.warn("_maybe_num_node() is used to determine the number of nodes."
@@ -56,35 +56,12 @@ class Graph(object):
             max_node_id = self._maybe_num_node(self._edge_index) - 1 # max_node_id = num_nodes - 1
             if self._num_nodes <= max_node_id:
                 raise ValueError("num_nodes=[{}] should be bigger than max node ID in edge_index.".format(self._num_nodes))
-        self._edge_feat = Graph.cast_edge_feat(edge_feat)
-        self._node_feat = Graph.cast_node_feat(node_feat)
-        self._node_label = Graph.cast_node_label(node_label)
-    
-    @classmethod
-    def cast_edge_index(cls, edge_index):
-        edge_index = tl.convert_to_tensor(edge_index)
-        edge_index = tl.cast(edge_index, tl.int32)
-        return edge_index
-
-    @classmethod
-    def cast_edge_feat(cls, edge_feat):
         if edge_feat is not None:
-            edge_feat = tl.convert_to_tensor(edge_feat)
-            edge_feat = tl.cast(edge_feat, tl.float32)
-        return edge_feat
-
-    @classmethod
-    def cast_node_feat(cls, node_feat):
+            self._edge_feat = np.array(edge_feat, dtype=np.float32)
         if node_feat is not None:
-            node_feat = tl.convert_to_tensor(node_feat)
-            node_feat = tl.cast(node_feat, tl.float32)
-        return node_feat
-
-    @classmethod
-    def cast_node_label(cls, node_label):
-        if isinstance(node_label, list):
-            node_label = np.array(node_label)
-        return node_label
+            self._node_feat = Graph.cast_node_feat(node_feat)
+        if node_label is not None:
+            self._node_label = Graph.cast_node_label(node_label)
 
     # @classmethod
     def _maybe_num_node(self, edge_index):
@@ -95,7 +72,7 @@ class Graph(object):
             edge_index: edge list contains source nodes and destination nodes of graph.
         """
         if len(edge_index):
-            return tl.convert_to_numpy(tl.reduce_max(edge_index)).item() + 1
+            return np.max(edge_index) + 1
         else:
             return 0
 
@@ -141,23 +118,23 @@ class Graph(object):
         """
         return self._edge_feat
 
-    @property
-    def indegree(self):
-        r"""
-        Graph property, return the node in-degree of the graph.
-        """
-        return tl.unsorted_segment_sum(tl.ones(self.edge_index.shape[1]),
-                                            self.edge_index[1], 
-                                            self.num_nodes)
+    # @property
+    # def indegree(self):
+    #     r"""
+    #     Graph property, return the node in-degree of the graph.
+    #     """
+    #     return tl.unsorted_segment_sum(tl.ones(self.edge_index.shape[1]),
+    #                                         self.edge_index[1], 
+    #                                         self.num_nodes)
 
-    @property
-    def outdegree(self):
-        r"""
-        Graph property, return the node out-degree of the graph.
-        """
-        return tl.unsorted_segment_sum(tl.ones(self.edge_index.shape[1]), 
-                                            self.edge_index[0], 
-                                            self.num_nodes)
+    # @property
+    # def outdegree(self):
+    #     r"""
+    #     Graph property, return the node out-degree of the graph.
+    #     """
+    #     return tl.unsorted_segment_sum(tl.ones(self.edge_index.shape[1]), 
+    #                                         self.edge_index[0], 
+    #                                         self.num_nodes)
 
     def add_self_loop(self, n_loops=1):
         """
@@ -165,8 +142,8 @@ class Graph(object):
             n_loops: number of self loops.
 
         """
-        self_loop_index = tl.stack([tl.range(self.num_nodes), tl.range(self.num_nodes)])
-        self._edge_index = tl.concat([self._edge_index, self_loop_index], axis=1)
+        self_loop_index = np.stack([np.arange(self.num_nodes), np.arange(self.num_nodes)])
+        self._edge_index = np.concatenate([self._edge_index, self_loop_index], axis=1)
 
 
     # def node_mask(self):
@@ -190,7 +167,34 @@ class Graph(object):
     #     self._edge_index = tl.concat([self._edge_index, self_loop_index], axis=1)
 
     def generate_onehot_node_feat(self):
-        self._node_feat = tl.convert_to_tensor(np.eye(self.num_nodes, dtype=np.float32))
+        self._node_feat = np.eye(self.num_nodes, dtype=np.float32)
+
+    # NOTE: The following classmethods will be deleted in fulture.
+    @classmethod
+    def cast_edge_index(cls, edge_index):
+        edge_index = tl.convert_to_tensor(edge_index)
+        edge_index = tl.cast(edge_index, tl.int32)
+        return edge_index
+
+    @classmethod
+    def cast_edge_feat(cls, edge_feat):
+        if edge_feat is not None:
+            edge_feat = tl.convert_to_tensor(edge_feat)
+            edge_feat = tl.cast(edge_feat, tl.float32)
+        return edge_feat
+
+    @classmethod
+    def cast_node_feat(cls, node_feat):
+        if node_feat is not None:
+            node_feat = tl.convert_to_tensor(node_feat)
+            node_feat = tl.cast(node_feat, tl.float32)
+        return node_feat
+
+    @classmethod
+    def cast_node_label(cls, node_label):
+        if isinstance(node_label, list):
+            node_label = np.array(node_label)
+        return node_label
    
     def __repr__(self):
         description = "GNN {} instance.\n".format(self.__class__.__name__)

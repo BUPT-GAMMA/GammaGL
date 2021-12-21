@@ -1,5 +1,5 @@
 import tensorlayer as tl
-from gammagl.layers import GATConv
+from gammagl.layers.conv import GATConv
 
 class GATModel(tl.layers.Module):
     r"""The graph attentional operator from the `"Graph Attention Networks"

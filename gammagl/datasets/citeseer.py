@@ -1,13 +1,8 @@
-import os
-import sys
-
-sys.path.insert(0, os.path.abspath("../../"))
 import numpy as np
 import scipy.sparse as sp
-# import tensorflow as tf
 import tensorlayer as tl
 from gammagl.data import Graph
-from .dataset import Dataset
+from tensorlayer.dataflow import Dataset
 
 def normalize(mx):
     rowsum = np.array(mx.sum(1))
@@ -73,9 +68,12 @@ class CiteSeer(Dataset):
         path (str): path to store the dataset
     """
     def __init__(self, path):
+        super(CiteSeer, self).__init__()
         self.path = path
         self.num_class = None
         self.feature_dim = None
+
+        self._process()
 
     def process(self):
         r"""
@@ -90,3 +88,23 @@ class CiteSeer(Dataset):
         graph = Graph(edges, num_nodes=num_nodes, node_feat=features, node_label=labels)
 
         return graph, idx_train, idx_val, idx_test
+    
+    def _process(self):
+        r"""
+        Load and preprocess from the raw file of CoRA dataset.
+
+        Returns:
+            tuple(graph, idx_train, idx_val, idx_test)
+        """
+        self.edges, self.features, self.labels, self.idx_train, self.idx_val, self.idx_test = load_data(self.path)
+        self.num_class = len(set(self.labels.numpy()))
+        self.feature_dim = self.features.shape[1]
+
+
+    def __getitem__(self, idx):
+        x = self.features[idx]
+        y = self.labels[idx]
+        return x, y
+
+    def __len__(self):
+        return len(self.labels)
