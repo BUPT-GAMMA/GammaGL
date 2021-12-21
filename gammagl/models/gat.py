@@ -1,5 +1,4 @@
 import tensorlayer as tl
-import tensorflow as tf
 from gammagl.layers import GATConv
 
 class GATModel(tl.layers.Module):

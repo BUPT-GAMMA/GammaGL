@@ -1,4 +1,3 @@
-import math
 import tensorflow as tf
 import tensorlayer as tl
 from gammagl.layers.conv import MessagePassing
@@ -18,10 +17,10 @@ def gcn_norm(sparse_adj):
     """
 
     deg = sparse_adj.reduce_sum(axis=-1)
-    deg_inv_sqrt = tf.pow(deg, -0.5)
-    deg_inv_sqrt = tf.where(
-        tf.math.logical_or(tf.math.is_inf(deg_inv_sqrt), tf.math.is_nan(deg_inv_sqrt)),
-        tf.zeros_like(deg_inv_sqrt),
+    deg_inv_sqrt = tl.pow(deg, -0.5)
+    deg_inv_sqrt = tl.where(
+        tl.logical_or(tl.is_inf(deg_inv_sqrt), tl.is_nan(deg_inv_sqrt)),
+        tl.zeros_like(deg_inv_sqrt),
         deg_inv_sqrt
     )
 
@@ -89,11 +88,9 @@ class GCNConv(MessagePassing):
         self.add_self_loops = add_self_loops
         self.renorm = renorm
 
-        stdv = 1. / math.sqrt(self.out_channels) # follow the way of pygcn
-        W_i = tl.initializers.random_uniform(minval=-stdv, maxval=stdv)
         self.linear = tl.layers.Dense(n_units=self.out_channels,
                                       in_channels=self.in_channels,
-                                      W_init=W_i, b_init=None)
+                                      b_init=None)
         if add_bias is True:
             initor = tl.initializers.Zeros()
             self.bias = self._get_weights("bias", shape=(1,self.out_channels), init=initor)

@@ -1,4 +1,3 @@
-from tensorflow.python.eager.context import check_alive
 import tensorlayer as tl
 from gammagl.layers.conv import GCNConv
 

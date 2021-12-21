@@ -11,16 +11,16 @@ def gcn_norm(sparse_adj):
 
     Parameters:
         sparse_adj: SparseAdj, sparse adjacency matrix.
-
+    
     Returns:
         Normed edge (updated edge_index and normalized edge_weight).
     """
 
     deg = sparse_adj.reduce_sum(axis=-1)
-    deg_inv_sqrt = tf.pow(deg, -0.5)
-    deg_inv_sqrt = tf.where(
-        tf.math.logical_or(tf.math.is_inf(deg_inv_sqrt), tf.math.is_nan(deg_inv_sqrt)),
-        tf.zeros_like(deg_inv_sqrt),
+    deg_inv_sqrt = tl.pow(deg, -0.5)
+    deg_inv_sqrt = tl.where(
+        tl.logical_or(tl.is_inf(deg_inv_sqrt), tl.is_nan(deg_inv_sqrt)),
+        tl.zeros_like(deg_inv_sqrt),
         deg_inv_sqrt
     )
 
