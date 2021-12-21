@@ -1,4 +1,3 @@
-import tensorflow as tf
 import tensorlayer as tl
 
 
@@ -23,7 +22,7 @@ class MessagePassing(tl.layers.Module):
         return x
 
     def aggregate(self, inputs, index):
-        return tf.math.segment_sum(inputs, index)
+        return tl.segment_sum(inputs, index)
 
     def message_aggregate(self, x, index):
         x = self.message(x)

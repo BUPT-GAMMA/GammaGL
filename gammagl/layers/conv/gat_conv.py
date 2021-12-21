@@ -1,18 +1,14 @@
-import math
-from abc import ABC
-
 import tensorflow as tf
 import tensorlayer as tl
 from gammagl.layers.conv import MessagePassing
-from gammagl.sparse.sparse_adj import SparseAdj
-from gammagl.sparse.sparse_ops import sparse_diag_matmul, diag_sparse_matmul
+
 
 def segment_softmax(data, segment_ids, num_segments):
-    max_values = tf.math.unsorted_segment_max(data, segment_ids, num_segments=num_segments)
-    gathered_max_values = tf.gather(max_values, segment_ids)
-    exp = tf.exp(data - tf.stop_gradient(gathered_max_values))
-    denominator = tf.math.unsorted_segment_sum(exp, segment_ids, num_segments=num_segments) + 1e-8
-    gathered_denominator = tf.gather(denominator, segment_ids)
+    max_values = tl.unsorted_segment_max(data, segment_ids, num_segments=num_segments)
+    gathered_max_values = tl.gather(max_values, segment_ids)
+    exp = tl.exp(data - tf.stop_gradient(gathered_max_values))
+    denominator = tl.unsorted_segment_sum(exp, segment_ids, num_segments=num_segments) + 1e-8
+    gathered_denominator = tl.gather(denominator, segment_ids)
     score = exp / (gathered_denominator + 1e-16)
     return score
 
@@ -98,8 +94,8 @@ class GATConv(MessagePassing):
     def message(self, x, edge_index, num_nodes):
         node_src = tf.concat([edge_index[0, :], tf.range(num_nodes)], axis=0)
         node_dst = tf.concat([edge_index[1, :], tf.range(num_nodes)], axis=0)
-        weight_src = tf.gather(tf.reduce_sum(x * self.att_src, -1), node_src)
-        weight_dst = tf.gather(tf.reduce_sum(x * self.att_dst, -1), node_dst)
+        weight_src = tl.gather(tl.reduce_sum(x * self.att_src, -1), node_src)
+        weight_dst = tl.gather(tl.reduce_sum(x * self.att_dst, -1), node_dst)
         weight = self.leaky_relu(weight_src + weight_dst)
 
         # weight = tf.gather(weight, node_src)
@@ -117,8 +113,8 @@ class GATConv(MessagePassing):
 
 
     def aggregate(self, x, edge_index, num_nodes):
-        node_dst = tf.concat([edge_index[1, :], tf.range(num_nodes)], axis=0)
-        return tf.math.unsorted_segment_sum(x, node_dst, num_segments=num_nodes)
+        node_dst = tl.concat([edge_index[1, :], tl.range(num_nodes)], axis=0)
+        return tl.unsorted_segment_sum(x, node_dst, num_segments=num_nodes)
 
 
     def propagate(self, x, edge_index, num_nodes):
@@ -128,13 +124,13 @@ class GATConv(MessagePassing):
         return x
 
     def forward(self, x, edge_index, num_nodes):
-        x = tf.reshape(self.linear_w(x), shape=(-1, self.heads, self.out_channels))
+        x = tl.reshape(self.linear_w(x), shape=(-1, self.heads, self.out_channels))
         x = self.propagate(x, edge_index, num_nodes)
 
         if self.concat:
-            x = tf.reshape(x, (-1, self.heads * self.out_channels))
+            x = tl.reshape(x, (-1, self.heads * self.out_channels))
         else:
-            x = tf.reduce_mean(x, axis=1)
+            x = tl.reduce_mean(x, axis=1)
 
         if self.bias is not None:
             x += self.bias

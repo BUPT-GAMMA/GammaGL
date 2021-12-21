@@ -1,10 +1,7 @@
 # -*- coding=utf-8 -*-
-
-import os
 import warnings
 import copy
 import numpy as np
-import tensorflow as tf
 import tensorlayer as tl
 
 class BaseGraph:
@@ -149,7 +146,7 @@ class Graph(object):
         r"""
         Graph property, return the node in-degree of the graph.
         """
-        return tf.math.unsorted_segment_sum(tf.ones(self.edge_index.shape[1]),
+        return tl.unsorted_segment_sum(tl.ones(self.edge_index.shape[1]),
                                             self.edge_index[1], 
                                             self.num_nodes)
 
@@ -158,7 +155,7 @@ class Graph(object):
         r"""
         Graph property, return the node out-degree of the graph.
         """
-        return tf.math.unsorted_segment_sum(tf.ones(self.edge_index.shape[1]), 
+        return tl.unsorted_segment_sum(tl.ones(self.edge_index.shape[1]), 
                                             self.edge_index[0], 
                                             self.num_nodes)
 
@@ -168,8 +165,8 @@ class Graph(object):
             n_loops: number of self loops.
 
         """
-        self_loop_index = tf.stack([tf.range(self.num_nodes), tf.range(self.num_nodes)])
-        self._edge_index = tf.concat([self._edge_index, self_loop_index], axis=1)
+        self_loop_index = tl.stack([tl.range(self.num_nodes), tl.range(self.num_nodes)])
+        self._edge_index = tl.concat([self._edge_index, self_loop_index], axis=1)
 
 
     # def node_mask(self):
@@ -188,9 +185,9 @@ class Graph(object):
     #     # convert the graph to an directed graph.
     #     pass
 
-    def add_self_loop(self):
-        self_loop_index = Graph.cast_edge_index([np.arange(self.num_nodes), np.arange(self.num_nodes)])
-        self._edge_index = tf.concat([self._edge_index, self_loop_index], axis=1)
+    # def add_self_loop(self):
+    #     self_loop_index = Graph.cast_edge_index([np.arange(self.num_nodes), np.arange(self.num_nodes)])
+    #     self._edge_index = tl.concat([self._edge_index, self_loop_index], axis=1)
 
     def generate_onehot_node_feat(self):
         self._node_feat = tl.convert_to_tensor(np.eye(self.num_nodes, dtype=np.float32))
