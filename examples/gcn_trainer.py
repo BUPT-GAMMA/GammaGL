@@ -6,7 +6,6 @@
 @Author  :   hanhui
 """
 
-
 import os
 import sys
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -18,19 +17,21 @@ import tensorlayer as tl
 from gammagl.datasets import Cora
 from gammagl.models.gcn import GCNModel
 from gammagl.utils.config import Config
-
+from tensorlayer.models import TrainOneStep, WithLoss
 
 # parameters setting
-n_epoch = 200           # 200
-learning_rate = 0.01    # 0.01
-hidden_dim = 16         # 16
-keep_rate = 0.99        # 0.5
-l2_norm = 1e-4          # 5e-4
-renorm = True           # True
-improved = False        # False
+n_epoch = 200     # 200
+learning_rate = 0.01  # 0.01
+hidden_dim = 16   # 16
+keep_rate = 0.9   # 0.5
+l2_norm = 5e-4    # 5e-4
+renorm = True     # True
+improved = False  # False
 
 cora_path = r'../gammagl/datasets/raw_file/cora/'
 best_model_path = r'./best_models/'
+
+
 # physical_gpus = tf.config.experimental.list_physical_devices('GPU')
 # if len(physical_gpus) > 0:
 #     # dynamic allocate gpu memory
@@ -66,8 +67,8 @@ for epoch in range(n_epoch):
     model.set_train()
     with tf.GradientTape() as tape:
         logits = model(x, edge_index)
-        train_logits = tf.gather(logits, idx_train)
-        train_labels = tf.gather(graph.node_label, idx_train)
+        train_logits = tl.gather(logits, idx_train)
+        train_labels = tl.gather(graph.node_label, idx_train)
         train_loss = tl.cost.softmax_cross_entropy_with_logits(train_logits, train_labels)
         l2_loss = tf.add_n([tf.nn.l2_loss(v) for v in tape.watched_variables()]) * l2_norm
         # l2_loss = tf.nn.l2_loss(tape.watched_variables()[0]) * l2_norm  # Only perform normalization on first convolution.
@@ -88,8 +89,8 @@ for epoch in range(n_epoch):
 
     # save best model on evaluation set
     if val_acc > best_val_acc:
-            best_val_acc = val_acc
-            model.save_weights(best_model_path+model.name+".npz")
+        best_val_acc = val_acc
+        model.save_weights(best_model_path+model.name+".npz")
 
     # # test when training
     # logits = model(x, edge_index)
@@ -113,4 +114,104 @@ test_labels = tf.gather(graph.node_label, idx_test)
 test_loss = tl.cost.softmax_cross_entropy_with_logits(test_logits, test_labels)
 test_acc = np.mean(np.equal(np.argmax(test_logits, 1), test_labels))
 print("\ntest loss: {:.4f}, test acc: {:.4f}".format(test_loss, test_acc))
+
+
+
+
+
+"""
+NOTE: The following codes are framework agnostic. 
+However the can not applied l2 loss.
+"""
+
+class NetWithLoss(WithLoss):
+    def __init__(self, net, loss_fn):
+        super(NetWithLoss, self).__init__(backbone=net, loss_fn=loss_fn)
+
+    def forward(self, data, label):
+        logits = tl.gather(
+            self._backbone(data['x'], data['edges']),
+            data['idx_train']
+        )
+        label = tl.gather(label, data['idx_train'])
+        loss = self._loss_fn(logits, label)
+        return loss
+
+
+class GCNTrainOneStep(TrainOneStep):
+    def __init__(self, net_with_loss, optimizer, train_weights):
+        super().__init__(net_with_loss, optimizer, train_weights)
+        self.train_weights = train_weights
+
+    def __call__(self, data, label):
+        loss = self.net_with_train(data, label)
+        return loss
+
+
+dataset = Cora(cora_path)
+cfg = Config(feature_dim=dataset.feature_dim,
+             hidden_dim=hidden_dim,
+             num_class=dataset.num_class,
+             renormv=renorm,
+             improved=improved,
+             keep_rate=keep_rate, )
+
+loss = tl.cost.softmax_cross_entropy_with_logits
+optimizer = tl.optimizers.Adam(learning_rate)
+# metrics = tl.metric.Accuracy() # zhen sb
+net = GCNModel(cfg, name="GCN")
+train_weights = net.trainable_weights
+
+net_with_loss = NetWithLoss(net, loss)
+train_one_step = GCNTrainOneStep(net_with_loss, optimizer, train_weights)
+
+data = {
+    "x": tl.ops.convert_to_tensor(dataset.features),
+    "edges": tl.ops.convert_to_tensor(dataset.edges),
+    "idx_train": tl.ops.convert_to_tensor(dataset.idx_train),
+    "idx_test": tl.ops.convert_to_tensor(dataset.idx_test),
+    "idx_val": tl.ops.convert_to_tensor(dataset.idx_val)
+}
+
+best_val_acc = 0
+for epoch in range(n_epoch):
+    start_time = time.time()
+    net.set_train()
+    # train one step
+    train_loss = train_one_step(data, dataset.labels)
+    # eval
+    _logits = net(data['x'], data['edges'])
+
+    train_logits = tl.gather(_logits, data['idx_train'])
+    train_label = tl.gather(dataset.labels, data['idx_train'])
+    # metrics.update(train_logits, train_label)
+    # train_acc = metrics.result()
+    # metrics.reset()
+    train_acc = np.mean(np.equal(np.argmax(train_logits, 1), train_label))
+
+    val_logits = tl.gather(_logits, data['idx_val'])
+    val_label = tl.gather(dataset.labels, data['idx_val'])
+    # metrics.update(val_logits, val_label)
+    # val_acc = metrics.result()
+    # metrics.reset()
+    val_acc = np.mean(np.equal(np.argmax(val_logits, 1), val_label))
+
+    print("Epoch {} ".format(epoch + 1)\
+          + "   train loss: {:.4f}".format(train_loss)\
+          + "   train acc:  {:.4f}".format(train_acc)\
+          + "   val acc:  {:.4f}".format(val_acc))
+
+    # save best model on evaluation set
+    if val_acc > best_val_acc:
+        best_val_acc = val_acc
+        net.save_weights(best_model_path+net.name+".npz", format='npz_dict')
+
+net.load_weights(best_model_path+net.name+".npz", format='npz_dict')
+test_logits = tl.gather(net(data['x'], data['edges']), data['idx_test'])
+label = tl.gather(dataset.labels, data['idx_test'])
+# metrics.update(test_logits, label)
+# test_acc = metrics.result()
+# metrics.reset()
+test_acc = np.mean(np.equal(np.argmax(test_logits, 1), test_labels))
+print("Test acc:  {:.4f}".format(test_acc))
 
