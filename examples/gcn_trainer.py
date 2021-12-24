@@ -15,7 +15,7 @@ import numpy as np
 import tensorflow as tf
 import tensorlayer as tl
 from gammagl.datasets import Cora
-from gammagl.models.gcn import GCNModel
+from gammagl.models import GCNModel
 from gammagl.utils.config import Config
 from tensorlayer.models import TrainOneStep, WithLoss
 from gammagl.utils import calc_A_norm_hat
@@ -55,8 +55,6 @@ idx_val = tl.ops.convert_to_tensor(idx_val)
 cfg = Config(feature_dim=dataset.feature_dim,
              hidden_dim=hidden_dim,
              num_class=dataset.num_class,
-             renormv=renorm,
-             improved=improved,
              keep_rate=keep_rate,)
 
 model = GCNModel(cfg, name="GCN")
@@ -158,17 +156,15 @@ class GCNTrainOneStep(TrainOneStep):
 dataset = Cora(cora_path)
 sparse_adj = SparseAdj.from_sparse(calc_A_norm_hat(dataset.edges))
 x = tl.ops.convert_to_tensor(dataset.features)
-node_label = tl.ops.convert_to_tensor(graph.node_label)
-idx_train = tl.ops.convert_to_tensor(idx_train)
-idx_test = tl.ops.convert_to_tensor(idx_test)
-idx_val = tl.ops.convert_to_tensor(idx_val)
+node_label = tl.ops.convert_to_tensor(dataset.labels)
+idx_train = tl.ops.convert_to_tensor(dataset.idx_train)
+idx_test = tl.ops.convert_to_tensor(dataset.idx_test)
+idx_val = tl.ops.convert_to_tensor(dataset.idx_val)
 
 
 cfg = Config(feature_dim=dataset.feature_dim,
              hidden_dim=hidden_dim,
              num_class=dataset.num_class,
-             renormv=renorm,
-             improved=improved,
              keep_rate=keep_rate, )
 
 loss = tl.cost.softmax_cross_entropy_with_logits
@@ -193,19 +189,19 @@ for epoch in range(n_epoch):
     start_time = time.time()
     net.set_train()
     # train one step
-    train_loss = train_one_step(data, dataset.labels)
+    train_loss = train_one_step(data, node_label)
     # eval
     _logits = net(data['x'], data['sparse_adj'])
 
     train_logits = tl.gather(_logits, data['idx_train'])
-    train_label = tl.gather(dataset.labels, data['idx_train'])
+    train_label = tl.gather(node_label, data['idx_train'])
     # metrics.update(train_logits, train_label)
     # train_acc = metrics.result()
     # metrics.reset()
     train_acc = np.mean(np.equal(np.argmax(train_logits, 1), train_label))
 
     val_logits = tl.gather(_logits, data['idx_val'])
-    val_label = tl.gather(dataset.labels, data['idx_val'])
+    val_label = tl.gather(node_label, data['idx_val'])
     # metrics.update(val_logits, val_label)
     # val_acc = metrics.result()
     # metrics.reset()
@@ -223,10 +219,10 @@ for epoch in range(n_epoch):
 
 net.load_weights(best_model_path+net.name+".npz", format='npz_dict')
 test_logits = tl.gather(net(data['x'], data['sparse_adj']), data['idx_test'])
-label = tl.gather(dataset.labels, data['idx_test'])
+test_label = tl.gather(node_label, data['idx_test'])
 # metrics.update(test_logits, label)
 # test_acc = metrics.result()
 # metrics.reset()
-test_acc = np.mean(np.equal(np.argmax(test_logits, 1), test_labels))
+test_acc = np.mean(np.equal(np.argmax(test_logits, 1), test_label))
 print("Test acc:  {:.4f}".format(test_acc))
 
