@@ -1,8 +1,5 @@
-import tensorflow as tf
 import tensorlayer as tl
 from gammagl.layers.conv import MessagePassing
-from gammagl.sparse.sparse_adj import SparseAdj
-from gammagl.sparse.sparse_ops import sparse_diag_matmul, diag_sparse_matmul
 
 
 class SGConv(MessagePassing):
@@ -28,6 +25,6 @@ class SGConv(MessagePassing):
     def forward(self, x, sparse_adj, edge_weight=None):
         x = self.linear(x)
         for _ in range(self.itera_K):
-            x = sparse_adj @ x
+            x = self.propagate(x, sparse_adj)
 
         return x
