@@ -4,6 +4,7 @@ import copy
 import numpy as np
 import tensorlayer as tl
 
+
 class BaseGraph:
     r"""
     base graph object that inherited by Graph and heteroGraph
@@ -411,5 +412,205 @@ class BatchGraph(Graph):
             BatchGraph
         """
         pass
+    
+
+class BatchGraph(Graph):
+    """
+    Batch graph wrap a batch of graphs into a single graph, where each nodes has an unique index and a graph index.
+    The node_graph_index is the index of the corresponding graph for each node in the batch.
+    The edge_graph_index is the index of the corresponding edge for each node in the batch.
+    """
+
+    def __init__(self, x, edge_index, node_graph_index, edge_graph_index,
+                 y=None, edge_weight=None, graphs=None):
+        """
+        :param x: Tensor/NDArray, shape: [num_nodes, num_features], node features
+        :param edge_index: Tensor/NDArray, shape: [2, num_edges], edge information.
+            Each column of edge_index (u, v) represents an directed edge from u to v.
+            Note that it does not cover the edge from v to u. You should provide (v, u) to cover it.
+        :param node_graph_index: Tensor/NDArray, shape: [num_nodes], graph index for each node
+        :param edge_graph_index: Tensor/NDArray/None, shape: [num_edges], graph index for each edge
+        :param y: Tensor/NDArray/None, any shape, graph label.
+            If you want to use this object to construct a BatchGraph object, y cannot be a scalar Tensor.
+        :param edge_weight: Tensor/NDArray/None, shape: [num_edges]
+        :param graphs: list[Graph], original graphs
+        """
+        super().__init__(x, edge_index, y, edge_weight)
+        self.node_graph_index = node_graph_index
+        self.edge_graph_index = edge_graph_index
+        self.graphs = graphs
+
+    @property
+    def num_graphs(self):
+        if tf.is_tensor(self.node_graph_index):
+            return tf.reduce_max(self.node_graph_index) + 1
+        else:
+            return np.max(self.node_graph_index) + 1
+
+    def to_graphs(self):
+        # num_nodes_list = tf.math.segment_sum(tf.ones([self.num_nodes]), self.node_graph_index)
+        num_graphs = self.num_graphs
+        num_nodes_list = tf.math.unsorted_segment_sum(tf.ones([self.num_nodes]), self.node_graph_index, num_graphs)
+
+        num_nodes_before_graph = tf.concat([
+            tf.zeros([1]),
+            tf.math.cumsum(num_nodes_list)
+        ], axis=0).numpy().astype(np.int32).tolist()
+
+        # num_edges_list = tf.math.segment_sum(tf.ones([self.num_edges]), self.edge_graph_index)
+        num_edges_list = tf.math.unsorted_segment_sum(tf.ones([self.num_edges]), self.edge_graph_index, num_graphs)
+        num_edges_before_graph = tf.concat([
+            tf.zeros([1]),
+            tf.math.cumsum(num_edges_list)
+        ], axis=0).numpy().astype(np.int32).tolist()
+
+        graphs = []
+        for i in range(self.num_graphs):
+            if isinstance(self.x, tf.sparse.SparseTensor):
+                x = tf.sparse.slice(
+                    self.x,
+                    [num_nodes_before_graph[i], 0],
+                    [num_nodes_before_graph[i + 1] - num_nodes_before_graph[i], tf.shape(self.x)[-1]]
+                )
+            else:
+                x = self.x[num_nodes_before_graph[i]: num_nodes_before_graph[i + 1]]
+
+            if self.y is None:
+                y = None
+            else:
+                y = self.y[num_nodes_before_graph[i]: num_nodes_before_graph[i + 1]]
+
+            edge_index = self.edge_index[:, num_edges_before_graph[i]:num_edges_before_graph[i + 1]] - \
+                         num_nodes_before_graph[i]
+
+            if self.edge_weight is None:
+                edge_weight = None
+            else:
+                edge_weight = self.edge_weight[num_edges_before_graph[i]:num_edges_before_graph[i + 1]]
+
+            graph = Graph(x=x, edge_index=edge_index, y=y, edge_weight=edge_weight)
+            graphs.append(graph)
+        return graphs
+
+    @classmethod
+    def from_graphs(cls, graphs):
+
+        node_graph_index = BatchGraph.build_node_graph_index(graphs)
+        edge_graph_index = BatchGraph.build_edge_graph_index(graphs)
+
+        x = BatchGraph.build_x(graphs)
+        edge_index = BatchGraph.build_edge_index(graphs)
+        y = BatchGraph.build_y(graphs)
+        edge_weight = BatchGraph.build_edge_weight(graphs)
+
+        return BatchGraph(x=x, edge_index=edge_index,
+                          node_graph_index=node_graph_index, edge_graph_index=edge_graph_index,
+                          graphs=graphs, y=y, edge_weight=edge_weight)
+
+    @classmethod
+    def build_node_graph_index(cls, graphs):
+        node_graph_index_list = []
+
+        if tf.is_tensor(graphs[0].edge_index):
+            for i, graph in enumerate(graphs):
+                node_graph_index_list.append(tf.fill([graph.num_nodes], i))
+            node_graph_index = tf.concat(node_graph_index_list, axis=0)
+            node_graph_index = tf.cast(node_graph_index, tf.int32)
+        else:
+            for i, graph in enumerate(graphs):
+                node_graph_index_list.append(np.full([graph.num_nodes], i, dtype=np.int32))
+            node_graph_index = np.concatenate(node_graph_index_list, axis=0)
+
+        return node_graph_index
+
+    @classmethod
+    def build_edge_graph_index(cls, graphs):
+        edge_graph_index_list = []
+        if tf.is_tensor(graphs[0].edge_index):
+            for i, graph in enumerate(graphs):
+                edge_graph_index_list.append(tf.fill([graph.num_edges], i))
+            edge_graph_index = tf.concat(edge_graph_index_list, axis=0)
+            edge_graph_index = tf.cast(edge_graph_index, tf.int32)
+        else:
+            for i, graph in enumerate(graphs):
+                edge_graph_index_list.append(np.full([graph.num_edges], i, dtype=np.int32))
+            edge_graph_index = np.concatenate(edge_graph_index_list, axis=0)
+
+        return edge_graph_index
+
+    @classmethod
+    def build_x(cls, graphs):
+        x_list = [graph.x for graph in graphs]
+        first_x = x_list[0]
+        if tf.is_tensor(first_x):
+            if isinstance(first_x, tfs.SparseMatrix):
+                return tfs.concat(x_list, axis=0)
+            elif isinstance(first_x, tf.sparse.SparseTensor):
+                return tf.sparse.concat(0, x_list)
+            else:
+                return tf.concat(x_list, axis=0)
+        else:
+            return np.concatenate(x_list, axis=0)
+
+    @classmethod
+    def build_edge_index(cls, graphs):
+        edge_index_list = []
+        num_history_nodes = 0
+        for i, graph in enumerate(graphs):
+            edge_index_list.append(graph.edge_index + num_history_nodes)
+            num_history_nodes += graph.num_nodes
+
+        if tf.is_tensor(graphs[0].edge_index):
+            return tf.concat(edge_index_list, axis=1)
+        else:
+            return np.concatenate(edge_index_list, axis=1)
+
+    @classmethod
+    def build_edge_weight(cls, graphs):
+        if graphs[0].edge_weight is None:
+            return None
+        elif tf.is_tensor(graphs[0].edge_weight):
+            return tf.concat([
+                graph.edge_weight for graph in graphs
+            ], axis=0)
+        else:
+            return np.concatenate([
+                graph.edge_weight for graph in graphs
+            ], axis=0)
+
+    @classmethod
+    def build_y(cls, graphs):
+        if graphs[0].y is None:
+            return None
+        elif tf.is_tensor(graphs[0].y):
+            return tf.concat([
+                graph.y for graph in graphs
+            ], axis=0)
+        else:
+            return np.concatenate([
+                graph.y for graph in graphs
+            ], axis=0)
+
+    def convert_data_to_tensor(self):
+        """
+        Convert all graph data into Tensors. All corresponding properties will be replaces by their Tensor versions.
+        :return: The Graph object itself.
+        """
+        return self._convert_data_to_tensor(["x", "edge_index", "edge_weight", "y",
+                                             "node_graph_index", "edge_graph_index"])
+
+    def convert_edge_to_directed(self):
+        """
+        Each column of edge_index (u, v) represents an directed edge from u to v.
+        Note that it does not cover the edge from v to u. You should provide (v, u) to cover it.
+        This is not convenient for users.
+        Thus, we allow users to provide edge_index in undirected form and convert it later.
+        That is, we can only provide (u, v) and convert it to (u, v) and (v, u) with `convert_edge_to_directed` method.
+        :return:
+        """
+        self.edge_index, [self.edge_weight, self.edge_graph_index] = \
+            convert_edge_to_directed(self.edge_index, [self.edge_weight, self.edge_graph_index],
+                                     merge_modes=["sum", "max"])
+        return self
 
 
