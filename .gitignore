@@ -3,8 +3,9 @@
 .vscode
 toytest.py
 gammagl/datasets/raw_file/
-examples/best_models/
+examples/best_models/*
 examples/*tiaocan.py
+*.zip
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

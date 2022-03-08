@@ -32,7 +32,7 @@ class MessagePassing(tl.layers.Module):
     def update(self, x):
         return x
 
-    def propagate(self, x, edge_index):
-        out = self.message_aggregate(x, edge_index)
+    def propagate(self, x, index):
+        out = self.message_aggregate(x, index)
         out = self.update(out)
         return out
