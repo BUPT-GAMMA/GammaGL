@@ -18,21 +18,35 @@ class MessagePassing(tl.layers.Module):
     def __init__(self):
         super().__init__()
 
-    def message(self, x):
-        return x
+    def message(self, x, edge_index, num_nodes=None, edge_weight=None):
+        x = tl.ops.gather(x, edge_index[0,:])
+        if edge_weight is not None:
+            edge_weight = tl.expand_dims(edge_weight, -1)
+            return x * edge_weight
+        else:
+            return x
 
-    def aggregate(self, inputs, index):
-        return tl.segment_sum(inputs, index)
+    def aggregate(self, x, edge_index, num_nodes=None, aggr_type='sum'):
+        dst_index = edge_index[1, :]
+        if aggr_type == 'sum':
+            return tl.ops.unsorted_segment_sum(x, dst_index, num_nodes)
+        if aggr_type == 'mean':
+            return tl.ops.unsorted_segment_mean(x, dst_index, num_nodes)
+        if aggr_type == 'max':
+            return tl.ops.unsorted_segment_max(x, dst_index, num_nodes)
+        if aggr_type == 'min':
+            return tl.ops.unsorted_segment_min(x, dst_index, num_nodes)
 
-    def message_aggregate(self, x, index):
-        x = self.message(x)
-        x = self.aggregate(x, index)
-        return x
+    # def message_aggregate(self, x, index):
+    #     x = self.message(x, index)
+    #     x = self.aggregate(x, index)
+    #     return x
 
     def update(self, x):
         return x
 
-    def propagate(self, x, edge_index):
-        out = self.message_aggregate(x, edge_index)
-        out = self.update(out)
-        return out
+    def propagate(self, x, edge_index, num_nodes=None, edge_weight=None, aggr='sum'):
+        x = self.message(x, edge_index, num_nodes=num_nodes, edge_weight=edge_weight)
+        x = self.aggregate(x, edge_index, num_nodes=num_nodes, aggr_type=aggr)
+        x = self.update(x)
+        return x

@@ -13,6 +13,6 @@ class SGCModel(tl.layers.Module):
 
         self.conv = SGConv(cfg.feature_dim, cfg.num_class, itera_K=cfg.itera_K)
 
-    def forward(self, x, sparse_adj):
-        x = self.conv(x, sparse_adj)
+    def forward(self, x, edge_index, edge_weight, num_nodes):
+        x = self.conv(x, edge_index, edge_weight, num_nodes)
         return x
