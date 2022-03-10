@@ -19,11 +19,11 @@ from gammagl.models.gat import GATModel
 from gammagl.utils.config import Config
 
 # parameters setting
-n_epoch = 200
+n_epoch = 500
 learning_rate = 0.005
 hidden_dim = 8
 heads = 8
-keep_rate = 0.8
+keep_rate = 0.3
 l2_norm = 1e-4
 
 cora_path = r'../gammagl/datasets/raw_file/cora/'
@@ -37,6 +37,7 @@ best_model_path = r'./best_models/'
 # load cora dataset
 dataset = Cora(cora_path)
 graph, idx_train, idx_val, idx_test = dataset.process()
+graph.add_self_loop(n_loops=1) # self-loop trick
 x = tl.ops.convert_to_tensor(graph.node_feat)
 edge_index = tl.ops.convert_to_tensor(graph.edge_index)
 node_label = tl.ops.convert_to_tensor(graph.node_label)
@@ -69,7 +70,7 @@ for epoch in range(n_epoch):
         train_logits = tl.gather(logits, idx_train)
         train_labels = tl.gather(node_label, idx_train)
         train_loss = tl.cost.softmax_cross_entropy_with_logits(train_logits, train_labels)
-        l2_loss = tf.add_n([tf.nn.l2_loss(v) for v in tape.watched_variables()]) * l2_norm
+        l2_loss = tf.add_n([tf.nn.l2_loss(v) for v in tape.watched_variables() if 'bias' not in v.name]) * l2_norm
         loss = train_loss + l2_loss
     grad = tape.gradient(loss, train_weights)
     optimizer.apply_gradients(zip(grad, train_weights))

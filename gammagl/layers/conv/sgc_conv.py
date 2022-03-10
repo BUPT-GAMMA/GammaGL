@@ -19,12 +19,12 @@ class SGConv(MessagePassing):
                                       in_channels=self.in_channels,
                                       b_init=None)
 
-    def message_aggregate(self, x, sparse_adj):
-        return sparse_adj @ x
+    # def message_aggregate(self, x, sparse_adj):
+    #     return sparse_adj @ x
 
-    def forward(self, x, sparse_adj, edge_weight=None):
+    def forward(self, x, edge_index, edge_weight=None, num_nodes=None):
         x = self.linear(x)
         for _ in range(self.itera_K):
-            x = self.propagate(x, sparse_adj)
+            x = self.propagate(x, edge_index, edge_weight=edge_weight, num_nodes=num_nodes)
 
         return x

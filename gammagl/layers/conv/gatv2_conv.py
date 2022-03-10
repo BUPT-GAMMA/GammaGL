@@ -1,3 +1,4 @@
+import tensorflow as tf
 import tensorlayer as tl
 from gammagl.layers.conv import MessagePassing
 
@@ -13,9 +14,13 @@ def segment_softmax(data, segment_ids, num_segments):
     return score
 
 
-class GATConv(MessagePassing):
-    r"""The graph attentional operator from the `"Graph Attention Networks"
-    <https://arxiv.org/abs/1710.10903>`_ paper
+class GATV2Conv(MessagePassing):
+    r"""The GATv2 operator from the `"How Attentive are Graph Attention Networks?"
+    <https://arxiv.org/abs/2105.14491>`_ paper, which fixes the static
+    attention problem of the standard :class:`~torch_geometric.conv.GATConv`
+    layer: since the linear layers in the standard GAT are applied right after
+    each other, the ranking of attended nodes is unconditioned on the query
+    node. In contrast, in GATv2, every node can attend to any other node.
 
     .. math::
         \mathbf{x}^{\prime}_i = \alpha_{i,i}\mathbf{\Theta}\mathbf{x}_{i} +
@@ -26,12 +31,12 @@ class GATConv(MessagePassing):
     .. math::
         \alpha_{i,j} =
         \frac{
-        \exp\left(\mathrm{LeakyReLU}\left(\mathbf{a}^{\top}
-        [\mathbf{\Theta}\mathbf{x}_i \, \Vert \, \mathbf{\Theta}\mathbf{x}_j]
+        \exp\left(\mathbf{a}^{\top}\mathrm{LeakyReLU}\left(\mathbf{\Theta}
+        [\mathbf{x}_i \, \Vert \, \mathbf{x}_j]
         \right)\right)}
         {\sum_{k \in \mathcal{N}(i) \cup \{ i \}}
-        \exp\left(\mathrm{LeakyReLU}\left(\mathbf{a}^{\top}
-        [\mathbf{\Theta}\mathbf{x}_i \, \Vert \, \mathbf{\Theta}\mathbf{x}_k]
+        \exp\left(\mathbf{a}^{\top}\mathrm{LeakyReLU}\left(\mathbf{\Theta}
+        [\mathbf{x}_i \, \Vert \, \mathbf{x}_k]
         \right)\right)}.
     
     Args:
@@ -91,37 +96,37 @@ class GATConv(MessagePassing):
         elif self.add_bias and not concat:
             self.bias = self._get_weights("bias", shape=(self.out_channels,), init=initor)
         
-    def message(self, x, edge_index, num_nodes, edge_weight=None):
-        node_src = edge_index[0, :] # tl.ops.concat([edge_index[0, :], tl.ops.range(num_nodes)], axis=0)
-        node_dst = edge_index[1, :] # tl.ops.concat([edge_index[1, :], tl.ops.range(num_nodes)], axis=0)
-        weight_src = tl.ops.gather(tl.ops.reduce_sum(x * self.att_src, -1), node_src)
-        weight_dst = tl.ops.gather(tl.ops.reduce_sum(x * self.att_dst, -1), node_dst)
-        weight = self.leaky_relu(weight_src + weight_dst)
+    def message(self, x, edge_index, num_nodes):
+        node_src = tl.ops.concat([edge_index[0, :], tl.ops.range(num_nodes)], axis=0)
+        node_dst = tl.ops.concat([edge_index[1, :], tl.ops.range(num_nodes)], axis=0)
+        weight_src = self.leaky_relu(tl.ops.gather(x, node_src))
+        weight_dst = self.leaky_relu(tl.ops.gather(x, node_dst))
+        weight = tl.reduce_mean(weight_src * self.att_src + weight_dst * self.att_dst, -1)
 
         # weight = tl.ops.gather(weight, node_src)
         alpha = segment_softmax(weight, node_dst, num_nodes)
 
         # weight = tl.ops.exp(weight)
         # weight = tl.ops.gather(weight, node_dst)
-        # weight_sum = tf.math.unsorted_segment_sum(weight, node_src, num_segments=num_nodes)
+        # weight_sum = tl.ops.unsorted_segment_sum(weight, node_src, num_segments=num_nodes)
         # weight_sum = tl.ops.gather(weight_sum, node_dst)
         # alpha = weight / weight_sum
 
         alpha = self.dropout(alpha)
-        x = tl.ops.gather(x, node_src) * tl.ops.expand_dims(alpha, -1)
-        return x * edge_weight if edge_weight else x
+
+        return tl.ops.gather(x, node_src) * tl.ops.expand_dims(alpha, -1)
 
 
-    # def aggregate(self, x, index, num_nodes):
-    #     return tl.ops.unsorted_segment_sum(x, index, num_segments=num_nodes)
+    def aggregate(self, x, edge_index, num_nodes):
+        node_dst = tl.ops.concat([edge_index[1, :], tl.ops.range(num_nodes)], axis=0)
+        return tl.ops.unsorted_segment_sum(x, node_dst, num_segments=num_nodes)
 
 
-    # def propagate(self, x, edge_index, num_nodes):
-    #     x = self.message(x, edge_index, num_nodes)
-    #     # node_dst = tl.ops.concat([edge_index[1, :], tl.ops.range(num_nodes)], axis=0)
-    #     x = self.aggregate(x, edge_index, num_nodes)
-    #     x = self.update(x)
-    #     return x
+    def propagate(self, x, edge_index, num_nodes):
+        x = self.message(x, edge_index, num_nodes)
+        x = self.aggregate(x, edge_index, num_nodes)
+        x = self.update(x)
+        return x
 
     def forward(self, x, edge_index, num_nodes):
         x = tl.ops.reshape(self.linear_w(x), shape=(-1, self.heads, self.out_channels))
