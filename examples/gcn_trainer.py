@@ -133,7 +133,7 @@ class NetWithLoss(WithLoss):
 
     def forward(self, data, label):
         logits = tl.gather(
-            self._backbone(data['x'], data['sparse_adj']),
+            self._backbone(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes']),
             data['idx_train']
         )
         label = tl.gather(label, data['idx_train'])
@@ -210,10 +210,10 @@ for epoch in range(n_epoch):
     # metrics.reset()
     val_acc = np.mean(np.equal(np.argmax(val_logits, 1), val_label))
 
-    print("Epoch {} ".format(epoch + 1)\
+    print("Epoch [{:0>3d}]  ".format(epoch + 1)\
           + "   train loss: {:.4f}".format(train_loss)\
-          + "   train acc:  {:.4f}".format(train_acc)\
-          + "   val acc:  {:.4f}".format(val_acc))
+          + "   train acc: {:.4f}".format(train_acc)\
+          + "   val acc: {:.4f}".format(val_acc))
 
     # save best model on evaluation set
     if val_acc > best_val_acc:

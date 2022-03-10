@@ -18,7 +18,7 @@ class MessagePassing(tl.layers.Module):
     def __init__(self):
         super().__init__()
 
-    def message(self, x, edge_index, num_nodes=None, edge_weight=None):
+    def message(self, x, edge_index, edge_weight=None, num_nodes=None):
         x = tl.ops.gather(x, edge_index[0,:])
         if edge_weight is not None:
             edge_weight = tl.expand_dims(edge_weight, -1)
@@ -45,8 +45,8 @@ class MessagePassing(tl.layers.Module):
     def update(self, x):
         return x
 
-    def propagate(self, x, edge_index, num_nodes=None, edge_weight=None, aggr='sum'):
-        x = self.message(x, edge_index, num_nodes=num_nodes, edge_weight=edge_weight)
+    def propagate(self, x, edge_index, edge_weight=None, num_nodes=None, aggr='sum'):
+        x = self.message(x, edge_index, edge_weight=edge_weight, num_nodes=num_nodes)
         x = self.aggregate(x, edge_index, num_nodes=num_nodes, aggr_type=aggr)
         x = self.update(x)
         return x
