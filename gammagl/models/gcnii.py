@@ -1,8 +1,8 @@
 import math
-import tensorlayer as tl
+import tensorlayerx as tl
 from gammagl.layers.conv import GCNIIConv
 
-class GCNIIModel(tl.layers.Module):
+class GCNIIModel(tl.nn.Module):
     """GCN with Initial residual and Identity mapping"""
     def __init__(self, cfg, name=None):
         super().__init__(name=name)

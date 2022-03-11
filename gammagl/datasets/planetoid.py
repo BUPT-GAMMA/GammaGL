@@ -84,33 +84,33 @@ class Planetoid(InMemoryDataset):
         with open(self.processed_paths[0], 'rb') as f:
             self.data = pickle.load(f)
 
-        # self.split = split
-        # assert self.split in ['public', 'full', 'random']
-        #
-        # if split == 'full':
-        #     data = self.get(0)
-        #     data.train_mask.fill_(True)
-        #     data.train_mask[data.val_mask | data.test_mask] = False
-        #     self.data, self.slices = self.collate([data])
-        #
-        # elif split == 'random':
-        #     data = self.get(0)
-        #     data.train_mask.fill_(False)
-        #     for c in range(self.num_classes):
-        #         idx = (data.y == c).nonzero(as_tuple=False).view(-1)
-        #         idx = idx[torch.randperm(idx.size(0))[:num_train_per_class]]
-        #         data.train_mask[idx] = True
-        #
-        #     remaining = (~data.train_mask).nonzero(as_tuple=False).view(-1)
-        #     remaining = remaining[torch.randperm(remaining.size(0))]
-        #
-        #     data.val_mask.fill_(False)
-        #     data.val_mask[remaining[:num_val]] = True
-        #
-        #     data.test_mask.fill_(False)
-        #     data.test_mask[remaining[num_val:num_val + num_test]] = True
-        #
-        #     self.data, self.slices = self.collate([data])
+        self.split = split
+        assert self.split in ['public', 'full', 'random']
+
+        if split == 'full':
+            data = self.get(0)
+            data.train_mask.fill_(True)
+            data.train_mask[data.val_mask | data.test_mask] = False
+            self.data, self.slices = self.collate([data])
+
+        elif split == 'random':
+            data = self.get(0)
+            data.train_mask.fill_(False)
+            for c in range(self.num_classes):
+                idx = (data.y == c).nonzero(as_tuple=False).view(-1)
+                idx = idx[torch.randperm(idx.size(0))[:num_train_per_class]]
+                data.train_mask[idx] = True
+
+            remaining = (~data.train_mask).nonzero(as_tuple=False).view(-1)
+            remaining = remaining[torch.randperm(remaining.size(0))]
+
+            data.val_mask.fill_(False)
+            data.val_mask[remaining[:num_val]] = True
+
+            data.test_mask.fill_(False)
+            data.test_mask[remaining[num_val:num_val + num_test]] = True
+
+            self.data, self.slices = self.collate([data])
 
     @property
     def raw_dir(self) -> str:
@@ -147,7 +147,7 @@ class Planetoid(InMemoryDataset):
 import os.path as osp
 import sys
 from itertools import repeat
-import tensorlayer as tl
+import tensorlayerx as tl
 import numpy as np
 import torch
 from gammagl.data import Graph

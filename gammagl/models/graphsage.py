@@ -1,9 +1,9 @@
-import tensorlayer as tl
+import tensorlayerx as tl
 import tensorflow as tf
 import numpy as np
 from gammagl.layers.conv import SAGEConv
 
-class GraphSAGEModel(tl.layers.Module):
+class GraphSAGEModel(tl.nn.Module):
     r""" 
     The GraphSAGE operator from the `"Inductive Representation Learning on
        Large Graphs" <https://arxiv.org/abs/1706.02216>`_ paper

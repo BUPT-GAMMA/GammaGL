@@ -1,7 +1,7 @@
-import tensorlayer as tl
+import tensorlayerx as tl
 from gammagl.layers.conv import GCNConv
 
-class GCNModel(tl.layers.Module):
+class GCNModel(tl.nn.Module):
     r"""
     Graph Convolutional Network proposed in `Semi-Supervised Classification with Graph Convolutional Networks`_.
 

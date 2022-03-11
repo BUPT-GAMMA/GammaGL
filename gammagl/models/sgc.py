@@ -1,7 +1,7 @@
-import tensorlayer as tl
+import tensorlayerx as tl
 from gammagl.layers.conv import SGConv
 
-class SGCModel(tl.layers.Module):
+class SGCModel(tl.nn.Module):
     """simplifing graph convoluation nerworks"""
     def __init__(self, cfg, name=None):
         super().__init__(name=name)

@@ -1,8 +1,8 @@
-import tensorlayer as tl
+import tensorlayerx as tl
 from gammagl.layers.conv import GATV2Conv
 import tensorflow as tf
 
-class GATV2Model(tl.layers.Module):
+class GATV2Model(tl.nn.Module):
     r"""`"How Attentive are Graph Attention Networks?"
     <https://arxiv.org/abs/2105.14491>`_ paper.
 

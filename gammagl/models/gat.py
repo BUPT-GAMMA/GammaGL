@@ -1,7 +1,7 @@
-import tensorlayer as tl
+import tensorlayerx as tl
 from gammagl.layers.conv import GATConv
 
-class GATModel(tl.layers.Module):
+class GATModel(tl.nn.Module):
     r"""The graph attentional operator from the `"Graph Attention Networks"
     <https://arxiv.org/abs/1710.10903>`_ paper
 

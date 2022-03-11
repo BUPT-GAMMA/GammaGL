@@ -1,4 +1,4 @@
-import tensorlayer as tl
+import tensorlayerx as tl
 from . import MessagePassing
 
 
@@ -26,7 +26,7 @@ class GINConv(MessagePassing):
     Example
     -------
     >>> import numpy as np
-    >>> import tensorlayer as tl
+    >>> import tensorlayerx as tl
     >>> from gammagl.layers.conv import GINConv
     >>>
     >>>

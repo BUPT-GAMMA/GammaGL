@@ -1,4 +1,4 @@
-import tensorlayer as tl
+import tensorlayerx as tl
 import tensorflow as tf
 from gammagl.layers.conv import MessagePassing
 
