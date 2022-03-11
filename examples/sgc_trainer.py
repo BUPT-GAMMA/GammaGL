@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.abspath('../')) # adds path2gammagl to execute in com
 import time
 import numpy as np
 import tensorflow as tf
-import tensorlayerx as tl
+import tensorlayerx as tlx
 from gammagl.datasets import Cora
 from gammagl.models import SGCModel, GCNModel
 from gammagl.utils.config import Config
@@ -37,12 +37,12 @@ best_model_path = r'./best_models/'
 dataset = Cora(cora_path)
 graph, idx_train, idx_val, idx_test = dataset.process()
 edge_weight = GCNModel.calc_gcn_norm(graph.edge_index, graph.num_nodes)
-edge_index = tl.ops.convert_to_tensor(graph.edge_index)
-x = tl.convert_to_tensor(graph.node_feat)
-node_label = tl.convert_to_tensor(graph.node_label)
-idx_train = tl.convert_to_tensor(idx_train)
-idx_test = tl.convert_to_tensor(idx_test)
-idx_val = tl.convert_to_tensor(idx_val)
+edge_index = tlx.ops.convert_to_tensor(graph.edge_index)
+x = tlx.convert_to_tensor(graph.node_feat)
+node_label = tlx.convert_to_tensor(graph.node_label)
+idx_train = tlx.convert_to_tensor(idx_train)
+idx_test = tlx.convert_to_tensor(idx_test)
+idx_val = tlx.convert_to_tensor(idx_val)
 
 # configurate and build model
 cfg = Config(feature_dim=dataset.feature_dim,
@@ -51,7 +51,7 @@ cfg = Config(feature_dim=dataset.feature_dim,
 
 model = SGCModel(cfg, name="SGC")
 train_weights = model.trainable_weights
-optimizer = tl.optimizers.Adam(learning_rate)
+optimizer = tlx.optimizers.Adam(learning_rate)
 best_val_acc = 0.
 
 # fit the training set
@@ -63,10 +63,10 @@ for epoch in range(n_epoch):
     model.set_train()
     with tf.GradientTape() as tape:
         logits = model(x, edge_index, edge_weight, graph.num_nodes)
-        train_logits = tl.gather(logits, idx_train)
-        train_labels = tl.gather(graph.node_label, idx_train)
-        train_loss = tl.losses.softmax_cross_entropy_with_logits(train_logits, train_labels)
-        l2_loss = tl.add_n([tf.nn.l2_loss(v) for v in tape.watched_variables()]) * l2_norm
+        train_logits = tlx.gather(logits, idx_train)
+        train_labels = tlx.gather(graph.node_label, idx_train)
+        train_loss = tlx.losses.softmax_cross_entropy_with_logits(train_logits, train_labels)
+        l2_loss = tlx.add_n([tf.nn.l2_loss(v) for v in tape.watched_variables()]) * l2_norm
         loss = train_loss + l2_loss
     grad = tape.gradient(loss, train_weights)
     optimizer.apply_gradients(zip(grad, train_weights))
@@ -76,9 +76,9 @@ for epoch in range(n_epoch):
     # evaluate
     model.set_eval()  # disable dropout
     logits = model(x, edge_index, edge_weight, graph.num_nodes)
-    val_logits = tl.gather(logits, idx_val)
-    val_labels = tl.gather(graph.node_label, idx_val)
-    val_loss = tl.losses.softmax_cross_entropy_with_logits(val_logits, val_labels)
+    val_logits = tlx.gather(logits, idx_val)
+    val_labels = tlx.gather(graph.node_label, idx_val)
+    val_loss = tlx.losses.softmax_cross_entropy_with_logits(val_logits, val_labels)
     val_acc = np.mean(np.equal(np.argmax(val_logits, 1), val_labels))
     log_info += ",  eval loss: {:.4f}, eval acc: {:.4f}".format(val_loss, val_acc)
 
@@ -89,9 +89,9 @@ for epoch in range(n_epoch):
 
     # # test when training
     # logits = model(x, sparse_adj)
-    # test_logits = tl.gather(logits, idx_test)
-    # test_labels = tl.gather(graph.node_label, idx_test)
-    # test_loss = tl.losses.softmax_cross_entropy_with_logits(test_logits, test_labels)
+    # test_logits = tlx.gather(logits, idx_test)
+    # test_labels = tlx.gather(graph.node_label, idx_test)
+    # test_loss = tlx.losses.softmax_cross_entropy_with_logits(test_logits, test_labels)
     # test_acc = np.mean(np.equal(np.argmax(test_logits, 1), test_labels))
     # log_info += ",  test loss: {:.4f}, test acc: {:.4f}".format(test_loss, test_acc)
 
@@ -104,8 +104,8 @@ print("training ends in {t}s".format(t=int(end_time - start_time)))
 model.load_weights(best_model_path + model.name + ".npz")
 model.set_eval()
 logits = model(x, edge_index, edge_weight, graph.num_nodes)
-test_logits = tl.gather(logits, idx_test)
-test_labels = tl.gather(graph.node_label, idx_test)
-test_loss = tl.losses.softmax_cross_entropy_with_logits(test_logits, test_labels)
+test_logits = tlx.gather(logits, idx_test)
+test_labels = tlx.gather(graph.node_label, idx_test)
+test_loss = tlx.losses.softmax_cross_entropy_with_logits(test_logits, test_labels)
 test_acc = np.mean(np.equal(np.argmax(test_logits, 1), test_labels))
 print("\ntest loss: {:.4f}, test acc: {:.4f}".format(test_loss, test_acc))

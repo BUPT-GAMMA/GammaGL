@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
-import tensorlayerx as tl
+import tensorlayerx as tlx
 from gammagl.data import Graph
 from tensorlayerx.dataflow import Dataset
 
@@ -30,8 +30,8 @@ def load_data(path):
     features = sp.csr_matrix(idx_features_labels[:, 1:-1], dtype=np.float32)
     idx = np.array(idx_features_labels[:, 0], dtype=np.int32)
     # labels = tf.convert_to_tensor(encode_onehot(idx_features_labels[:, -1]), dtype=tf.float32)
-    labels = tl.convert_to_tensor(encode_labels(idx_features_labels[:, -1]), dtype=tl.int32)
-    features = tl.convert_to_tensor(np.array(normalize(features).todense()), dtype=tl.float32)
+    labels = tlx.convert_to_tensor(encode_labels(idx_features_labels[:, -1]), dtype=tlx.int32)
+    features = tlx.convert_to_tensor(np.array(normalize(features).todense()), dtype=tlx.float32)
 
     idx_map = {j: i for i, j in enumerate(idx)}
     edges_unordered = np.genfromtxt("{}cora.cites".format(path), dtype=np.int32)
@@ -46,9 +46,9 @@ def load_data(path):
     edges = np.array([adj.col, adj.row]).astype(np.int32)
 
 
-    idx_train = tl.convert_to_tensor(np.arange(140), dtype=tl.int32)
-    idx_val = tl.convert_to_tensor(np.arange(200, 500), dtype=tl.int32)
-    idx_test = tl.convert_to_tensor(np.arange(500, 1500), dtype=tl.int32)
+    idx_train = tlx.convert_to_tensor(np.arange(140), dtype=tlx.int32)
+    idx_val = tlx.convert_to_tensor(np.arange(200, 500), dtype=tlx.int32)
+    idx_test = tlx.convert_to_tensor(np.arange(500, 1500), dtype=tlx.int32)
 
     return edges, features, labels, idx_train, idx_val, idx_test
 

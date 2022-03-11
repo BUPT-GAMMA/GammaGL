@@ -1,4 +1,4 @@
-import tensorlayerx as tl
+import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
 
 
@@ -15,7 +15,7 @@ class SGConv(MessagePassing):
         self.out_channels = out_channels
         self.itera_K = itera_K
 
-        self.linear = tl.layers.Dense(n_units=self.out_channels,
+        self.linear = tlx.layers.Dense(n_units=self.out_channels,
                                       in_channels=self.in_channels,
                                       b_init=None)
 

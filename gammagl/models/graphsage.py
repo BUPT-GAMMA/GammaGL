@@ -1,9 +1,9 @@
-import tensorlayerx as tl
+import tensorlayerx as tlx
 import tensorflow as tf
 import numpy as np
 from gammagl.layers.conv import SAGEConv
 
-class GraphSAGEModel(tl.nn.Module):
+class GraphSAGEModel(tlx.nn.Module):
     r""" 
     The GraphSAGE operator from the `"Inductive Representation Learning on
        Large Graphs" <https://arxiv.org/abs/1706.02216>`_ paper
@@ -13,14 +13,14 @@ class GraphSAGEModel(tl.nn.Module):
 
     def __init__(self, cfg, name=None):
         super().__init__(name=name)
-        self.relu = tl.ReLU()
-        self.dropout = tl.Dropout(cfg.keep_rate)
+        self.relu = tlx.ReLU()
+        self.dropout = tlx.Dropout(cfg.keep_rate)
         conv1 = SAGEConv(cfg.feature_dim, cfg.hidden_dim)
         conv2 = SAGEConv(cfg.hidden_dim, cfg.num_class)
         self.num_layer = cfg.num_layer
         self.num_class = cfg.num_class
         self.hid_feat = cfg.hidden_dim
-        self.conv = tl.layers.SequentialLayer()
+        self.conv = tlx.layers.SequentialLayer()
         self.conv.append(conv1)
         for _ in range(cfg.num_layer - 2):
             self.conv.append(SAGEConv(cfg.hidden_dim, cfg.hidden_dim))

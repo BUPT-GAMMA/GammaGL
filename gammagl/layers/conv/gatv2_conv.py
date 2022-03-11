@@ -1,15 +1,15 @@
 import tensorflow as tf
-import tensorlayerx as tl
+import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
 
 
 def segment_softmax(data, segment_ids, num_segments):
-    max_values = tl.ops.unsorted_segment_max(data, segment_ids, num_segments=num_segments) # tensorlayerx not supported
-    gathered_max_values = tl.ops.gather(max_values, segment_ids)
-    # exp = tl.ops.exp(data - tf.stop_gradient(gathered_max_values))
-    exp = tl.ops.exp(data - gathered_max_values)
-    denominator = tl.ops.unsorted_segment_sum(exp, segment_ids, num_segments=num_segments) + 1e-8
-    gathered_denominator = tl.ops.gather(denominator, segment_ids)
+    max_values = tlx.ops.unsorted_segment_max(data, segment_ids, num_segments=num_segments) # tensorlayerx not supported
+    gathered_max_values = tlx.ops.gather(max_values, segment_ids)
+    # exp = tlx.ops.exp(data - tf.stop_gradient(gathered_max_values))
+    exp = tlx.ops.exp(data - gathered_max_values)
+    denominator = tlx.ops.unsorted_segment_sum(exp, segment_ids, num_segments=num_segments) + 1e-8
+    gathered_denominator = tlx.ops.gather(denominator, segment_ids)
     score = exp / (gathered_denominator + 1e-16)
     return score
 
@@ -80,16 +80,16 @@ class GATV2Conv(MessagePassing):
         # self.add_self_loops = add_self_loops
         self.add_bias = add_bias
 
-        self.linear_w = tl.layers.Dense(n_units=self.out_channels * self.heads,
+        self.linear_w = tlx.layers.Dense(n_units=self.out_channels * self.heads,
                                         in_channels=self.in_channels,
                                         b_init=None)
 
-        initor = tl.initializers.TruncatedNormal()
+        initor = tlx.initializers.TruncatedNormal()
         self.att_src = self._get_weights("att_src", shape=(1, self.heads, self.out_channels), init=initor)
         self.att_dst = self._get_weights("att_dst", shape=(1, self.heads, self.out_channels), init=initor)
 
-        self.leaky_relu = tl.layers.LeakyReLU(alpha=negative_slope)
-        self.dropout = tl.layers.Dropout(keep=1 - self.dropout_rate)
+        self.leaky_relu = tlx.layers.LeakyReLU(alpha=negative_slope)
+        self.dropout = tlx.layers.Dropout(keep=1 - self.dropout_rate)
 
         if self.add_bias and concat:
             self.bias = self._get_weights("bias", shape=(self.heads * self.out_channels,), init=initor)
@@ -97,29 +97,29 @@ class GATV2Conv(MessagePassing):
             self.bias = self._get_weights("bias", shape=(self.out_channels,), init=initor)
         
     def message(self, x, edge_index, num_nodes):
-        node_src = tl.ops.concat([edge_index[0, :], tl.ops.range(num_nodes)], axis=0)
-        node_dst = tl.ops.concat([edge_index[1, :], tl.ops.range(num_nodes)], axis=0)
-        weight_src = self.leaky_relu(tl.ops.gather(x, node_src))
-        weight_dst = self.leaky_relu(tl.ops.gather(x, node_dst))
-        weight = tl.reduce_mean(weight_src * self.att_src + weight_dst * self.att_dst, -1)
+        node_src = tlx.ops.concat([edge_index[0, :], tlx.ops.range(num_nodes)], axis=0)
+        node_dst = tlx.ops.concat([edge_index[1, :], tlx.ops.range(num_nodes)], axis=0)
+        weight_src = self.leaky_relu(tlx.ops.gather(x, node_src))
+        weight_dst = self.leaky_relu(tlx.ops.gather(x, node_dst))
+        weight = tlx.reduce_mean(weight_src * self.att_src + weight_dst * self.att_dst, -1)
 
-        # weight = tl.ops.gather(weight, node_src)
+        # weight = tlx.ops.gather(weight, node_src)
         alpha = segment_softmax(weight, node_dst, num_nodes)
 
-        # weight = tl.ops.exp(weight)
-        # weight = tl.ops.gather(weight, node_dst)
-        # weight_sum = tl.ops.unsorted_segment_sum(weight, node_src, num_segments=num_nodes)
-        # weight_sum = tl.ops.gather(weight_sum, node_dst)
+        # weight = tlx.ops.exp(weight)
+        # weight = tlx.ops.gather(weight, node_dst)
+        # weight_sum = tlx.ops.unsorted_segment_sum(weight, node_src, num_segments=num_nodes)
+        # weight_sum = tlx.ops.gather(weight_sum, node_dst)
         # alpha = weight / weight_sum
 
         alpha = self.dropout(alpha)
 
-        return tl.ops.gather(x, node_src) * tl.ops.expand_dims(alpha, -1)
+        return tlx.ops.gather(x, node_src) * tlx.ops.expand_dims(alpha, -1)
 
 
     def aggregate(self, x, edge_index, num_nodes):
-        node_dst = tl.ops.concat([edge_index[1, :], tl.ops.range(num_nodes)], axis=0)
-        return tl.ops.unsorted_segment_sum(x, node_dst, num_segments=num_nodes)
+        node_dst = tlx.ops.concat([edge_index[1, :], tlx.ops.range(num_nodes)], axis=0)
+        return tlx.ops.unsorted_segment_sum(x, node_dst, num_segments=num_nodes)
 
 
     def propagate(self, x, edge_index, num_nodes):
@@ -129,13 +129,13 @@ class GATV2Conv(MessagePassing):
         return x
 
     def forward(self, x, edge_index, num_nodes):
-        x = tl.ops.reshape(self.linear_w(x), shape=(-1, self.heads, self.out_channels))
+        x = tlx.ops.reshape(self.linear_w(x), shape=(-1, self.heads, self.out_channels))
         x = self.propagate(x, edge_index, num_nodes)
 
         if self.concat:
-            x = tl.ops.reshape(x, (-1, self.heads * self.out_channels))
+            x = tlx.ops.reshape(x, (-1, self.heads * self.out_channels))
         else:
-            x = tl.ops.reduce_mean(x, axis=1)
+            x = tlx.ops.reduce_mean(x, axis=1)
 
         if self.bias is not None:
             x += self.bias

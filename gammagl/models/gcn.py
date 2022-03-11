@@ -1,7 +1,7 @@
-import tensorlayerx as tl
+import tensorlayerx as tlx
 from gammagl.layers.conv import GCNConv
 
-class GCNModel(tl.nn.Module):
+class GCNModel(tlx.nn.Module):
     r"""
     Graph Convolutional Network proposed in `Semi-Supervised Classification with Graph Convolutional Networks`_.
 
@@ -23,8 +23,8 @@ class GCNModel(tl.nn.Module):
 
         self.conv1 = GCNConv(cfg.feature_dim, cfg.hidden_dim)
         self.conv2 = GCNConv(cfg.hidden_dim, cfg.num_class)
-        self.relu = tl.ReLU()
-        self.dropout = tl.layers.Dropout(cfg.keep_rate)
+        self.relu = tlx.ReLU()
+        self.dropout = tlx.layers.Dropout(cfg.keep_rate)
 
     def forward(self, x, edge_index, edge_weight, num_nodes):
         x = self.conv1(x, edge_index, edge_weight, num_nodes)

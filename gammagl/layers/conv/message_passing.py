@@ -1,7 +1,7 @@
-import tensorlayerx as tl
+import tensorlayerx as tlx
 
 
-class MessagePassing(tl.nn.Module):
+class MessagePassing(tlx.nn.Module):
     r"""Base class for creating message passing layers of the form
 
     .. math::
@@ -19,9 +19,9 @@ class MessagePassing(tl.nn.Module):
         super().__init__()
 
     def message(self, x, edge_index, edge_weight=None, num_nodes=None):
-        x = tl.ops.gather(x, edge_index[0,:])
+        x = tlx.ops.gather(x, edge_index[0,:])
         if edge_weight is not None:
-            edge_weight = tl.expand_dims(edge_weight, -1)
+            edge_weight = tlx.expand_dims(edge_weight, -1)
             return x * edge_weight
         else:
             return x
@@ -29,13 +29,13 @@ class MessagePassing(tl.nn.Module):
     def aggregate(self, x, edge_index, num_nodes=None, aggr_type='sum'):
         dst_index = edge_index[1, :]
         if aggr_type == 'sum':
-            return tl.ops.unsorted_segment_sum(x, dst_index, num_nodes)
+            return tlx.ops.unsorted_segment_sum(x, dst_index, num_nodes)
         if aggr_type == 'mean':
-            return tl.ops.unsorted_segment_mean(x, dst_index, num_nodes)
+            return tlx.ops.unsorted_segment_mean(x, dst_index, num_nodes)
         if aggr_type == 'max':
-            return tl.ops.unsorted_segment_max(x, dst_index, num_nodes)
+            return tlx.ops.unsorted_segment_max(x, dst_index, num_nodes)
         if aggr_type == 'min':
-            return tl.ops.unsorted_segment_min(x, dst_index, num_nodes)
+            return tlx.ops.unsorted_segment_min(x, dst_index, num_nodes)
 
     # def message_aggregate(self, x, index):
     #     x = self.message(x, index)
