@@ -1,6 +1,8 @@
 # For this repo
 .idea
 .vscode
+.DS_Store
+demo/
 toytest.py
 gammagl/datasets/raw_file/
 examples/best_models/*

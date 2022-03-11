@@ -1,4 +1,4 @@
-import tensorlayerx as tl
+import tensorlayerx as tlx
 from . import MessagePassing
 
 
@@ -26,12 +26,12 @@ class GINConv(MessagePassing):
     Example
     -------
     >>> import numpy as np
-    >>> import tensorlayerx as tl
+    >>> import tensorlayerx as tlx
     >>> from gammagl.layers.conv import GINConv
     >>>
     >>>
     >>> edge_index = np.array([[0,1,2,3,2,5], [1,2,3,4,0,3]])
-    >>> x = tl.ones((6, 10))
+    >>> x = tlx.ones((6, 10))
     >>> conv = GINConv(aggregator_type='sum')
     >>> res = conv(x, edge_index)
     >>> res
@@ -42,7 +42,7 @@ class GINConv(MessagePassing):
        [3., 3., 3., 3., 3., 3., 3., 3., 3., 3.],
        [2., 2., 2., 2., 2., 2., 2., 2., 2., 2.],
        [1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]], dtype=float32)>
-    >>> tl.layers.Dense(n_units=10, in_channels=10, name='dense_1')
+    >>> tlx.layers.Dense(n_units=10, in_channels=10, name='dense_1')
     >>> conv = GINConv(lin, 'mean')
     >>> res = conv(x, edge_index)
     >>> res
@@ -74,15 +74,15 @@ class GINConv(MessagePassing):
             raise KeyError('Aggregator type {} not recognized.'.format(aggregator_type))
         
         # to specify whether eps is trainable or not.
-        self.eps = tl.Variable(initial_value=[init_eps], name='eps', trainable=learn_eps)
+        self.eps = tlx.Variable(initial_value=[init_eps], name='eps', trainable=learn_eps)
 
     def forward(self, x, edge_index):
         r"""Compute Graph Isomorphism Network layer.
 
         Parameters
         ----------
-        x : tl.Tensor
-        edge_index : tl.Tensor or pair of tf.Tensor
+        x : tlx.Tensor
+        edge_index : tlx.Tensor or pair of tf.Tensor
             If a tf.Tensor is given, the input feature of shape :math:`(N, D_{in})` where
             :math:`D_{in}` is size of input feature, :math:`N` is the number of nodes.
             If a pair of tf.Tensor is given, the pair must contain two tensors of shape
@@ -92,7 +92,7 @@ class GINConv(MessagePassing):
 
         Returns
         -------
-        tl.Tensor
+        tlx.Tensor
             The output feature of shape :math:`(N, D_{out})` where
             :math:`D_{out}` is the output dimensionality of ``apply_func``.
             If ``apply_func`` is None, :math:`D_{out}` should be the same

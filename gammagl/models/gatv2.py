@@ -1,8 +1,8 @@
-import tensorlayerx as tl
+import tensorlayerx as tlx
 from gammagl.layers.conv import GATV2Conv
 import tensorflow as tf
 
-class GATV2Model(tl.nn.Module):
+class GATV2Model(tlx.nn.Module):
     r"""`"How Attentive are Graph Attention Networks?"
     <https://arxiv.org/abs/2105.14491>`_ paper.
 
@@ -30,8 +30,8 @@ class GATV2Model(tl.nn.Module):
                              heads=cfg.heads,
                              dropout_rate=1-cfg.keep_rate,
                              concat=False)
-        self.elu = tl.layers.ELU()
-        self.dropout = tl.layers.Dropout(cfg.keep_rate)
+        self.elu = tlx.layers.ELU()
+        self.dropout = tlx.layers.Dropout(cfg.keep_rate)
 
     def forward(self, x, edge_index, num_nodes):
         x = self.dropout(x)

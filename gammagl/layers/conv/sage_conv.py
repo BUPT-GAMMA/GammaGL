@@ -1,4 +1,4 @@
-import tensorlayerx as tl
+import tensorlayerx as tlx
 import tensorflow as tf
 from gammagl.layers.conv import MessagePassing
 
@@ -29,16 +29,16 @@ class SAGEConv(MessagePassing):
     def __init__(self, in_channels, out_channels, aggr="mean", add_bias=True):
         super(SAGEConv, self).__init__()
         self.aggr = aggr
-        initor = tl.initializers.XavierUniform()
-        self.fc_neigh = tl.layers.Dense(n_units=out_channels,
+        initor = tlx.initializers.XavierUniform()
+        self.fc_neigh = tlx.layers.Dense(n_units=out_channels,
                                         in_channels=in_channels,
                                         b_init=initor)
-        self.fc_self = tl.layers.Dense(n_units=out_channels,
+        self.fc_self = tlx.layers.Dense(n_units=out_channels,
                                        in_channels=in_channels,
                                        b_init=initor)
         self.add_bias = add_bias
         if add_bias is True:
-            initor = tl.initializers.Zeros()
+            initor = tlx.initializers.Zeros()
             self.bias = self._get_weights("bias", shape=(1, out_channels), init=initor)
     def forward(self, feat, edge):
         r"""

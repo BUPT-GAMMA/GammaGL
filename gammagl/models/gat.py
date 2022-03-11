@@ -1,7 +1,7 @@
-import tensorlayerx as tl
+import tensorlayerx as tlx
 from gammagl.layers.conv import GATConv
 
-class GATModel(tl.nn.Module):
+class GATModel(tlx.nn.Module):
     r"""The graph attentional operator from the `"Graph Attention Networks"
     <https://arxiv.org/abs/1710.10903>`_ paper
 
@@ -29,8 +29,8 @@ class GATModel(tl.nn.Module):
                              heads=cfg.heads,
                              dropout_rate=1-cfg.keep_rate,
                              concat=False)
-        self.elu = tl.layers.ELU()
-        self.dropout = tl.layers.Dropout(cfg.keep_rate)
+        self.elu = tlx.layers.ELU()
+        self.dropout = tlx.layers.Dropout(cfg.keep_rate)
 
     def forward(self, x, edge_index, num_nodes):
         x = self.dropout(x)
