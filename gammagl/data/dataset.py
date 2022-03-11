@@ -5,7 +5,7 @@ import sys
 import warnings
 from collections.abc import Sequence
 from typing import Any, Callable, List, Optional, Tuple, Union
-from tensorlayer.dataflow import Dataset
+from tensorlayerx.dataflow import Dataset
 import numpy as np
 from torch import Tensor
 from . import Graph

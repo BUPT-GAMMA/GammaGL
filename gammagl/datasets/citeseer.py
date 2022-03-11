@@ -1,8 +1,8 @@
 import numpy as np
 import scipy.sparse as sp
-import tensorlayer as tl
+import tensorlayerx as tl
 from gammagl.data import Graph
-from tensorlayer.dataflow import Dataset
+from tensorlayerx.dataflow import Dataset
 
 def normalize(mx):
     rowsum = np.array(mx.sum(1))

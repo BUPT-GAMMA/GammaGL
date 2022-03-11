@@ -2,7 +2,7 @@
 import warnings
 import copy
 import numpy as np
-import tensorlayer as tl
+import tensorlayerx as tl
 
 
 class BaseGraph:

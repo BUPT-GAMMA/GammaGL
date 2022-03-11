@@ -1,10 +1,10 @@
 import tensorflow as tf
-import tensorlayer as tl
+import tensorlayerx as tl
 from gammagl.layers.conv import MessagePassing
 
 
 def segment_softmax(data, segment_ids, num_segments):
-    max_values = tl.ops.unsorted_segment_max(data, segment_ids, num_segments=num_segments) # tensorlayer not supported
+    max_values = tl.ops.unsorted_segment_max(data, segment_ids, num_segments=num_segments) # tensorlayerx not supported
     gathered_max_values = tl.ops.gather(max_values, segment_ids)
     # exp = tl.ops.exp(data - tf.stop_gradient(gathered_max_values))
     exp = tl.ops.exp(data - gathered_max_values)

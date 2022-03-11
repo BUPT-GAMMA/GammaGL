@@ -1,4 +1,4 @@
-import tensorlayer as tl
+import tensorlayerx as tl
 from gammagl.layers.conv import MessagePassing
 
 class GCNIIConv(MessagePassing):

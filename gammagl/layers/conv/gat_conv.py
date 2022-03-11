@@ -1,9 +1,9 @@
-import tensorlayer as tl
+import tensorlayerx as tl
 from gammagl.layers.conv import MessagePassing
 
 
 def segment_softmax(data, segment_ids, num_segments):
-    max_values = tl.ops.unsorted_segment_max(data, segment_ids, num_segments=num_segments) # tensorlayer not supported
+    max_values = tl.ops.unsorted_segment_max(data, segment_ids, num_segments=num_segments) # tensorlayerx not supported
     gathered_max_values = tl.ops.gather(max_values, segment_ids)
     # exp = tl.ops.exp(data - tf.stop_gradient(gathered_max_values))
     exp = tl.ops.exp(data - gathered_max_values)
@@ -91,7 +91,7 @@ class GATConv(MessagePassing):
         elif self.add_bias and not concat:
             self.bias = self._get_weights("bias", shape=(self.out_channels,), init=initor)
         
-    def message(self, x, edge_index, num_nodes, edge_weight=None):
+    def message(self, x, edge_index, edge_weight=None, num_nodes=None):
         node_src = edge_index[0, :] # tl.ops.concat([edge_index[0, :], tl.ops.range(num_nodes)], axis=0)
         node_dst = edge_index[1, :] # tl.ops.concat([edge_index[1, :], tl.ops.range(num_nodes)], axis=0)
         weight_src = tl.ops.gather(tl.ops.reduce_sum(x * self.att_src, -1), node_src)
@@ -125,7 +125,7 @@ class GATConv(MessagePassing):
 
     def forward(self, x, edge_index, num_nodes):
         x = tl.ops.reshape(self.linear_w(x), shape=(-1, self.heads, self.out_channels))
-        x = self.propagate(x, edge_index, num_nodes)
+        x = self.propagate(x, edge_index, num_nodes=num_nodes)
 
         if self.concat:
             x = tl.ops.reshape(x, (-1, self.heads * self.out_channels))

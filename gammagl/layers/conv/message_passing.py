@@ -1,7 +1,7 @@
-import tensorlayer as tl
+import tensorlayerx as tl
 
 
-class MessagePassing(tl.layers.Module):
+class MessagePassing(tl.nn.Module):
     r"""Base class for creating message passing layers of the form
 
     .. math::
@@ -46,7 +46,7 @@ class MessagePassing(tl.layers.Module):
         return x
 
     def propagate(self, x, edge_index, edge_weight=None, num_nodes=None, aggr='sum'):
-        x = self.message(x, edge_index, edge_weight=edge_weight, num_nodes=num_nodes)
-        x = self.aggregate(x, edge_index, num_nodes=num_nodes, aggr_type=aggr)
+        msg = self.message(x, edge_index, edge_weight=edge_weight, num_nodes=num_nodes)
+        x = self.aggregate(msg, edge_index, num_nodes=num_nodes, aggr_type=aggr)
         x = self.update(x)
         return x
