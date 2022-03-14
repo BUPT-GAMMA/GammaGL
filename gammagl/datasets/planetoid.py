@@ -159,20 +159,6 @@ except ImportError:
     import pickle
 
 
-def parse_txt_array(src, sep=None, start=0, end=None, dtype=None, device=None):
-    to_number = int
-
-    src = [[to_number(x) for x in line.split(sep)[start:end]] for line in src]
-    src = np.array(src).squeeze()
-    return src
-
-
-def read_txt_array(path, sep=None, start=0, end=None, dtype=None, device=None):
-    with open(path, 'r') as f:
-        src = f.read().split('\n')[:-1]
-    return parse_txt_array(src, sep, start, end, dtype, device)
-
-
 def read_planetoid_data(folder, prefix):
     names = ['x', 'tx', 'allx', 'y', 'ty', 'ally', 'graph', 'test.index']
     items = [read_file(folder, prefix, name) for name in names]

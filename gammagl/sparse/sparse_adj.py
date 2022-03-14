@@ -3,7 +3,6 @@
 import numpy as np
 import tensorlayerx as tlx
 from gammagl.utils.graph_utils import add_self_loop_edge
-from gammagl.data.graph import Graph
 from gammagl.utils.check import check_is_numpy
 from gammagl.utils.ops import get_index_from_counts
 from gammagl.layers.kernel.segment import segment_softmax

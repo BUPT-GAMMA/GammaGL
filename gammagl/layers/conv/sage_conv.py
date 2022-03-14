@@ -2,6 +2,7 @@ import tensorlayerx as tlx
 import tensorflow as tf
 from gammagl.layers.conv import MessagePassing
 
+
 class SAGEConv(MessagePassing):
     r"""The GraphSAGE operator from the `"Inductive Representation Learning on
        Large Graphs" <https://arxiv.org/abs/1706.02216>`_ paper
@@ -40,6 +41,7 @@ class SAGEConv(MessagePassing):
         if add_bias is True:
             initor = tlx.initializers.Zeros()
             self.bias = self._get_weights("bias", shape=(1, out_channels), init=initor)
+            
     def forward(self, feat, edge):
         r"""
 
@@ -71,6 +73,7 @@ class SAGEConv(MessagePassing):
         if self.add_bias:
             out += self.bias
         return out
+    
     def aggregate(self, x, edge_index):
         if self.aggr == "mean":
             return tf.math.unsorted_segment_mean(tf.gather(x, edge_index[0]), edge_index[1], self.num_nodes)
