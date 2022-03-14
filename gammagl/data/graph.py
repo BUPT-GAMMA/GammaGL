@@ -42,17 +42,17 @@ class Graph(object):
         graph_label: labels of graphs
     """
 
-    def __init__(self, x, edge_index, edge_feat=None, num_nodes=None, y=None, spr_format=None):
+    def __init__(self, x=None, edge_index=None, edge_feat=None, num_nodes=None, y=None, spr_format=None):
         if edge_index is not None:
             self._edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.float32)
 
         if num_nodes is None:
             warnings.warn("_maybe_num_node() is used to determine the number of nodes."
                       "This may underestimate the count if there are isolated nodes.")
-            self._num_nodes = self._maybe_num_node(self._edge_index)
+            self._num_nodes = self._maybe_num_node(edge_index)
         else:
             self._num_nodes = num_nodes
-            max_node_id = self._maybe_num_node(self._edge_index) - 1 # max_node_id = num_nodes - 1
+            max_node_id = self._maybe_num_node(edge_index) - 1 # max_node_id = num_nodes - 1
             if self._num_nodes <= max_node_id:
                 raise ValueError("num_nodes=[{}] should be bigger than max node ID in edge_index.".format(self._num_nodes))
         if edge_feat is not None:
@@ -61,10 +61,11 @@ class Graph(object):
             self._x = tlx.convert_to_tensor(x, dtype=tlx.float32)
         if y is not None:
             self._y = tlx.convert_to_tensor(y, dtype=tlx.float32)
-        if 'csr' in spr_format:
-            self._csr_adj = CSRAdj.from_edges(self._edge_index[0], self._edge_index[1], self._num_nodes)
-        if 'csc' in spr_format:
-            self._csc_adj = CSRAdj.from_edges(self._edge_index[1], self._edge_index[0], self._num_nodes)
+        if spr_format is not None:
+            if 'csr' in spr_format:
+                self._csr_adj = CSRAdj.from_edges(self._edge_index[0], self._edge_index[1], self._num_nodes)
+            if 'csc' in spr_format:
+                self._csc_adj = CSRAdj.from_edges(self._edge_index[1], self._edge_index[0], self._num_nodes)
 
     # @classmethod
     def _maybe_num_node(self, edge_index):
@@ -74,8 +75,8 @@ class Graph(object):
         Args:
             edge_index: edge list contains source nodes and destination nodes of graph.
         """
-        if len(edge_index):
-            return tlx.max(edge_index) + 1
+        if edge_index is not None:
+            return np.max(tlx.convert_to_numpy(edge_index)) + 1
         else:
             return 0
 
@@ -153,7 +154,8 @@ class Graph(object):
         self_loop_index = np.stack([np.arange(self.num_nodes), np.arange(self.num_nodes)])
         self._edge_index = np.concatenate([self._edge_index, self_loop_index], axis=1)
 
-
+    def stores_as(self, data: 'Data'):
+        return
     # def node_mask(self):
     #     # return a subgraph based on index. (?)
     #     pass
