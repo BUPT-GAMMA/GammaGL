@@ -94,48 +94,39 @@ class Graph(object):
     @property
     def node_feat(self):
         r"""
-        Graph property, return the node feature of the graph.
+        Return the node features.
         """
         return self._node_feat
     
     @property
     def edge_index(self):
         r"""
-        Graph property, return the edge index of the graph.
+        Return the edge index [COO].
         """
         return self._edge_index
 
     @property
     def node_label(self):
         r"""
-        Graph property, return the node labels of the graph.
+        Return the edge features.
         """
         return self._node_label
 
     @property
     def edge_feat(self):
         r"""
-        Graph property, return the node labels of the graph.
+        Return the node in-degree of the graph.
         """
         return self._edge_feat
 
-    # @property
-    # def indegree(self):
-    #     r"""
-    #     Graph property, return the node in-degree of the graph.
-    #     """
-    #     return tl.unsorted_segment_sum(tl.ones(self.edge_index.shape[1]),
-    #                                         self.edge_index[1], 
-    #                                         self.num_nodes)
-
-    # @property
-    # def outdegree(self):
-    #     r"""
-    #     Graph property, return the node out-degree of the graph.
-    #     """
-    #     return tl.unsorted_segment_sum(tl.ones(self.edge_index.shape[1]), 
-    #                                         self.edge_index[0], 
-    #                                         self.num_nodes)
+    @property
+    def outdegree(self):
+        r"""
+        Return the node out-degree of the graph.
+        """
+        if self._csr_adj is not None:
+            return self._csr_adj.degree
+        return tlx.unsorted_segment_sum(tlx.ones(self.edge_index.shape[1]), self.edge_index[0], self.num_nodes)
 
     def add_self_loop(self, n_loops=1):
         """
@@ -143,8 +134,8 @@ class Graph(object):
             n_loops: number of self loops.
 
         """
-        self_loop_index = np.stack([np.arange(self.num_nodes), np.arange(self.num_nodes)])
-        self._edge_index = np.concatenate([self._edge_index, self_loop_index], axis=1)
+        self_loop_index = tlx.ops.convert_to_tensor(np.stack([np.arange(self.num_nodes), np.arange(self.num_nodes)]))
+        self._edge_index = tlx.concat([self._edge_index, self_loop_index], axis=1)
 
 
     # def node_mask(self):
