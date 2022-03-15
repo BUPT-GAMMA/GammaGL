@@ -6,7 +6,7 @@ from torch import Tensor
 from . import Graph
 # from .data.collate import collate
 from .dataset import Dataset, IndexType
-# from .data.separate import separate
+from gammagl.data.separate import separate
 
 
 class InMemoryDataset(Dataset):

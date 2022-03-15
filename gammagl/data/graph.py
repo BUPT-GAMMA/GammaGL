@@ -3,15 +3,28 @@ import copy
 import numpy as np
 import tensorlayerx as tlx
 from gammagl.sparse.sparse_adj import CSRAdj
+from typing import (Any, Callable, Dict, Iterable, List, NamedTuple, Optional,
+                    Tuple, Union)
+from gammagl.data.storage import (BaseStorage, EdgeStorage,
+                                          GlobalStorage, NodeStorage)
+from gammagl.utils.check import check_is_numpy
 
 
 class BaseGraph:
     r"""
     base graph object that inherited by Graph and heteroGraph
     """
+    # solve the problem of pickle Graph
+    # https://stackoverflow.com/questions/50156118/recursionerror-maximum-recursion-depth-exceeded-while-calling-a-python-object-w
+    def __getstate__(self) -> Dict[str, Any]:
+        return self.__dict__
+
+    def __setstate__(self, mapping: Dict[str, Any]):
+        for key, value in mapping.items():
+            self.__dict__[key] = value
 
 
-class Graph(object):
+class Graph(BaseGraph):
     r""" 
     A Graph object describe a homogeneous graph. The graph object 
     will hold node-level, link-level and graph-level attributes. In 
@@ -42,9 +55,10 @@ class Graph(object):
         graph_label: labels of graphs
     """
 
-    def __init__(self, x=None, edge_index=None, edge_feat=None, num_nodes=None, y=None, spr_format=None):
+    def __init__(self, x=None, edge_index=None, edge_feat=None, num_nodes=None, y=None, spr_format=None, **kwargs):
+        self.__dict__['_store'] = GlobalStorage(_parent=self)
         if edge_index is not None:
-            self._edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.float32)
+            self.edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.float32)
 
         if num_nodes is None:
             warnings.warn("_maybe_num_node() is used to determine the number of nodes."
@@ -56,17 +70,46 @@ class Graph(object):
             if self._num_nodes <= max_node_id:
                 raise ValueError("num_nodes=[{}] should be bigger than max node ID in edge_index.".format(self._num_nodes))
         if edge_feat is not None:
-            self._edge_feat = tlx.convert_to_tensor(edge_feat, dtype=tlx.float32)
+            self.edge_feat = tlx.convert_to_tensor(edge_feat, dtype=tlx.float32)
         if x is not None:
-            self._x = tlx.convert_to_tensor(x, dtype=tlx.float32)
+            self.x = tlx.convert_to_tensor(x, dtype=tlx.float32)
         if y is not None:
-            self._y = tlx.convert_to_tensor(y, dtype=tlx.float32)
+            self.y = tlx.convert_to_tensor(y, dtype=tlx.float32)
         if spr_format is not None:
             if 'csr' in spr_format:
                 self._csr_adj = CSRAdj.from_edges(self._edge_index[0], self._edge_index[1], self._num_nodes)
             if 'csc' in spr_format:
                 self._csc_adj = CSRAdj.from_edges(self._edge_index[1], self._edge_index[0], self._num_nodes)
+        # for key, value in kwargs.items():
+        #     setattr(self, key, value)
+            
+    def __getitem__(self, key: str) -> Any:
+        return self._store[key]
 
+    def __setitem__(self, key: str, value: Any):
+        self._store[key] = value
+
+    def __getattr__(self, key: str) -> Any:
+         return getattr(self._store, key)
+
+    def __setattr__(self, key: str, value: Any):
+        setattr(self._store, key, value)
+    
+    def __cat_dim__(self, key: str, value: Any, *args, **kwargs) -> Any:
+        # if isinstance(value, SparseTensor) and 'adj' in key:
+        #     return (0, 1)
+        if 'index' in key or 'face' in key:
+            return -1
+        else:
+            return 0
+        
+    @property
+    def stores(self) -> List[BaseStorage]:
+        return [self._store]
+    
+    def stores_as(self, data: 'Data'):
+        return self
+    
     # @classmethod
     def _maybe_num_node(self, edge_index):
         r"""
@@ -76,7 +119,10 @@ class Graph(object):
             edge_index: edge list contains source nodes and destination nodes of graph.
         """
         if edge_index is not None:
-            return np.max(tlx.convert_to_numpy(edge_index)) + 1
+            if check_is_numpy(edge_index):
+                return np.max(edge_index) + 1
+            else:
+                return np.max(tlx.convert_to_numpy(edge_index)) + 1
         else:
             return 0
 
@@ -92,28 +138,27 @@ class Graph(object):
         r"""
         Return the number of edges.
         """
-        return len(self._edge_index)
+        return len(self.edge_index)
 
     @property
-    def x(self):
-        r"""
-        Graph property, return the node feature of the graph.
-        """
-        return self._x
-    
-    @property
-    def edge_index(self):
-        r"""
-        Graph property, return the edge index of the graph.
-        """
-        return self._edge_index
+    def x(self) -> Any:
+        return self['x'] if 'x' in self._store else None
 
     @property
-    def edge_feat(self):
-        r"""
-        Graph property, return the node labels of the graph.
-        """
-        return self._edge_feat
+    def edge_index(self) -> Any:
+        return self['edge_index'] if 'edge_index' in self._store else None
+
+    @property
+    def edge_weight(self) -> Any:
+        return self['edge_weight'] if 'edge_weight' in self._store else None
+
+    @property
+    def edge_attr(self) -> Any:
+        return self['edge_attr'] if 'edge_attr' in self._store else None
+
+    @property
+    def y(self) -> Any:
+        return self['y'] if 'y' in self._store else None
 
     @property
     def indegree(self):
@@ -154,8 +199,6 @@ class Graph(object):
         self_loop_index = np.stack([np.arange(self.num_nodes), np.arange(self.num_nodes)])
         self._edge_index = np.concatenate([self._edge_index, self_loop_index], axis=1)
 
-    def stores_as(self, data: 'Data'):
-        return
     # def node_mask(self):
     #     # return a subgraph based on index. (?)
     #     pass

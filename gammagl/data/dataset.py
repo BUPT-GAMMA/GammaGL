@@ -159,6 +159,7 @@ class Dataset(Dataset):
                 "'{self.processed_dir}' first")
 
         if files_exist(self.processed_paths):  # pragma: no cover
+            self.process()
             return
 
         print('Processing...', file=sys.stderr)
@@ -244,7 +245,7 @@ class Dataset(Dataset):
                 return the random permutation used to shuffle the dataset.
                 (default: :obj:`False`)
         """
-        perm = torch.randperm(len(self))
+        perm = np.random.permutation(len(self))
         dataset = self.index_select(perm)
         return (dataset, perm) if return_perm is True else dataset
 
