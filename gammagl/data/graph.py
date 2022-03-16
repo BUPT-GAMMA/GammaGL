@@ -22,7 +22,17 @@ class BaseGraph:
     def __setstate__(self, mapping: Dict[str, Any]):
         for key, value in mapping.items():
             self.__dict__[key] = value
-
+            
+    def __inc__(self, key: str, value: Any, *args, **kwargs) -> Any:
+        r"""Returns the incremental count to cumulatively increase the value
+        :obj:`value` of the attribute :obj:`key` when creating mini-batches
+        using :class:`torch_geometric.loader.DataLoader`.
+        .. note::
+            This method is for internal use only, and should only be overridden
+            in case the mini-batch creation process is corrupted for a specific
+            attribute.
+        """
+        raise NotImplementedError
 
 class Graph(BaseGraph):
     r""" 
@@ -58,7 +68,7 @@ class Graph(BaseGraph):
     def __init__(self, x=None, edge_index=None, edge_feat=None, num_nodes=None, y=None, spr_format=None, **kwargs):
         self.__dict__['_store'] = GlobalStorage(_parent=self)
         if edge_index is not None:
-            self.edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.float32)
+            self.edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int32)
 
         if num_nodes is None:
             warnings.warn("_maybe_num_node() is used to determine the number of nodes."
@@ -100,6 +110,14 @@ class Graph(BaseGraph):
         #     return (0, 1)
         if 'index' in key or 'face' in key:
             return -1
+        else:
+            return 0
+    
+    def __inc__(self, key: str, value: Any, *args, **kwargs) -> Any:
+        if 'batch' in key:
+            return int(value.max()) + 1
+        elif 'index' in key or key == 'face':
+            return self.num_nodes
         else:
             return 0
         
@@ -189,7 +207,12 @@ class Graph(BaseGraph):
         if self._csr_adj is not None:
             self._csr_adj = CSRAdj.from_edges(self._edge_index[0], self._edge_index[1], self._num_nodes)
         return self._csr_adj
-        
+
+    @property
+    def num_node_features(self) -> int:
+        r"""Returns the number of features per node in the graph."""
+        return self._store.num_node_features
+    
     def add_self_loop(self, n_loops=1):
         """
         Args:
@@ -215,9 +238,9 @@ class Graph(BaseGraph):
     #     # convert the graph to an directed graph.
     #     pass
 
-    # def add_self_loop(self):
-    #     self_loop_index = Graph.cast_edge_index([np.arange(self.num_nodes), np.arange(self.num_nodes)])
-    #     self._edge_index = tlx.concat([self._edge_index, self_loop_index], axis=1)
+    def add_self_loop(self):
+        self_loop_index = Graph.cast_edge_index([np.arange(self.num_nodes), np.arange(self.num_nodes)])
+        self._edge_index = tlx.concat([self._edge_index, self_loop_index], axis=1)
 
     def generate_onehot_node_feat(self):
         self._node_feat = np.eye(self.num_nodes, dtype=np.float32)

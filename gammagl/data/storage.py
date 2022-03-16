@@ -9,7 +9,7 @@ from typing import (Any, Callable, Dict, Iterable, List, NamedTuple, Optional,
 # import torch
 # from torch import Tensor
 # from torch_sparse import SparseTensor, coalesce
-#
+import tensorflow as tf
 from gammagl.data.view import ItemsView, KeysView, ValuesView
 # from torch_geometric.utils import is_undirected
 
@@ -248,43 +248,39 @@ class NodeStorage(BaseStorage):
         else:
             return False
 
-    # @property
-    # def num_nodes(self) -> Optional[int]:
-    #     # We sequentially access attributes that reveal the number of nodes.
-    #     if 'num_nodes' in self:
-    #         return self['num_nodes']
-    #     for key, value in self.items():
-    #         if (isinstance(value, Tensor)
-    #                 and (key in {'x', 'pos', 'batch'} or 'node' in key)):
-    #             return value.size(self._parent().__cat_dim__(key, value, self))
-    #     if 'adj' in self and isinstance(self.adj, SparseTensor):
-    #         return self.adj.size(0)
-    #     if 'adj_t' in self and isinstance(self.adj_t, SparseTensor):
-    #         return self.adj_t.size(1)
-    #     warnings.warn(
-    #         f"Unable to accurately infer 'num_nodes' from the attribute set "
-    #         f"'{set(self.keys())}'. Please explicitly set 'num_nodes' as an "
-    #         f"attribute of " +
-    #         ("'data'" if self._key is None else f"'data[{self._key}]'") +
-    #         " to suppress this warning")
-    #     if 'edge_index' in self and isinstance(self.edge_index, Tensor):
-    #         if self.edge_index.numel() > 0:
-    #             return int(self.edge_index.max()) + 1
-    #         else:
-    #             return 0
-    #     if 'face' in self and isinstance(self.face, Tensor):
-    #         if self.face.numel() > 0:
-    #             return int(self.face.max()) + 1
-    #         else:
-    #             return 0
-    #     return None
-    #
-    # @property
-    # def num_node_features(self) -> int:
-    #     if 'x' in self and isinstance(self.x, Tensor):
-    #         return 1 if self.x.dim() == 1 else self.x.size(-1)
-    #     return 0
-    #
+    @property
+    def num_nodes(self) -> Optional[int]:
+        # We sequentially access attributes that reveal the number of nodes.
+        if 'num_nodes' in self:
+            return self['num_nodes']
+        for key, value in self.items():
+            import tensorflow as tf
+            if (isinstance(value, tf.Tensor)
+                    and (key in {'x', 'pos', 'batch'} or 'node' in key)):
+                return value.shape[self._parent().__cat_dim__(key, value, self)]
+        # if 'adj' in self and isinstance(self.adj, SparseTensor):
+        #     return self.adj.size(0)
+        # if 'adj_t' in self and isinstance(self.adj_t, SparseTensor):
+        #     return self.adj_t.size(1)
+        # warnings.warn(
+        #     f"Unable to accurately infer 'num_nodes' from the attribute set "
+        #     f"'{set(self.keys())}'. Please explicitly set 'num_nodes' as an "
+        #     f"attribute of " +
+        #     ("'data'" if self._key is None else f"'data[{self._key}]'") +
+        #     " to suppress this warning")
+        if 'edge_index' in self and isinstance(self.edge_index, Tensor):
+            if self.edge_index.numel() > 0:
+                return int(self.edge_index.max()) + 1
+            else:
+                return 0
+        return None
+
+    @property
+    def num_node_features(self) -> int:
+        if 'x' in self and isinstance(self.x, tf.Tensor):
+            return 1 if self.x.ndim == 1 else self.x.shape[-1]
+        return 0
+
     # @property
     # def num_features(self) -> int:
     #     return self.num_node_features
