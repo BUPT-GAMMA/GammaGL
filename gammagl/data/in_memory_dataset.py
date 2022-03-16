@@ -4,7 +4,7 @@ from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from torch import Tensor
 from . import Graph
-# from .data.collate import collate
+from gammagl.data.collate import collate
 from .dataset import Dataset, IndexType
 from gammagl.data.separate import separate
 
@@ -55,18 +55,18 @@ class InMemoryDataset(Dataset):
         self.slices = None
         self._data_list: Optional[List[Graph]] = None
 
-    # @property
-    # def num_classes(self) -> int:
-    #     r"""Returns the number of classes in the dataset."""
-    #     y = self.data.y
-    #     if y is None:
-    #         return 0
-    #     elif y.numel() == y.size(0) and not torch.is_floating_point(y):
-    #         return int(self.data.y.max()) + 1
-    #     elif y.numel() == y.size(0) and torch.is_floating_point(y):
-    #         return torch.unique(y).numel()
-    #     else:
-    #         return self.data.y.size(-1)
+    @property
+    def num_classes(self) -> int:
+        r"""Returns the number of classes in the dataset."""
+        y = self.data.y
+        if y is None:
+            return 0
+        # elif y.numel() == y.size(0) and not torch.is_floating_point(y):
+        #     return int(self.data.y.max()) + 1
+        # elif y.numel() == y.size(0) and torch.is_floating_point(y):
+        #     return torch.unique(y).numel()
+        else:
+            return self.data.y.shape[-1]
 
     def len(self) -> int:
         if self.slices is None:

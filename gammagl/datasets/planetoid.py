@@ -1,6 +1,7 @@
 from typing import Callable, List, Optional
 from gammagl.data import download_url
 from gammagl.data import InMemoryDataset
+from gammagl.utils.io import txt_array, read_txt_array
 
 try:
     import cPickle as pickle
@@ -82,7 +83,7 @@ class Planetoid(InMemoryDataset):
 
         super().__init__(root, transform, pre_transform)
         with open(self.processed_paths[0], 'rb') as f:
-            self.data = pickle.load(f)
+            self.data, self.slices = pickle.load(f)
 
         self.split = split
         assert self.split in ['public', 'full', 'random']
@@ -137,7 +138,7 @@ class Planetoid(InMemoryDataset):
         data = read_planetoid_data(self.raw_dir, self.name)
         data = data if self.pre_transform is None else self.pre_transform(data)
         with open(self.processed_paths[0], 'wb') as f:
-            pickle.dump([data], f)
+            pickle.dump(self.collate([data]), f)
         # torch.save(self.collate([data]), self.processed_paths[0])
 
     def __repr__(self) -> str:

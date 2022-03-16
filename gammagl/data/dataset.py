@@ -159,7 +159,6 @@ class Dataset(Dataset):
                 "'{self.processed_dir}' first")
 
         if files_exist(self.processed_paths):  # pragma: no cover
-            self.process()
             return
 
         print('Processing...', file=sys.stderr)

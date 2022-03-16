@@ -98,7 +98,7 @@ class GINConv(MessagePassing):
             If ``apply_func`` is None, :math:`D_{out}` should be the same
             as input dimensionality.
         """
-        out = self.propagate(x=x, edge_index=edge_index, aggr_type=self.aggregator_type)
+        out = self.propagate(x=x, edge_index=edge_index, aggr=self.aggregator_type)
 
         out += (1 + self.eps) * x
 
