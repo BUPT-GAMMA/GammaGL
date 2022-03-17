@@ -84,7 +84,7 @@ class Graph(BaseGraph):
         if x is not None:
             self.x = tlx.convert_to_tensor(x, dtype=tlx.float32)
         if y is not None:
-            self.y = tlx.convert_to_tensor(y, dtype=tlx.float32)
+            self.y = tlx.convert_to_tensor(y, dtype=tlx.int32)
         if spr_format is not None:
             if 'csr' in spr_format:
                 self._csr_adj = CSRAdj.from_edges(self._edge_index[0], self._edge_index[1], self._num_nodes)
