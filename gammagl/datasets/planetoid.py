@@ -222,8 +222,9 @@ def read_planetoid_data(folder, prefix):
     test_mask = index_to_mask(test_index, size=y.shape[0])
 
     edge_index = edge_index_from_dict(graph, num_nodes=y.shape[0])
+
     # 去除重复边
-    edge_index = list(k for k, _ in itertools.groupby(sorted(edge_index.tolist())))
+    edge_index = list(k for k, _ in itertools.groupby(sorted(edge_index)))
     edge = np.array(edge_index).T
     ind = np.argsort(edge[1], axis=0)
     edge = np.array(edge.T[ind]).T
@@ -257,11 +258,16 @@ def read_file(folder, prefix, name):
 
 
 def edge_index_from_dict(graph_dict, num_nodes=None, coalesce=True):
-    row, col = [], []
-    for key, value in graph_dict.items():
-        row += repeat(key, len(value))
-        col += value
-    edge_index = np.stack([np.array(row), np.array(col)], axis=0)
+    # row, col = [], []
+    # for key, value in graph_dict.items():
+    #     row += repeat(key, len(value))
+    #     col += value
+    # edge_index = np.stack([np.array(row), np.array(col)], axis=0)
+    # 我改了，这样肯定行，老三样数据集基本都这么处理
+    edge_index = []
+    for src, dst in graph_dict.items():  # 格式为 {index：[index_of_neighbor_nodes]}
+        edge_index.extend([src, v] for v in dst) # 起始点， 终点
+        edge_index.extend([v, src] for v in dst)
     # if coalesce:
     #     # NOTE: There are some duplicated edges and self loops in the datasets.
     #     #       Other implementations do not remove them!
