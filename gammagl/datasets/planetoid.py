@@ -1,3 +1,4 @@
+import itertools
 from typing import Callable, List, Optional
 from gammagl.data import download_url
 from gammagl.data import InMemoryDataset
@@ -221,8 +222,13 @@ def read_planetoid_data(folder, prefix):
     test_mask = index_to_mask(test_index, size=y.shape[0])
 
     edge_index = edge_index_from_dict(graph, num_nodes=y.shape[0])
+    # 去除重复边
+    edge_index = list(k for k, _ in itertools.groupby(sorted(edge_index.tolist())))
+    edge = np.array(edge_index).T
+    ind = np.argsort(edge[1], axis=0)
+    edge = np.array(edge.T[ind]).T
 
-    data = Graph(edge_index=edge_index, x=x, y=y)
+    data = Graph(edge_index=edge, x=x, y=y)
     data.train_mask = train_mask
     data.val_mask = val_mask
     data.test_mask = test_mask
