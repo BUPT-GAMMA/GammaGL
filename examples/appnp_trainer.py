@@ -1,10 +1,10 @@
 # !/usr/bin/env python
 # -*- encoding: utf-8 -*-
-"""
-@File    :   gcn_trainer.py
-@Time    :   2021/11/02 22:05:55
-@Author  :   hanhui
-"""
+'''
+@File    :   appnp_trainer.py
+@Time    :   2022/03/17 10:57:58
+@Author  :   Han Hui
+'''
 
 import os
 import sys
@@ -15,7 +15,7 @@ import numpy as np
 import tensorflow as tf
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
-from gammagl.models import GCNModel
+from gammagl.models import GCNModel, APPNPModel
 from gammagl.utils.config import Config
 from tensorlayerx.model import TrainOneStep, WithLoss
 
@@ -23,12 +23,13 @@ from tensorlayerx.model import TrainOneStep, WithLoss
 # parameters setting
 n_epoch = 200     # 200
 learning_rate = 0.01  # 0.01
-hidden_dim = 16   # 16
+hidden_dim = 64   # 16
 keep_rate = 0.5   # 0.5
-l2_norm = 5e-4    # 5e-4
+l2_norm = 1e-3    # 5e-4
+iter_K = 10
+alpha = 0.1
 
 best_model_path = r'./best_models/'
-
 
 # physical_gpus = tf.config.experimental.list_physical_devices('GPU')
 # if len(physical_gpus) > 0:
@@ -50,9 +51,11 @@ node_label = tlx.ops.convert_to_tensor(tlx.argmax(graph.y,1))
 cfg = Config(feature_dim=x.shape[1],
              hidden_dim=hidden_dim,
              num_class=graph.y.shape[1],
-             keep_rate=keep_rate,)
+             keep_rate=keep_rate,
+             iter_K=iter_K,
+             alpha=alpha)
 
-model = GCNModel(cfg, name="GCN")
+model = APPNPModel(cfg, name="APPNP")
 train_weights = model.trainable_weights
 optimizer = tlx.optimizers.Adam(learning_rate)
 best_val_acc = 0.
@@ -118,107 +121,107 @@ print("\ntest loss: {:.4f}, test acc: {:.4f}".format(test_loss, test_acc))
 
 
 
-
-"""
-NOTE: The following codes are framework agnostic. 
-However the can not applied l2 loss.
-"""
-
-class NetWithLoss(WithLoss):
-    def __init__(self, net, loss_fn):
-        super(NetWithLoss, self).__init__(backbone=net, loss_fn=loss_fn)
-
-    def forward(self, data, label):
-        logits = self._backbone(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
-        train_logits = logits[data['train_mask']]
-        train_label = label[data['train_mask']]
-        loss = self._loss_fn(train_logits, train_label)
-        return loss
-
-
-class GCNTrainOneStep(TrainOneStep):
-    def __init__(self, net_with_loss, optimizer, train_weights):
-        super().__init__(net_with_loss, optimizer, train_weights)
-        self.train_weights = train_weights
-
-    def __call__(self, data, label):
-        loss = self.net_with_train(data, label)
-        return loss
-
-dataset = Planetoid("./", "Cora")
-dataset.process()
-graph = dataset[0]
-graph.add_self_loop(n_loops=1) # selfloop trick
-edge_weight = GCNModel.calc_gcn_norm(graph.edge_index, graph.num_nodes)
-edge_index = tlx.ops.convert_to_tensor(graph.edge_index)
-x = tlx.ops.convert_to_tensor(graph.x)
-node_label = tlx.ops.convert_to_tensor(tlx.argmax(graph.y,1))
-
-
-cfg = Config(feature_dim=x.shape[1],
-             hidden_dim=hidden_dim,
-             num_class=graph.y.shape[1],
-             keep_rate=keep_rate,)
-
-loss = tlx.losses.softmax_cross_entropy_with_logits
-optimizer = tlx.optimizers.Adam(learning_rate)
-# metrics = tlx.metric.Accuracy() # zhen sb
-net = GCNModel(cfg, name="GCN")
-train_weights = net.trainable_weights
-
-net_with_loss = NetWithLoss(net, loss)
-train_one_step = GCNTrainOneStep(net_with_loss, optimizer, train_weights)
-
-data = {
-    "x": x,
-    "edge_index": edge_index,
-    "edge_weight": edge_weight,
-    "train_mask": graph.train_mask,
-    "test_mask": graph.test_mask,
-    "val_mask": graph.val_mask,
-    "num_nodes":graph.num_nodes,
-}
-
-best_val_acc = 0
-for epoch in range(n_epoch):
-    start_time = time.time()
-    net.set_train()
-    # train one step
-    train_loss = train_one_step(data, node_label)
-    # eval
-    _logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
-
-    train_logits = _logits[data['train_mask']]
-    train_label = node_label[data['train_mask']]
-    # metrics.update(train_logits, train_label)
-    # train_acc = metrics.result()
-    # metrics.reset()
-    train_acc = np.mean(np.equal(np.argmax(train_logits, 1), train_label))
-
-    val_logits = _logits[data['val_mask']]
-    val_label = node_label[data['val_mask']]
-    # metrics.update(val_logits, val_label)
-    # val_acc = metrics.result()
-    # metrics.reset()
-    val_acc = np.mean(np.equal(np.argmax(val_logits, 1), val_label))
-
-    print("Epoch [{:0>3d}]  ".format(epoch + 1)\
-          + "   train loss: {:.4f}".format(train_loss)\
-          + "   train acc: {:.4f}".format(train_acc)\
-          + "   val acc: {:.4f}".format(val_acc))
-
-    # save best model on evaluation set
-    if val_acc > best_val_acc:
-        best_val_acc = val_acc
-        net.save_weights(best_model_path+net.name+".npz", format='npz_dict')
-
-net.load_weights(best_model_path+net.name+".npz", format='npz_dict')
-logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
-test_logits = logits[data['test_mask']]
-test_label = node_label[data['test_mask']]
-# metrics.update(test_logits, label)
-# test_acc = metrics.result()
-# metrics.reset()
-test_acc = np.mean(np.equal(np.argmax(test_logits, 1), test_label))
-print("Test acc:  {:.4f}".format(test_acc))
-
+#
+# """
+# NOTE: The following codes are framework agnostic.
+# However the can not applied l2 loss.
+# """
+#
+# class NetWithLoss(WithLoss):
+#     def __init__(self, net, loss_fn):
+#         super(NetWithLoss, self).__init__(backbone=net, loss_fn=loss_fn)
+#
+#     def forward(self, data, label):
+#         logits = self._backbone(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
+#         train_logits = logits[data['train_mask']]
+#         train_label = label[data['train_mask']]
+#         loss = self._loss_fn(train_logits, train_label)
+#         return loss
+#
+#
+# class GCNTrainOneStep(TrainOneStep):
+#     def __init__(self, net_with_loss, optimizer, train_weights):
+#         super().__init__(net_with_loss, optimizer, train_weights)
+#         self.train_weights = train_weights
+#
+#     def __call__(self, data, label):
+#         loss = self.net_with_train(data, label)
+#         return loss
+#
+# dataset = Planetoid("./", "Cora")
+# dataset.process()
+# graph = dataset[0]
+# graph.add_self_loop(n_loops=1) # selfloop trick
+# edge_weight = GCNModel.calc_gcn_norm(graph.edge_index, graph.num_nodes)
+# edge_index = tlx.ops.convert_to_tensor(graph.edge_index)
+# x = tlx.ops.convert_to_tensor(graph.x)
+# node_label = tlx.ops.convert_to_tensor(tlx.argmax(graph.y,1))
+#
+#
+# cfg = Config(feature_dim=x.shape[1],
+#              hidden_dim=hidden_dim,
+#              num_class=graph.y.shape[1],
+#              keep_rate=keep_rate,)
+#
+# loss = tlx.losses.softmax_cross_entropy_with_logits
+# optimizer = tlx.optimizers.Adam(learning_rate)
+# # metrics = tlx.metric.Accuracy() # zhen sb
+# net = GCNModel(cfg, name="GCN")
+# train_weights = net.trainable_weights
+#
+# net_with_loss = NetWithLoss(net, loss)
+# train_one_step = GCNTrainOneStep(net_with_loss, optimizer, train_weights)
+#
+# data = {
+#     "x": x,
+#     "edge_index": edge_index,
+#     "edge_weight": edge_weight,
+#     "train_mask": graph.train_mask,
+#     "test_mask": graph.test_mask,
+#     "val_mask": graph.val_mask,
+#     "num_nodes":graph.num_nodes,
+# }
+#
+# best_val_acc = 0
+# for epoch in range(n_epoch):
+#     start_time = time.time()
+#     net.set_train()
+#     # train one step
+#     train_loss = train_one_step(data, node_label)
+#     # eval
+#     _logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
+#
+#     train_logits = _logits[data['train_mask']]
+#     train_label = node_label[data['train_mask']]
+#     # metrics.update(train_logits, train_label)
+#     # train_acc = metrics.result()
+#     # metrics.reset()
+#     train_acc = np.mean(np.equal(np.argmax(train_logits, 1), train_label))
+#
+#     val_logits = _logits[data['val_mask']]
+#     val_label = node_label[data['val_mask']]
+#     # metrics.update(val_logits, val_label)
+#     # val_acc = metrics.result()
+#     # metrics.reset()
+#     val_acc = np.mean(np.equal(np.argmax(val_logits, 1), val_label))
+#
+#     print("Epoch [{:0>3d}]  ".format(epoch + 1)\
+#           + "   train loss: {:.4f}".format(train_loss)\
+#           + "   train acc: {:.4f}".format(train_acc)\
+#           + "   val acc: {:.4f}".format(val_acc))
+#
+#     # save best model on evaluation set
+#     if val_acc > best_val_acc:
+#         best_val_acc = val_acc
+#         net.save_weights(best_model_path+net.name+".npz", format='npz_dict')
+#
+# net.load_weights(best_model_path+net.name+".npz", format='npz_dict')
+# logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
+# test_logits = logits[data['test_mask']]
+# test_label = node_label[data['test_mask']]
+# # metrics.update(test_logits, label)
+# # test_acc = metrics.result()
+# # metrics.reset()
+# test_acc = np.mean(np.equal(np.argmax(test_logits, 1), test_label))
+# print("Test acc:  {:.4f}".format(test_acc))
+#
