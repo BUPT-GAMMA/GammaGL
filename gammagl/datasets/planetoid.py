@@ -222,7 +222,7 @@ def read_planetoid_data(folder, prefix):
 
     edge_index = edge_index_from_dict(graph, num_nodes=y.shape[0])
 
-    data = Graph(edge_index=edge_index, node_feat=x, node_label=y)
+    data = Graph(edge_index=edge_index, x=x, y=y)
     data.train_mask = train_mask
     data.val_mask = val_mask
     data.test_mask = test_mask

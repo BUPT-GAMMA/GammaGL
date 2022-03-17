@@ -8,6 +8,7 @@ gammagl/datasets/raw_file/
 examples/best_models/*
 examples/*tiaocan.py
 *.zip
+examples/Cora/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

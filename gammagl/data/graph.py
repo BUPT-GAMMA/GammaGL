@@ -213,14 +213,14 @@ class Graph(BaseGraph):
         r"""Returns the number of features per node in the graph."""
         return self._store.num_node_features
     
-    def add_self_loop(self, n_loops=1):
-        """
-        Args:
-            n_loops: number of self loops.
-
-        """
-        self_loop_index = np.stack([np.arange(self.num_nodes), np.arange(self.num_nodes)])
-        self._edge_index = np.concatenate([self._edge_index, self_loop_index], axis=1)
+    # def add_self_loop(self, n_loops=1):
+    #     """
+    #     Args:
+    #         n_loops: number of self loops.
+    #
+    #     """
+    #     self_loop_index = np.stack([np.arange(self.num_nodes), np.arange(self.num_nodes)])
+    #     self._edge_index = np.concatenate([self._edge_index, self_loop_index], axis=1)
 
     # def node_mask(self):
     #     # return a subgraph based on index. (?)
@@ -238,9 +238,10 @@ class Graph(BaseGraph):
     #     # convert the graph to an directed graph.
     #     pass
 
-    def add_self_loop(self):
-        self_loop_index = Graph.cast_edge_index([np.arange(self.num_nodes), np.arange(self.num_nodes)])
-        self._edge_index = tlx.concat([self._edge_index, self_loop_index], axis=1)
+    def add_self_loop(self, n_loops=1):
+        self_loop_index = tlx.convert_to_tensor([np.arange(self.num_nodes).repeat(n_loops),
+                                                 np.arange(self.num_nodes).repeat(n_loops)])
+        self.edge_index = tlx.concat([self.edge_index, self_loop_index], axis=1)
 
     def generate_onehot_node_feat(self):
         self._node_feat = np.eye(self.num_nodes, dtype=np.float32)
