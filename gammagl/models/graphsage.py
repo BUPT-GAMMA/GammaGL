@@ -20,7 +20,7 @@ class GraphSAGEModel(tlx.nn.Module):
         self.num_layer = cfg.num_layer
         self.num_class = cfg.num_class
         self.hid_feat = cfg.hidden_dim
-        self.conv = tlx.layers.SequentialLayer()
+        self.conv = tlx.nn.layers.ModelLayer()
         self.conv.append(conv1)
         for _ in range(cfg.num_layer - 2):
             self.conv.append(SAGEConv(cfg.hidden_dim, cfg.hidden_dim))
