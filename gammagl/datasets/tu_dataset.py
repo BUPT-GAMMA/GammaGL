@@ -236,7 +236,7 @@ def read_tu_data(folder, prefix):
     
     node_attributes = node_labels = None
     if 'node_attributes' in names:
-        node_attributes = read_file(folder, prefix, 'node_attributes')
+        node_attributes = read_file(folder, prefix, 'node_attributes', dtype=np.float32)
     if 'node_labels' in names:
         node_labels = read_file(folder, prefix, 'node_labels', np.int32)
         if len(node_labels.shape) >= 1:
@@ -300,7 +300,7 @@ def read_file(folder, prefix, name, dtype=None):
 
 def cat(seq):
     seq = [item for item in seq if item is not None]
-    seq = [item.unsqueeze(-1) if len(item.shape) == 1 else item for item in seq]
+    seq = [np.expand_dims(item, axis=-1) if len(item.shape) == 1 else item for item in seq]
     return np.concatenate(seq, axis=-1) if len(seq) > 0 else None
 
 
@@ -318,10 +318,10 @@ def split(edge_index, batch, x=None, edge_attr=None, y=None):
     slices = {'edge_index': edge_slice}
     if x is not None:
         slices['x'] = node_slice
-    else:
-        # Imitate `collate` functionality:
-        num_nodes = torch.bincount(batch).tolist()
-        num_nodes = batch.numel()
+    # else:
+    #     # Imitate `collate` functionality:
+    #     num_nodes = torch.bincount(batch).tolist()
+    #     num_nodes = batch.numel()
     if edge_attr is not None:
         slices['edge_attr'] = edge_slice
     if y is not None:

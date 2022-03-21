@@ -5,3 +5,4 @@ from .gatv2 import GATV2Model
 from .graphsage import GraphSAGEModel
 from .gcnii import GCNIIModel
 from .appnp import APPNPModel
+from .gin import GINModel

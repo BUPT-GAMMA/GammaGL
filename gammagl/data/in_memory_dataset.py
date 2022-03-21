@@ -7,6 +7,7 @@ from . import Graph
 from gammagl.data.collate import collate
 from .dataset import Dataset, IndexType
 from gammagl.data.separate import separate
+import tensorflow as tf
 
 
 class InMemoryDataset(Dataset):
@@ -63,8 +64,8 @@ class InMemoryDataset(Dataset):
             return 0
         # elif y.numel() == y.size(0) and not torch.is_floating_point(y):
         #     return int(self.data.y.max()) + 1
-        # elif y.numel() == y.size(0) and torch.is_floating_point(y):
-        #     return torch.unique(y).numel()
+        elif y.ndim == 1:
+            return int(tf.experimental.numpy.max(y) + 1)
         else:
             return self.data.y.shape[-1]
 
@@ -91,9 +92,8 @@ class InMemoryDataset(Dataset):
             slice_dict=self.slices,
             decrement=False,
         )
-
+        
         self._data_list[idx] = copy.copy(data)
-
         return data
 
     @staticmethod

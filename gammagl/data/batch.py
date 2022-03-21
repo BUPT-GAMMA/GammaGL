@@ -26,7 +26,7 @@ class DynamicInheritance(type):
             if name not in globals():
                 globals()[name] = type(name, (cls, base_cls), {})
             new_cls = globals()[name]
-
+        # https://docs.python.org/zh-cn/3.7/library/inspect.html#introspecting-callables-with-the-signature-object
         params = list(inspect.signature(base_cls.__init__).parameters.items())
         for i, (k, v) in enumerate(params[1:]):
             if k == 'args' or k == 'kwargs':
@@ -57,6 +57,7 @@ class Batch(metaclass=DynamicInheritance):
     def from_data_list(cls, data_list: Union[List[Graph]],
                        follow_batch: Optional[List[str]] = None,
                        exclude_keys: Optional[List[str]] = None):
+        # https://github.com/pyg-team/pytorch_geometric/issues/3332
         r"""Constructs a :class:`~torch_geometric.data.Batch` object from a
         Python list of :class:`~torch_geometric.data.Data` or
         :class:`~torch_geometric.data.HeteroData` objects.

@@ -3,7 +3,8 @@ import numpy as np
 
 def parse_txt_array(src, sep=None, start=0, end=None, dtype=None, device=None):
     to_number = int
-
+    if dtype == np.float32:
+        to_number = float
     src = [[to_number(x) for x in line.split(sep)[start:end]] for line in src]
     src = np.array(src, dtype=dtype).squeeze()
     return src

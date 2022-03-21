@@ -102,9 +102,11 @@ def collate(
         # In case the storage holds node, we add a top-level batch vector it:
         if (add_batch and isinstance(stores[0], NodeStorage)
                 and stores[0].can_infer_num_nodes):
-            repeats = [store.num_nodes for store in stores]
+            # repeats = [store.num_nodes for store in stores]
+            # Sometimes stores can't get num nodes
+            repeats = [store.num_nodes for store in data_list]
             out_store.batch = repeat_interleave(repeats, device=device)
-            out_store.ptr = cumsum(tlx.convert_to_tensor(repeats))
+            out_store.ptr = cumsum(tlx.convert_to_tensor(repeats, dtype=tlx.int64))
 
     return out, slice_dict, inc_dict
 
@@ -130,7 +132,8 @@ def _collate(
             incs = get_incs(key, values, data_list, stores)
             if incs.ndim > 1 or int(incs[-1]) != 0:
                 values = [
-                    value + inc.to(value.device)
+                    # value + inc.to(value.device)
+                    value + inc
                     for value, inc in zip(values, incs)
                 ]
         else:
@@ -202,14 +205,14 @@ def repeat_interleave(
     repeats: List[int],
     device: Optional[tf.device] = None,
 ) -> tf.Tensor:
-    outs = [tlx.constant(value=i, shape=(n, ), dtype=tlx.int32) for i, n in enumerate(repeats)]
+    outs = [tlx.constant(value=i, shape=(n, ), dtype=tlx.int64) for i, n in enumerate(repeats)]
     return tlx.concat(outs, axis=0)
 
 
 def cumsum(value: Union[tf.Tensor, List[int]]) -> tf.Tensor:
     if not isinstance(value, tf.Tensor):
-        value = tlx.convert_to_tensor(value)
-    out = tlx.concat([tlx.zeros(1, dtype=tlx.int32), tlx.cumsum(value, 0)], axis=0)
+        value = tlx.convert_to_tensor(value, dtype=tlx.int64)
+    out = tlx.concat([tlx.zeros(1, dtype=tlx.int64), tlx.cumsum(value, 0)], axis=0)
     return out
 
 
@@ -220,7 +223,7 @@ def get_incs(key, values: List[Any], data_list: List[BaseGraph],
         for value, data, store in zip(values, data_list, stores)
     ]
     if isinstance(repeats[0], tf.Tensor):
-        repeats = tlx.stack(repeats, dim=0)
+        repeats = tlx.stack(repeats, axis=0)
     else:
-        repeats = tlx.convert_to_tensor(repeats)
+        repeats = tlx.convert_to_tensor(repeats, dtype=tlx.int64)
     return cumsum(repeats[:-1])

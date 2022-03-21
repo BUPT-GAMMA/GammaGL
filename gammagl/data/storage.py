@@ -268,7 +268,7 @@ class NodeStorage(BaseStorage):
         #     f"attribute of " +
         #     ("'data'" if self._key is None else f"'data[{self._key}]'") +
         #     " to suppress this warning")
-        if 'edge_index' in self and isinstance(self.edge_index, Tensor):
+        if 'edge_index' in self and isinstance(self.edge_index, tf.Tensor):
             if self.edge_index.numel() > 0:
                 return int(self.edge_index.max()) + 1
             else:
