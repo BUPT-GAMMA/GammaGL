@@ -30,7 +30,7 @@ class GCNModel(tlx.nn.Module):
     def forward(self, x, edge_index, edge_weight, num_nodes):
         x = self.conv1(x, edge_index, edge_weight, num_nodes)
         x = self.relu(x)
-        x = self.dropout(x)
+        x = self.dropout(x)  # dropout not work in mindspore
         x = self.conv2(x, edge_index, edge_weight, num_nodes)
         return x
 

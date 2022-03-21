@@ -80,7 +80,7 @@ class Cora(Dataset):
             tuple(graph, idx_train, idx_val, idx_test)
         """
         edges, features, labels, idx_train, idx_val, idx_test = load_data(self.path)
-        self.num_class = len(set(labels.numpy()))
+        self.num_class = len(set(tl.convert_to_numpy(labels)))
         self.feature_dim = features.shape[1]
         graph = Graph(edges, node_feat=features, node_label=labels, num_nodes=labels.shape[0])
 
@@ -94,7 +94,7 @@ class Cora(Dataset):
             tuple(graph, idx_train, idx_val, idx_test)
         """
         self.edges, self.features, self.labels, self.idx_train, self.idx_val, self.idx_test = load_data(self.path)
-        self.num_class = len(set(self.labels.numpy()))
+        self.num_class = len(set(tl.convert_to_numpy(self.labels)))
         self.feature_dim = self.features.shape[1]
         # self.graph = Graph(edges, node_feat=features, node_label=labels, num_nodes=labels.shape[0])
 
