@@ -3,6 +3,7 @@ import copy
 import numpy as np
 import tensorlayerx as tlx
 from gammagl.sparse.sparse_adj import CSRAdj
+from collections.abc import Mapping, Sequence
 from typing import (Any, Callable, Dict, Iterable, List, NamedTuple, Optional,
                     Tuple, Union)
 from gammagl.data.storage import (BaseStorage, EdgeStorage,
@@ -33,6 +34,7 @@ class BaseGraph:
             attribute.
         """
         raise NotImplementedError
+
 
 class Graph(BaseGraph):
     r""" 
@@ -68,23 +70,24 @@ class Graph(BaseGraph):
     def __init__(self, x=None, edge_index=None, edge_feat=None, num_nodes=None, y=None, spr_format=None, **kwargs):
         self.__dict__['_store'] = GlobalStorage(_parent=self)
         if edge_index is not None:
-            self.edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int32)
+            self.edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int64)
 
-        if num_nodes is None:
-            warnings.warn("_maybe_num_node() is used to determine the number of nodes."
-                      "This may underestimate the count if there are isolated nodes.")
-            self._num_nodes = self._maybe_num_node(edge_index)
-        else:
-            self._num_nodes = num_nodes
-            max_node_id = self._maybe_num_node(edge_index) - 1 # max_node_id = num_nodes - 1
-            if self._num_nodes <= max_node_id:
-                raise ValueError("num_nodes=[{}] should be bigger than max node ID in edge_index.".format(self._num_nodes))
+        # if num_nodes is None:
+        #     warnings.warn("_maybe_num_node() is used to determine the number of nodes."
+        #               "This may underestimate the count if there are isolated nodes.")
+        #     self._num_nodes = self._maybe_num_node(edge_index)
+        # else:
+        #     self._num_nodes = num_nodes
+        #     max_node_id = self._maybe_num_node(edge_index) - 1 # max_node_id = num_nodes - 1
+        #     if self._num_nodes <= max_node_id:
+        #         raise ValueError("num_nodes=[{}] should be bigger than max node ID in edge_index.".format(self._num_nodes))
+        
         if edge_feat is not None:
             self.edge_feat = tlx.convert_to_tensor(edge_feat, dtype=tlx.float32)
         if x is not None:
             self.x = tlx.convert_to_tensor(x, dtype=tlx.float32)
         if y is not None:
-            self.y = tlx.convert_to_tensor(y, dtype=tlx.int32)
+            self.y = tlx.convert_to_tensor(y, dtype=tlx.int64)
         if spr_format is not None:
             if 'csr' in spr_format:
                 self._csr_adj = CSRAdj.from_edges(self._edge_index[0], self._edge_index[1], self._num_nodes)
@@ -104,7 +107,20 @@ class Graph(BaseGraph):
 
     def __setattr__(self, key: str, value: Any):
         setattr(self._store, key, value)
-    
+
+    # def __repr__(self) -> str:
+    #     cls = self.__class__.__name__
+    #     has_dict = any([isinstance(v, Mapping) for v in self._store.values()])
+    #
+    #     if not has_dict:
+    #         info = [size_repr(k, v) for k, v in self._store.items()]
+    #         info = ', '.join(info)
+    #         return f'{cls}({info})'
+    #     else:
+    #         info = [size_repr(k, v, indent=2) for k, v in self._store.items()]
+    #         info = ',\n'.join(info)
+    #         return f'{cls}(\n{info}\n)'
+        
     def __cat_dim__(self, key: str, value: Any, *args, **kwargs) -> Any:
         # if isinstance(value, SparseTensor) and 'adj' in key:
         #     return (0, 1)
@@ -149,14 +165,18 @@ class Graph(BaseGraph):
         r"""
         Return the number of nodes.
         """
-        return self._num_nodes
+        # try:
+        #     return sum([v.num_nodes for v in self.node_stores])
+        # except TypeError:
+        #     return None
+        return self.x.shape[0]
 
     @property
     def num_edges(self):
         r"""
         Return the number of edges.
         """
-        return len(self.edge_index)
+        return self.edge_index.shape[-1]
 
     @property
     def x(self) -> Any:
@@ -253,11 +273,11 @@ class Graph(BaseGraph):
             node_label = np.array(node_label)
         return node_label
    
-    def __repr__(self):
-        description = "GNN {} instance.\n".format(self.__class__.__name__)
-        description += "number of nodes: {}\n".format(self.num_nodes)
-        description += "number of edges: {}\n".format(self.num_edges)
-        return description
+    # def __repr__(self):
+    #     description = "GNN {} instance.\n".format(self.__class__.__name__)
+    #     description += "number of nodes: {}\n".format(self.num_nodes)
+    #     description += "number of edges: {}\n".format(self.num_edges)
+    #     return description
 
     # @classmethod
     def clone(self):
@@ -469,204 +489,36 @@ class BatchGraph(Graph):
         """
         pass
     
+    
+def size_repr(key: Any, value: Any, indent: int = 0) -> str:
+    pad = ' ' * indent
+    if isinstance(value, tf.Tensor) and value.dim() == 0:
+        out = value.item()
+    elif isinstance(value, tf.Tensor):
+        out = str(list(value.size()))
+    elif isinstance(value, np.ndarray):
+        out = str(list(value.shape))
+    # elif isinstance(value, SparseTensor):
+    #     out = str(value.sizes())[:-1] + f', nnz={value.nnz()}]'
+    elif isinstance(value, str):
+        out = f"'{value}'"
+    elif isinstance(value, Sequence):
+        out = str([len(value)])
+    elif isinstance(value, Mapping) and len(value) == 0:
+        out = '{}'
+    elif (isinstance(value, Mapping) and len(value) == 1
+          and not isinstance(list(value.values())[0], Mapping)):
+        lines = [size_repr(k, v, 0) for k, v in value.items()]
+        out = '{ ' + ', '.join(lines) + ' }'
+    elif isinstance(value, Mapping):
+        lines = [size_repr(k, v, indent + 2) for k, v in value.items()]
+        out = '{\n' + ',\n'.join(lines) + '\n' + pad + '}'
+    else:
+        out = str(value)
 
-class BatchGraph(Graph):
-    """
-    Batch graph wrap a batch of graphs into a single graph, where each nodes has an unique index and a graph index.
-    The node_graph_index is the index of the corresponding graph for each node in the batch.
-    The edge_graph_index is the index of the corresponding edge for each node in the batch.
-    """
-
-    def __init__(self, x, edge_index, node_graph_index, edge_graph_index,
-                 y=None, edge_weight=None, graphs=None):
-        """
-        :param x: Tensor/NDArray, shape: [num_nodes, num_features], node features
-        :param edge_index: Tensor/NDArray, shape: [2, num_edges], edge information.
-            Each column of edge_index (u, v) represents an directed edge from u to v.
-            Note that it does not cover the edge from v to u. You should provide (v, u) to cover it.
-        :param node_graph_index: Tensor/NDArray, shape: [num_nodes], graph index for each node
-        :param edge_graph_index: Tensor/NDArray/None, shape: [num_edges], graph index for each edge
-        :param y: Tensor/NDArray/None, any shape, graph label.
-            If you want to use this object to construct a BatchGraph object, y cannot be a scalar Tensor.
-        :param edge_weight: Tensor/NDArray/None, shape: [num_edges]
-        :param graphs: list[Graph], original graphs
-        """
-        super().__init__(x, edge_index, y, edge_weight)
-        self.node_graph_index = node_graph_index
-        self.edge_graph_index = edge_graph_index
-        self.graphs = graphs
-
-    @property
-    def num_graphs(self):
-        if tf.is_tensor(self.node_graph_index):
-            return tf.reduce_max(self.node_graph_index) + 1
-        else:
-            return np.max(self.node_graph_index) + 1
-
-    def to_graphs(self):
-        # num_nodes_list = tf.math.segment_sum(tf.ones([self.num_nodes]), self.node_graph_index)
-        num_graphs = self.num_graphs
-        num_nodes_list = tf.math.unsorted_segment_sum(tf.ones([self.num_nodes]), self.node_graph_index, num_graphs)
-
-        num_nodes_before_graph = tf.concat([
-            tf.zeros([1]),
-            tf.math.cumsum(num_nodes_list)
-        ], axis=0).numpy().astype(np.int32).tolist()
-
-        # num_edges_list = tf.math.segment_sum(tf.ones([self.num_edges]), self.edge_graph_index)
-        num_edges_list = tf.math.unsorted_segment_sum(tf.ones([self.num_edges]), self.edge_graph_index, num_graphs)
-        num_edges_before_graph = tf.concat([
-            tf.zeros([1]),
-            tf.math.cumsum(num_edges_list)
-        ], axis=0).numpy().astype(np.int32).tolist()
-
-        graphs = []
-        for i in range(self.num_graphs):
-            if isinstance(self.x, tf.sparse.SparseTensor):
-                x = tf.sparse.slice(
-                    self.x,
-                    [num_nodes_before_graph[i], 0],
-                    [num_nodes_before_graph[i + 1] - num_nodes_before_graph[i], tf.shape(self.x)[-1]]
-                )
-            else:
-                x = self.x[num_nodes_before_graph[i]: num_nodes_before_graph[i + 1]]
-
-            if self.y is None:
-                y = None
-            else:
-                y = self.y[num_nodes_before_graph[i]: num_nodes_before_graph[i + 1]]
-
-            edge_index = self.edge_index[:, num_edges_before_graph[i]:num_edges_before_graph[i + 1]] - \
-                         num_nodes_before_graph[i]
-
-            if self.edge_weight is None:
-                edge_weight = None
-            else:
-                edge_weight = self.edge_weight[num_edges_before_graph[i]:num_edges_before_graph[i + 1]]
-
-            graph = Graph(x=x, edge_index=edge_index, y=y, edge_weight=edge_weight)
-            graphs.append(graph)
-        return graphs
-
-    @classmethod
-    def from_graphs(cls, graphs):
-
-        node_graph_index = BatchGraph.build_node_graph_index(graphs)
-        edge_graph_index = BatchGraph.build_edge_graph_index(graphs)
-
-        x = BatchGraph.build_x(graphs)
-        edge_index = BatchGraph.build_edge_index(graphs)
-        y = BatchGraph.build_y(graphs)
-        edge_weight = BatchGraph.build_edge_weight(graphs)
-
-        return BatchGraph(x=x, edge_index=edge_index,
-                          node_graph_index=node_graph_index, edge_graph_index=edge_graph_index,
-                          graphs=graphs, y=y, edge_weight=edge_weight)
-
-    @classmethod
-    def build_node_graph_index(cls, graphs):
-        node_graph_index_list = []
-
-        if tf.is_tensor(graphs[0].edge_index):
-            for i, graph in enumerate(graphs):
-                node_graph_index_list.append(tf.fill([graph.num_nodes], i))
-            node_graph_index = tf.concat(node_graph_index_list, axis=0)
-            node_graph_index = tf.cast(node_graph_index, tf.int32)
-        else:
-            for i, graph in enumerate(graphs):
-                node_graph_index_list.append(np.full([graph.num_nodes], i, dtype=np.int32))
-            node_graph_index = np.concatenate(node_graph_index_list, axis=0)
-
-        return node_graph_index
-
-    @classmethod
-    def build_edge_graph_index(cls, graphs):
-        edge_graph_index_list = []
-        if tf.is_tensor(graphs[0].edge_index):
-            for i, graph in enumerate(graphs):
-                edge_graph_index_list.append(tf.fill([graph.num_edges], i))
-            edge_graph_index = tf.concat(edge_graph_index_list, axis=0)
-            edge_graph_index = tf.cast(edge_graph_index, tf.int32)
-        else:
-            for i, graph in enumerate(graphs):
-                edge_graph_index_list.append(np.full([graph.num_edges], i, dtype=np.int32))
-            edge_graph_index = np.concatenate(edge_graph_index_list, axis=0)
-
-        return edge_graph_index
-
-    @classmethod
-    def build_x(cls, graphs):
-        x_list = [graph.x for graph in graphs]
-        first_x = x_list[0]
-        if tf.is_tensor(first_x):
-            if isinstance(first_x, tfs.SparseMatrix):
-                return tfs.concat(x_list, axis=0)
-            elif isinstance(first_x, tf.sparse.SparseTensor):
-                return tf.sparse.concat(0, x_list)
-            else:
-                return tf.concat(x_list, axis=0)
-        else:
-            return np.concatenate(x_list, axis=0)
-
-    @classmethod
-    def build_edge_index(cls, graphs):
-        edge_index_list = []
-        num_history_nodes = 0
-        for i, graph in enumerate(graphs):
-            edge_index_list.append(graph.edge_index + num_history_nodes)
-            num_history_nodes += graph.num_nodes
-
-        if tf.is_tensor(graphs[0].edge_index):
-            return tf.concat(edge_index_list, axis=1)
-        else:
-            return np.concatenate(edge_index_list, axis=1)
-
-    @classmethod
-    def build_edge_weight(cls, graphs):
-        if graphs[0].edge_weight is None:
-            return None
-        elif tf.is_tensor(graphs[0].edge_weight):
-            return tf.concat([
-                graph.edge_weight for graph in graphs
-            ], axis=0)
-        else:
-            return np.concatenate([
-                graph.edge_weight for graph in graphs
-            ], axis=0)
-
-    @classmethod
-    def build_y(cls, graphs):
-        if graphs[0].y is None:
-            return None
-        elif tf.is_tensor(graphs[0].y):
-            return tf.concat([
-                graph.y for graph in graphs
-            ], axis=0)
-        else:
-            return np.concatenate([
-                graph.y for graph in graphs
-            ], axis=0)
-
-    def convert_data_to_tensor(self):
-        """
-        Convert all graph data into Tensors. All corresponding properties will be replaces by their Tensor versions.
-        :return: The Graph object itself.
-        """
-        return self._convert_data_to_tensor(["x", "edge_index", "edge_weight", "y",
-                                             "node_graph_index", "edge_graph_index"])
-
-    def convert_edge_to_directed(self):
-        """
-        Each column of edge_index (u, v) represents an directed edge from u to v.
-        Note that it does not cover the edge from v to u. You should provide (v, u) to cover it.
-        This is not convenient for users.
-        Thus, we allow users to provide edge_index in undirected form and convert it later.
-        That is, we can only provide (u, v) and convert it to (u, v) and (v, u) with `convert_edge_to_directed` method.
-        :return:
-        """
-        self.edge_index, [self.edge_weight, self.edge_graph_index] = \
-            convert_edge_to_directed(self.edge_index, [self.edge_weight, self.edge_graph_index],
-                                     merge_modes=["sum", "max"])
-        return self
-
+    key = str(key).replace("'", '')
+    if isinstance(value, BaseStorage):
+        return f'{pad}\033[1m{key}\033[0m={out}'
+    else:
+        return f'{pad}{key}={out}'
 
