@@ -7,6 +7,7 @@
 """
 
 import os
+os.environ['TL_BACKEND'] = 'tensorflow' # set your backend here, default `tensorflow`
 import sys
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 sys.path.insert(0, os.path.abspath('../')) # adds path2gammagl to execute in command line.
@@ -133,6 +134,7 @@ class NetWithLoss(WithLoss):
         train_logits = logits[data['train_mask']]
         train_label = label[data['train_mask']]
         loss = self._loss_fn(train_logits, train_label)
+        # l2loss = (v) for v in self._backbone.trainable_weights
         return loss
 
 
@@ -162,7 +164,7 @@ cfg = Config(feature_dim=x.shape[1],
 
 loss = tlx.losses.softmax_cross_entropy_with_logits
 optimizer = tlx.optimizers.Adam(learning_rate)
-# metrics = tlx.metric.Accuracy() # zhen sb
+metrics = tlx.metrics.Accuracy() # zhen sb
 net = GCNModel(cfg, name="GCN")
 train_weights = net.trainable_weights
 
@@ -190,17 +192,17 @@ for epoch in range(n_epoch):
 
     train_logits = _logits[data['train_mask']]
     train_label = node_label[data['train_mask']]
-    # metrics.update(train_logits, train_label)
-    # train_acc = metrics.result()
-    # metrics.reset()
-    train_acc = np.mean(np.equal(np.argmax(train_logits, 1), train_label))
+    metrics.update(train_logits, train_label)
+    train_acc = metrics.result() #[0] # depend on tl
+    metrics.reset()
+    # train_acc = np.mean(np.equal(np.argmax(train_logits, 1), train_label))
 
     val_logits = _logits[data['val_mask']]
     val_label = node_label[data['val_mask']]
-    # metrics.update(val_logits, val_label)
-    # val_acc = metrics.result()
-    # metrics.reset()
-    val_acc = np.mean(np.equal(np.argmax(val_logits, 1), val_label))
+    metrics.update(val_logits, val_label)
+    val_acc = metrics.result() #[0]
+    metrics.reset()
+    # val_acc = np.mean(np.equal(np.argmax(val_logits, 1), val_label))
 
     print("Epoch [{:0>3d}]  ".format(epoch + 1)\
           + "   train loss: {:.4f}".format(train_loss)\
@@ -216,9 +218,9 @@ net.load_weights(best_model_path+net.name+".npz", format='npz_dict')
 logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
 test_logits = logits[data['test_mask']]
 test_label = node_label[data['test_mask']]
-# metrics.update(test_logits, label)
-# test_acc = metrics.result()
-# metrics.reset()
-test_acc = np.mean(np.equal(np.argmax(test_logits, 1), test_label))
+metrics.update(test_logits, test_label)
+test_acc = metrics.result() #[0]
+metrics.reset()
+# test_acc = np.mean(np.equal(np.argmax(test_logits, 1), test_label))
 print("Test acc:  {:.4f}".format(test_acc))
 
