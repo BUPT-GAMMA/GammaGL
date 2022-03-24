@@ -19,12 +19,12 @@ class MessagePassing(tlx.nn.Module):
         super().__init__()
 
     def message(self, x, edge_index, edge_weight=None, num_nodes=None):
-        x = tlx.ops.gather(x, edge_index[0, :])
+        msg = tlx.ops.gather(x, edge_index[0, :])
         if edge_weight is not None:
             edge_weight = tlx.expand_dims(edge_weight, -1)
-            return x * edge_weight
+            return msg * edge_weight
         else:
-            return x
+            return msg
 
     def aggregate(self, msg, edge_index, num_nodes=None, aggr_type='sum'):
         dst_index = edge_index[1, :]
