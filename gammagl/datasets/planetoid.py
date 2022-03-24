@@ -175,9 +175,9 @@ def read_planetoid_data(folder, prefix):
         # as zero vectors to `tx` and `ty`.
         len_test_indices = (test_index.max() - test_index.min()).item() + 1
 
-        tx_ext = torch.zeros(len_test_indices, tx.size(1))
+        tx_ext = np.zeros((len_test_indices, tx.shape[1]))
         tx_ext[sorted_test_index - test_index.min(), :] = tx
-        ty_ext = torch.zeros(len_test_indices, ty.size(1))
+        ty_ext = np.zeros((len_test_indices, ty.shape[1]))
         ty_ext[sorted_test_index - test_index.min(), :] = ty
 
         tx, ty = tx_ext, ty_ext

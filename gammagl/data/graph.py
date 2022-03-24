@@ -261,7 +261,7 @@ class Graph(BaseGraph):
     def add_self_loop(self, n_loops=1):
         self_loop_index = tlx.convert_to_tensor([np.arange(self.num_nodes).repeat(n_loops),
                                                  np.arange(self.num_nodes).repeat(n_loops)])
-        self_loop_index = tlx.cast(self_loop_index, self.edge_index.dtype)
+        self_loop_index = tlx.cast(self_loop_index, tlx.int64)
         self.edge_index = tlx.concat([self.edge_index, self_loop_index], axis=1)
 
     def generate_onehot_node_feat(self):
