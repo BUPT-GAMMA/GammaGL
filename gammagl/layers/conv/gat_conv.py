@@ -98,30 +98,10 @@ class GATConv(MessagePassing):
         weight_dst = tlx.ops.gather(tlx.ops.reduce_sum(x * self.att_dst, -1), node_dst)
         weight = self.leaky_relu(weight_src + weight_dst)
 
-        # weight = tlx.ops.gather(weight, node_src)
-        alpha = segment_softmax(weight, node_dst, num_nodes)
-
-        # weight = tlx.ops.exp(weight)
-        # weight = tlx.ops.gather(weight, node_dst)
-        # weight_sum = tf.math.unsorted_segment_sum(weight, node_src, num_segments=num_nodes)
-        # weight_sum = tlx.ops.gather(weight_sum, node_dst)
-        # alpha = weight / weight_sum
-
-        alpha = self.dropout(alpha)
+        alpha = self.dropout(segment_softmax(weight, node_dst, num_nodes))
         x = tlx.ops.gather(x, node_src) * tlx.ops.expand_dims(alpha, -1)
         return x * edge_weight if edge_weight else x
 
-
-    # def aggregate(self, x, index, num_nodes):
-    #     return tlx.ops.unsorted_segment_sum(x, index, num_segments=num_nodes)
-
-
-    # def propagate(self, x, edge_index, num_nodes):
-    #     x = self.message(x, edge_index, num_nodes)
-    #     # node_dst = tlx.ops.concat([edge_index[1, :], tlx.ops.range(num_nodes)], axis=0)
-    #     x = self.aggregate(x, edge_index, num_nodes)
-    #     x = self.update(x)
-    #     return x
 
     def forward(self, x, edge_index, num_nodes):
         x = tlx.ops.reshape(self.linear_w(x), shape=(-1, self.heads, self.out_channels))
