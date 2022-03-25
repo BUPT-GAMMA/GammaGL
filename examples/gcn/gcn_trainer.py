@@ -12,11 +12,11 @@ os.environ['TL_BACKEND'] = 'tensorflow' # set your backend here, default `tensor
 import sys
 # sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 import time
+import tensorflow as tf
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
 from gammagl.models import GCNModel
-from gammagl.utils.config import Config
 from tensorlayerx.model import TrainOneStep, WithLoss
 
 class SemiSpvzLoss(WithLoss):
@@ -24,21 +24,20 @@ class SemiSpvzLoss(WithLoss):
         super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
 
     def forward(self, data, label):
-        logits = self._backbone(data['node_feat'], data['edge_index'], data['edge_weight'], data['num_nodes'])
+        logits = self._backbone(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
         train_logits = logits[data['train_mask']]
         train_label = label[data['train_mask']]
         loss = self._loss_fn(train_logits, train_label)
-        # # it semms the next line wont take efect
-        # l2_loss = tf.add_n([tf.nn.l2_loss(v) for v in self._backbone.trainable_weights[0]]) * args.l2_coef # only support for tensorflow backend
-        return loss
+        l2_loss = tf.add_n([tf.nn.l2_loss(v) for v in self._backbone.trainable_weights]) * args.l2_coef # only support for tensorflow backend
+        return loss + l2_loss
 
-def evaluate(net, data, node_label, mask, metrics):
+def evaluate(net, data, y, mask, metrics):
     net.set_eval()
-    logits = net(data['node_feat'], data['edge_index'], data['edge_weight'], data['num_nodes'])
+    logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
     _logits = logits[mask]
-    _label = node_label[mask]
+    _label = y[mask]
     metrics.update(_logits, _label)
-    acc = metrics.result()  # [0]
+    acc = metrics.result()#[0]
     metrics.reset()
     return acc
 
@@ -46,37 +45,35 @@ def main(args):
     # load cora dataset
     if str.lower(args.dataset) not in ['cora','pubmed','citeseer']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
-    dataset = Planetoid("../", args.dataset)
-    dataset.process() # suggest to execute explicitly so far
+    dataset = Planetoid(args.dataset_path, args.dataset)
+    # dataset.process() # suggest to execute explicitly so far
     graph = dataset[0]
-    if args.self_loop: graph.add_self_loop(n_loops=1) # self-loop trick
+    graph.add_self_loop(n_loops=args.self_loops) # self-loop trick
     edge_weight = tlx.ops.convert_to_tensor(GCNModel.calc_gcn_norm(graph.edge_index, graph.num_nodes))
-    node_feat = graph.x
+    x = graph.x
     edge_index = graph.edge_index
-    node_label = tlx.argmax(graph.y,1)
-
-    # configurate
-    cfg = Config(feature_dim=node_feat.shape[1],
-                 hidden_dim=args.hidden_dim,
-                 num_class=graph.y.shape[1],
-                 keep_rate=args.keep_rate,)
+    y = tlx.argmax(graph.y,1)
 
 
     # build model
-    best_model_path = r'./best_models/'
-    if not os.path.exists(best_model_path): os.makedirs(best_model_path)
+    best_model_path = os.path.abspath(args.best_model_path)
+    if not os.path.exists(best_model_path):
+        os.makedirs(os.path.abspath(best_model_path))
 
-    loss = tlx.losses.softmax_cross_entropy_with_logits
+    net = GCNModel(feature_dim=x.shape[1],
+                   hidden_dim=args.hidden_dim,
+                   num_class=graph.y.shape[1],
+                   keep_rate=args.keep_rate,
+                   name="GCN")
     optimizer = tlx.optimizers.Adam(args.lr)
     metrics = tlx.metrics.Accuracy()
-    net = GCNModel(cfg, name="GCN")
     train_weights = net.trainable_weights
 
-    loss_func = SemiSpvzLoss(net, loss)
+    loss_func = SemiSpvzLoss(net, tlx.losses.softmax_cross_entropy_with_logits)
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
     data = {
-        "node_feat": node_feat,
+        "x": x,
         "edge_index": edge_index,
         "edge_weight": edge_weight,
         "train_mask": graph.train_mask,
@@ -88,8 +85,8 @@ def main(args):
     best_val_acc = 0
     for epoch in range(args.n_epoch):
         net.set_train()
-        train_loss = train_one_step(data, node_label)
-        val_acc = evaluate(net, data, node_label, data['val_mask'], metrics)
+        train_loss = train_one_step(data, y)
+        val_acc = evaluate(net, data, y, data['val_mask'], metrics)
 
         print("Epoch [{:0>3d}] ".format(epoch+1)\
               + "  train loss: {:.4f}".format(train_loss)\
@@ -101,7 +98,7 @@ def main(args):
             net.save_weights(best_model_path+net.name+".npz", format='npz_dict')
 
     net.load_weights(best_model_path+net.name+".npz", format='npz_dict')
-    test_acc = evaluate(net, data, node_label, data['test_mask'], metrics)
+    test_acc = evaluate(net, data, y, data['test_mask'], metrics)
     print("Test acc:  {:.4f}".format(test_acc))
 
 
@@ -114,7 +111,9 @@ if __name__ == '__main__':
     parser.add_argument("--keep_rate", type=float, default=0.5, help="keep_rate = 1 - drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
-    parser.add_argument("--self_loop", action='store_false', default=True, help="graph self-loop (default=True)")
+    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
+    parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     args = parser.parse_args()
 
     # physical_gpus = tf.config.experimental.list_physical_devices('GPU')

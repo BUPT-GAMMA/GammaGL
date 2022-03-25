@@ -12,6 +12,7 @@ examples/*tiaocan.py
 examples/cora/*
 examples/pubmed/*
 examples/citeseer/*
+*.npz
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -9,28 +9,27 @@ class GATModel(tlx.nn.Module):
         cfg: configuration of GAT
     """
 
-    def __init__(self, cfg, name=None):
+    def __init__(self,feature_dim,
+                 hidden_dim,
+                 num_class,
+                 heads,
+                 keep_rate,
+                 name=None):
         super().__init__(name=name)
 
-        # config self check
-        cfg.self_check({"feature_dim": int, 
-                        "hidden_dim": int,
-                        "heads": int, 
-                        "num_class": int, 
-                        "keep_rate": float})
 
-        self.conv1 = GATConv(in_channels=cfg.feature_dim,
-                             out_channels=cfg.hidden_dim,
-                             heads=cfg.heads,
-                             dropout_rate=1-cfg.keep_rate,
+        self.conv1 = GATConv(in_channels=feature_dim,
+                             out_channels=hidden_dim,
+                             heads=heads,
+                             dropout_rate=1-keep_rate,
                              concat=True)
-        self.conv2 = GATConv(in_channels=cfg.hidden_dim*cfg.heads,
-                             out_channels=cfg.num_class,
-                             heads=cfg.heads,
-                             dropout_rate=1-cfg.keep_rate,
+        self.conv2 = GATConv(in_channels=hidden_dim*heads,
+                             out_channels=num_class,
+                             heads=heads,
+                             dropout_rate=1-keep_rate,
                              concat=False)
         self.elu = tlx.layers.ELU()
-        self.dropout = tlx.layers.Dropout(cfg.keep_rate)
+        self.dropout = tlx.layers.Dropout(keep_rate)
 
     def forward(self, x, edge_index, num_nodes):
         x = self.dropout(x)

@@ -11,7 +11,9 @@ Results
 
 Run with following (available dataset: "cora", "citeseer", "pubmed")
 ```bash
-pytho3 gcn_train.py
+python gcn_train.py --dataset cora --params
+python gcn_train.py --dataset citeseer 
+python gcn_train.py --dataset cora
 ```
 
 

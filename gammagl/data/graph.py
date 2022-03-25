@@ -259,6 +259,7 @@ class Graph(BaseGraph):
     #     pass
 
     def add_self_loop(self, n_loops=1):
+        if n_loops < 1: return
         self_loop_index = tlx.convert_to_tensor([np.arange(self.num_nodes).repeat(n_loops),
                                                  np.arange(self.num_nodes).repeat(n_loops)])
         self_loop_index = tlx.cast(self_loop_index, tlx.int64)

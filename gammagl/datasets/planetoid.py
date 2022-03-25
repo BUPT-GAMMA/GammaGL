@@ -129,7 +129,7 @@ class Planetoid(InMemoryDataset):
 
     @property
     def processed_file_names(self) -> str:
-        return 'data.pt'
+        return tlx.BACKEND+'_data.pt'
 
     def download(self):
         for name in self.raw_file_names:
