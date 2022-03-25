@@ -56,9 +56,9 @@ def main(args):
 
 
     # build model
-    best_model_path = os.path.abspath(args.best_model_path)
-    if not os.path.exists(best_model_path):
-        os.makedirs(os.path.abspath(best_model_path))
+    # best_model_path = os.path.abspath(args.best_model_path)
+    # if not os.path.exists(best_model_path):
+    #     os.makedirs(os.path.abspath(best_model_path))
 
     net = GCNModel(feature_dim=x.shape[1],
                    hidden_dim=args.hidden_dim,
@@ -95,9 +95,9 @@ def main(args):
         # save best model on evaluation set
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            net.save_weights(best_model_path+net.name+".npz", format='npz_dict')
+            net.save_weights(args.best_model_path+net.name+".npz", format='npz_dict')
 
-    net.load_weights(best_model_path+net.name+".npz", format='npz_dict')
+    net.load_weights(args.best_model_path+net.name+".npz", format='npz_dict')
     test_acc = evaluate(net, data, y, data['test_mask'], metrics)
     print("Test acc:  {:.4f}".format(test_acc))
 
