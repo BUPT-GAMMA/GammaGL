@@ -1,8 +1,6 @@
 import os
-from gammagl.models.full_sage import GraphSAGEModel
-
 os.environ['TL_BACKEND'] = 'tensorflow' # set your backend here, default `tensorflow`
-
+from gammagl.models.graphsage import GraphSAGE_Full_Model
 import tensorflow as tf
 import argparse
 import tensorlayerx as tlx
@@ -41,7 +39,7 @@ def main(args):
     edge_index = graph.edge_index
     y = tlx.argmax(graph.y,1)
 
-    net = GraphSAGEModel(in_feats=x.shape[1],
+    net = GraphSAGE_Full_Model(in_feats=x.shape[1],
                  n_hidden=args.hidden_dim,
                  n_classes=graph.y.shape[1],
                  n_layers=args.n_layers,
@@ -88,9 +86,9 @@ def main(args):
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lr", type=float, default=0.01, help="learnin rate")
+    parser.add_argument("--lr", type=float, default=0.005, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
-    parser.add_argument("--hidden_dim", type=int, default=512, help="dimention of hidden layers")
+    parser.add_argument("--hidden_dim", type=int, default=32, help="dimention of hidden layers")
     parser.add_argument("--keep_rate", type=float, default=0.5, help="keep_rate = 1 - drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
