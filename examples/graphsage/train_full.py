@@ -1,6 +1,5 @@
 import os
-
-from gammagl.layers.conv import SAGEConv
+from gammagl.models.full_sage import GraphSAGEModel
 
 os.environ['TL_BACKEND'] = 'tensorflow' # set your backend here, default `tensorflow`
 
@@ -21,37 +20,6 @@ class SemiSpvzLoss(WithLoss):
         loss = self._loss_fn(train_logits, train_label)
         l2_loss = tf.add_n([tf.nn.l2_loss(v) for v in self._backbone.trainable_weights]) * args.l2_coef # only support for tensorflow backend
         return loss + l2_loss
-
-class GraphSAGE(tlx.nn.Module):
-    def __init__(self,in_feats,
-                 n_hidden,
-                 n_classes,
-                 n_layers,
-                 activation,
-                 dropout,
-                 aggregator_type):
-        super(GraphSAGE, self).__init__()
-        self.convs = tlx.nn.SequentialLayer()
-        self.dropout = tlx.nn.Dropout(dropout)
-        self.activation = activation
-        self.n_layers = n_layers
-        # input layer
-        self.convs.append(SAGEConv(in_feats, n_hidden, aggregator_type))
-        # hidden layers
-        for i in range(n_layers - 1):
-            self.convs.append(SAGEConv(n_hidden, n_hidden, aggregator_type))
-        # output layer
-        self.convs.append(SAGEConv(n_hidden, n_classes, aggregator_type))  # activation None
-
-    def forward(self, feat, edge):
-        h = self.dropout(feat)
-        for l, layer in enumerate(self.convs):
-            h = layer((h, h), edge)
-            if l < self.n_layers:
-                h = self.activation(h)
-                h = self.dropout(h)
-        return h
-
 def evaluate(net, data, y, mask, metrics):
     net.set_eval()
     logits = net(data['x'], data['edge_index'])
@@ -73,8 +41,7 @@ def main(args):
     edge_index = graph.edge_index
     y = tlx.argmax(graph.y,1)
 
-
-    net = GraphSAGE(in_feats=x.shape[1],
+    net = GraphSAGEModel(in_feats=x.shape[1],
                  n_hidden=args.hidden_dim,
                  n_classes=graph.y.shape[1],
                  n_layers=args.n_layers,
@@ -123,14 +90,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.01, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
-    parser.add_argument("--hidden_dim", type=int, default=16, help="dimention of hidden layers")
+    parser.add_argument("--hidden_dim", type=int, default=512, help="dimention of hidden layers")
     parser.add_argument("--keep_rate", type=float, default=0.5, help="keep_rate = 1 - drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--n_layers", type=int, default=1, help="number of hidden gcn layers")
-    parser.add_argument("--aggregator_type", type=str, default="mean", help="Aggregator type: mean/gcn/pool/lstm")
+    parser.add_argument("--aggregator_type", type=str, default="gcn", help="Aggregator type: mean/gcn/pool/lstm")
     args = parser.parse_args()
 
     main(args)
