@@ -2,7 +2,8 @@ from .gcn import GCNModel
 from .gat import GATModel
 from .sgc import SGCModel
 from .gatv2 import GATV2Model
-from .graphsage import GraphSAGEModel
+from .sample_sage import GraphSAGEModel
+from .full_sage import GraphSAGEModel
 from .gcnii import GCNIIModel
 from .appnp import APPNPModel
 from .gin import GINModel

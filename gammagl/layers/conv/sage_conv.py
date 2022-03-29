@@ -26,10 +26,11 @@ class SAGEConv(MessagePassing):
 
     """
 
-    def __init__(self, in_channels, out_channels, aggr="mean", add_bias=False):
+    def __init__(self, in_channels, out_channels, activation, aggr="mean", add_bias=False):
         super(SAGEConv, self).__init__()
         #
         self.aggr = aggr
+        self.act = activation
         # relu use he_normal
         initor = tlx.initializers.he_normal()
         # self and neighbor
@@ -66,8 +67,12 @@ class SAGEConv(MessagePassing):
                     where :math:`N_{dst}` is the number of destination nodes in the input graph,
                     math:`D_{out}` is size of output feature.
         """
-        src_feat = feat[0]
-        dst_feat = feat[1]
+        if isinstance(feat, tuple):
+            src_feat = feat[0]
+            dst_feat = feat[1]
+        else:
+            src_feat = feat
+            dst_feat = feat
         num_nodes = dst_feat.shape[0]
         if self.aggr == 'mean':
             src_feat = self.fc_neigh(src_feat)
@@ -86,6 +91,10 @@ class SAGEConv(MessagePassing):
             out += self.fc_self(dst_feat)
         if self.add_bias:
             out += self.bias
+
+        if self.act is not None:
+            out = self.act(out)
+
         return out
 
 
@@ -96,7 +105,7 @@ import scipy.sparse as sp
 
 def calc(edge, num_nodes):
     weight = np.ones(edge.shape[1])
-    sparse_adj = sp.coo_matrix((weight, (edge[0], edge[1])), shape=(2708, 2708))
+    sparse_adj = sp.coo_matrix((weight, (edge[0], edge[1])), shape=(num_nodes, num_nodes))
     A = (sparse_adj + sp.eye(num_nodes)).tocoo()
     col, row, weight = A.col, A.row, A.data
     deg = np.array(A.sum(1))
