@@ -17,6 +17,7 @@ import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
 from gammagl.models import GCNModel
+from gammagl.utils.loop import add_self_loops
 from tensorlayerx.model import TrainOneStep, WithLoss
 
 class SemiSpvzLoss(WithLoss):
@@ -48,10 +49,9 @@ def main(args):
     dataset = Planetoid(args.dataset_path, args.dataset)
     # dataset.process() # suggest to execute explicitly so far
     graph = dataset[0]
-    graph.add_self_loop(n_loops=args.self_loops) # self-loop trick
-    edge_weight = tlx.ops.convert_to_tensor(GCNModel.calc_gcn_norm(graph.edge_index, graph.num_nodes))
+    edge_index, _ = add_self_loops(graph.edge_index, n_loops=args.self_loops)
+    edge_weight = tlx.ops.convert_to_tensor(GCNModel.calc_gcn_norm(edge_index, graph.num_nodes))
     x = graph.x
-    edge_index = graph.edge_index
     y = tlx.argmax(graph.y,1)
 
 
