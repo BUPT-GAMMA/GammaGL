@@ -1,55 +1,32 @@
-# !/usr/bin/env python
-# -*- encoding: utf-8 -*-
-"""
-@File    :   gcn_trainer.py
-@Time    :   2021/11/02 22:05:55
-@Author  :   hanhui
-"""
-
 import os
-os.environ['TL_BACKEND'] = 'paddle' # set your backend here, default `tensorflow`
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-import sys
-# sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
-import time
+os.environ['TL_BACKEND'] = 'tensorflow' # set your backend here, default `tensorflow`
+from gammagl.models.graphsage import GraphSAGE_Full_Model
+import tensorflow as tf
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
-from gammagl.models import GCNModel
-from gammagl.utils.loop import add_self_loops
-from tensorlayerx.model import TrainOneStep, WithLoss
 
+from tensorlayerx.model import TrainOneStep, WithLoss
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
         super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
 
     def forward(self, data, label):
-        logits = self._backbone(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
-        if tlx.BACKEND == 'mindspore':
-            idx = tlx.convert_to_tensor([i for i, v in enumerate(data['train_mask']) if v], dtype=tlx.int32)
-            train_logits = tlx.gather(logits,idx)
-            train_label = tlx.gather(label.reshape((-1, 1)),idx)
-        else:
-            train_logits = logits[data['train_mask']]
-            train_label = label[data['train_mask']]
+        logits = self._backbone(data['x'], data["edge_index"])
+        train_logits = logits[data['train_mask']]
+        train_label = label[data['train_mask']]
         loss = self._loss_fn(train_logits, train_label)
-        return loss
-
+        l2_loss = tf.add_n([tf.nn.l2_loss(v) for v in self._backbone.trainable_weights]) * args.l2_coef # only support for tensorflow backend
+        return loss + l2_loss
 def evaluate(net, data, y, mask, metrics):
     net.set_eval()
-    logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
-    if tlx.BACKEND == 'mindspore':
-        idx = tlx.convert_to_tensor([i for i, v in enumerate(mask) if v],dtype=tlx.int32)
-        _logits = tlx.gather(logits,idx)
-        _label = tlx.gather(y,idx)
-    else:
-        _logits = logits[mask]
-        _label = y[mask]
+    logits = net(data['x'], data['edge_index'])
+    _logits = logits[mask]
+    _label = y[mask]
     metrics.update(_logits, _label)
-    acc = metrics.result()
+    acc = metrics.result()#[0]
     metrics.reset()
     return acc
-
 def main(args):
     # load cora dataset
     if str.lower(args.dataset) not in ['cora','pubmed','citeseer']:
@@ -57,17 +34,19 @@ def main(args):
     dataset = Planetoid(args.dataset_path, args.dataset)
     # dataset.process() # suggest to execute explicitly so far
     graph = dataset[0]
-    edge_index, _ = add_self_loops(graph.edge_index, n_loops=args.self_loops)
-    edge_weight = tlx.ops.convert_to_tensor(GCNModel.calc_gcn_norm(edge_index, graph.num_nodes))
+
     x = graph.x
+    edge_index = graph.edge_index
     y = tlx.argmax(graph.y,1)
 
-    net = GCNModel(feature_dim=x.shape[1],
-                   hidden_dim=args.hidden_dim,
-                   num_class=graph.y.shape[1],
-                   keep_rate=args.keep_rate,
-                   name="GCN")
-    optimizer = tlx.optimizers.Adam(learning_rate=args.lr, weight_decay=args.l2_coef)
+    net = GraphSAGE_Full_Model(in_feats=x.shape[1],
+                 n_hidden=args.hidden_dim,
+                 n_classes=graph.y.shape[1],
+                 n_layers=args.n_layers,
+                 activation=tlx.ReLU(),
+                 dropout=1-args.keep_rate,
+                 aggregator_type=args.aggregator_type)
+    optimizer = tlx.optimizers.Adam(args.lr)
     metrics = tlx.metrics.Accuracy()
     train_weights = net.trainable_weights
 
@@ -77,10 +56,10 @@ def main(args):
     data = {
         "x": x,
         "edge_index": edge_index,
-        "edge_weight": edge_weight,
-        "train_mask": tlx.convert_to_tensor(graph.train_mask),
-        "test_mask": tlx.convert_to_tensor(graph.test_mask),
-        "val_mask": tlx.convert_to_tensor(graph.val_mask),
+        "edge_weight":tlx.ones(edge_index.shape[1], dtype=tlx.float32),
+        "train_mask": graph.train_mask,
+        "test_mask": graph.test_mask,
+        "val_mask": graph.val_mask,
         "num_nodes": graph.num_nodes,
     }
 
@@ -107,15 +86,18 @@ def main(args):
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lr", type=float, default=0.01, help="learnin rate")
+    parser.add_argument("--lr", type=float, default=0.005, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
-    parser.add_argument("--hidden_dim", type=int, default=16, help="dimention of hidden layers")
+    parser.add_argument("--hidden_dim", type=int, default=32, help="dimention of hidden layers")
     parser.add_argument("--keep_rate", type=float, default=0.5, help="keep_rate = 1 - drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
-    parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
+    parser.add_argument("--n_layers", type=int, default=1, help="number of hidden gcn layers")
+    parser.add_argument("--aggregator_type", type=str, default="gcn", help="Aggregator type: mean/gcn/pool/lstm")
     args = parser.parse_args()
 
     main(args)
+
+
