@@ -46,7 +46,7 @@ class GCN(tlx.nn.Module):
             feat = self.act(self.convs[i](feat, edge_index, edge_weight, num_nodes))
         return feat
 
-
+# Multi-layer(2-layer) Perceptron
 class MLP(tlx.nn.Module):
     def __init__(self, in_feat, out_feat):
         super(MLP, self).__init__()
@@ -67,12 +67,12 @@ class grace(tlx.nn.Module):
         self.proj = MLP(hid_feat, out_feat)
 
     def get_loss(self, z1, z2):
+        # calculate SimCLR loss
         f = lambda x: tlx.exp(x / self.temp)
         refl_sim = f(self.sim(z1, z1))  # intra-view pairs
         between_sim = f(self.sim(z1, z2))  # inter-view pairs
 
         # between_sim.diag(): positive pairs
-        # x1 = refl_sim.sum(1) + between_sim.sum(1) - refl_sim.diag()
         x1 = tlx.reduce_sum(refl_sim, axis=1) + \
              tlx.reduce_sum(between_sim, axis=1) - tf.linalg.diag_part(refl_sim, k=0)
         loss = -tlx.log(tf.linalg.diag_part(between_sim, k=0) / x1)
@@ -80,6 +80,7 @@ class grace(tlx.nn.Module):
         return loss
 
     def sim(self, z1, z2):
+        # normalize embeddings across feature dimension
         z1 = tlx.ops.l2_normalize(z1, axis=1)
         z2 = tlx.ops.l2_normalize(z2, axis=1)
         return tlx.matmul(z1, tlx.transpose(z2))
@@ -90,13 +91,13 @@ class grace(tlx.nn.Module):
     # def forward(self,feat1, feat2, edge_index1, edge_index2):
 
     def forward(self, graph1, graph2):
-        # feat, edge_index, edge_weight, num_nodes
+        # encoding
         h1 = self.encoder(graph1.x, graph1.edge_index, tlx.convert_to_tensor(graph1.edge_weight), graph1.num_nodes)
         h2 = self.encoder(graph2.x, graph2.edge_index, tlx.convert_to_tensor(graph2.edge_weight), graph2.num_nodes)
-
+        # projection
         z1 = self.proj(h1)
         z2 = self.proj(h2)
-
+        # get loss
         l1 = self.get_loss(z1,z2)
         l2 = self.get_loss(z2,z1)
         ret = (l1 + l2) / 2
