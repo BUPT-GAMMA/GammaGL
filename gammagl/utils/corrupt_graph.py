@@ -4,7 +4,7 @@ import scipy.sparse as sp
 from gammagl.data import Graph
 import numpy as np
 
-
+# calculate D^(-1/2) * A_hat * D^(-1/2)
 def calc(edge, num_node):
     weight = np.ones(edge.shape[1])
     sparse_adj = sp.coo_matrix((weight, (edge[0], edge[1])), shape=(num_node, num_node))
@@ -15,7 +15,7 @@ def calc(edge, num_node):
 
     return col, row, np.array(deg_inv_sqrt[row] * weight * deg_inv_sqrt[col], dtype=np.float32)
 
-
+# drop feat and drop edge to create new graph
 def dfde_norm_g(edge_index, feat, feat_drop_rate, drop_edge_rate):
     num_node = feat.shape[0]
     edge_mask = drop_edge(edge_index, drop_edge_rate)
@@ -28,8 +28,16 @@ def dfde_norm_g(edge_index, feat, feat_drop_rate, drop_edge_rate):
 
     return new_g
 
+# drop edge to generate mask
+def drop_edge(edge_index, drop_edge_rate=0.5):
+    r"""Randomly drops edges from the adjacency matrix
+        :obj:`(edge_index, edge_attr)` with probability :obj:`p` using samples from
+        a Bernoulli distribution.
 
-def drop_edge(edge_index, drop_edge_rate):
+        Args:
+        edge_index (Tensor): The edge indices.
+        p (float, optional): Dropout probability. (default: :obj:`0.5`)
+        """
     if drop_edge_rate < 0. or drop_edge_rate > 1.:
         raise ValueError(f'Dropout probability has to be between 0 and 1 '
                          f'(got {drop_edge_rate}')
@@ -39,7 +47,7 @@ def drop_edge(edge_index, drop_edge_rate):
                                   minval=0, maxval=1, dtype=tlx.float32) >= drop_edge_rate
     return mask
 
-
+# drop node's feat
 def drop_feat(feat, drop_feat_rate):
     if drop_feat_rate < 0. or drop_feat_rate > 1.:
         raise ValueError(f'Dropout probability has to be between 0 and 1 '
@@ -48,7 +56,7 @@ def drop_feat(feat, drop_feat_rate):
         drop_mask = tlx.convert_to_tensor(np.ones(feat.shape[1], dtype=np.bool8))
     else:
         drop_mask = tlx.ops.random_uniform(shape=[feat.shape[1]],
-                                       minval=0, maxval=1, dtype=tlx.float32) < drop_feat_rate
+                                           minval=0, maxval=1, dtype=tlx.float32) < drop_feat_rate
     # update tlx don't have
     drop_mask = tlx.range(0, drop_mask.shape)[drop_mask]
     zero = tlx.zeros((drop_mask.shape[0], feat.shape[0]), dtype=tlx.float32)
@@ -58,7 +66,3 @@ def drop_feat(feat, drop_feat_rate):
     return feat
 
 
-# a = tlx.convert_to_tensor(np.arange(0, 10, dtype=np.float32).reshape(2, -1))
-# # b = tlx.convert_to_tensor(np.ones(shape=[2], dtype=np.bool8))
-# b = drop_feat(a, 0.5)
-# print(b)
