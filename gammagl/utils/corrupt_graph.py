@@ -28,7 +28,7 @@ def dfde_norm_g(edge_index, feat, feat_drop_rate, drop_edge_rate):
 
     return new_g
 
-# drop edge to generate mask
+# random drop edge to generate mask
 def drop_edge(edge_index, drop_edge_rate=0.5):
     r"""Randomly drops edges from the adjacency matrix
         :obj:`(edge_index, edge_attr)` with probability :obj:`p` using samples from
@@ -47,7 +47,7 @@ def drop_edge(edge_index, drop_edge_rate=0.5):
                                   minval=0, maxval=1, dtype=tlx.float32) >= drop_edge_rate
     return mask
 
-# drop node's feat
+# random drop node's feat
 def drop_feat(feat, drop_feat_rate):
     if drop_feat_rate < 0. or drop_feat_rate > 1.:
         raise ValueError(f'Dropout probability has to be between 0 and 1 '
