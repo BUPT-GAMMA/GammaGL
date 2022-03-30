@@ -12,7 +12,6 @@ os.environ['TL_BACKEND'] = 'tensorflow' # set your backend here, default `tensor
 import sys
 # sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 import time
-import tensorflow as tf
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
@@ -25,19 +24,28 @@ class SemiSpvzLoss(WithLoss):
 
     def forward(self, data, label):
         logits = self._backbone(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
-        train_logits = logits[data['train_mask']]
-        train_label = label[data['train_mask']]
+        if tlx.BACKEND == 'mindspore':
+            idx = tlx.convert_to_tensor([i for i, v in enumerate(data['train_mask']) if v], dtype=tlx.int32)
+            train_logits = tlx.gather(logits,idx)
+            train_label = tlx.gather(label.reshape((-1, 1)),idx)
+        else:
+            train_logits = logits[data['train_mask']]
+            train_label = label[data['train_mask']]
         loss = self._loss_fn(train_logits, train_label)
-        l2_loss = tf.add_n([tf.nn.l2_loss(v) for v in self._backbone.trainable_weights]) * args.l2_coef # only support for tensorflow backend
-        return loss + l2_loss
+        return loss
 
 def evaluate(net, data, y, mask, metrics):
     net.set_eval()
     logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
-    _logits = logits[mask]
-    _label = y[mask]
+    if tlx.BACKEND == 'mindspore':
+        idx = tlx.convert_to_tensor([i for i, v in enumerate(mask) if v],dtype=tlx.int32)
+        _logits = tlx.gather(logits,idx)
+        _label = tlx.gather(y,idx)
+    else:
+        _logits = logits[mask]
+        _label = y[mask]
     metrics.update(_logits, _label)
-    acc = metrics.result()#[0]
+    acc = metrics.result()
     metrics.reset()
     return acc
 
@@ -54,18 +62,12 @@ def main(args):
     edge_index = graph.edge_index
     y = tlx.argmax(graph.y,1)
 
-
-    # build model
-    # best_model_path = os.path.abspath(args.best_model_path)
-    # if not os.path.exists(best_model_path):
-    #     os.makedirs(os.path.abspath(best_model_path))
-
     net = GCNModel(feature_dim=x.shape[1],
                    hidden_dim=args.hidden_dim,
                    num_class=graph.y.shape[1],
                    keep_rate=args.keep_rate,
                    name="GCN")
-    optimizer = tlx.optimizers.Adam(args.lr)
+    optimizer = tlx.optimizers.Adam(learning_rate=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
     train_weights = net.trainable_weights
 
@@ -76,9 +78,9 @@ def main(args):
         "x": x,
         "edge_index": edge_index,
         "edge_weight": edge_weight,
-        "train_mask": graph.train_mask,
-        "test_mask": graph.test_mask,
-        "val_mask": graph.val_mask,
+        "train_mask": tlx.convert_to_tensor(graph.train_mask),
+        "test_mask": tlx.convert_to_tensor(graph.test_mask),
+        "val_mask": tlx.convert_to_tensor(graph.val_mask),
         "num_nodes": graph.num_nodes,
     }
 
@@ -115,10 +117,5 @@ if __name__ == '__main__':
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     args = parser.parse_args()
-
-    # physical_gpus = tf.config.experimental.list_physical_devices('GPU')
-    # if len(physical_gpus) > 0:
-    #     # dynamic allocate gpu memory
-    #     tf.config.experimental.set_memory_growth(physical_gpus[0], True)
 
     main(args)

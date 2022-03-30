@@ -58,7 +58,7 @@ class GCNModel(tlx.nn.Module):
         # weights = deg_inv_sqrt[src] * edge_weight * deg_inv_sqrt[dst]
         # return tlx.convert_to_tensor(weights.astype(np.float32))
         if edge_weight is None:
-            edge_weight = tlx.ones(edge_index.shape[1])
+            edge_weight = tlx.ones((edge_index.shape[1],)) # torch backend `shape` 参数不能是int
         deg = tlx.ops.unsorted_segment_sum(edge_weight, src, num_segments=num_nodes)
         deg_inv_sqrt = tlx.pow(deg, -0.5)
         # deg_inv_sqrt[tlx.is_inf(deg_inv_sqrt)] = 0 # may exist solo node

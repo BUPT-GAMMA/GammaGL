@@ -37,11 +37,6 @@ class MessagePassing(tlx.nn.Module):
         if aggr_type == 'min':
             return tlx.ops.unsorted_segment_min(msg, dst_index, num_nodes)
 
-    # def message_aggregate(self, x, index):
-    #     x = self.message(x, index)
-    #     x = self.aggregate(x, index)
-    #     return x
-
     def update(self, x):
         return x
 
