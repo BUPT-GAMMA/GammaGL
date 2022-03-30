@@ -8,7 +8,9 @@ from typing import (Any, Callable, Dict, Iterable, List, NamedTuple, Optional,
                     Tuple, Union)
 from gammagl.data.storage import (BaseStorage, EdgeStorage,
                                           GlobalStorage, NodeStorage)
+from gammagl.utils.loop import add_self_loops
 from gammagl.utils.check import check_is_numpy
+from gammagl.utils.num_nodes import maybe_num_nodes
 
 
 class BaseGraph:
@@ -59,16 +61,19 @@ class Graph(BaseGraph):
         [0. 1. 1. 1. 0.] [3. 0. 0. 0. 0.]
     
     Args:
-        edge_index: edge list contains source nodes and destination nodes of graph.
-        edge_feat: features of edges.
-        num_nodes: number of nodes.
-        node_feat: features and labels of nodes.
-        node_label: labels of nodes.
-        graph_label: labels of graphs
+        x (Tensor): Node feature matrix with shape :obj:`[num_nodes, num_node_features]`. (default: :obj:`None`)
+        edge_index (LongTensor): Graph connectivity in COO format with shape :obj:`[2, num_edges]`.
+            (default: :obj:`None`)
+        edge_feat (Tensor): Edge feature matrix with shape
+            :obj:`[num_edges, num_edge_features]`. (default: :obj:`None`)
+        num_nodes (int): The specified number of nodes. (default: :obj:`None`)
+        y (Tensor): Graph-level or node-level ground-truth labels with arbitrary shape. (default: :obj:`None`)
+        spr_format (List(str)): Specify the other sparse storage format, like `csc` and `csr`. (default: :obj:`None`)
     """
 
-    def __init__(self, x=None, edge_index=None, edge_feat=None, num_nodes=None, y=None, spr_format=None, **kwargs):
+    def __init__(self, x=None, edge_index=None, edge_feat=None, num_nodes=None, y=None, spr_format=None, is_tensor=True, **kwargs):
         self.__dict__['_store'] = GlobalStorage(_parent=self)
+        self._is_tensor = is_tensor
         if edge_index is not None:
             self.edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int64)
 
@@ -103,7 +108,8 @@ class Graph(BaseGraph):
         self._store[key] = value
 
     def __getattr__(self, key: str) -> Any:
-         return getattr(self._store, key)
+        # Called when the default attribute access fails, which means getattr
+        return getattr(self._store, key)
 
     def __setattr__(self, key: str, value: Any):
         setattr(self._store, key, value)
@@ -141,24 +147,16 @@ class Graph(BaseGraph):
     def stores(self) -> List[BaseStorage]:
         return [self._store]
     
+    @property
+    def node_stores(self) -> List[NodeStorage]:
+        return [self._store]
+
+    @property
+    def edge_stores(self) -> List[EdgeStorage]:
+        return [self._store]
+    
     def stores_as(self, data: 'Data'):
         return self
-    
-    # @classmethod
-    def _maybe_num_node(self, edge_index):
-        r"""
-        given the edge_index guess the max number of the nodes in a graph.
-
-        Args:
-            edge_index: edge list contains source nodes and destination nodes of graph.
-        """
-        if edge_index is not None:
-            if check_is_numpy(edge_index):
-                return np.max(edge_index) + 1
-            else:
-                return np.max(tlx.convert_to_numpy(edge_index)) + 1
-        else:
-            return 0
 
     @property
     def num_nodes(self):
@@ -259,21 +257,36 @@ class Graph(BaseGraph):
     #     pass
 
     def add_self_loop(self, n_loops=1):
-        if n_loops < 1: return
-        self_loop_index = tlx.convert_to_tensor([np.arange(self.num_nodes).repeat(n_loops),
-                                                 np.arange(self.num_nodes).repeat(n_loops)])
-        self_loop_index = tlx.cast(self_loop_index, tlx.int64)
-        self.edge_index = tlx.concat([self.edge_index, self_loop_index], axis=1)
+        """
+        Args:
+            n_loops (int):
 
+        Returns:
+            edge_index (Tensor) : original edges with self loop edges
+            edge_feat (FloatTensor) : attributes of edges
+        """
+        return add_self_loops(self.edge_index, n_loops, self.edge_feat, num_nodes=self.num_nodes)
+
+    def sorted_edges(self, sort_by="src"):
+        """Return sorted edges with different strategies.
+        This function will return sorted edges with different strategy.
+        If :code:`sort_by="src"`, then edges will be sorted by :code:`src`
+        nodes and otherwise :code:`dst`.
+        Args:
+            sort_by: The type for sorted edges. ("src" or "dst")
+        Return:
+            A tuple of (sorted_src, sorted_dst, sorted_eid).
+        """
+        if sort_by not in ["src", "dst"]:
+            raise ValueError("sort_by should be in 'src' or 'dst'.")
+        if sort_by == 'src':
+            src, dst, eid = self._csr_adj.triples()
+        else:
+            dst, src, eid = self._csc_adj.triples()
+        return src, dst, eid
+    
     def generate_onehot_node_feat(self):
         self._node_feat = np.eye(self.num_nodes, dtype=np.float32)
-
-    # NOTE: The following classmethods will be deleted in fulture
-    @classmethod
-    def cast_node_label(cls, node_label):
-        if isinstance(node_label, list):
-            node_label = np.array(node_label)
-        return node_label
    
     # def __repr__(self):
     #     description = "GNN {} instance.\n".format(self.__class__.__name__)
@@ -292,6 +305,130 @@ class Graph(BaseGraph):
                      num_nodes=copy.deepcopy(self.num_nodes), 
                      node_feat=copy.deepcopy(self.node_feat), 
                      node_label=copy.deepcopy(self.node_label))
+
+    def _apply_to_tensor(self, key, value, inplace=True):
+        if value is None:
+            return value
+    
+        if key == '_is_tensor':
+            # set is_tensor to True
+            return True
+    
+        if isinstance(value, CSRAdj):
+            value = value.tensor(inplace=inplace)
+    
+        elif isinstance(value, dict):
+            if inplace:
+                for k, v in value.items():
+                    value[k] = tlx.ops.convert_to_tensor(v)
+            else:
+                new_value = {}
+                for k, v in value.items():
+                    new_value[k] = tlx.ops.convert_to_tensor(v)
+                value = new_value
+        else:
+            if tlx.ops.is_tensor(value):
+                pass
+            elif check_is_numpy(value):
+                value = tlx.ops.convert_to_tensor(value)
+        return value
+    
+    def tensor(self, inplace=True):
+        """Convert the Graph into paddle.Tensor format.
+        In paddle.Tensor format, the graph edges and node features are in paddle.Tensor format.
+        You can use send and recv in paddle.Tensor graph.
+
+        Args:
+            inplace: (Default True) Whether to convert the graph into tensor inplace.
+
+        """
+    
+        if self._is_tensor:
+            return self
+    
+        if inplace:
+            for key in self._store:
+                self._store[key] = self._apply_to_tensor(
+                    key, self._store[key], inplace)
+            self._is_tensor = True
+            return self
+        else:
+            new_dict = {}
+            for key in self.__dict__:
+                new_dict[key] = self._apply_to_tensor(key, self.__dict__[key],
+                                                      inplace)
+        
+            graph = self.__class__(
+                num_nodes=new_dict["_num_nodes"],
+                edges=new_dict["_edges"],
+                node_feat=new_dict["_node_feat"],
+                edge_feat=new_dict["_edge_feat"],
+                adj_src_index=new_dict["_adj_src_index"],
+                adj_dst_index=new_dict["_adj_dst_index"],
+                **new_dict)
+            return graph
+
+    def _apply_to_numpy(self, key, value, inplace=True):
+        if value is None:
+            return value
+    
+        if key == '_is_tensor':
+            # set is_tensor to True
+            return False
+    
+        if isinstance(value, CSRAdj):
+            value = value.numpy(inplace=inplace)
+        elif isinstance(value, dict):
+            if inplace:
+                for k, v in value.items():
+                    value[k] = v.numpy()
+            else:
+                new_value = {}
+                for k, v in value.items():
+                    new_value[k] = v.numpy()
+                value = new_value
+        else:
+            if check_is_numpy(value):
+                pass
+            elif tlx.ops.is_tensor(value):
+                value = tlx.ops.convert_to_numpy(value)
+        return value
+
+    def numpy(self, inplace=True):
+        """Convert the Graph into numpy format.
+        In numpy format, the graph edges and node features are in numpy.ndarray format.
+        But you can't use send and recv in numpy graph.
+
+        Args:
+            inplace: (Default True) Whether to convert the graph into numpy inplace.
+
+        """
+        if not self._is_tensor:
+            return self
+        
+        if inplace:
+
+            for key in self._store:
+                self._store[key] = self._apply_to_numpy(
+                    key, self._store[key], inplace)
+            self._is_tensor = False
+            return self
+        else:
+            new_dict = {}
+            for key in self.__dict__:
+                new_dict[key] = self._apply_to_numpy(key, self.__dict__[key],
+                                                     inplace)
+        
+            graph = self.__class__(
+                num_nodes=new_dict["_num_nodes"],
+                edges=new_dict["_edges"],
+                node_feat=new_dict["_node_feat"],
+                edge_feat=new_dict["_edge_feat"],
+                adj_src_index=new_dict["_adj_src_index"],
+                adj_dst_index=new_dict["_adj_dst_index"],
+                **new_dict)
+            return graph
+
 
     def dump(self, path):
         r"""

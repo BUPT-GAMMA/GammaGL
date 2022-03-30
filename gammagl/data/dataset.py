@@ -12,6 +12,11 @@ from torch import Tensor
 from . import Graph
 from .makedirs import makedirs
 
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+    
 IndexType = Union[slice, Tensor, np.ndarray, Sequence]
 
 
@@ -87,15 +92,12 @@ class Dataset(Dataset):
     def save_data(self, obj, file_name):
         if tlx.BACKEND == 'paddle':
             import paddle
+            obj[0].numpy()
             paddle.save(obj, file_name)
         elif tlx.BACKEND == 'torch':
             import torch
             torch.save(obj, file_name)
         else:
-            try:
-                import cPickle as pickle
-            except ImportError:
-                import pickle
             with open(file_name, 'wb') as f:
                 pickle.dump(obj, f)
         return True
@@ -104,14 +106,11 @@ class Dataset(Dataset):
         if tlx.BACKEND == 'paddle':
             import paddle
             obj = paddle.load(file_name)
+            obj[0].tensor()
         elif tlx.BACKEND == 'torch':
             import torch
             obj = torch.load(file_name)
         else:
-            try:
-                import cPickle as pickle
-            except ImportError:
-                import pickle
             with open(file_name, 'rb') as f:
                 obj = pickle.load(f)
         return obj
