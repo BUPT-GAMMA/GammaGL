@@ -1,14 +1,8 @@
 import tensorlayerx as tlx
-import tensorflow as tf
-
-
 import numpy as np
-
-import tensorflow_probability as tfp
 import scipy.sparse as sp
-from gammagl.data import Graph
-from gammagl.layers.conv import MessagePassing, GCNConv
-from gammagl.utils.corrupt_graph import drop_edge, drop_feat
+from gammagl.layers.conv import GCNConv
+
 
 
 def calc(edge, num_node):
@@ -74,8 +68,8 @@ class grace(tlx.nn.Module):
 
         # between_sim.diag(): positive pairs
         x1 = tlx.reduce_sum(refl_sim, axis=1) + \
-             tlx.reduce_sum(between_sim, axis=1) - tf.linalg.diag_part(refl_sim, k=0)
-        loss = -tlx.log(tf.linalg.diag_part(between_sim, k=0) / x1)
+             tlx.reduce_sum(between_sim, axis=1) - np.diag(refl_sim, k=0)
+        loss = -tlx.log(np.diag(between_sim, k=0) / x1)
 
         return loss
 
