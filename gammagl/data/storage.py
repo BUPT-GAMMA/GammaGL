@@ -9,7 +9,8 @@ from typing import (Any, Callable, Dict, Iterable, List, NamedTuple, Optional,
 # import torch
 # from torch import Tensor
 # from torch_sparse import SparseTensor, coalesce
-import tensorflow as tf
+# import tensorflow as tf
+import tensorlayerx as tlx
 from gammagl.data.view import ItemsView, KeysView, ValuesView
 # from torch_geometric.utils import is_undirected
 
@@ -22,6 +23,7 @@ EdgeType = Tuple[str, str, str]
 
 
 class BaseStorage(MutableMapping):
+    # Copy from PyG
     # This class wraps a Python dictionary and extends it as follows:
     # 1. It allows attribute assignments, e.g.:
     #    `storage.x = ...` in addition to `storage['x'] = ...`
@@ -31,7 +33,7 @@ class BaseStorage(MutableMapping):
     #    `storage._parent = weakref.ref(parent)`
     # 4. It allows iterating over only a subset of keys, e.g.:
     #    `storage.values('x', 'y')` or `storage.items('x', 'y')
-    # 5. It adds additional PyTorch Tensor functionality, e.g.:
+    # 5. (Only in PyG) It adds additional PyTorch Tensor functionality, e.g.:
     #    `storage.cpu()`, `storage.cuda()` or `storage.share_memory_()`.
     def __init__(self, _mapping: Optional[Dict[str, Any]] = None, **kwargs):
         super().__init__()
@@ -254,8 +256,7 @@ class NodeStorage(BaseStorage):
         if 'num_nodes' in self:
             return self['num_nodes']
         for key, value in self.items():
-            import tensorflow as tf
-            if (isinstance(value, tf.Tensor)
+            if (tlx.ops.is_tensor(value)
                     and (key in {'x', 'pos', 'batch'} or 'node' in key)):
                 return value.shape[self._parent().__cat_dim__(key, value, self)]
         # if 'adj' in self and isinstance(self.adj, SparseTensor):
@@ -268,7 +269,7 @@ class NodeStorage(BaseStorage):
         #     f"attribute of " +
         #     ("'data'" if self._key is None else f"'data[{self._key}]'") +
         #     " to suppress this warning")
-        if 'edge_index' in self and isinstance(self.edge_index, tf.Tensor):
+        if 'edge_index' in self and tlx.ops.is_tensor(self.edge_index):
             if self.edge_index.numel() > 0:
                 return int(self.edge_index.max()) + 1
             else:
@@ -277,7 +278,7 @@ class NodeStorage(BaseStorage):
 
     @property
     def num_node_features(self) -> int:
-        if 'x' in self and isinstance(self.x, tf.Tensor):
+        if 'x' in self and tlx.ops.is_tensor(self.x):
             return 1 if self.x.ndim == 1 else self.x.shape[-1]
         return 0
 
@@ -299,7 +300,8 @@ class NodeStorage(BaseStorage):
 
 
 class EdgeStorage(BaseStorage):
-    r"""We support multiple ways to store edge connectivity in a
+    r""" Copied from PyG
+    We support multiple ways to store edge connectivity in a
     :class:`EdgeStorage` object:
     * :obj:`edge_index`: A :class:`torch.LongTensor` holding edge indices in
       COO format with shape :obj:`[2, num_edges]` (the default format)

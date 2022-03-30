@@ -6,11 +6,17 @@ import warnings
 from collections.abc import Sequence
 from typing import Any, Callable, List, Optional, Tuple, Union
 from tensorlayerx.dataflow import Dataset
+import tensorlayerx as tlx
 import numpy as np
 from torch import Tensor
 from . import Graph
 from .makedirs import makedirs
 
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+    
 IndexType = Union[slice, Tensor, np.ndarray, Sequence]
 
 
@@ -83,6 +89,32 @@ class Dataset(Dataset):
         if 'process' in self.__class__.__dict__:
             self._process()
 
+    def save_data(self, obj, file_name):
+        if tlx.BACKEND == 'paddle':
+            import paddle
+            obj[0].numpy()
+            paddle.save(obj, file_name)
+        elif tlx.BACKEND == 'torch':
+            import torch
+            torch.save(obj, file_name)
+        else:
+            with open(file_name, 'wb') as f:
+                pickle.dump(obj, f)
+        return True
+        
+    def load_data(self, file_name):
+        if tlx.BACKEND == 'paddle':
+            import paddle
+            obj = paddle.load(file_name)
+            obj[0].tensor()
+        elif tlx.BACKEND == 'torch':
+            import torch
+            obj = torch.load(file_name)
+        else:
+            with open(file_name, 'rb') as f:
+                obj = pickle.load(f)
+        return obj
+                
     def indices(self) -> Sequence:
         return range(self.len()) if self._indices is None else self._indices
 
