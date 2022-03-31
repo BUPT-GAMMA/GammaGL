@@ -6,7 +6,7 @@ Inspired by [PyTorch Geometric(PyG)](https://github.com/pyg-team/pytorch_geometr
 
 It is under development, welcome join us!
 
-We give a Chinese development procedure on [wiki](https://github.com/BUPT-GAMMA/GammaGL/wiki/%E5%BC%80%E5%8F%91%E8%80%85%E6%B5%81%E7%A8%8B).
+We give a development tutorial in Chinese on [wiki](https://github.com/BUPT-GAMMA/GammaGL/wiki/%E5%BC%80%E5%8F%91%E8%80%85%E6%B5%81%E7%A8%8B).
 
 ## Get Started
 
@@ -35,8 +35,8 @@ We give a Chinese development procedure on [wiki](https://github.com/BUPT-GAMMA/
 
 ## Supported Models
 
-|                 | TensorFlow         | PyTorch            | Paddle             | MindSpore          |
-| --------------- | ------------------ | ------------------ | ------------------ | ------------------ |
-| GCN [ICLR 2017] | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| G               |                    |                    |                    |                    |
-|                 |                    |                    |                    |                    |
+|                                   | TensorFlow         | PyTorch            | Paddle             | MindSpore          |
+| --------------------------------- | ------------------ | ------------------ | ------------------ | ------------------ |
+| [GCN [ICLR 2017]](./examples/gcn) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+|                                   |                    |                    |                    |                    |
+|                                   |                    |                    |                    |                    |
