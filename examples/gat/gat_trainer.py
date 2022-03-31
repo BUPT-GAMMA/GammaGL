@@ -13,20 +13,25 @@ import sys
 # sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 import time
 import argparse
-import tensorflow as tf
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
 from gammagl.models import GATModel
+from gammagl.utils.loop import add_self_loops
 from tensorlayerx.model import TrainOneStep, WithLoss
 
 
 def evaluate(net, data, y, mask, metrics):
     net.set_eval()
     logits = net(data['x'], data['edge_index'], data['num_nodes'])
-    _logits = logits[mask]
-    _label = y[mask]
+    if tlx.BACKEND == 'mindspore':
+        idx = tlx.convert_to_tensor([i for i, v in enumerate(mask) if v], dtype=tlx.int32)
+        _logits = tlx.gather(logits, idx)
+        _label = tlx.gather(y, idx)
+    else:
+        _logits = logits[mask]
+        _label = y[mask]
     metrics.update(_logits, _label)
-    acc = metrics.result()  # [0]
+    acc = metrics.result()
     metrics.reset()
     return acc
 
@@ -37,11 +42,15 @@ class SemiSpvzLoss(WithLoss):
 
     def forward(self, data, label):
         logits = self._backbone(data['x'], data['edge_index'], data['num_nodes'])
-        train_logits = logits[data['train_mask']]
-        train_label = label[data['train_mask']]
+        if tlx.BACKEND == 'mindspore':
+            idx = tlx.convert_to_tensor([i for i, v in enumerate(data['train_mask']) if v], dtype=tlx.int32)
+            train_logits = tlx.gather(logits, idx)
+            train_label = tlx.gather(label, idx)
+        else:
+            train_logits = logits[data['train_mask']]
+            train_label = label[data['train_mask']]
         loss = self._loss_fn(train_logits, train_label)
-        l2_loss = tf.add_n([tf.nn.l2_loss(v) for v in self._backbone.trainable_weights]) * args.l2_coef  # only support for tensorflow backend
-        return loss + l2_loss
+        return loss
 
 
 
@@ -50,17 +59,12 @@ def main(args):
     if str.lower(args.dataset) not in ['cora', 'pubmed', 'citeseer']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)
-    # dataset.process()  # suggest to execute explicitly so far
+    dataset.process()  # suggest to execute explicitly so far
     graph = dataset[0]
-    graph.add_self_loop(n_loops=args.self_loops)  # self-loop trick
-    edge_index = graph.edge_index
-    x = graph.x
-    y = tlx.argmax(graph.y, 1)
+    edge_index, _ = add_self_loops(graph.edge_index, n_loops=args.self_loops)
+    x = tlx.convert_to_tensor(graph.x)
+    y = tlx.argmax(tlx.convert_to_tensor(graph.y), axis=1)
 
-    # configurate and build model
-    # best_model_path = os.path.abspath(args.best_model_path)+'/'
-    # if not os.path.exists(best_model_path):
-    #     os.makedirs(os.path.abspath(best_model_path))
 
     net = GATModel(feature_dim=x.shape[1],
                    hidden_dim=args.hidden_dim,
@@ -69,7 +73,7 @@ def main(args):
                    keep_rate=args.keep_rate,
                    name="GAT")
     loss = tlx.losses.softmax_cross_entropy_with_logits
-    optimizer = tlx.optimizers.Adam(args.lr)
+    optimizer = tlx.optimizers.Adam(learning_rate=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
     train_weights = net.trainable_weights
 
@@ -79,9 +83,9 @@ def main(args):
     data = {
         "x": x,
         "edge_index": edge_index,
-        "train_mask": graph.train_mask,
-        "test_mask": graph.test_mask,
-        "val_mask": graph.val_mask,
+        "train_mask": tlx.convert_to_tensor(graph.train_mask),
+        "test_mask": tlx.convert_to_tensor(graph.test_mask),
+        "val_mask": tlx.convert_to_tensor(graph.val_mask),
         "num_nodes": graph.num_nodes,
     }
 
@@ -110,7 +114,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=0.005, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=8, help="dimention of hidden layers")
-    parser.add_argument("--keep_rate", type=float, default=0.5, help="keep_rate = 1 - drop_rate")
+    parser.add_argument("--keep_rate", type=float, default=0.4, help="keep_rate = 1 - drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument("--heads", type=int, default=8, help="number of heads for stablization")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
@@ -118,10 +122,5 @@ if __name__ == "__main__":
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     args = parser.parse_args()
-
-    # physical_gpus = tf.config.experimental.list_physical_devices('GPU')
-    # if len(physical_gpus) > 0:
-    #     # dynamic allocate gpu memory
-    #     tf.config.experimental.set_memory_growth(physical_gpus[0], True)
 
     main(args)
