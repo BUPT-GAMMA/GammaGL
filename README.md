@@ -13,11 +13,10 @@ We give a development tutorial in Chinese on [wiki](https://github.com/BUPT-GAMM
 * Install Backend
   
   ```bash
-  pip install tensorflow-gpu # GPU version
-  pip install tensorflow # CPU version
+  pip install tensorflow
   ```
   
-  Other backend with specific version, [check whether TLX supports](https://tensorlayerx.readthedocs.io/en/latest/user/installation.html#install-backend).
+  For other backend with specific version, [please check whether TLX supports](https://tensorlayerx.readthedocs.io/en/latest/user/installation.html#install-backend).
 
 * [Install TensorLayerX](https://tensorlayerx.readthedocs.io/en/latest/user/installation.html#install-tensorlayerx)
   
