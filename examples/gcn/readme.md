@@ -22,3 +22,9 @@ python gcn_train.py --dataset cora
 | cora | 81.5 |
 | pubmed | 70.3 |
 | citeseer | 79.0 |
+
+Test acc:
+tf:0.8050
+pd:0.8100
+th:0.8040
+ms:0.7510

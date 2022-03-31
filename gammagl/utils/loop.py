@@ -45,6 +45,7 @@ def add_self_loops(
     N = maybe_num_nodes(edge_index, num_nodes)
 
     # loop_index = tlx.convert_to_tensor(np.arange(0, N), dtype=tlx.int64)
+    edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int64) # 否则，torch 可能报错
     loop_index = tlx.convert_to_tensor([np.arange(N).repeat(1),
                                              np.arange(N).repeat(1)], dtype=edge_index.dtype)
 
