@@ -3,4 +3,5 @@ scipy
 tensorflow
 pytorch
 tensorlayerx
+git+https://github.com/tensorlayer/tensorlayerx.git
 pytest
