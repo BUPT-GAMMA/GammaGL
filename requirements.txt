@@ -1,5 +1,5 @@
 numpy
 scipy
 tensorflow
-tensorlayerx
+git+https://github.com/tensorlayer/tensorlayerx.git
 pytest
