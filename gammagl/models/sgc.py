@@ -1,17 +1,13 @@
 import tensorlayerx as tlx
 from gammagl.layers.conv import SGConv
 
+
 class SGCModel(tlx.nn.Module):
     """simplifing graph convoluation nerworks"""
-    def __init__(self, cfg, name=None):
+    def __init__(self, feature_dim, num_class, itera_K, name=None):
         super().__init__(name=name)
 
-        # config self check
-        cfg.self_check({"feature_dim": int,
-                        "num_class": int,
-                        "itera_K": int})
-
-        self.conv = SGConv(cfg.feature_dim, cfg.num_class, itera_K=cfg.itera_K)
+        self.conv = SGConv(feature_dim, num_class, itera_K=itera_K)
 
     def forward(self, x, edge_index, edge_weight, num_nodes):
         x = self.conv(x, edge_index, edge_weight, num_nodes)
