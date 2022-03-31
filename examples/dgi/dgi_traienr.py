@@ -99,9 +99,9 @@ def main(args):
             with tf.GradientTape() as tape:
                 train_logits = clf(train_embs)
                 # loss = tlx.losses.softmax_cross_entropy_with_logits(train_logits, train_lbls)
-                loss = tlx.reduce_mean(tlx.losses.softmax_cross_entropy_with_logits(output=train_logits,
+                loss = tlx.losses.softmax_cross_entropy_with_logits(output=train_logits,
                                                                                     target=tlx.argmax(train_lbls,
-                                                                                                      axis=1)))
+                                                                                                      axis=1))
                 grads = tape.gradient(loss, clf.trainable_weights)
                 clf_opt.apply_gradients(zip(grads, clf.trainable_weights))
         test_logits = clf(test_embs)
