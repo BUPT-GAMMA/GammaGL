@@ -75,7 +75,7 @@ class Graph(BaseGraph):
         self.__dict__['_store'] = GlobalStorage(_parent=self)
         self._is_tensor = is_tensor
         if edge_index is not None:
-            self.edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int64)
+            self.edge_index = edge_index
 
         # if num_nodes is None:
         #     warnings.warn("_maybe_num_node() is used to determine the number of nodes."
@@ -88,11 +88,11 @@ class Graph(BaseGraph):
         #         raise ValueError("num_nodes=[{}] should be bigger than max node ID in edge_index.".format(self._num_nodes))
         
         if edge_feat is not None:
-            self.edge_feat = tlx.convert_to_tensor(edge_feat, dtype=tlx.float32)
+            self.edge_feat = edge_feat
         if x is not None:
-            self.x = tlx.convert_to_tensor(x, dtype=tlx.float32)
+            self.x = x
         if y is not None:
-            self.y = tlx.convert_to_tensor(y, dtype=tlx.int64)
+            self.y = y
         if spr_format is not None:
             if 'csr' in spr_format:
                 self._csr_adj = CSRAdj.from_edges(self._edge_index[0], self._edge_index[1], self._num_nodes)
