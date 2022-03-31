@@ -330,7 +330,10 @@ class Graph(BaseGraph):
             if tlx.ops.is_tensor(value):
                 pass
             elif check_is_numpy(value):
-                value = tlx.ops.convert_to_tensor(value)
+                if key in ['edge_index', 'y']:
+                    value = tlx.ops.convert_to_tensor(value, dtype=tlx.int64)
+                else:
+                    value = tlx.ops.convert_to_tensor(value, dtype=tlx.float32)
         return value
     
     def tensor(self, inplace=True):
@@ -391,6 +394,7 @@ class Graph(BaseGraph):
             if check_is_numpy(value):
                 pass
             elif tlx.ops.is_tensor(value):
+                # can't assign type of numpy
                 value = tlx.ops.convert_to_numpy(value)
         return value
 
