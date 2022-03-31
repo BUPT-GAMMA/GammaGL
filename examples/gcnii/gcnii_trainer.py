@@ -7,202 +7,127 @@
 '''
 
 import os
+os.environ['TL_BACKEND'] = 'torch'
 import sys
-# os.environ["CUDA_VISIBLE_DEVICES"] = "3"
-sys.path.insert(0, os.path.abspath('../')) # adds path2gammagl to execute in command line.
-import time
-import numpy as np
+import argparse
 import tensorlayerx as tlx
-import tensorflow as tf
-from gammagl.datasets import Cora
+from gammagl.datasets import Planetoid
+from gammagl.utils.loop import add_self_loops
 from gammagl.models import GCNIIModel, GCNModel
-from gammagl.utils.config import Config
-# from tensorlayerx.model import TrainOneStep, WithLoss
+from tensorlayerx.model import TrainOneStep, WithLoss
+# os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+# sys.path.insert(0, os.path.abspath('../')) # adds path2gammagl to execute in command line.
 
-# parameters setting
-n_epoch = 1000
-learning_rate = 0.01
-hidden_dim = 64
-keep_rate = 0.4
-l2_norm = 5e-4
-alpha = 0.1
-beta = 0.5
-lambd = 0.5
-num_layers = 64
-variant = True
+class SemiSpvzLoss(WithLoss):
+    def __init__(self, net, loss_fn):
+        super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
 
-cora_path = r'../gammagl/datasets/raw_file/cora/'
-best_model_path = r'./best_models/'
-
-# physical_gpus = tf.config.experimental.list_physical_devices('GPU')
-# if len(physical_gpus) > 0:
-#     # dynamic allocate gpu memory
-#     tf.config.experimental.set_memory_growth(physical_gpus[0], True)
+    def forward(self, data, label):
+        logits = self._backbone(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
+        if tlx.BACKEND == 'mindspore':
+            idx = tlx.convert_to_tensor([i for i, v in enumerate(data['train_mask']) if v], dtype=tlx.int32)
+            train_logits = tlx.gather(logits, idx)
+            train_label = tlx.gather(label, idx)
+        else:
+            train_logits = logits[data['train_mask']]
+            train_label = label[data['train_mask']]
+        loss = self._loss_fn(train_logits, train_label)
+        return loss
 
 
-
-# load dataset
-dataset = Cora(cora_path)
-graph, idx_train, idx_val, idx_test = dataset.process()
-graph.add_self_loop(n_loops=1) # selfloop trick
-edge_weight = GCNModel.calc_gcn_norm(graph.edge_index, graph.num_nodes)
-edge_index = tlx.ops.convert_to_tensor(graph.edge_index)
-x = tlx.ops.convert_to_tensor(graph.node_feat)
-node_label = tlx.ops.convert_to_tensor(graph.node_label)
-idx_train = tlx.ops.convert_to_tensor(idx_train)
-idx_test = tlx.ops.convert_to_tensor(idx_test)
-idx_val = tlx.ops.convert_to_tensor(idx_val)
-
-
-# configurate and build model
-cfg = Config(feature_dim=dataset.feature_dim,
-             hidden_dim=hidden_dim,
-             num_class=dataset.num_class,
-             alpha = alpha,
-             beta = beta,
-             lambd = lambd,
-             variant = variant,
-             num_layers = num_layers,
-             keep_rate=keep_rate,)
-model = GCNIIModel(cfg, name="GCN")
-train_weights = model.trainable_weights
-optimizer = tlx.optimizers.Adam(learning_rate)
-best_val_acc = 0.
+def evaluate(net, data, y, mask, metrics):
+    net.set_eval()
+    logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
+    if tlx.BACKEND == 'mindspore':
+        idx = tlx.convert_to_tensor([i for i, v in enumerate(mask) if v],dtype=tlx.int32)
+        _logits = tlx.gather(logits,idx)
+        _label = tlx.gather(y,idx)
+    else:
+        _logits = logits[mask]
+        _label = y[mask]
+    metrics.update(_logits, _label)
+    acc = metrics.result()
+    metrics.reset()
+    return acc
 
 
-# fit the training set
-print('training starts')
-start_time = time.time()
-
-for epoch in range(n_epoch):
-    # forward and optimize
-    model.set_train()
-    with tf.GradientTape() as tape:
-        logits = model(x, edge_index, edge_weight, graph.num_nodes)
-        train_logits = tlx.gather(logits, idx_train)
-        train_labels = tlx.gather(node_label, idx_train)
-        train_loss = tlx.losses.softmax_cross_entropy_with_logits(train_logits, train_labels)
-        l2_loss = tf.add_n([tf.nn.l2_loss(v) for v in tape.watched_variables()]) * l2_norm
-        # l2_loss = tf.nn.l2_loss(tape.watched_variables()[0]) * l2_norm  # Only perform normalization on first convolution.
-        loss = train_loss + l2_loss
-    grad = tape.gradient(loss, train_weights)
-    optimizer.apply_gradients(zip(grad, train_weights))
-    train_acc = np.mean(np.equal(np.argmax(train_logits, 1), train_labels))
-    log_info = "epoch [{:0>3d}]  train loss: {:.4f}, l2_loss: {:.4f}, total_loss: {:.4f}, train acc: {:.4f}".format(epoch+1, train_loss, l2_loss, loss, train_acc)
-
-    # evaluate
-    model.set_eval()  # disable dropout
-    logits = model(x, edge_index, edge_weight, graph.num_nodes)
-    val_logits = tlx.gather(logits, idx_val)
-    val_labels = tlx.gather(node_label, idx_val)
-    val_loss = tlx.losses.softmax_cross_entropy_with_logits(val_logits, val_labels)
-    val_acc = np.mean(np.equal(np.argmax(val_logits, 1), val_labels))
-    log_info += ",  eval loss: {:.4f}, eval acc: {:.4f}".format(val_loss, val_acc)
-
-    # save best model on evaluation set
-    if val_acc > best_val_acc:
-        best_val_acc = val_acc
-        model.save_weights(best_model_path+model.name+".npz")
-
-    # # test when training
-    # logits = model(x, sparse_adj)
-    # test_logits = tlx.gather(logits, idx_test)
-    # test_labels = tlx.gather(node_label, idx_test)
-    # test_loss = tlx.losses.softmax_cross_entropy_with_logits(test_logits, test_labels)
-    # test_acc = np.mean(np.equal(np.argmax(test_logits, 1), test_labels))
-    # log_info += ",  test loss: {:.4f}, test acc: {:.4f}".format(test_loss, test_acc)
-
-    print(log_info)
-
-end_time = time.time()
-print("training ends in {t}s".format(t=int(end_time-start_time)))
-
-# test performance
-model.load_weights(best_model_path+model.name+".npz")
-model.set_eval()
-logits = model(x, edge_index, edge_weight, graph.num_nodes)
-test_logits = tlx.gather(logits, idx_test)
-test_labels = tlx.gather(node_label, idx_test)
-test_loss = tlx.losses.softmax_cross_entropy_with_logits(test_logits, test_labels)
-test_acc = np.mean(np.equal(np.argmax(test_logits, 1), test_labels))
-print("\ntest loss: {:.4f}, test acc: {:.4f}".format(test_loss, test_acc))
+def main(args):
+    # load cora dataset
+    if str.lower(args.dataset) not in ['cora', 'pubmed', 'citeseer']:
+        raise ValueError('Unknown dataset: {}'.format(args.dataset))
+    dataset = Planetoid(args.dataset_path, args.dataset)
+    dataset.process()  # suggest to execute explicitly so far
+    graph = dataset[0]
+    edge_index, _ = add_self_loops(graph.edge_index, n_loops=args.self_loops)
+    edge_weight = tlx.ops.convert_to_tensor(GCNModel.calc_gcn_norm(edge_index, graph.num_nodes))
+    x = tlx.convert_to_tensor(graph.x)
+    y = tlx.argmax(tlx.convert_to_tensor(graph.y), axis=1)
 
 
+    net = GCNIIModel(feature_dim=x.shape[1],
+                     hidden_dim=args.hidden_dim,
+                     num_class=graph.y.shape[1],
+                     num_layers=args.num_layers,
+                     alpha=args.alpha,
+                     beta=args.beta,
+                     lambd=args.lambd,
+                     variant=args.variant,
+                     keep_rate=args.keep_rate,
+                     name="GCNII")
+    optimizer = tlx.optimizers.Adam(learning_rate=args.lr, weight_decay=args.l2_coef)
+    metrics = tlx.metrics.Accuracy()
+    train_weights = net.trainable_weights
 
-# class NetWithLoss(WithLoss):
-#     def __init__(self, net, loss_fn):
-#         super(NetWithLoss, self).__init__(backbone=net, loss_fn=loss_fn)
-#
-#     def forward(self, data, label):
-#         logits = tlx.gather(
-#             self._backbone(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes']),
-#             data['idx_train']
-#         )
-#         label = tlx.gather(label, data['idx_train'])
-#         loss = self._loss_fn(logits, label)
-#         return loss
-#
-#
-# class GCNTrainOneStep(TrainOneStep):
-#     def __init__(self, net_with_loss, optimizer, train_weights):
-#         super().__init__(net_with_loss, optimizer, train_weights)
-#         self.train_weights = train_weights
-#
-#     def __call__(self, data, label):
-#         loss = self.net_with_train(data, label)
-#         return loss
-#
-# loss = tlx.losses.softmax_cross_entropy_with_logits
-# # metrics = tlx.metric.Accuracy() # zhen sb
-# net = GCNIIModel(cfg, name="GCNII")
-# train_weights = net.trainable_weights
-# optimizer = tlx.optimizers.Adam(learning_rate)
-# best_val_acc = 0.
-#
-# net_with_loss = NetWithLoss(net, loss)
-# train_one_step = GCNTrainOneStep(net_with_loss, optimizer, train_weights)
-#
-# data = {
-#     "x": x,
-#     "edge_index": edge_index,
-#     "edge_weight": edge_weight,
-#     "idx_train": idx_train,
-#     "idx_test": idx_test,
-#     "idx_val": idx_val,
-#     "num_nodes":graph.num_nodes,
-# }
-#
-# # fit the training set
-# print('training starts')
-# for epoch in range(n_epoch):
-#     start_time = time.time()
-#     net.set_train()
-#     # train one step
-#     train_loss = train_one_step(data, node_label)
-#     # eval
-#     _logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
-#
-#     train_logits = tlx.gather(_logits, data['idx_train'])
-#     train_label = tlx.gather(node_label, data['idx_train'])
-#     train_acc = np.mean(np.equal(np.argmax(train_logits, 1), train_label))
-#
-#     val_logits = tlx.gather(_logits, data['idx_val'])
-#     val_label = tlx.gather(node_label, data['idx_val'])
-#     val_acc = np.mean(np.equal(np.argmax(val_logits, 1), val_label))
-#
-#     print("Epoch [{:0>3d}]  ".format(epoch + 1)\
-#           + "   train loss: {:.4f}".format(train_loss)\
-#           + "   train acc: {:.4f}".format(train_acc)\
-#           + "   val acc: {:.4f}".format(val_acc))
-#
-#     # save best model on evaluation set
-#     if val_acc > best_val_acc:
-#         best_val_acc = val_acc
-#         net.save_weights(best_model_path+net.name+".npz", format='npz_dict')
-#
-# net.load_weights(best_model_path+net.name+".npz", format='npz_dict')
-# test_logits = tlx.gather(net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes']), data['idx_test'])
-# test_label = tlx.gather(node_label, data['idx_test'])
-# test_acc = np.mean(np.equal(np.argmax(test_logits, 1), test_label))
-# print("Test acc:  {:.4f}".format(test_acc))
+    loss_func = SemiSpvzLoss(net, tlx.losses.softmax_cross_entropy_with_logits)
+    train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
+    data = {
+        "x": x,
+        "edge_index": edge_index,
+        "edge_weight": edge_weight,
+        "train_mask": graph.train_mask,
+        "test_mask": graph.test_mask,
+        "val_mask": graph.val_mask,
+        "num_nodes": graph.num_nodes,
+    }
+
+    best_val_acc = 0
+    for epoch in range(args.n_epoch):
+        net.set_train()
+        train_loss = train_one_step(data, y)
+        val_acc = evaluate(net, data, y, data['val_mask'], metrics)
+
+        print("Epoch [{:0>3d}]  ".format(epoch + 1)
+              + "   train loss: {:.4f}".format(train_loss)
+              + "   val acc: {:.4f}".format(val_acc))
+
+        # save best model on evaluation set
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            net.save_weights(args.best_model_path+net.name+".npz", format='npz_dict')
+
+    net.load_weights(args.best_model_path+net.name+".npz", format='npz_dict')
+    test_acc = evaluate(net, data, y, data['test_mask'], metrics)
+    print("Test acc:  {:.4f}".format(test_acc))
+
+
+if __name__ == '__main__':
+    # parameters setting
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--lr", type=float, default=0.01, help="learnin rate")
+    parser.add_argument("--n_epoch", type=int, default=1000, help="number of epoch")
+    parser.add_argument("--hidden_dim", type=int, default=64, help="dimention of hidden layers")
+    parser.add_argument("--keep_rate", type=float, default=0.4, help="keep_rate = 1 - drop_rate")
+    parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
+    parser.add_argument("--alpha", type=float, default=0.1, help="alpha")
+    parser.add_argument("--beta", type=float, default=0.5, help="beta")
+    parser.add_argument("--lambd", type=float, default=0.5, help="lambd")
+    parser.add_argument("--num_layers", type=int, default=64, help="number of layers")
+    parser.add_argument("--variant", type=bool, default=True, help="variant")
+    parser.add_argument('--dataset', type=str, default='cora', help='dataset')
+    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
+    parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
+    args = parser.parse_args()
+
+    main(args)

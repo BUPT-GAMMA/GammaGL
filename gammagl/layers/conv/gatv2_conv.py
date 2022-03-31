@@ -1,13 +1,12 @@
-import tensorflow as tf
 import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
 
 
 def segment_softmax(data, segment_ids, num_segments):
-    max_values = tlx.ops.unsorted_segment_max(data, segment_ids, num_segments=num_segments) # tensorlayerx not supported
-    gathered_max_values = tlx.ops.gather(max_values, segment_ids)
+    # max_values = tlx.ops.unsorted_segment_max(data, segment_ids, num_segments=num_segments) # tensorlayerx not supported
+    # gathered_max_values = tlx.ops.gather(max_values, segment_ids)
     # exp = tlx.ops.exp(data - tf.stop_gradient(gathered_max_values))
-    exp = tlx.ops.exp(data - gathered_max_values)
+    exp = tlx.ops.exp(data)# - gathered_max_values)
     denominator = tlx.ops.unsorted_segment_sum(exp, segment_ids, num_segments=num_segments) + 1e-8
     gathered_denominator = tlx.ops.gather(denominator, segment_ids)
     score = exp / (gathered_denominator + 1e-16)
@@ -95,42 +94,24 @@ class GATV2Conv(MessagePassing):
             self.bias = self._get_weights("bias", shape=(self.heads * self.out_channels,), init=initor)
         elif self.add_bias and not concat:
             self.bias = self._get_weights("bias", shape=(self.out_channels,), init=initor)
-        
-    def message(self, x, edge_index, num_nodes):
-        node_src = tlx.ops.concat([edge_index[0, :], tlx.ops.range(num_nodes)], axis=0)
-        node_dst = tlx.ops.concat([edge_index[1, :], tlx.ops.range(num_nodes)], axis=0)
+
+    def message(self, x, edge_index, edge_weight=None, num_nodes=None):
+        node_src = edge_index[0, :]
+        node_dst = edge_index[1, :]
         weight_src = self.leaky_relu(tlx.ops.gather(x, node_src))
         weight_dst = self.leaky_relu(tlx.ops.gather(x, node_dst))
         weight = tlx.reduce_mean(weight_src * self.att_src + weight_dst * self.att_dst, -1)
 
-        # weight = tlx.ops.gather(weight, node_src)
         alpha = segment_softmax(weight, node_dst, num_nodes)
-
-        # weight = tlx.ops.exp(weight)
-        # weight = tlx.ops.gather(weight, node_dst)
-        # weight_sum = tlx.ops.unsorted_segment_sum(weight, node_src, num_segments=num_nodes)
-        # weight_sum = tlx.ops.gather(weight_sum, node_dst)
-        # alpha = weight / weight_sum
-
         alpha = self.dropout(alpha)
 
-        return tlx.ops.gather(x, node_src) * tlx.ops.expand_dims(alpha, -1)
+        x = tlx.ops.gather(x, node_src) * tlx.ops.expand_dims(alpha, -1)
+        return x * edge_weight if edge_weight else x
 
-
-    def aggregate(self, x, edge_index, num_nodes):
-        node_dst = tlx.ops.concat([edge_index[1, :], tlx.ops.range(num_nodes)], axis=0)
-        return tlx.ops.unsorted_segment_sum(x, node_dst, num_segments=num_nodes)
-
-
-    def propagate(self, x, edge_index, num_nodes):
-        x = self.message(x, edge_index, num_nodes)
-        x = self.aggregate(x, edge_index, num_nodes)
-        x = self.update(x)
-        return x
 
     def forward(self, x, edge_index, num_nodes):
         x = tlx.ops.reshape(self.linear_w(x), shape=(-1, self.heads, self.out_channels))
-        x = self.propagate(x, edge_index, num_nodes)
+        x = self.propagate(x, edge_index, num_nodes=num_nodes)
 
         if self.concat:
             x = tlx.ops.reshape(x, (-1, self.heads * self.out_channels))

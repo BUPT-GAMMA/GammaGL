@@ -3,10 +3,10 @@ from gammagl.layers.conv import MessagePassing
 
 
 def segment_softmax(data, segment_ids, num_segments):
-    max_values = tlx.ops.unsorted_segment_max(data, segment_ids, num_segments=num_segments) # tensorlayerx not supported
-    gathered_max_values = tlx.ops.gather(max_values, segment_ids)
+    # max_values = tlx.ops.unsorted_segment_max(data, segment_ids, num_segments=num_segments) # tensorlayerx not supported
+    # gathered_max_values = tlx.ops.gather(max_values, segment_ids)
     # exp = tlx.ops.exp(data - tf.stop_gradient(gathered_max_values))
-    exp = tlx.ops.exp(data - gathered_max_values)
+    exp = tlx.ops.exp(data) # - gathered_max_values)
     denominator = tlx.ops.unsorted_segment_sum(exp, segment_ids, num_segments=num_segments) + 1e-8
     gathered_denominator = tlx.ops.gather(denominator, segment_ids)
     score = exp / (gathered_denominator + 1e-16)
@@ -92,8 +92,8 @@ class GATConv(MessagePassing):
             self.bias = self._get_weights("bias", shape=(self.out_channels,), init=initor)
         
     def message(self, x, edge_index, edge_weight=None, num_nodes=None):
-        node_src = edge_index[0, :] # tlx.ops.concat([edge_index[0, :], tlx.ops.range(num_nodes)], axis=0)
-        node_dst = edge_index[1, :] # tlx.ops.concat([edge_index[1, :], tlx.ops.range(num_nodes)], axis=0)
+        node_src = edge_index[0, :]
+        node_dst = edge_index[1, :]
         weight_src = tlx.ops.gather(tlx.ops.reduce_sum(x * self.att_src, -1), node_src)
         weight_dst = tlx.ops.gather(tlx.ops.reduce_sum(x * self.att_dst, -1), node_dst)
         weight = self.leaky_relu(weight_src + weight_dst)
