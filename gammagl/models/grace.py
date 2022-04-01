@@ -4,7 +4,6 @@ import scipy.sparse as sp
 from gammagl.layers.conv import GCNConv
 
 
-
 def calc(edge, num_node):
     weight = np.ones(edge.shape[1])
     sparse_adj = sp.coo_matrix((weight, (edge[0], edge[1])), shape=(num_node, num_node))
@@ -14,14 +13,13 @@ def calc(edge, num_node):
     deg_inv_sqrt = np.power(deg, -0.5).flatten()
     return col, row, np.array(deg_inv_sqrt[row] * weight * deg_inv_sqrt[col], dtype=np.float32)
 
+
 def prob_to_one_hot(y_pred):
     ret = np.zeros(y_pred.shape, np.bool)
     indices = np.argmax(y_pred, axis=1)
     for i in range(y_pred.shape[0]):
         ret[i][indices[i]] = True
     return ret
-
-
 
 
 class GCN(tlx.nn.Module):
@@ -35,10 +33,12 @@ class GCN(tlx.nn.Module):
             self.convs.append(GCNConv(in_channels=hid_feat, out_channels=hid_feat))
         self.convs.append(GCNConv(in_channels=hid_feat, out_channels=hid_feat))
         self.act = activation
+
     def forward(self, feat, edge_index, edge_weight, num_nodes):
         for i in range(self.num_layers):
             feat = self.act(self.convs[i](feat, edge_index, edge_weight, num_nodes))
         return feat
+
 
 # Multi-layer(2-layer) Perceptron
 class MLP(tlx.nn.Module):
@@ -67,8 +67,7 @@ class grace(tlx.nn.Module):
         between_sim = f(self.sim(z1, z2))  # inter-view pairs
 
         # between_sim.diag(): positive pairs
-        x1 = tlx.reduce_sum(refl_sim, axis=1) + \
-             tlx.reduce_sum(between_sim, axis=1) - np.diag(refl_sim, k=0)
+        x1 = tlx.reduce_sum(refl_sim, axis=1) + tlx.reduce_sum(between_sim, axis=1) - np.diag(refl_sim, k=0)
         loss = -tlx.log(np.diag(between_sim, k=0) / x1)
 
         return loss
@@ -79,20 +78,20 @@ class grace(tlx.nn.Module):
         z2 = tlx.ops.l2_normalize(z2, axis=1)
         return tlx.matmul(z1, tlx.transpose(z2))
 
-    def get_embeding(self, graph):
-        h = self.encoder(graph.x, graph.edge_index, tlx.convert_to_tensor(graph.edge_weight), graph.num_nodes)
+    def get_embeding(self, feat, edge, weight, num_nodes):
+        h = self.encoder(feat, edge, weight, num_nodes)
         return h
-    # def forward(self,feat1, feat2, edge_index1, edge_index2):
 
-    def forward(self, graph1, graph2):
+    def forward(self, graph1_x, graph1_edge, graph1_edge_weight, graph2_x, graph2_edge, graph2_edge_weight,
+                graph_num_nodes, ):
         # encoding
-        h1 = self.encoder(graph1.x, graph1.edge_index, tlx.convert_to_tensor(graph1.edge_weight), graph1.num_nodes)
-        h2 = self.encoder(graph2.x, graph2.edge_index, tlx.convert_to_tensor(graph2.edge_weight), graph2.num_nodes)
+        h1 = self.encoder(graph1_edge, graph1_x, graph1_edge_weight, graph_num_nodes)
+        h2 = self.encoder(graph2_edge, graph2_x, graph2_edge_weight, graph_num_nodes)
         # projection
         z1 = self.proj(h1)
         z2 = self.proj(h2)
         # get loss
-        l1 = self.get_loss(z1,z2)
-        l2 = self.get_loss(z2,z1)
+        l1 = self.get_loss(z1, z2)
+        l2 = self.get_loss(z2, z1)
         ret = (l1 + l2) / 2
         return tlx.reduce_mean(ret)
