@@ -71,7 +71,7 @@ class Graph(BaseGraph):
         spr_format (List(str)): Specify the other sparse storage format, like `csc` and `csr`. (default: :obj:`None`)
     """
 
-    def __init__(self, x=None, edge_index=None, edge_feat=None, num_nodes=None, y=None, spr_format=None, is_tensor=True, **kwargs):
+    def __init__(self, x=None, edge_index=None, edge_feat=None, num_nodes=None, y=None, spr_format=None, is_tensor=None, **kwargs):
         self.__dict__['_store'] = GlobalStorage(_parent=self)
         self._is_tensor = is_tensor
         if edge_index is not None:
@@ -332,6 +332,8 @@ class Graph(BaseGraph):
             elif check_is_numpy(value):
                 if key in ['edge_index', 'y']:
                     value = tlx.ops.convert_to_tensor(value, dtype=tlx.int64)
+                elif key in ['train_mask', 'val_mask', 'test_mask']:
+                    value = tlx.ops.convert_to_tensor(value, dtype=tlx.bool)
                 else:
                     value = tlx.ops.convert_to_tensor(value, dtype=tlx.float32)
         return value
@@ -346,7 +348,7 @@ class Graph(BaseGraph):
 
         """
     
-        if self._is_tensor:
+        if self._is_tensor is True:
             return self
     
         if inplace:
@@ -407,7 +409,7 @@ class Graph(BaseGraph):
             inplace: (Default True) Whether to convert the graph into numpy inplace.
 
         """
-        if not self._is_tensor:
+        if self._is_tensor is False:
             return self
         
         if inplace:
