@@ -7,7 +7,7 @@
 """
 
 import os
-os.environ['TL_BACKEND'] = 'tensorflow' # set your backend here, default `tensorflow`
+os.environ['TL_BACKEND'] = 'paddle' # set your backend here, default `tensorflow`
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import sys
 # sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
@@ -26,7 +26,7 @@ class SemiSpvzLoss(WithLoss):
     def forward(self, data, label):
         logits = self._backbone(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
         if tlx.BACKEND == 'mindspore':
-            idx = tlx.convert_to_tensor([i for i, v in enumerate(data['train_mask']) if v], dtype=tlx.int32)
+            idx = tlx.convert_to_tensor([i for i, v in enumerate(data['train_mask']) if v], dtype=tlx.int64)
             train_logits = tlx.gather(logits,idx)
             train_label = tlx.gather(label,idx)
         else:
@@ -39,7 +39,7 @@ def evaluate(net, data, y, mask, metrics):
     net.set_eval()
     logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
     if tlx.BACKEND == 'mindspore':
-        idx = tlx.convert_to_tensor([i for i, v in enumerate(mask) if v],dtype=tlx.int32)
+        idx = tlx.convert_to_tensor([i for i, v in enumerate(mask) if v],dtype=tlx.int64)
         _logits = tlx.gather(logits,idx)
         _label = tlx.gather(y,idx)
     else:
@@ -57,10 +57,11 @@ def main(args):
     dataset = Planetoid(args.dataset_path, args.dataset)
     dataset.process() # suggest to execute explicitly so far
     graph = dataset[0]
+    graph.tensor()
     edge_index, _ = add_self_loops(graph.edge_index, n_loops=args.self_loops)
     edge_weight = tlx.ops.convert_to_tensor(GCNModel.calc_gcn_norm(edge_index, graph.num_nodes))
-    x = tlx.convert_to_tensor(graph.x)
-    y = tlx.argmax(tlx.convert_to_tensor(graph.y),axis=1)
+    x = graph.x
+    y = tlx.argmax(graph.y, axis=1)
 
 
     net = GCNModel(feature_dim=x.shape[1],
@@ -79,9 +80,9 @@ def main(args):
         "x": x,
         "edge_index": edge_index,
         "edge_weight": edge_weight,
-        "train_mask": tlx.convert_to_tensor(graph.train_mask),
-        "test_mask": tlx.convert_to_tensor(graph.test_mask),
-        "val_mask": tlx.convert_to_tensor(graph.val_mask),
+        "train_mask": graph.train_mask,
+        "test_mask": graph.test_mask,
+        "val_mask": graph.val_mask,
         "num_nodes": graph.num_nodes,
     }
 
@@ -91,9 +92,9 @@ def main(args):
         train_loss = train_one_step(data, y)
         val_acc = evaluate(net, data, y, data['val_mask'], metrics)
 
-        print("Epoch [{:0>3d}] ".format(epoch+1)\
-              + "  train loss: {:.4f}".format(train_loss)\
-              + "  val acc: {:.4f}".format(val_acc))
+        # print("Epoch [{:0>3d}] ".format(epoch+1)\
+        #       + "  train loss: {:.4f}".format(train_loss)\
+        #       + "  val acc: {:.4f}".format(val_acc))
 
         # save best model on evaluation set
         if val_acc > best_val_acc:
@@ -118,5 +119,5 @@ if __name__ == '__main__':
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     args = parser.parse_args()
-
-    main(args)
+    for i in range(10):
+        main(args)

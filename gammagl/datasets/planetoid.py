@@ -83,8 +83,8 @@ class Planetoid(InMemoryDataset):
         self.name = name
 
         super().__init__(root, transform, pre_transform)
-        with open(self.processed_paths[0], 'rb') as f:
-            self.data, self.slices = pickle.load(f)
+        # with open(self.processed_paths[0], 'rb') as f:
+        #     self.data, self.slices = pickle.load(f)
 
         self.split = split
         assert self.split in ['public', 'full', 'random']
@@ -137,9 +137,9 @@ class Planetoid(InMemoryDataset):
 
     def process(self):
         data = read_planetoid_data(self.raw_dir, self.name)
-        data = data if self.pre_transform is None else self.pre_transform(data)
-        with open(self.processed_paths[0], 'wb') as f:
-            pickle.dump(self.collate([data]), f)
+        self.data = data if self.pre_transform is None else self.pre_transform(data)
+        # with open(self.processed_paths[0], 'wb') as f:
+        #     pickle.dump(self.collate([data]), f)
         # torch.save(self.collate([data]), self.processed_paths[0])
 
     def __repr__(self) -> str:
@@ -223,7 +223,7 @@ def read_planetoid_data(folder, prefix):
 
     edge_index = edge_index_from_dict(graph, num_nodes=y.shape[0])
 
-    # 去除重复边
+    # remove duplicated edges
     edge_index = list(k for k, _ in itertools.groupby(sorted(edge_index)))
     edge = np.array(edge_index).T
     ind = np.argsort(edge[1], axis=0)
