@@ -7,7 +7,6 @@ Papers: https://arxiv.org/abs/1809.10341
 Author's code: https://github.com/PetarV-/DGI
 """
 
-
 import tensorlayerx as tlx
 import math
 from gammagl.layers.conv import GCNConv
@@ -41,7 +40,6 @@ class DGIModel(tlx.nn.Module):
         super(DGIModel, self).__init__()
         self.gcn = GCN(in_feat, hid_feat, act)
         self.disc = Discriminator(hid_feat)
-        # tf.nn.sigmoid_cross_entropy_with_logits
         self.loss = tlx.losses.sigmoid_cross_entropy
 
     def forward(self, feat1, feat2, edge_index, edge_weight, num_nodes):
@@ -53,8 +51,7 @@ class DGIModel(tlx.nn.Module):
         pos = self.disc(pos, summary)
         neg = self.disc(neg, summary)
 
-        l1 = self.loss(pos, tlx.ones(pos.shape))
-        l2 = self.loss(neg, tlx.zeros(neg.shape))
+        pos_loss = self.loss(pos, tlx.ones(pos.shape))
+        neg_loss = self.loss(neg, tlx.zeros(neg.shape))
 
-        return l1 + l2
-
+        return pos_loss + neg_loss
