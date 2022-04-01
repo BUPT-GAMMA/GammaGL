@@ -31,47 +31,6 @@ class Unsupervised_Loss(WithLoss):
         return loss + l2_loss
 
 
-# def prob_to_one_hot(y_pred):
-#     ret = np.zeros(y_pred.shape, np.bool8)
-#     indices = np.argmax(y_pred, axis=1)
-#     for i in range(y_pred.shape[0]):
-#         ret[i][indices[i]] = True
-#     return ret
-#
-# def label_classification(embeddings, y, train_mask, test_mask, split='random', ratio=0.1):
-#     x = embeddings.numpy();
-#     y = y.numpy()
-#     y = y.reshape(-1, 1)
-#     onehot_encoder = OneHotEncoder(categories='auto').fit(y)
-#     y = onehot_encoder.transform(y).toarray().astype(np.bool8)
-#
-#     x = normalize(x, norm='l2')
-#     if split == 'random':
-#         X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=1 - ratio)
-#     elif split == 'public':
-#         X_train = x[train_mask]
-#         X_test = x[test_mask]
-#         y_train = y[train_mask]
-#         y_test = y[test_mask]
-#     logreg = LogisticRegression(solver='liblinear')
-#     c = 2.0 ** np.arange(-10, 10)
-#
-#     clf = GridSearchCV(estimator=OneVsRestClassifier(logreg),
-#                        param_grid=dict(estimator__C=c), n_jobs=8, cv=5,
-#                        verbose=0)
-#     clf.fit(X_train, y_train)
-#     clf.fit(X_train, y_train)
-#     y_pred = clf.predict_proba(X_test)
-#     y_pred = prob_to_one_hot(y_pred)
-#
-#     micro = f1_score(y_test, y_pred, average="micro")
-#     macro = f1_score(y_test, y_pred, average="macro")
-#
-#     return {
-#         'F1Mi': micro,
-#         'F1Ma': macro
-#     }
-
 
 def main(args):
     # load cora dataset
