@@ -10,7 +10,7 @@ import os
 os.environ['TL_BACKEND'] = 'paddle' # set your backend here, default `tensorflow`
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import sys
-# sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
+sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 import time
 import argparse
 import tensorlayerx as tlx
@@ -119,5 +119,5 @@ if __name__ == '__main__':
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     args = parser.parse_args()
-    for i in range(10):
-        main(args)
+
+    main(args)
