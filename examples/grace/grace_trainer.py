@@ -92,7 +92,7 @@ def main(args):
     net = grace(in_feat=x.shape[1], hid_feat=args.hidden_dim,
                 out_feat=args.hidden_dim,
                 num_layers=args.num_layers,
-                activation=tlx.nn.PRelu(args.hidden_dim),
+                activation=tlx.nn.PRelu(args.hidden_dim) if args.dataset is "citeseer" else tlx.ReLU(),
                 temp=args.temp)
     optimizer = tlx.optimizers.Adam(args.lr)
     train_weights = net.trainable_weights
@@ -121,7 +121,7 @@ if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.005, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=256, help="number of epoch")
+    parser.add_argument("--n_epoch", type=int, default=500, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=512, help="dimention of hidden layers")
     parser.add_argument("--drop_edge_rate_1", type=float, default=0.2)
     parser.add_argument("--drop_edge_rate_2", type=float, default=0.2)
