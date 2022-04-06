@@ -11,18 +11,18 @@ class APPNPConv(MessagePassing):
                  out_channels,
                  iter_K,
                  alpha,
-                 keep_rate):
+                 drop_rate):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.iter_K = iter_K
         self.alpha = alpha
-        self.keep_rate = keep_rate
+        self.drop_rate = drop_rate
 
-        self.linear_w = tlx.nn.layers.Dense(n_units=self.out_channels,
-                                        in_channels=self.in_channels,
-                                        b_init=None)
-        self.dropout = tlx.nn.layers.Dropout(self.keep_rate)
+        self.linear_w = tlx.nn.layers.Linear(out_features=out_channels,
+                                             in_features=in_channels,
+                                             b_init=None)
+        self.dropout = tlx.nn.layers.Dropout(self.drop_rate)
         self.dropout_e = tlx.nn.layers.Dropout(0.9)
 
     def forward(self, x, edge_index, edge_weight=None, num_nodes=None):

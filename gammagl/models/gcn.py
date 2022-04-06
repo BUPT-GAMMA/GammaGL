@@ -16,13 +16,13 @@ class GCNModel(tlx.nn.Module):
     def __init__(self, feature_dim,
                  hidden_dim,
                  num_class,
-                 keep_rate, name=None):
+                 drop_rate, name=None):
         super().__init__(name=name)
 
         self.conv1 = GCNConv(feature_dim, hidden_dim)
         self.conv2 = GCNConv(hidden_dim, num_class)
         self.relu = tlx.ReLU()
-        self.dropout = tlx.layers.Dropout(keep_rate)
+        self.dropout = tlx.layers.Dropout(drop_rate)
 
     def forward(self, x, edge_index, edge_weight, num_nodes):
         x = self.conv1(x, edge_index, edge_weight, num_nodes)

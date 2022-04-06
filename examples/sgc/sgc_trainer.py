@@ -67,8 +67,9 @@ def main(args):
 
     # build model
     net = SGCModel(feature_dim=x.shape[1],
-             num_class=graph.y.shape[1],
-             itera_K=args.itera_K)
+                   num_class=graph.y.shape[1],
+                   itera_K=args.itera_K,
+                   name="SGC")
     optimizer = tlx.optimizers.Adam(learning_rate=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
     train_weights = net.trainable_weights
@@ -92,9 +93,9 @@ def main(args):
         train_loss = train_one_step(data, y)
         val_acc = evaluate(net, data, y, data['val_mask'], metrics)
 
-        # print("Epoch [{:0>3d}] ".format(epoch+1)\
-        #       + "  train loss: {:.4f}".format(train_loss)\
-        #       + "  val acc: {:.4f}".format(val_acc))
+        print("Epoch [{:0>3d}]  ".format(epoch + 1)
+              + "   train loss: {:.4f}".format(train_loss.item())
+              + "   val acc: {:.4f}".format(val_acc))
 
         # save best model on evaluation set
         if val_acc > best_val_acc:

@@ -10,11 +10,11 @@ class GCNIIModel(tlx.nn.Module):
                  alpha, beta, lambd, variant, keep_rate, name=None):
         super().__init__(name=name)
 
-        self.linear_head = tlx.layers.Dense(n_units=hidden_dim,
-                                            in_channels=feature_dim,
+        self.linear_head = tlx.layers.Linear(out_features=hidden_dim,
+                                            in_features=feature_dim,
                                             b_init=None)
-        self.linear_tail = tlx.layers.Dense(n_units=num_class,
-                                            in_channels=hidden_dim,
+        self.linear_tail = tlx.layers.Linear(out_features=hidden_dim,
+                                            in_features=feature_dim,
                                             b_init=None)
 
         self.convs = tlx.nn.SequentialLayer()

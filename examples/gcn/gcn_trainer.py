@@ -11,7 +11,6 @@ os.environ['TL_BACKEND'] = 'paddle' # set your backend here, default `tensorflow
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import sys
 sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
-import time
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
@@ -67,7 +66,7 @@ def main(args):
     net = GCNModel(feature_dim=x.shape[1],
                    hidden_dim=args.hidden_dim,
                    num_class=graph.y.shape[1],
-                   keep_rate=args.keep_rate,
+                   drop_rate=args.drop_rate,
                    name="GCN")
     optimizer = tlx.optimizers.Adam(learning_rate=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
@@ -92,9 +91,9 @@ def main(args):
         train_loss = train_one_step(data, y)
         val_acc = evaluate(net, data, y, data['val_mask'], metrics)
 
-        # print("Epoch [{:0>3d}] ".format(epoch+1)\
-        #       + "  train loss: {:.4f}".format(train_loss)\
-        #       + "  val acc: {:.4f}".format(val_acc))
+        print("Epoch [{:0>3d}] ".format(epoch+1)\
+              + "  train loss: {:.4f}".format(train_loss.item())\
+              + "  val acc: {:.4f}".format(val_acc))
 
         # save best model on evaluation set
         if val_acc > best_val_acc:
@@ -112,7 +111,7 @@ if __name__ == '__main__':
     parser.add_argument("--lr", type=float, default=0.01, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=16, help="dimention of hidden layers")
-    parser.add_argument("--keep_rate", type=float, default=0.5, help="keep_rate = 1 - drop_rate")
+    parser.add_argument("--drop_rate", type=float, default=0.5, help="drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
