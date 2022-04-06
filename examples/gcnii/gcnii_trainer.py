@@ -8,15 +8,15 @@
 
 import os
 os.environ['TL_BACKEND'] = 'paddle'
+# os.environ["CUDA_VISIBLE_DEVICES"] = "8"
 import sys
+# sys.path.insert(0, os.path.abspath('../')) # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
 from gammagl.utils.loop import add_self_loops
 from gammagl.models import GCNIIModel, GCNModel
 from tensorlayerx.model import TrainOneStep, WithLoss
-# os.environ["CUDA_VISIBLE_DEVICES"] = "3"
-# sys.path.insert(0, os.path.abspath('../')) # adds path2gammagl to execute in command line.
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -98,9 +98,9 @@ def main(args):
         train_loss = train_one_step(data, y)
         val_acc = evaluate(net, data, y, data['val_mask'], metrics)
 
-        # print("Epoch [{:0>3d}]  ".format(epoch + 1)
-        #       + "   train loss: {:.4f}".format(train_loss)
-        #       + "   val acc: {:.4f}".format(val_acc))
+        print("Epoch [{:0>3d}]  ".format(epoch + 1)
+              + "   train loss: {:.4f}".format(train_loss.item())
+              + "   val acc: {:.4f}".format(val_acc))
 
         # save best model on evaluation set
         if val_acc > best_val_acc:

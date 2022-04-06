@@ -13,7 +13,7 @@ class GATModel(tlx.nn.Module):
                  hidden_dim,
                  num_class,
                  heads,
-                 keep_rate,
+                 drop_rate,
                  name=None):
         super().__init__(name=name)
 
@@ -21,15 +21,15 @@ class GATModel(tlx.nn.Module):
         self.conv1 = GATConv(in_channels=feature_dim,
                              out_channels=hidden_dim,
                              heads=heads,
-                             dropout_rate=1-keep_rate,
+                             dropout_rate=drop_rate,
                              concat=True)
         self.conv2 = GATConv(in_channels=hidden_dim*heads,
                              out_channels=num_class,
                              heads=heads,
-                             dropout_rate=1-keep_rate,
+                             dropout_rate=drop_rate,
                              concat=False)
         self.elu = tlx.layers.ELU()
-        self.dropout = tlx.layers.Dropout(keep_rate)
+        self.dropout = tlx.layers.Dropout(drop_rate)
 
     def forward(self, x, edge_index, num_nodes):
         x = self.dropout(x)
