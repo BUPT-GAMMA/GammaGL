@@ -10,21 +10,21 @@ class GATV2Model(tlx.nn.Module):
     """
 
     def __init__(self, feature_dim, hidden_dim, heads,
-                 num_class, keep_rate, name=None):
+                 num_class, drop_rate, name=None):
         super().__init__(name=name)
 
         self.conv1 = GATV2Conv(in_channels=feature_dim,
                                out_channels=hidden_dim,
                                heads=heads,
-                               dropout_rate=1 - keep_rate,
+                               dropout_rate=drop_rate,
                                concat=True)
         self.conv2 = GATV2Conv(in_channels=hidden_dim * heads,
                                out_channels=num_class,
                                heads=heads,
-                               dropout_rate=1 - keep_rate,
+                               dropout_rate=drop_rate,
                                concat=False)
         self.elu = tlx.layers.ELU()
-        self.dropout = tlx.layers.Dropout(keep_rate)
+        self.dropout = tlx.layers.Dropout(drop_rate)
 
     def forward(self, x, edge_index, num_nodes):
         x = self.dropout(x)
