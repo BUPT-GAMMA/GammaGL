@@ -75,8 +75,8 @@ class GATConv(MessagePassing):
         # self.add_self_loops = add_self_loops
         self.add_bias = add_bias
 
-        self.linear_w = tlx.layers.Dense(n_units=self.out_channels * self.heads,
-                                        in_channels=self.in_channels,
+        self.linear_w = tlx.layers.Linear(out_features=self.out_channels * self.heads,
+                                        in_features=self.in_channels,
                                         b_init=None)
 
         initor = tlx.initializers.TruncatedNormal()
@@ -84,7 +84,7 @@ class GATConv(MessagePassing):
         self.att_dst = self._get_weights("att_dst", shape=(1, self.heads, self.out_channels), init=initor)
 
         self.leaky_relu = tlx.layers.LeakyReLU(alpha=negative_slope)
-        self.dropout = tlx.layers.Dropout(keep=1 - self.dropout_rate)
+        self.dropout = tlx.layers.Dropout(self.dropout_rate)
 
         if self.add_bias and concat:
             self.bias = self._get_weights("bias", shape=(self.heads * self.out_channels,), init=initor)

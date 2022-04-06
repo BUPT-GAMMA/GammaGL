@@ -71,7 +71,7 @@ def main(args):
                    hidden_dim=args.hidden_dim,
                    num_class=graph.y.shape[1],
                    heads=args.heads,
-                   keep_rate=args.keep_rate,
+                   drop_rate=args.drop_rate,
                    name="GAT")
     loss = tlx.losses.softmax_cross_entropy_with_logits
     optimizer = tlx.optimizers.Adam(learning_rate=args.lr, weight_decay=args.l2_coef)
@@ -96,9 +96,9 @@ def main(args):
         train_loss = train_one_step(data, y)
         val_acc = evaluate(net, data, y, data['val_mask'], metrics)
 
-        # print("Epoch [{:0>3d}]  ".format(epoch + 1)\
-        #       + "   train loss: {:.4f}".format(train_loss)\
-        #       + "   val acc: {:.4f}".format(val_acc))
+        print("Epoch [{:0>3d}]  ".format(epoch + 1)
+              + "   train loss: {:.4f}".format(train_loss.item())
+              + "   val acc: {:.4f}".format(val_acc))
 
         # save best model on evaluation set
         if val_acc > best_val_acc:
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=0.005, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=8, help="dimention of hidden layers")
-    parser.add_argument("--keep_rate", type=float, default=0.4, help="keep_rate = 1 - drop_rate")
+    parser.add_argument("--drop_rate", type=float, default=0.4, help="drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument("--heads", type=int, default=8, help="number of heads for stablization")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')

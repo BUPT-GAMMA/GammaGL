@@ -19,12 +19,7 @@ python gcn_train.py --dataset cora
 
 | Dataset | Paper | Accuracy | Time | Params |
 | ---- | ---- | ---- | ---- | ---- |
-| cora | 81.5 |
+| cora | 81.5 |81.83(0.22) | | backend=paddle, lr=0.01, l2_coef=5e-3, drop_rate=0.9|
 | pubmed | 70.3 |
 | citeseer | 79.0 |
 
-Test acc:
-tf:0.8050
-pd:0.8100
-th:0.8040
-ms:0.7510

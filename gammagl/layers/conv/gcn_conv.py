@@ -47,9 +47,9 @@ class GCNConv(MessagePassing):
         self.in_channels = in_channels
         self.out_channels = out_channels
 
-        self.linear = tlx.layers.Dense(n_units=self.out_channels,
-                                      in_channels=self.in_channels,
-                                      b_init=None)
+        self.linear = tlx.layers.Linear(out_features=out_channels,
+                                        in_features=in_channels,
+                                        b_init=None)
         if add_bias is True:
             initor = tlx.initializers.truncated_normal()
             self.bias = self._get_weights("bias", shape=(1,self.out_channels), init=initor)

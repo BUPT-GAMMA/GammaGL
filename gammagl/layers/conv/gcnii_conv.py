@@ -15,14 +15,14 @@ class GCNIIConv(MessagePassing):
         self.alpha = alpha
         self.beta = beta
         self.variant = variant
-        self.linear = tlx.layers.Dense(n_units=self.out_channels,
-                                      in_channels=self.in_channels,
-                                      b_init=None)
+        self.linear = tlx.layers.Linear(out_features=self.out_channels,
+                                        in_features=self.in_channels,
+                                        b_init=None)
         if self.variant:
             # what if same as linear
-            self.linear0 = tlx.layers.Dense(n_units=self.out_channels,
-                                      in_channels=self.in_channels,
-                                      b_init=None)
+            self.linear0 = tlx.layers.Linear(out_features=self.out_channels,
+                                             in_features=self.in_channels,
+                                             b_init=None)
         
     # def message_aggregate(self, x, sparse_adj):
     #     return sparse_adj @ x
