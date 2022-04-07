@@ -37,9 +37,9 @@ class InMemoryDataset(Dataset):
     def raw_file_names(self) -> Union[str, List[str], Tuple]:
         raise NotImplementedError
 
-    @property
-    def processed_file_names(self) -> Union[str, List[str], Tuple]:
-        raise NotImplementedError
+    # @property
+    # def processed_file_names(self) -> Union[str, List[str], Tuple]:
+    #     raise NotImplementedError
 
     def download(self):
         raise NotImplementedError
