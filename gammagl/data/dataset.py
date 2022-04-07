@@ -17,7 +17,7 @@ try:
 except ImportError:
     import pickle
     
-IndexType = Union[slice, Tensor, np.ndarray, Sequence]
+IndexType = Union[slice, np.ndarray, Sequence]
 
 
 class Dataset(Dataset):
@@ -50,8 +50,8 @@ class Dataset(Dataset):
     def processed_file_names(self) -> Union[str, List[str], Tuple]:
         r"""The name of the files in the :obj:`self.processed_dir` folder that
         must be present in order to skip processing."""
-        raise NotImplementedError
-
+        return tlx.BACKEND+'_data.pt'
+    
     def download(self):
         r"""Downloads the dataset to the :obj:`self.raw_dir` folder."""
         raise NotImplementedError
@@ -269,7 +269,8 @@ class Dataset(Dataset):
     def shuffle(
         self,
         return_perm: bool = False,
-    ) -> Union['Dataset', Tuple['Dataset', Tensor]]:
+    ):
+        #    -> Union['Dataset', Tuple['Dataset', tf.Tensor]]:
         r"""Randomly shuffles the examples in the dataset.
         Args:
             return_perm (bool, optional): If set to :obj:`True`, will also

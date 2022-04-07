@@ -98,7 +98,8 @@ class InMemoryDataset(Dataset):
 
     @staticmethod
     def collate(
-            data_list: List[Graph]) -> Tuple[Graph, Optional[Dict[str, Tensor]]]:
+            data_list: List[Graph]):
+            #-> Tuple[Graph, Optional[Dict[str, Tensor]]]:
         r"""Collates a Python list of :obj:`torch_geometric.data.Data` objects
         to the internal storage format of
         :class:`~torch_geometric.data.InMemoryDataset`."""
