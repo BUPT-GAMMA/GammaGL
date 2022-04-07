@@ -30,6 +30,10 @@ jobs:
     parameters:
       app-dir:
         default: .
+        description: >-
+          Path to the directory containing your python project. Not needed if
+          'setup.py' lives in root project dir
+        type: string
     steps:
       - checkout
       - python/install-packages:
