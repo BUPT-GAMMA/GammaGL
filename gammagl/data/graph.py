@@ -634,13 +634,13 @@ class BatchGraph(Graph):
         """
         pass
     
-    
+import tensorflow as tf
 def size_repr(key: Any, value: Any, indent: int = 0) -> str:
     pad = ' ' * indent
-    if isinstance(value, tf.Tensor) and value.dim() == 0:
+    if isinstance(value, tf.Tensor) and value.shape == 0:
         out = value.item()
     elif isinstance(value, tf.Tensor):
-        out = str(list(value.size()))
+        out = str(list(value.shape))
     elif isinstance(value, np.ndarray):
         out = str(list(value.shape))
     # elif isinstance(value, SparseTensor):
