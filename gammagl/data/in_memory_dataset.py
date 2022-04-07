@@ -2,7 +2,7 @@ import copy
 from collections.abc import Mapping
 from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from torch import Tensor
+# from torch import Tensor
 from . import Graph
 from gammagl.data.collate import collate
 from .dataset import Dataset, IndexType
