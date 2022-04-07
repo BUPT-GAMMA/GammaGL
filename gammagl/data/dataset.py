@@ -8,7 +8,7 @@ from typing import Any, Callable, List, Optional, Tuple, Union
 from tensorlayerx.dataflow import Dataset
 import tensorlayerx as tlx
 import numpy as np
-from torch import Tensor
+# from torch import Tensor
 from . import Graph
 from .makedirs import makedirs
 
