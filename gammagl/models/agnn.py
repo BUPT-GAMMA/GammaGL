@@ -34,28 +34,28 @@ class AGNNModel(tlx.nn.Module):
         self.dropout = tlx.layers.Dropout(1 - self.dropout_rate)
 
         W_initor = tlx.initializers.XavierUniform()
-        self.embedding_layer = tlx.layers.Dense(n_units = self.hidden_dim,
+        self.embedding_layer = tlx.nn.Linear(out_features = self.hidden_dim,
                                                 W_init = W_initor,
-                                                in_channels = feature_dim)
+                                                in_features = feature_dim)
         
         self.relu = tlx.nn.activation.ReLU()
         
         self.att_layers_list = []
         self.att_layers_list.append(AGNNConv(in_channels  = self.hidden_dim,
-                                        out_channels =  self.hidden_dim,
-                                        edge_index = edge_index,
-                                        num_nodes = num_nodes,
-                                        require_grad = not(self.n_att_layers == 2 and is_cora)))
-        for i in range(1, self.n_att_layers):
-            self.att_layers_list.append(AGNNConv(in_channels  = self.hidden_dim,
                                             out_channels =  self.hidden_dim,
                                             edge_index = edge_index,
-                                            num_nodes = num_nodes))
+                                            num_nodes = num_nodes,
+                                            require_grad = not(self.n_att_layers == 2 and is_cora)))
+        for i in range(1, self.n_att_layers):
+            self.att_layers_list.append(AGNNConv(in_channels  = self.hidden_dim,
+                                                out_channels =  self.hidden_dim,
+                                                edge_index = edge_index,
+                                                num_nodes = num_nodes))
         self.att_layers = tlx.nn.SequentialLayer(self.att_layers_list)
         
-        self.output_layer = tlx.layers.Dense(n_units = self.num_class,
+        self.output_layer = tlx.nn.Linear(out_features = self.num_class,
                                              W_init = W_initor,
-                                             in_channels = self.hidden_dim)
+                                             in_features = self.hidden_dim)
 
     def forward(self, x):
         x = self.relu(self.embedding_layer(x))

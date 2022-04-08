@@ -12,7 +12,6 @@ os.environ['TL_BACKEND'] = 'tensorflow' # set your backend here, default `tensor
 import sys
 sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 sys.path.insert(0, os.path.abspath('./')) # adds path2gammagl to execute in command line.
-from adam import AdamWeightDecayOptimizer
 import time
 import argparse
 import tensorflow as tf
@@ -20,7 +19,7 @@ import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
 from gammagl.models import AGNNModel
 from tensorlayerx.model import TrainOneStep, WithLoss
-import tensorflow_addons as tfa
+from gammagl.utils.loop import add_self_loops
 import copy
 
 
@@ -35,8 +34,8 @@ class SemiSpvzLoss(WithLoss):
         train_label = label[data['train_mask']]
         loss = self._loss_fn(train_logits, train_label)
         #TODO:weight_decay在AdamW优化器中使用
-        l2_loss = tf.add_n([tf.nn.l2_loss(v) for v in self._backbone.trainable_weights]) * args.weight_decay
-        return loss + l2_loss
+        #l2_loss = tf.add_n([tf.nn.l2_loss(v) for v in self._backbone.trainable_weights]) * args.weight_decay
+        return loss #+ l2_loss
 
 
 
@@ -59,9 +58,11 @@ def main():
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
 
     dataset = Planetoid(args.dataset_path, args.dataset)
+    dataset.process()  # suggest to execute explicitly so far
+
     graph = dataset[0]
-    #TODO:这里增加自环
-    graph.add_self_loop(n_loops=1)
+    graph.tensor()
+    edge_index, _ = add_self_loops(graph.edge_index, n_loops=1)
     edge_index = graph.edge_index
     num_nodes = graph.num_nodes
     x = graph.x
@@ -79,8 +80,7 @@ def main():
                       name = "AGNN")
     
     loss = tlx.losses.softmax_cross_entropy_with_logits
-    #optimizer = tlx.optimizers.Adam(learning_rate = args.lr,weight_decay=args.weight_decay)
-    optimizer = tlx.optimizers.Adam(learning_rate = args.lr)
+    optimizer = tlx.optimizers.Adam(learning_rate = args.lr,weight_decay=args.weight_decay)
     metrics = tlx.metrics.Accuracy()
     train_weights = model.trainable_weights
 
@@ -122,7 +122,7 @@ def main():
 
     model.load_weights(args.best_model_path+model.name+".npz", format='npz_dict')
     test_acc = evaluate(model, data, y, data['test_mask'], metrics)
-    print('{},{},{:.4f},{:.4f}'.format(args.lr, args.weight_decay, args.dropout_rate, test_acc))
+    print('{:.4f}'.format(test_acc))
     #print("Test acc:  {:.4f}".format(test_acc))
    
 
