@@ -73,7 +73,7 @@ def main(args):
                      beta=args.beta,
                      lambd=args.lambd,
                      variant=args.variant,
-                     keep_rate=args.keep_rate,
+                     drop_rate=args.drop_rate,
                      name="GCNII")
     optimizer = tlx.optimizers.Adam(learning_rate=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
@@ -118,7 +118,7 @@ if __name__ == '__main__':
     parser.add_argument("--lr", type=float, default=0.01, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=1000, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=64, help="dimention of hidden layers")
-    parser.add_argument("--keep_rate", type=float, default=0.4, help="keep_rate = 1 - drop_rate")
+    parser.add_argument("--drop_rate", type=float, default=0.4, help="drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument("--alpha", type=float, default=0.1, help="alpha")
     parser.add_argument("--beta", type=float, default=0.5, help="beta")

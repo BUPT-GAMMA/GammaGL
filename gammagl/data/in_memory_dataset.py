@@ -2,7 +2,7 @@ import copy
 from collections.abc import Mapping
 from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from torch import Tensor
+# from torch import Tensor
 from . import Graph
 from gammagl.data.collate import collate
 from .dataset import Dataset, IndexType
@@ -37,9 +37,9 @@ class InMemoryDataset(Dataset):
     def raw_file_names(self) -> Union[str, List[str], Tuple]:
         raise NotImplementedError
 
-    @property
-    def processed_file_names(self) -> Union[str, List[str], Tuple]:
-        raise NotImplementedError
+    # @property
+    # def processed_file_names(self) -> Union[str, List[str], Tuple]:
+    #     raise NotImplementedError
 
     def download(self):
         raise NotImplementedError
@@ -98,7 +98,8 @@ class InMemoryDataset(Dataset):
 
     @staticmethod
     def collate(
-            data_list: List[Graph]) -> Tuple[Graph, Optional[Dict[str, Tensor]]]:
+            data_list: List[Graph]):
+            #-> Tuple[Graph, Optional[Dict[str, Tensor]]]:
         r"""Collates a Python list of :obj:`torch_geometric.data.Data` objects
         to the internal storage format of
         :class:`~torch_geometric.data.InMemoryDataset`."""

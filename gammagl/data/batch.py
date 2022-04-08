@@ -3,8 +3,8 @@ from collections.abc import Sequence
 from typing import Any, List, Optional, Union
 
 import numpy as np
-import torch
-from torch import Tensor
+# import torch
+# from torch import Tensor
 
 from gammagl.data import Graph
 from gammagl.data.collate import collate
