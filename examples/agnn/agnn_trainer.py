@@ -7,14 +7,14 @@
 """
 
 import os
-os.environ['TL_BACKEND'] = 'tensorflow' # set your backend here, default `tensorflow`
-#os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ['TL_BACKEND'] = 'torch' # set your backend here, default `tensorflow`
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+#os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 import sys
 sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 sys.path.insert(0, os.path.abspath('./')) # adds path2gammagl to execute in command line.
 import time
 import argparse
-import tensorflow as tf
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
 from gammagl.models import AGNNModel
@@ -33,7 +33,7 @@ class SemiSpvzLoss(WithLoss):
         train_logits = logits[data['train_mask']]
         train_label = label[data['train_mask']]
         loss = self._loss_fn(train_logits, train_label)
-        #TODO:weight_decay在AdamW优化器中使用
+        #Use l2_loss when there is no weight_decay in optimizer
         #l2_loss = tf.add_n([tf.nn.l2_loss(v) for v in self._backbone.trainable_weights]) * args.weight_decay
         return loss #+ l2_loss
 
@@ -88,21 +88,19 @@ def main():
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
     '''
-    x: 输入特征向量,shape = (num_nodes, feature_dims)
-    edge_index: 边索引, shape = (2, num_edges)??打印出来的边和数据有点对不上
-    xxx_mask: list,元素为true or false, 用于划分数据集
-    num_nodes: 点的个数
+    x(2-D tensor): Shape = (num_nodes, feature_dims)
+    edge_index(2-D tensor): Shape:(2, num_edges). A element(integer) of dim-1 expresses a node of graph and
+        edge_index[0,i] points to edge_index[1,i].
+    xxx_mask(1-D tensor): Shape = (num_edges). Spilt x into train, validation and test by mask.
+    num_nodes: Number of nodes on the graph.
     '''
-    #edge_index, num_nodes直接传入模型中
     data = {
         "x": x,
-        #"edge_index": edge_index,
         "train_mask": graph.train_mask,
         "test_mask": graph.test_mask,
         "val_mask": graph.val_mask,
-        #"num_nodes": graph.num_nodes,
     }
-    
+
     val_acc = best_val_acc = 0
     for epoch in range(args.n_epoch):
         model.set_train()
@@ -122,8 +120,7 @@ def main():
 
     model.load_weights(args.best_model_path+model.name+".npz", format='npz_dict')
     test_acc = evaluate(model, data, y, data['test_mask'], metrics)
-    print('{:.4f}'.format(test_acc))
-    #print("Test acc:  {:.4f}".format(test_acc))
+    print("Test acc:  {:.4f}".format(test_acc))
    
 
 
