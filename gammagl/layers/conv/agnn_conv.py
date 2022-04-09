@@ -4,12 +4,13 @@ from gammagl.layers.conv import MessagePassing
 
 
 def segment_softmax(weight, segment_ids, num_nodes):
-    #减去最大值，避免exp()后溢出
+    #Subtract the maximum value to avoid overflow after exp()
     max_values = tlx.ops.unsorted_segment_max(weight, segment_ids, num_segments = num_nodes)
     gathered_max_values = tlx.ops.gather(max_values, segment_ids)
     weight = weight - gathered_max_values
     exp_weight = tlx.ops.exp(weight)
 
+    #softmax operation
     sum_weights = tlx.ops.unsorted_segment_sum(exp_weight, segment_ids, num_segments = num_nodes)
     sum_weights = tlx.ops.gather(sum_weights, segment_ids)
     softmax_weight = tlx.ops.divide(exp_weight, sum_weights)
@@ -22,17 +23,27 @@ class AGNNConv(MessagePassing):
     <http://arxiv.org/abs/1803.03735>`_paper
 
     .. math::
+        \mathbf{X}^{(i+1)} = \mathbf{P} \mathbf{X}^{(i)},
+    where the propagation matrix :math:`\mathbf{P}` is computed as
 
-
-
+    .. math::
+        P_{i,j} = \frac{\exp( \beta \cdot \cos(\mathbf{x}_i, \mathbf{x}_j))}
+        {\sum_{k \in \mathcal{N}(i)\cup \{ i \}} \exp( \beta \cdot
+        \cos(\mathbf{x}_i, \mathbf{x}_k))}
+    with trainable parameter :math:`\beta`.
 
 
     Args:
-        in_channels(int or tuple)
+        in_channels(int): Size of each input sample.
+        out_channels(int): Size of each output sample.
+        edge_index(2-D tensor): Shape:(2, num_edges). A element(integer) of dim-1 expresses a node of graph and
+            edge_index[0,i] points to edge_index[1,i].
+        num_nodes(int): Number of nodes on the graph.
+        require_grad(bool,optional): If set to :obj:`False`, :math:`\beta`
+            will not be trainable. (default: :obj:`True`)
     '''
 
 
-    
     def __init__(self,
                 in_channels,
                 out_channels,
