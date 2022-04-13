@@ -33,8 +33,8 @@ pf.start()
 for j in range(1000):
     msg = x[src]
     # scatter_sum(msg, dst, dim=0)
-    scatter_mean(msg, dst, dim=0)
-    # scatter_max(msg, dst, dim=0)
+    # scatter_mean(msg, dst, dim=0)
+    scatter_max(msg, dst, dim=0)
 pf.stop()
 print(pf.output_text(unicode=True, color=True))
 
@@ -46,7 +46,7 @@ pf.start()
 for j in range(1000):
     msg = x[src]
     # scatter_sum(msg, dst, dim=0)
-    scatter_mean(msg, dst, dim=0)
-    # scatter_max(msg, dst, dim=0)
+    # scatter_mean(msg, dst, dim=0)
+    scatter_max(msg, dst, dim=0)
 pf.stop()
 print(pf.output_text(unicode=True, color=True))
