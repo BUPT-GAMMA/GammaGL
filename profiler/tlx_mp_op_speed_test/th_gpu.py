@@ -7,7 +7,7 @@
 
 import os
 os.environ['TL_BACKEND'] = 'torch'
-os.environ["CUDA_VISIBLE_DEVICES"] = "8"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 import sys
 sys.path.insert(0, os.path.abspath('../../'))
 import torch
@@ -78,8 +78,8 @@ pf.start()
 for j in range(1000):
     msg = tlx.gather(x, src)
     # unsorted_segment_sum(msg, dst, num_nodes)
-    unsorted_segment_mean(msg, dst, num_nodes)
-    # unsorted_segment_max(msg, dst, num_nodes)
+    # unsorted_segment_mean(msg, dst, num_nodes)
+    unsorted_segment_max(msg, dst, num_nodes)
 pf.stop()
 print(pf.output_text(unicode=True, color=True))
 
@@ -93,7 +93,7 @@ pf.start()
 for j in range(1000):
     msg = tlx.gather(x, src)
     # unsorted_segment_sum(msg, dst, num_nodes)
-    unsorted_segment_mean(msg, dst, num_nodes)
-    # unsorted_segment_max(msg, dst, num_nodes)
+    # unsorted_segment_mean(msg, dst, num_nodes)
+    unsorted_segment_max(msg, dst, num_nodes)
 pf.stop()
 print(pf.output_text(unicode=True, color=True))
