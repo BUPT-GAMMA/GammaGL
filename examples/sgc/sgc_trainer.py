@@ -70,7 +70,7 @@ def main(args):
                    num_class=graph.y.shape[1],
                    itera_K=args.itera_K,
                    name="SGC")
-    optimizer = tlx.optimizers.Adam(learning_rate=args.lr, weight_decay=args.l2_coef)
+    optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
     train_weights = net.trainable_weights
 

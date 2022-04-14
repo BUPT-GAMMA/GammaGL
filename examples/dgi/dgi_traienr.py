@@ -63,7 +63,7 @@ def main(args):
     # build model
     net = DGIModel(in_feat=pos_feat.shape[1], hid_feat=args.hidden_dim,
                    act=tlx.nn.PRelu(args.hidden_dim, a_init=tlx.initializers.constant(0.25)))
-    optimizer = tlx.optimizers.Adam(learning_rate=args.lr, weight_decay=args.l2_coef)
+    optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     train_weights = net.trainable_weights
     loss_func = Unsupervised_Loss(net)
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
@@ -103,7 +103,7 @@ def main(args):
     for e in range(args.classifier_epochs):
         # build clf model
         clf = Classifier(args.hidden_dim, 7)
-        clf_opt = tlx.optimizers.Adam(learning_rate=args.classifier_lr, weight_decay=args.clf_l2_coef)
+        clf_opt = tlx.optimizers.Adam(lr=args.classifier_lr, weight_decay=args.clf_l2_coef)
         clf_loss_func = WithLoss(clf, tlx.losses.softmax_cross_entropy_with_logits)
         clf_train_one_step = TrainOneStep(clf_loss_func, clf_opt, clf.trainable_weights)
         # train classifier

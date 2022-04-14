@@ -45,7 +45,7 @@ def main(args):
                 activation=tlx.nn.PRelu(args.hidden_dim) if args.dataset == "citeseer" else tlx.ReLU(),
                 temp=args.temp)
 
-    optimizer = tlx.optimizers.Adam(learning_rate=args.lr, weight_decay=args.l2)
+    optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2)
     train_weights = net.trainable_weights
     loss_func = Unsupervised_Loss(net)
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
