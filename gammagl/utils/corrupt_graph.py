@@ -19,10 +19,10 @@ def calc(edge, num_node):
 def dfde_norm_g(edge_index, feat, feat_drop_rate, drop_edge_rate):
     num_node = feat.shape[0]
     edge_mask = drop_edge(edge_index, drop_edge_rate)
-    new_edge = tlx.transpose(edge_index)[edge_mask]
+    new_edge = edge_index.T[edge_mask]
     # tlx can't assignment, so still use tf
     feat = drop_feat(feat, feat_drop_rate)
-    row, col, weight = calc(tlx.transpose(new_edge), num_node)
+    row, col, weight = calc(new_edge.T, num_node)
     new_g = Graph(edge_index=tlx.convert_to_tensor([row, col], dtype=tlx.int64), x=feat, num_nodes=num_node)
     new_g.edge_weight = weight
 
@@ -58,7 +58,7 @@ def drop_feat(feat, drop_feat_rate):
         drop_mask = tlx.ops.random_uniform(shape=[feat.shape[1]],
                                            minval=0, maxval=1, dtype=tlx.float32) < drop_feat_rate
     # update tlx don't have
-    drop_mask = tlx.range(0, drop_mask.shape)[drop_mask]
+    drop_mask = tlx.arange(0, drop_mask.shape[0])[drop_mask]
     zero = tlx.zeros((drop_mask.shape[0], feat.shape[0]), dtype=tlx.float32)
     feat = tf.tensor_scatter_nd_update(tlx.transpose(feat), tlx.expand_dims(drop_mask, -1), zero)
     feat = tlx.transpose(feat)
