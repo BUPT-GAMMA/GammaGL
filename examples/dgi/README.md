@@ -26,16 +26,13 @@ python3 train.py --dataset=pubmed --hidden_dim=256 --lr=0.002 --n_epoch=500
 Results
 -------
 
-=======
+
 |      Dataset      | Cora | Citeseer | Pubmed |
 | :---------------: | :--: | :------: | :----: |
-|     GammaGL(tf)   | 82.1 |   69.2   |  78.85 |
-|     GammaGL(th)   | --.- |   --.-   |  --.- |
-|     GammaGL(pd)   | --.- |   --.-   |  --.- |
-|     GammaGL(ms)   | --.- |   --.-   |  --.- |
 |   Author's Code   | 82.3 |   71.8   |  76.8  |
+|     GammaGL(tf)   | 82.1 |   69.2   |  78.85 |
+|     GammaGL(th)   | --.- |   --.-   |  --.-  |
+|     GammaGL(pd)   | --.- |   --.-   |  --.-  |
+|     GammaGL(ms)   | --.- |   --.-   |  --.-  |
 |        DGL        | 81.6 |   69.4   |  76.1  |
-
-
-
 
