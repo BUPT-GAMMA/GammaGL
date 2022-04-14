@@ -25,6 +25,17 @@ python3 train.py --dataset=pubmed --hidden_dim=256 --lr=0.002 --n_epoch=500
 
 Results
 -------
-* cora: ~81.8 (81.5-82.2) (paper: 82.3)
-* citeseer: ~69.2(68.7-69.5) (paper: 71.8)
-* pubmed: ~76.85(76.2-77.5) (paper: 76.8)
+
+=======
+|      Dataset      | Cora | Citeseer | Pubmed |
+| :---------------: | :--: | :------: | :----: |
+|     GammaGL(tf)   | 82.1 |   69.2   |  78.85 |
+|     GammaGL(th)   | --.- |   --.-   |  --.- |
+|     GammaGL(pd)   | --.- |   --.-   |  --.- |
+|     GammaGL(ms)   | --.- |   --.-   |  --.- |
+|   Author's Code   | 82.3 |   71.8   |  76.8  |
+|        DGL        | 81.6 |   69.4   |  76.1  |
+
+
+
+
