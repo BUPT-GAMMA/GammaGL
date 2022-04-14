@@ -8,6 +8,13 @@
 import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
 
+def masked_edge_index(edge_index, edge_mask):
+    if tlx.BACKEND == 'mindspore':
+        idx = tlx.convert_to_tensor([i for i, v in enumerate(edge_mask) if v], dtype=tlx.int64)
+        return tlx.gather(edge_index, idx)
+    else:
+        return edge_index[:, edge_mask]
+
 class RGCNConv(MessagePassing):
     """
     The relational graph convolutional operator from the `"Modeling
@@ -113,21 +120,21 @@ class RGCNConv(MessagePassing):
                 self.num_relations, self.in_channels_l, self.out_channels)
 
         if self.num_blocks is not None:  # Block-diagonal-decomposition =====
-
-            if x_l.dtype == torch.long and self.num_blocks is not None:
+            if x_l.dtype == tlx.int64 and self.num_blocks is not None:
+                # 应该判断xl是否为one hot
                 raise ValueError('Block-diagonal decomposition not supported '
                                  'for non-continuous input features.')
 
             for i in range(self.num_relations):
                 edges = masked_edge_index(edge_index, edge_type == i)
-                h = self.propagate(x_l, edges size=size)
-                h = h.view(-1, weight.size(1), weight.size(2))
-                h = torch.einsum('abc,bcd->abd', h, weight[i])
+                h = self.propagate(x_l, edges, size[1])
+                h = tlx.reshape(h, (-1, weight.shape[1], weight.shape[2]))
+                h = tlx.ops.einsum('abc,bcd->abd', h, weight[i]) # tlx还不支持，因为ms没有这个算子。
                 out += h.contiguous().view(-1, self.out_channels)
 
         else:  # No regularization/Basis-decomposition ========================
             for i in range(self.num_relations):
-                edges = edge_index[:, edge_type==i]
+                edges = masked_edge_index(edge_index, edge_type==i)
                 h = self.propagate(x, edges, num_nodes=size[1])
                 out = out + (h @ weight[i])
 
