@@ -7,3 +7,4 @@ from .gcnii import GCNIIModel
 from .appnp import APPNPModel
 from .gin import GINModel
 from .agnn import AGNNModel
+from .jknet import JKNet
