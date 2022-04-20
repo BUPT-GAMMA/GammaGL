@@ -7,3 +7,4 @@ from .gatv2_conv import GATV2Conv
 from .gcnii_conv import GCNIIConv
 from .appnp_conv import APPNPConv
 from .rgcn_conv import RGCNConv
+from .agnn_conv import AGNNConv
