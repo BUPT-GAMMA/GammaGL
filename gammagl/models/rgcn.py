@@ -11,7 +11,7 @@ class RGCN(tlx.nn.Module):
         self.conv2 = RGCNConv(hidden_dim, num_class, num_relations)
         self.relu = tlx.ReLU()
 
-    def forward(self, x, edge_index, edge_type):
-        x = self.relu(self.conv1(x, edge_index, edge_type))
+    def forward(self, edge_index, edge_type):
+        x = self.relu(self.conv1(None, edge_index, edge_type))
         x = self.conv2(x, edge_index, edge_type)
         return x
