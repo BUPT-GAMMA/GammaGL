@@ -13,7 +13,7 @@ def masked_edge_index(edge_index, edge_mask):
         idx = tlx.convert_to_tensor([i for i, v in enumerate(edge_mask) if v], dtype=tlx.int64)
         return tlx.gather(edge_index, idx)
     else:
-        return edge_index[:, edge_mask]
+        return (edge_index.T[edge_mask]).T
 
 class RGCNConv(MessagePassing):
     """
@@ -36,7 +36,6 @@ class RGCNConv(MessagePassing):
                  num_relations: int,
                  num_bases = None,
                  num_blocks = None,
-                 aggr: str = 'mean',
                  root_weight: bool = True,
                  add_bias=True):
         super().__init__()
@@ -73,7 +72,7 @@ class RGCNConv(MessagePassing):
                                             init=initor)
         else:
             self.weight = self._get_weights(var_name="weight",
-                                            shape=(num_relations, in_channels[0], out_channels),
+                                            shape=(out_channels, in_channels[0], num_relations,),
                                             init=initor)
 
         if root_weight:
@@ -82,7 +81,7 @@ class RGCNConv(MessagePassing):
                                             init=initor)
 
         if add_bias:
-            self.bias = self._get_weights(var_name="root", shape=(out_channels,),  init=initor)
+            self.bias = self._get_weights(var_name="bias", shape=(out_channels,),  init=initor)
 
     def forward(self, x, edge_index, edge_type = None):
         r"""
@@ -107,12 +106,12 @@ class RGCNConv(MessagePassing):
         else:
             x_l = x
         if x_l is None:
-            x_l = tlx.arange(self.in_channels_l)
+            x_l = tlx.arange(0, self.in_channels_l, dtype=tlx.int64)
         x_r = x_l
         if isinstance(x, tuple):
             x_r = x[1]
         size = (x_l.shape[0], x_r.shape[0])
-        out = tlx.zeros(shape=(x_r.size(0), self.out_channels), dtype=tlx.float32)
+        out = tlx.zeros(shape=(x_r.shape[0], self.out_channels), dtype=tlx.float32)
 
         weight = self.weight
         if self.num_bases is not None:  # Basis-decomposition =================
@@ -121,7 +120,6 @@ class RGCNConv(MessagePassing):
 
         if self.num_blocks is not None:  # Block-diagonal-decomposition =====
             if x_l.dtype == tlx.int64 and self.num_blocks is not None:
-                # 应该判断xl是否为one hot
                 raise ValueError('Block-diagonal decomposition not supported '
                                  'for non-continuous input features.')
 
@@ -135,12 +133,25 @@ class RGCNConv(MessagePassing):
         else:  # No regularization/Basis-decomposition ========================
             for i in range(self.num_relations):
                 edges = masked_edge_index(edge_index, edge_type==i)
-                h = self.propagate(x, edges, num_nodes=size[1])
-                out = out + (h @ weight[i])
+
+                if x_l.dtype == tlx.int64 or str(x_l.dtype) == 'paddle.int64': # paddle 报错
+                    # paddle 的做法
+                    # bucketed_msg = Message(msg, segment_ids)
+                    # output = reduce_func(bucketed_msg)
+                    # output_dim = output.shape[-1]
+                    # init_output = paddle.zeros(
+                    #     shape=[self._num_nodes, output_dim], dtype=output.dtype)
+                    # final_output = scatter(init_output, uniq_ind, output)
+                    #
+                    # return final_output
+                    out += self.propagate(weight[i][x_l], edges, num_nodes=size[1])
+                else:
+                    h = self.propagate(x, edges, num_nodes=size[1])
+                    out = out + (h @ weight[i])
 
         root = self.root
         if root is not None:
-            out += x_r @ root
+            out += root[x_r] if x_r.dtype == tlx.int64 else x_r @ root
 
         if self.bias is not None:
             out += self.bias
