@@ -13,6 +13,7 @@ examples/cora/*
 examples/pubmed/*
 examples/citeseer/*
 *.npz
+profiler/tlx_mp_op_speed_test/dataset/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

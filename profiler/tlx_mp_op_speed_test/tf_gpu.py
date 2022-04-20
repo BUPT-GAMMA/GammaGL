@@ -7,7 +7,7 @@
 
 import os
 os.environ['TL_BACKEND'] = 'tensorflow'
-os.environ["CUDA_VISIBLE_DEVICES"] = "8"
+os.environ["CUDA_VISIBLE_DEVICES"] = "9"
 import sys
 sys.path.insert(0, os.path.abspath('../../'))
 from pyinstrument import Profiler
@@ -16,7 +16,7 @@ import tensorlayerx as tlx
 import gammagl.mpops as mpops
 import tensorflow as tf
 
-gpus = tf.config.experimental.list_physical_devices(device_type='GPu"')
+gpus = tf.config.experimental.list_physical_devices(device_type='GPU')
 for gpu in gpus :
     tf.config.experimental.set_memory_growth(gpu, True)
 
@@ -34,9 +34,9 @@ pf = Profiler()
 pf.start()
 for j in range(1000):
     msg = tlx.gather(x, src)
-    # mpops.unsorted_segment_sum(msg, dst, num_nodes)
+    mpops.unsorted_segment_sum(msg, dst, num_nodes)
     # mpops.unsorted_segment_mean(msg, dst, num_nodes)
-    mpops.unsorted_segment_max(msg, dst, num_nodes)
+    # mpops.unsorted_segment_max(msg, dst, num_nodes)
 pf.stop()
 print(pf.output_text(unicode=True, color=True))
 
@@ -48,8 +48,8 @@ dst = tlx.gather(tlx.convert_to_tensor(dst, dtype=tlx.int64), tlx.convert_to_ten
 pf.start()
 for j in range(1000):
     msg = tlx.gather(x, src)
-    # mpops.segment_sum(msg, dst)
+    mpops.segment_sum(msg, dst)
     # mpops.segment_mean(msg, dst)
-    mpops.segment_max(msg, dst)
+    # mpops.segment_max(msg, dst)
 pf.stop()
 print(pf.output_text(unicode=True, color=True))
