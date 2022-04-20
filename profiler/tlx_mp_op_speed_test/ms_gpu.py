@@ -7,7 +7,7 @@
 
 import os
 os.environ['TL_BACKEND'] = 'mindspore'
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 import sys
 sys.path.insert(0, os.path.abspath('../../'))
 from pyinstrument import Profiler
@@ -24,9 +24,8 @@ src = tlx.convert_to_tensor(src, tlx.int32)
 dst = tlx.convert_to_tensor(dst, tlx.int32)
 x = tlx.convert_to_tensor(np.random.randn(num_nodes, 1000), dtype=tlx.float32)
 pf = Profiler()
-
 pf.start()
-for j in range(1000):
+for j in range(100):
     msg = tlx.gather(x, src)
     # mpops.unsorted_segment_sum(msg, dst, num_nodes)
     # mpops.unsorted_segment_mean(msg, dst, num_nodes)
@@ -40,7 +39,7 @@ idx = np.argsort(dst)
 dst = tlx.gather(tlx.convert_to_tensor(dst, dtype=tlx.int32), tlx.convert_to_tensor(idx,dtype=tlx.int32))
 
 pf.start()
-for j in range(1000):
+for j in range(100):
     msg = tlx.gather(x, src)
     # mpops.segment_sum(msg, dst, num_nodes)
     # mpops.segment_mean(msg, dst, num_nodes)
