@@ -1,5 +1,6 @@
 import torch
 
+
 def unsorted_segment_sum(x, segment_ids, num_segments=None):
     assert x.shape[0] == segment_ids.shape[0], "the length of segment_ids should be equal to data.shape[0]."
     if num_segments is not None:
@@ -14,6 +15,7 @@ def unsorted_segment_sum(x, segment_ids, num_segments=None):
     shape = [num_segments] + list(x.shape[1:])
     tensor = torch.zeros(*shape).to(x.dtype).scatter_add(0, segment_ids, x)
     return tensor
+
 
 def unsorted_segment_mean(x, segment_ids, num_segments=None):
     assert x.shape[0] == segment_ids.shape[0], "the length of segment_ids should be equal to data.shape[0]."
@@ -33,6 +35,7 @@ def unsorted_segment_mean(x, segment_ids, num_segments=None):
     tensor = tensor / tensor_nums
     return tensor
 
+
 def unsorted_segment_max(x, segment_ids, num_segments=None):
     if num_segments is not None:
         assert segment_ids.max() < num_segments
@@ -43,12 +46,14 @@ def unsorted_segment_max(x, segment_ids, num_segments=None):
         res.append(torch.max(x[segment_ids == i], dim=0)[0])
     return torch.stack(res, dim=0)
 
+
 def segment_max(x, segment_ids):
     return unsorted_segment_max(x, segment_ids)
 
 
 def segment_mean(x, segment_ids):
     return unsorted_segment_mean(x, segment_ids)
+
 
 def segment_sum(x, segment_ids):
     return unsorted_segment_sum(x, segment_ids)
