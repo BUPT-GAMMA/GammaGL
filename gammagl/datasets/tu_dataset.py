@@ -329,6 +329,6 @@ def split(edge_index, batch, x=None, edge_attr=None, y=None):
             slices['y'] = node_slice
         else:
             slices['y'] = np.arange(0, batch[-1] + 2, dtype=np.int32)
-    graph = Graph(x=x, edge_index=edge_index, edge_feat=edge_attr, y=y)
+    graph = Graph(x=x, edge_index=edge_index, edge_feat=edge_attr, y=y).tensor()
     return graph, slices
 
