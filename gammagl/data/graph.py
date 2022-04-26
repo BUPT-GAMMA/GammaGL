@@ -10,6 +10,7 @@ from gammagl.data.storage import (BaseStorage, EdgeStorage,
                                           GlobalStorage, NodeStorage)
 from gammagl.utils.loop import add_self_loops
 from gammagl.utils.check import check_is_numpy
+from gammagl.typing import NodeType, EdgeType
 from gammagl.utils.num_nodes import maybe_num_nodes
 
 
