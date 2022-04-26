@@ -59,11 +59,11 @@ class Entities(InMemoryDataset):
 	
 	@property
 	def num_relations(self) -> int:
-		return self.data.edge_type.max().item() + 1
+		return int(tlx.reduce_max(self.data.edge_type)) + 1
 	
 	@property
 	def num_classes(self) -> int:
-		return self.data.train_y.max().item() + 1
+		return int(tlx.reduce_max(self.data.train_y)) + 1
 	
 	@property
 	def raw_file_names(self) -> List[str]:
@@ -163,15 +163,15 @@ class Entities(InMemoryDataset):
 		# test_idx = torch.tensor(test_indices, dtype=torch.long)
 		# test_y = torch.tensor(test_labels, dtype=torch.long)
 		
-		data = Graph(edge_index=edge_index, edge_type=edge_type,
-					train_idx=train_idx, train_y=train_y, test_idx=test_idx,
-					test_y=test_y, num_nodes=N)
+		data = Graph(edge_index=edge_index, edge_type=edge_type, train_idx=train_idx, train_y=train_y,
+					 test_idx=test_idx, test_y=test_y, num_nodes=N)
 		
 		if self.hetero:
 			data = data.to_heterogeneous(node_type_names=['v'])
-			
+		
 		self.save_data(self.collate([data]), self.processed_paths[0])
-		# torch.save(self.collate([data]), self.processed_paths[0])
+	
+	# torch.save(self.collate([data]), self.processed_paths[0])
 	
 	def __repr__(self) -> str:
 		return f'{self.name.upper()}{self.__class__.__name__}()'

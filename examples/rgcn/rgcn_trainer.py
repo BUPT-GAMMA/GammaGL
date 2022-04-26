@@ -31,6 +31,7 @@ class SemiSpvzLoss(WithLoss):
         loss = self._loss_fn(train_logits, train_y)
         return loss
 
+
 def evaluate(net, data, y, metrics):
     net.set_eval()
     logits = net(data['edge_index'], data['edge_type'])
