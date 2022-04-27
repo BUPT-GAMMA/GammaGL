@@ -6,8 +6,7 @@
 """
 
 import tensorlayerx as tlx
-from gammagl.layers.conv import SAGEConv, GCNConv
-from gammagl.layers.pool import JumpingKnowledge
+from gammagl.layers.conv import SAGEConv, GCNConv, JumpingKnowledge
 
 
 

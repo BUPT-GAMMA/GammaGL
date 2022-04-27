@@ -18,8 +18,9 @@ import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
 from gammagl.utils.loop import add_self_loops
-from gammagl.models import JKNet,GCNModel, APPNPModel
+from gammagl.models import JKNet
 from tensorlayerx.model import TrainOneStep, WithLoss
+from gammagl.utils.corrupt_graph import calc
 
 sys.path.insert(0, os.path.abspath('../'))  # adds path2gammagl to execute in command line.
 
@@ -70,11 +71,12 @@ def main(args):
     graph.tensor()
 
     edge_index, _ = add_self_loops(graph.edge_index, n_loops=args.self_loops)
-    edge_weight = tlx.ops.convert_to_tensor(GCNModel.calc_gcn_norm(edge_index, graph.num_nodes))
+    #edge_weight = tlx.ops.convert_to_tensor(GCNModel.calc_gcn_norm(edge_index, graph.num_nodes))
+    edge_weight = tlx.ops.convert_to_tensor(calc(edge=edge_index,num_node=graph.num_nodes)[2])
     x = graph.x
     y = tlx.argmax(graph.y, axis=1)
     net = JKNet(dataset=dataset, mode=args.mode, num_layers=args.itera_K, drop=args.drop_rate)
-    optimizer = tlx.optimizers.Adam(learning_rate=args.lr, weight_decay=args.weight_decay)
+    optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.weight_decay)
     metrics = tlx.metrics.Accuracy()
     train_weights = net.trainable_weights
 
