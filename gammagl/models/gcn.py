@@ -1,4 +1,5 @@
 import tensorlayerx as tlx
+import gammagl.mpops as mpops
 from gammagl.layers.conv import GCNConv
 
 
@@ -59,7 +60,7 @@ class GCNModel(tlx.nn.Module):
         # return tlx.convert_to_tensor(weights.astype(np.float32))
         if edge_weight is None:
             edge_weight = tlx.ones((edge_index.shape[1],)) # torch backend `shape` 参数不能是int
-        deg = tlx.reshape(tlx.ops.unsorted_segment_sum(tlx.reshape(edge_weight,(-1,1)), src, num_segments=num_nodes), (-1,))# tlx更新后可以去掉 reshape 
+        deg = tlx.reshape(mpops.unsorted_segment_sum(tlx.reshape(edge_weight,(-1,1)), src, num_segments=num_nodes), (-1,))# tlx更新后可以去掉 reshape
         deg_inv_sqrt = tlx.pow(deg, -0.5)
         # deg_inv_sqrt[tlx.is_inf(deg_inv_sqrt)] = 0 # may exist solo node
         weights = tlx.ops.gather(deg_inv_sqrt,src) * edge_weight * tlx.ops.gather(deg_inv_sqrt,dst)

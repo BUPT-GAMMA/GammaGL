@@ -24,11 +24,11 @@ class IMDB(InMemoryDataset):
     Args:
         root (string): Root directory where the dataset should be saved.
         transform (callable, optional): A function/transform that takes in an
-            :obj:`torch_geometric.data.HeteroData` object and returns a
+            :obj:`gammagl.data.HeteroGraph` object and returns a
             transformed version. The data object will be transformed before
             every access. (default: :obj:`None`)
         pre_transform (callable, optional): A function/transform that takes in
-            an :obj:`torch_geometric.data.HeteroData` object and returns a
+            an :obj:`gammagl.data.HeteroGraph` object and returns a
             transformed version. The data object will be transformed before
             being saved to disk. (default: :obj:`None`)
     """
