@@ -278,7 +278,7 @@ class NodeStorage(BaseStorage):
 
     @property
     def num_node_features(self) -> int:
-        if 'x' in self and tlx.ops.is_tensor(self.x):
+        if 'x' in self:
             return 1 if self.x.ndim == 1 else self.x.shape[-1]
         return 0
 

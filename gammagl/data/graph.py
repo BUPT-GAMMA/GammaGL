@@ -10,6 +10,7 @@ from gammagl.data.storage import (BaseStorage, EdgeStorage,
                                           GlobalStorage, NodeStorage)
 from gammagl.utils.loop import add_self_loops
 from gammagl.utils.check import check_is_numpy
+from gammagl.typing import NodeType, EdgeType
 from gammagl.utils.num_nodes import maybe_num_nodes
 
 
@@ -98,8 +99,9 @@ class Graph(BaseGraph):
                 self._csr_adj = CSRAdj.from_edges(self._edge_index[0], self._edge_index[1], self._num_nodes)
             if 'csc' in spr_format:
                 self._csc_adj = CSRAdj.from_edges(self._edge_index[1], self._edge_index[0], self._num_nodes)
-        # for key, value in kwargs.items():
-        #     setattr(self, key, value)
+        self.num_nodes = num_nodes
+        for key, value in kwargs.items():
+            setattr(self, key, value)
             
     def __getitem__(self, key: str) -> Any:
         return self._store[key]
@@ -330,9 +332,9 @@ class Graph(BaseGraph):
             if tlx.ops.is_tensor(value):
                 pass
             elif check_is_numpy(value):
-                if key in ['edge_index', 'y']:
+                if key in ['edge_index', 'y', 'edge_type', 'train_idx', 'test_idx', 'train_y']:
                     value = tlx.ops.convert_to_tensor(value, dtype=tlx.int64)
-                elif key in ['train_mask', 'val_mask', 'test_mask']:
+                elif key in ['train_mask', 'val_mask', 'test_mask', ]:
                     value = tlx.ops.convert_to_tensor(value, dtype=tlx.bool)
                 else:
                     value = tlx.ops.convert_to_tensor(value, dtype=tlx.float32)

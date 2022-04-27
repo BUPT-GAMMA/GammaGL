@@ -3,7 +3,7 @@ import tensorflow as tf
 import tensorlayerx as tlx
 
 
-def global_add_pool(x: tf.Tensor, batch: Optional[tf.Tensor],
+def global_sum_pool(x: tf.Tensor, batch: Optional[tf.Tensor],
                     size: Optional[int] = None) -> tf.Tensor:
     r"""Returns batch-wise graph-level-outputs by adding node features
     across the node dimension, so that for a single graph

@@ -8,15 +8,15 @@
 
 import os
 os.environ['TL_BACKEND'] = 'paddle'
+os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 import sys
+# sys.path.insert(0, os.path.abspath('../'))  # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
 from gammagl.models import SGCModel, GCNModel
 from gammagl.utils.loop import add_self_loops
 from tensorlayerx.model import TrainOneStep, WithLoss
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-# sys.path.insert(0, os.path.abspath('../'))  # adds path2gammagl to execute in command line.
 
 
 class SemiSpvzLoss(WithLoss):
@@ -70,7 +70,7 @@ def main(args):
                    num_class=graph.y.shape[1],
                    itera_K=args.itera_K,
                    name="SGC")
-    optimizer = tlx.optimizers.Adam(learning_rate=args.lr, weight_decay=args.l2_coef)
+    optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
     train_weights = net.trainable_weights
 

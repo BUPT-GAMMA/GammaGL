@@ -59,6 +59,7 @@ def main(args):
     dataset = Planetoid(args.dataset_path, args.dataset)
     dataset.process()  # suggest to execute explicitly so far
     graph = dataset[0]
+    graph.tensor()
     edge_index, _ = add_self_loops(graph.edge_index, n_loops=args.self_loops)
     x = graph.x
     y = tlx.argmax(graph.y, axis=1)
@@ -69,7 +70,7 @@ def main(args):
                      num_class=graph.y.shape[1],
                      drop_rate=args.drop_rate,
                      name="GATV2")
-    optimizer = tlx.optimizers.Adam(learning_rate=args.lr, weight_decay=args.l2_coef)
+    optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
     train_weights = net.trainable_weights
 
@@ -109,7 +110,7 @@ if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.005, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=500, help="number of epoch")
+    parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=8, help="dimension of hidden layers")
     parser.add_argument("--heads", type=int, default=8, help="number of heads for stablization")
     parser.add_argument("--drop_rate", type=float, default=0.4, help="drop_rate")
