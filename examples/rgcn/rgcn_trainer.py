@@ -57,20 +57,13 @@ def k_hop_subgraph(node_idx, num_hops, edge_index, num_nodes, relabel_nodes=Fals
         node_idx = node_idx.flatten()
     else:
         node_idx = node_idx
-    # 先将目的节点放入一个集合中，每次只压入节点，这里没有小图化处理的过程，这个subg，应该是节点id不会更改的
     subsets = [node_idx]
-    # 这里完成采样，这个index_select听有意的，就是不知道速度如何
     for _ in range(num_hops):
         node_mask.fill(False)
         node_mask[subsets[-1]] = True
-        # torch.index_select???
         edge_mask = node_mask[row]
-        # torch.index_select(node_mask, 0, row, out=edge_mask)
         subsets.append(col[edge_mask])
 
-    # return_inverse表示：是否也要返回原始输入中的元素在返回的唯一列表中的索引。
-    # 这个subsets只有node_idx。返回inv是因为python的unique会自动排序，
-    # 返回的inv可以更好的直接通过subset[inv]确定好对应节点
     subset, inv = np.unique(np.concatenate(subsets), return_inverse=True)
     numel = 1
     for n in node_idx.shape:
@@ -83,10 +76,6 @@ def k_hop_subgraph(node_idx, num_hops, edge_index, num_nodes, relabel_nodes=Fals
 
     edge_index = edge_index[:, edge_mask]
 
-    # 这里是负责对节点以及重新编号
-    # eg: 当subset中采样到的节点为1, 3, 4的时候，通过下面的操作变成了0，1，2,一定是有序的！
-    # edge_index = torch.LongTensor([[3, 4, 1], [1, 3, 4]])这样的边
-    # 处理之后就是tensor([[1, 2, 0], [0, 1, 2]])
     if relabel_nodes:
         node_idx = -np.ones((num_nodes, ))
         node_idx[subset] = np.arange(subset.shape[0])
@@ -172,7 +161,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_bases', type=int, default=None, help='number of bases')
     parser.add_argument('--num_blocks', type=int, default=None, help='numbere of blocks')
     parser.add_argument("--aggregation", type=str, default='sum', help='aggregate type')
-    parser.add_argument('--dataset', type=str, default='mutag', help='dataset')
+    parser.add_argument('--dataset', type=str, default='aifb', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     args = parser.parse_args()
