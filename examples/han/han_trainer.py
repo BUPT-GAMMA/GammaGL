@@ -43,12 +43,18 @@ class SemiSpvzLoss(WithLoss):
         return loss # only loss here
 
 def main(args):
+    # NOTE: ONLY IMDB DATASET
+    # If you want to execute HAN on other dataset (e.g. ACM),
+    # you will be needed to init `metepaths`
+    # and set `movie` string with proper values.
+
     path = osp.join(osp.dirname(osp.realpath(__file__)), '../IMDB')
     metapaths = [[('movie', 'actor'), ('actor', 'movie')],
                  [('movie', 'director'), ('director', 'movie')]]
     transform = T.AddMetaPaths(metapaths=metapaths, drop_orig_edges=True,
                                drop_unconnected_nodes=True)
     dataset = IMDB(path, transform=transform)
+    dataset.process()
     graph = dataset[0]
     # graph.tensor()
     y = graph['movie'].y
@@ -58,7 +64,7 @@ def main(args):
         in_channels=graph.x_dict['movie'].shape[1],
         out_channels=3, # graph.num_classes,
         metadata=graph.metadata(),
-        hidden_channels=128,
+        hidden_channels=args.hidden_dim,
         heads=8
     )
 
@@ -70,6 +76,7 @@ def main(args):
     semi_spvz_loss = SemiSpvzLoss(net, loss_func, metrics)
     train_one_step = TrainOneStep(semi_spvz_loss, optimizer, train_weights)
 
+    # train test val = 400, 3478, 400
     data = {
         "x_dict": graph.x_dict,
         "edge_index_dict": graph.edge_index_dict,
@@ -106,15 +113,14 @@ def main(args):
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lr", type=float, default=0.01, help="learnin rate")
+    parser.add_argument("--lr", type=float, default=0.005, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=50, help="number of epoch")
-    parser.add_argument("--hidden_dim", type=int, default=16, help="dimention of hidden layers")
-    parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
+    parser.add_argument("--hidden_dim", type=int, default=128, help="dimention of hidden layers")
+    parser.add_argument("--l2_coef", type=float, default=1e-3, help="l2 loss coeficient")
     parser.add_argument("--heads", type=int, default=8, help="number of heads for stablization")
     parser.add_argument("--drop_rate", type=float, default=0.4, help="drop_rate")
-    parser.add_argument("--aggregation", type=str, default='sum', help='aggregate type')
-    parser.add_argument('--dataset', type=str, default='IMDB', help='dataset')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    # parser.add_argument('--dataset', type=str, default='IMDB', help='dataset, not work')
+    # parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset, not work")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     args = parser.parse_args()
     main(args)
