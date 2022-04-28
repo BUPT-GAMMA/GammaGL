@@ -9,3 +9,4 @@ from .gin import GINModel
 from .rgcn import RGCN
 from .agnn import AGNNModel
 from .jknet import JKNet
+from .han import HAN

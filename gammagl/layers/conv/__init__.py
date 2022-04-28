@@ -9,3 +9,5 @@ from .appnp_conv import APPNPConv
 from .rgcn_conv import RGCNConv
 from .agnn_conv import AGNNConv
 from .JumpingKnowledge import JumpingKnowledge
+from .han_conv import HANConv
+
