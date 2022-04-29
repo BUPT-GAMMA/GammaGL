@@ -256,6 +256,8 @@ class HeteroGraph(BaseGraph):
     
     def adj(self, scipy_fmt='coo', etype=None):
         row, col = self[etype].edge_index
+        row = tlx.convert_to_numpy(row)
+        col = tlx.convert_to_numpy(col)
         if hasattr(self[etype], 'x'):
             x = self[etype].x
         else:

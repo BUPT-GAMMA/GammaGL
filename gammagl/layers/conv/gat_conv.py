@@ -1,16 +1,8 @@
 import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
+from gammagl.utils import segment_softmax
 
 
-def segment_softmax(data, segment_ids, num_segments):
-    # max_values = tlx.ops.unsorted_segment_max(data, segment_ids, num_segments=num_segments) # tensorlayerx not supported
-    # gathered_max_values = tlx.ops.gather(max_values, segment_ids)
-    # exp = tlx.ops.exp(data - tf.stop_gradient(gathered_max_values))
-    exp = tlx.ops.exp(data) # - gathered_max_values)
-    denominator = tlx.ops.unsorted_segment_sum(exp, segment_ids, num_segments=num_segments) + 1e-8
-    gathered_denominator = tlx.ops.gather(denominator, segment_ids)
-    score = exp / (gathered_denominator + 1e-16)
-    return score
 
 
 class GATConv(MessagePassing):
@@ -83,7 +75,7 @@ class GATConv(MessagePassing):
         self.att_src = self._get_weights("att_src", shape=(1, self.heads, self.out_channels), init=initor)
         self.att_dst = self._get_weights("att_dst", shape=(1, self.heads, self.out_channels), init=initor)
 
-        self.leaky_relu = tlx.layers.LeakyReLU(alpha=negative_slope)
+        self.leaky_relu = tlx.layers.LeakyReLU(negative_slope=negative_slope)
         self.dropout = tlx.layers.Dropout(self.dropout_rate)
 
         if self.add_bias and concat:
