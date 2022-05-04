@@ -3,8 +3,9 @@ import torch
 
 def unsorted_segment_sum(x, segment_ids, num_segments=None):
     assert x.shape[0] == segment_ids.shape[0], "the length of segment_ids should be equal to data.shape[0]."
-    if num_segments is not None:
-        assert segment_ids.max() < num_segments
+    # if num_segments is not None:
+    #     # `rgcn` meet an error that `segment_ids` is empty
+    #     assert segment_ids.max() < num_segments
 
     if len(segment_ids.shape) == 1:
         s = torch.prod(torch.tensor(x.shape[1:])).to(torch.int32)

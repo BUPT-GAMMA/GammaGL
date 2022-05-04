@@ -32,36 +32,3 @@ class GCNModel(tlx.nn.Module):
         x = self.conv2(x, edge_index, edge_weight, num_nodes)
         return x
 
-    @classmethod
-    def calc_gcn_norm(cls, edge_index, num_nodes, edge_weight=None):
-        """
-        calculate GCN normilization.
-        Since tf not support update value of a Tensor, we use np for calculation on CPU device.
-        Args:
-            edge_index: edge index
-            num_nodes: number of nodes of graph
-            edge_weight: edge weights of graph
-
-        Returns:
-            1-dim Tensor
-        """
-        # import numpy as np
-        # import scipy.sparse as sp
-        src, dst = edge_index[0], edge_index[1]
-        # src = tlx.convert_to_numpy(src)
-        # dst = tlx.convert_to_numpy(dst)
-        # if edge_weight is None:
-        #     edge_weight = np.ones(edge_index.shape[1])
-        # A = sp.coo_matrix((edge_weight, (src, dst)))
-        # deg = np.sum(A, axis=1).A1
-        # deg_inv_sqrt = np.power(deg, -0.5)
-        # deg_inv_sqrt[deg_inv_sqrt == np.inf] = 0  # may exist solo node
-        # weights = deg_inv_sqrt[src] * edge_weight * deg_inv_sqrt[dst]
-        # return tlx.convert_to_tensor(weights.astype(np.float32))
-        if edge_weight is None:
-            edge_weight = tlx.ones((edge_index.shape[1],)) # torch backend `shape` 参数不能是int
-        deg = tlx.reshape(mpops.unsorted_segment_sum(tlx.reshape(edge_weight,(-1,1)), src, num_segments=num_nodes), (-1,))# tlx更新后可以去掉 reshape
-        deg_inv_sqrt = tlx.pow(deg, -0.5)
-        # deg_inv_sqrt[tlx.is_inf(deg_inv_sqrt)] = 0 # may exist solo node
-        weights = tlx.ops.gather(deg_inv_sqrt,src) * edge_weight * tlx.ops.gather(deg_inv_sqrt,dst)
-        return weights
