@@ -90,6 +90,26 @@ def main(args):
         "val_mask": graph.val_mask,
         "num_nodes": graph.num_nodes,
     }
+    useful_node=0
+    useful_index = []
+    useful_mask=[]
+    for i in range(graph.num_nodes):
+        new = graph.train_mask[i] or graph.test_mask[i] or graph.val_mask[i]
+        useful_mask.append(new)
+        if new:
+            useful_index.append(i)
+            useful_node += 1
+    useful_mask = tlx.convert_to_tensor(useful_mask)
+    train_num = int(useful_node * 0.6)
+    val_num = int(useful_node * 0.2)
+    test_num = useful_node - train_num - val_num
+    graph.train_mask[:]  =False
+    graph.train_mask[useful_index[:train_num]] = True
+    graph.val_mask[:] = False
+    graph.val_mask[useful_index[train_num:train_num+val_num]] = True
+    graph.test_mask[:] = False
+    graph.test_mask[useful_index[train_num+val_num:train_num+val_num+test_num]] = True
+
     best_val_acc = 0
     for epoch in range(args.n_epoch):
         net.set_train()
