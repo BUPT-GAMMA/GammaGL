@@ -32,13 +32,13 @@ class JKNet(tlx.nn.Module):
 
     def forward(self, x, edge_index, edge_weight, num_nodes):
 
-        layer_out = []  # 保存每一层的结果
+        layer_out = []
         for i in range(self.num_layers):
             conv = getattr(self, 'conv{}'.format(i))
             dropout = getattr(self, 'dropout{}'.format(i))
             x = dropout(tlx.relu(conv(x, edge_index)))
             layer_out.append(x)
-        h = self.jk(layer_out)  # JK层
+        h = self.jk(layer_out)
 
         h = self.fc(h)
         h = tlx.softmax(h, axis=1)
