@@ -14,7 +14,7 @@ def masked_edge_index(edge_index, edge_mask):
         idx = tlx.convert_to_tensor([i for i, v in enumerate(edge_mask) if v], dtype=tlx.int64)
         return tlx.gather(edge_index, idx)
     else:
-        return (edge_index.T[edge_mask]).T
+        return tlx.transpose(tlx.transpose(edge_index)[edge_mask])
 
 
 class RGCNConv(MessagePassing):
@@ -146,7 +146,8 @@ class RGCNConv(MessagePassing):
                     # final_output = scatter(init_output, uniq_ind, output)
                     #
                     # return final_output
-                    out += self.propagate(weight[i][x_l], edges, num_nodes=size[1])
+
+                    out += self.propagate(tlx.gather(weight[i], x_l), edges, num_nodes=size[1])
                 else:
                     h = self.propagate(x, edges, num_nodes=size[1])
                     out = out + (h @ weight[i])

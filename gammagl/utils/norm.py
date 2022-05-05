@@ -1,6 +1,7 @@
 import tensorlayerx as tlx
 import gammagl.mpops as mpops
-def calc_gcn_norm(cls, edge_index, num_nodes, edge_weight=None):
+
+def calc_gcn_norm(edge_index, num_nodes, edge_weight=None):
     """
     calculate GCN normilization.
     Since tf not support update value of a Tensor, we use np for calculation on CPU device.
