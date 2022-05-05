@@ -115,7 +115,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.005, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=50, help="number of epoch")
-    parser.add_argument("--hidden_dim", type=int, default=128, help="dimention of hidden layers")
+    parser.add_argument("--hidden_dim", type=int, default=16, help="dimention of hidden layers")
     parser.add_argument("--l2_coef", type=float, default=1e-3, help="l2 loss coeficient")
     parser.add_argument("--heads", type=int, default=8, help="number of heads for stablization")
     parser.add_argument("--drop_rate", type=float, default=0.4, help="drop_rate")
