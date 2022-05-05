@@ -109,7 +109,7 @@ def main():
         val_acc = evaluate(model, data, y, data['val_mask'], metrics)
 
         print("Epoch [{:0>3d}]  ".format(epoch + 1),
-               "   train loss: {:.4f}".format(train_loss),
+               "   train loss: {:.4f}".format(train_loss.item()),
                "   train_acc:{:.4f}".format(train_acc),
                "   val acc: {:.4f}".format(val_acc))
 
