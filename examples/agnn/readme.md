@@ -16,9 +16,9 @@ python agnn_trainer.py
 
 ## Results
 
-| Dataset  | Paper | Accuracy | Time | Params |
-| -------- | ----- | -------- | ---- | ------ |
-| cora     |       |          |      |        |
-| citeseer |       |          |      |        |
-| pubmed   |       |          |      |        |
+| Dataset  | Paper | Our(tf)     | Our(pd) | Our(torch) |
+| -------- | ----- | ----------- | ------- | ---------- |
+| cora     | 83.1  | 83.28(0.64) |         |            |
+| citeseer | 71.7  | 71.7(0.53)  |         |            |
+| pubmed   | 79.9  | 79.02(0.82) |         |            |
 
