@@ -1,7 +1,7 @@
 import copy
 
 import os
-os.environ['TL_BACKEND'] = 'torch' # set your backend here, default `tensorflow`
+os.environ['TL_BACKEND'] = 'tensorflow' # set your backend here, default `tensorflow`
 import tensorlayerx as tlx
 from gammagl.data import Graph
 
