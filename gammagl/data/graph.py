@@ -355,10 +355,8 @@ class Graph(BaseGraph):
 		for key, value in kwargs.items():
 			setattr(self, key, value)
 		if to_tensor:
-			self._is_tensor = True
 			self.tensor()
 		else:
-			self._is_tensor = False
 			self.numpy()
 	
 	def __getattr__(self, key: str) -> Any:
@@ -583,10 +581,6 @@ class Graph(BaseGraph):
 		if value is None:
 			return value
 		
-		if key == '_is_tensor':
-			# set is_tensor to True
-			return True
-		
 		if isinstance(value, CSRAdj):
 			value = value.tensor(inplace=inplace)
 		
@@ -621,14 +615,10 @@ class Graph(BaseGraph):
 
 		"""
 		
-		if self._is_tensor is True:
-			return self
-		
 		if inplace:
 			for key in self._store:
 				self._store[key] = self._apply_to_tensor(
 					key, self._store[key], inplace)
-			self._is_tensor = True
 			return self
 		else:
 			new_dict = {}
@@ -649,10 +639,6 @@ class Graph(BaseGraph):
 	def _apply_to_numpy(self, key, value, inplace=True):
 		if value is None:
 			return value
-		
-		if key == '_is_tensor':
-			# set is_tensor to True
-			return False
 		
 		if isinstance(value, CSRAdj):
 			value = value.numpy(inplace=inplace)
@@ -682,15 +668,12 @@ class Graph(BaseGraph):
 			inplace: (Default True) Whether to convert the graph into numpy inplace.
 
 		"""
-		if self._is_tensor is False:
-			return self
 		
 		if inplace:
 			
 			for key in self._store:
 				self._store[key] = self._apply_to_numpy(
 					key, self._store[key], inplace)
-			self._is_tensor = False
 			return self
 		else:
 			new_dict = {}
@@ -848,11 +831,12 @@ class Graph(BaseGraph):
 		r"""Returns the number of features per edge in the graph."""
 		return self._store.num_edge_features
 	
-	def __iter__(self) -> Iterable:
-		r"""Iterates over all attributes in the data, yielding their attribute
-		names and values."""
-		for key, value in self._store.items():
-			yield key, value
+	# class `Graph` can't be collections.Iterable, or can't be saved in paddle.
+	# def __iter__(self) -> Iterable:
+	# 	r"""Iterates over all attributes in the data, yielding their attribute
+	# 	names and values."""
+	# 	for key, value in self._store.items():
+	# 		yield key, value
 	
 	def __call__(self, *args: List[str]) -> Iterable:
 		r"""Iterates over all attributes :obj:`*args` in the data, yielding

@@ -83,9 +83,7 @@ class Planetoid(InMemoryDataset):
         self.name = name
 
         super().__init__(root, transform, pre_transform)
-        # with open(self.processed_paths[0], 'rb') as f:
-        #     self.data, self.slices = pickle.load(f)
-
+        self.data, self.slices = self.load_data(self.processed_paths[0])
         self.split = split
         assert self.split in ['public', 'full', 'random']
 
@@ -277,6 +275,6 @@ def edge_index_from_dict(graph_dict, num_nodes=None, coalesce=True):
 
 
 def index_to_mask(index, size):
-    mask = np.zeros((size, ), dtype=np.bool)
+    mask = np.zeros((size, ), dtype=bool)
     mask[index] = 1
     return mask
