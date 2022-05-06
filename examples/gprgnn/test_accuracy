@@ -1,0 +1,36 @@
+tensorflow cora 75.76
+tensorflow cora 81.87
+tensorflow cora 76.58
+tensorflow cora 78.52
+tensorflow cora 77.55
+tensorflow cora 79.73
+tensorflow cora 79.69
+tensorflow cora 75.88
+tensorflow cora 83.27
+tensorflow cora 73.39
+tensorflow cora 78.50 2.88
+
+tensorflow citeseer 64.46
+tensorflow citeseer 68.67
+tensorflow citeseer 65.16
+tensorflow citeseer 65.28
+tensorflow citeseer 56.84
+tensorflow citeseer 65.51
+tensorflow citeseer 59.87
+tensorflow citeseer 68.39
+tensorflow citeseer 63.80
+tensorflow citeseer 64.11
+tensorflow citeseer 64.18 3.57
+
+tensorflow pubmed 84.29
+tensorflow pubmed 82.60
+tensorflow pubmed 83.39
+tensorflow pubmed 83.78
+tensorflow pubmed 82.59
+tensorflow pubmed 83.72
+tensorflow pubmed 84.30
+tensorflow pubmed 83.28
+tensorflow pubmed 83.24
+tensorflow pubmed 83.39
+tensorflow pubmed 83.37 0.51
+

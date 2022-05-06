@@ -9,3 +9,4 @@ from .gin import GINModel
 from .rgcn import RGCN
 from .agnn import AGNNModel
 from .han import HAN
+from .gprgnn import GPRGNNModel

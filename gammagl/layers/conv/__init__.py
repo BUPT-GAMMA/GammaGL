@@ -9,3 +9,4 @@ from .appnp_conv import APPNPConv
 from .rgcn_conv import RGCNConv
 from .agnn_conv import AGNNConv
 from .han_conv import HANConv
+from .gpr_conv import GPRConv
