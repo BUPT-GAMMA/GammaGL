@@ -59,7 +59,7 @@ class Flickr(InMemoryDataset):
 
     @property
     def processed_file_names(self) -> str:
-        return 'data.pt'
+        return tlx.backend + '_data.pt'
 
     def download(self):
         path = download_url(self.url.format(self.adj_full_id), self.raw_dir)
@@ -118,6 +118,7 @@ class Flickr(InMemoryDataset):
         calc_sign(adj, x, data)
         with open(self.processed_paths[0], 'wb') as f:
             pickle.dump(self.collate([data]), f)
+
 
 def calc_sign(adj, feat, data):
     col = adj.col
