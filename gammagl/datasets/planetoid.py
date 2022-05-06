@@ -83,9 +83,7 @@ class Planetoid(InMemoryDataset):
         self.name = name
 
         super().__init__(root, transform, pre_transform)
-        # with open(self.processed_paths[0], 'rb') as f:
-        #     self.data, self.slices = pickle.load(f)
-
+        self.data, self.slices = self.load_data(self.processed_paths[0])
         self.split = split
         assert self.split in ['public', 'full', 'random']
 
@@ -137,10 +135,8 @@ class Planetoid(InMemoryDataset):
 
     def process(self):
         data = read_planetoid_data(self.raw_dir, self.name)
-        self.data = data if self.pre_transform is None else self.pre_transform(data)
-        # with open(self.processed_paths[0], 'wb') as f:
-        #     pickle.dump(self.collate([data]), f)
-        # torch.save(self.collate([data]), self.processed_paths[0])
+        data = data if self.pre_transform is None else self.pre_transform(data)
+        self.save_data(self.collate([data]), self.processed_paths[0])
 
     def __repr__(self) -> str:
         return f'{self.name}()'
@@ -211,10 +207,10 @@ def read_planetoid_data(folder, prefix):
         x = SparseTensor(row=torch.cat(rows), col=torch.cat(cols),
                          value=torch.cat(values))
     else:
-        x = np.concatenate([allx, tx])
+        x = np.concatenate([allx, tx]).astype(dtype=np.float32)
         x[test_index] = x[sorted_test_index]
 
-    y = np.concatenate([ally, ty])
+    y = np.concatenate([ally, ty]).argmax(axis=1)
     y[test_index] = y[sorted_test_index]
 
     train_mask = index_to_mask(train_index, size=y.shape[0])
