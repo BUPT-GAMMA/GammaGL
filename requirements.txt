@@ -1,5 +1,6 @@
 numpy
 scipy
+cython
 tensorflow
 git+https://github.com/tensorlayer/tensorlayerx.git
 pytest

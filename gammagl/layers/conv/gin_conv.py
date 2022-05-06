@@ -74,8 +74,11 @@ class GINConv(MessagePassing):
             raise KeyError('Aggregator type {} not recognized.'.format(aggregator_type))
         
         # to specify whether eps is trainable or not.
-        self.eps = tlx.Variable(initial_value=[init_eps], name='eps', trainable=learn_eps)
+        self.eps = tlx.Variable(initial_value=[float(init_eps)], name='eps', trainable=learn_eps)
 
+    def reset_parameters(self):
+        pass
+    
     def forward(self, x, edge_index):
         r"""Compute Graph Isomorphism Network layer.
 

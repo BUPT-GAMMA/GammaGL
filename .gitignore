@@ -143,3 +143,5 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+examples/IMDB*
+examples/Entities/*

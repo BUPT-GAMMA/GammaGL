@@ -58,7 +58,7 @@ class Flickr(InMemoryDataset):
 
     @property
     def processed_file_names(self) -> str:
-        return 'data.pt'
+        return tlx.backend + '_data.pt'
 
     def download(self):
         path = download_url(self.url.format(self.adj_full_id), self.raw_dir)
@@ -117,3 +117,25 @@ class Flickr(InMemoryDataset):
 
         with open(self.processed_paths[0], 'wb') as f:
             pickle.dump(self.collate([data]), f)
+
+
+def calc_sign(adj, feat, data):
+    col = adj.col
+    row = adj.row
+    deg = np.array(adj.sum(1))
+    deg_inv_sqrt = np.power(deg, -0.5).flatten()
+    weight = np.ones_like(adj.col)
+    new_weight = deg_inv_sqrt[row] * weight * deg_inv_sqrt[col]
+    new_adj = sp.coo_matrix((new_weight, [col, row]))
+    xs = [feat]
+    K = 2
+    # default K = 2, due to gammagl dont have pre_transform, so this place solid setting K = 2
+    for i in range(1, K + 1):
+        xs += [new_adj @ xs[-1]]
+        data[f'x{i}'] = xs[-1]
+
+
+def normalize_feat(feat):
+    feat = feat - np.min(feat)
+    feat = np.divide(feat, feat.sum(axis=-1, keepdims=True))
+    return feat

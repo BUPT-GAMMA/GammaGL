@@ -1,53 +1,14 @@
-gammagl.datasets package
+gammagl.datasets
 ========================
 
-Submodules
-----------
+.. currentmodule:: gammal.datasets
 
-gammagl.datasets.citeseer module
---------------------------------
+.. autosummary::
+    :nosignatures:
+    {% for cls in gammal.datasets.classes %}
+      {{ cls }}
+    {% endfor %}
 
-.. automodule:: gammagl.datasets.citeseer
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-gammagl.datasets.cora module
-----------------------------
-
-.. automodule:: gammagl.datasets.cora
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-gammagl.datasets.planetoid module
----------------------------------
-
-.. automodule:: gammagl.datasets.planetoid
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-gammagl.datasets.reddit module
-------------------------------
-
-.. automodule:: gammagl.datasets.reddit
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-gammagl.datasets.tu\_dataset module
------------------------------------
-
-.. automodule:: gammagl.datasets.tu_dataset
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: gammagl.datasets
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. automodule:: gammal.datasets
+    :members:
+    :exclude-members: download, process, processed_file_names, raw_file_names, num_classes, get
