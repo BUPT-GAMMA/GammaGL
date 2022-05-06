@@ -114,8 +114,8 @@ def edge_index_from_dict(graph_dict, num_nodes=None, coalesce=True):
     #     col += value
     # edge_index = np.stack([np.array(row), np.array(col)], axis=0)
     edge_index = []
-    for src, dst in graph_dict.items():  # 格式为 {index：[index_of_neighbor_nodes]}
-        edge_index.extend([src, v] for v in dst) # 起始点， 终点
+    for src, dst in graph_dict.items():  #  {index：[index_of_neighbor_nodes]}
+        edge_index.extend([src, v] for v in dst) # src， dst
         edge_index.extend([v, src] for v in dst)
     # if coalesce:
     #     # NOTE: There are some duplicated edges and self loops in the datasets.
