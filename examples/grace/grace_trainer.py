@@ -86,7 +86,7 @@ if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=1, help="number of epoch")
+    parser.add_argument("--n_epoch", type=int, default=500, help="number of epoch")
     parser.add_argument("--hid_dim", type=int, default=512, help="dimention of hidden layers")
     parser.add_argument("--drop_edge_rate_1", type=float, default=0.2)
     parser.add_argument("--drop_edge_rate_2", type=float, default=0.2)
@@ -96,7 +96,7 @@ if __name__ == '__main__':
     parser.add_argument("--num_layers", type=int, default=2)
     parser.add_argument("--patience", type=int, default=20)
     parser.add_argument("--l2", type=float, default=1e-5, help="l2 loss coeficient")
-    parser.add_argument('--dataset', type=str, default='cora', help='dataset,cora/pubmed/citeseer')
+    parser.add_argument('--dataset', type=str, default='citeseer', help='dataset,cora/pubmed/citeseer')
     parser.add_argument('--split', type=str, default='random', help='random or public')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
