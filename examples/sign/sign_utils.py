@@ -15,6 +15,7 @@ def calc_sign(adj, deg, feat):
 
 
 def normalize_feat(feat):
+
     feat = feat - np.min(feat)
     #
     feat = np.divide(feat, feat.sum(axis=-1, keepdims=True).clip(min=1.))

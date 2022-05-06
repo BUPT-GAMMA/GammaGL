@@ -3,7 +3,6 @@ import os
 import os.path as osp
 import pickle
 from typing import Callable, List, Optional
-import tensorlayerx as tlx
 import numpy as np
 import scipy.sparse as sp
 
@@ -80,11 +79,11 @@ class Flickr(InMemoryDataset):
         adj = adj.tocoo()
         row = adj.row
         col = adj.col
-        edge_index = tlx.convert_to_tensor([row, col], dtype=tlx.int64)
+        deg = np.array(adj.sum(1))
+        edge_index = np.array([row, col], dtype=np.int64)
 
         x = np.load(osp.join(self.raw_dir, 'feats.npy'))
-        # x = tlx.convert_to_tensor(x, dtype=tlx.float32)
-        x = normalize_feat(x)
+
         ys = [-1] * x.shape[0]
         with open(osp.join(self.raw_dir, 'class_map.json')) as f:
             class_map = json.load(f)
@@ -109,13 +108,13 @@ class Flickr(InMemoryDataset):
         data.train_mask = train_mask
         data.val_mask = val_mask
         data.test_mask = test_mask
+        data.deg = deg
         data.num_classes = 7
-        # get k layers feat
+
 
 
         data = data if self.pre_transform is None else self.pre_transform(data)
 
-        calc_sign(adj, x, data)
         with open(self.processed_paths[0], 'wb') as f:
             pickle.dump(self.collate([data]), f)
 
