@@ -58,7 +58,7 @@ def main(args):
     dataset.process()
     graph = dataset[0]
     graph.tensor()
-    edge_index, _ = add_self_loops(graph.edge_index, n_loops=args.self_loops)
+    edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=args.self_loops)
     edge_weight = tlx.ops.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
     x = graph.x
     y = tlx.argmax(graph.y, axis=1)
