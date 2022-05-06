@@ -43,12 +43,7 @@ def main(args):
     if str.lower(args.dataset) not in ['cora', 'pubmed', 'citeseer']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)
-    dataset.process()
     graph = dataset[0]
-<<<<<<< Updated upstream:examples/dgi/dgi_traienr.py
-=======
-    # graph.tensor()
->>>>>>> Stashed changes:examples/dgi/dgi_trainer.py
 
     # add self loop and calc Laplacian matrix
     row, col, edge_weight = calc(graph.edge_index, graph.num_nodes)
