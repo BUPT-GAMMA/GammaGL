@@ -8,7 +8,7 @@ Results
 ### Flickr
 
 ```bash
-python sign.py
+python sign_trianer.py
 ```
 
 
@@ -16,7 +16,7 @@ python sign.py
 | :---------------: | :--: |
 |     GammaGL(tf)   | 51.9 |
 |     GammaGL(th)   | 51.9 |
-|     GammaGL(pd)   | --.- |
+|     GammaGL(pd)   | 51.9 |
 |     GammaGL(ms)   | --.- |
 |   Author's Code   | 51.4 |
 

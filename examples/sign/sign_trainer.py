@@ -1,13 +1,13 @@
 import argparse
 import os
-os.environ['TL_BACKEND'] = 'torch'
+os.environ['TL_BACKEND'] = 'paddle'
 # set your backend here, default `tensorflow`, you can choose 'paddle'、'tensorflow'、'torch'
 
 import tensorlayerx as tlx
 
 from tensorlayerx.model import TrainOneStep, WithLoss
 
-from examples.sign.sign_utils import normalize_feat, calc_sign
+from sign_utils import normalize_feat, calc_sign
 from gammagl.datasets.flickr import Flickr
 from gammagl.models.sign import SignModel
 
@@ -36,7 +36,7 @@ def main(args):
     # load cora dataset
 
     dataset = Flickr(args.dataset_path, args.dataset)
-    dataset.process()
+    # dataset.process()
     graph = dataset.data
     x = graph.x
     y = graph.y
