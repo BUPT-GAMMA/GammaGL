@@ -63,12 +63,16 @@ For random split, we use the hyper-parameters as stated in the paper. For public
 
 Random split (Train/Test = 1:9)
 
+Due to tlx don't have diag operation, now GRACE only support Tensorflow.
+It will support other background soon.
+
 |      Dataset      | Cora | Citeseer | Pubmed |
 | :---------------: | :--: | :------: | :----: |
+|        DGL        | 83.3 |   72.1   |  86.7  |
+|   Author's Code   | 83.1 |   71.0   |  86.3  |
 |     GammaGL(tf)   | 82.9 |   69.1   |  OOM   |
 |     GammaGL(th)   | --.- |   --.-   |  OOM   |
 |     GammaGL(pd)   | --.- |   --.-   |  OOM   |
 |     GammaGL(ms)   | --.- |   --.-   |  OOM   |
-|        DGL        | 83.3 |   72.1   |  86.7  |
-|   Author's Code   | 83.1 |   71.0   |  86.3  |
+
 
