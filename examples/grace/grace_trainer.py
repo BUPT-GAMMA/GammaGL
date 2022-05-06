@@ -11,7 +11,7 @@ import argparse
 from gammagl.models.grace import grace, calc
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.utils.corrupt_graph import dfde_norm_g
-from examples.grace.eval import label_classification
+from eval import label_classification
 
 
 class Unsupervised_Loss(WithLoss):
@@ -39,10 +39,10 @@ def main(args):
     x = graph.x
 
     # build model
-    net = grace(in_feat=x.shape[1], hid_feat=args.hidden_dim,
-                out_feat=args.hidden_dim,
+    net = grace(in_feat=x.shape[1], hid_feat=args.hid_dim,
+                out_feat=args.hid_dim,
                 num_layers=args.num_layers,
-                activation=tlx.nn.PRelu(args.hidden_dim) if args.dataset == "citeseer" else tlx.ReLU(),
+                activation=tlx.nn.PRelu() if args.dataset == "citeseer" else tlx.ReLU(),
                 temp=args.temp)
 
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2)
@@ -69,7 +69,7 @@ def main(args):
         if cnt_wait == args.patience:
             print('Early stopping!')
             break
-        print("loss :{:4f}".format(loss))
+        print("loss :{:4f}".format(loss.item()))
     print("=== Final ===")
     net.load_weights(args.best_model_path + "Grace.npz")
     net.set_eval()
@@ -81,18 +81,18 @@ def main(args):
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lr", type=float, default=0.0005, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=500, help="number of epoch")
-    parser.add_argument("--hidden_dim", type=int, default=256, help="dimention of hidden layers")
+    parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
+    parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
+    parser.add_argument("--hid_dim", type=int, default=512, help="dimention of hidden layers")
     parser.add_argument("--drop_edge_rate_1", type=float, default=0.2)
     parser.add_argument("--drop_edge_rate_2", type=float, default=0.2)
     parser.add_argument("--drop_feature_rate_1", type=float, default=0.2)
     parser.add_argument("--drop_feature_rate_2", type=float, default=0.2)
     parser.add_argument("--temp", type=float, default=1)
     parser.add_argument("--num_layers", type=int, default=2)
-    parser.add_argument("--patience", type=int, default=50)
+    parser.add_argument("--patience", type=int, default=20)
     parser.add_argument("--l2", type=float, default=1e-5, help="l2 loss coeficient")
-    parser.add_argument('--dataset', type=str, default='cora', help='dataset,cora/pubmed/citeseer')
+    parser.add_argument('--dataset', type=str, default='citeseer', help='dataset,cora/pubmed/citeseer')
     parser.add_argument('--split', type=str, default='random', help='random or public')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")

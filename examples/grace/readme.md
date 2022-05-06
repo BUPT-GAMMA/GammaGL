@@ -24,7 +24,7 @@ This example was implemented by Siyuan Zhang
 
 ```
 --dataset               str     The graph dataset name.                Default is 'cora'.
---epochs                int     Number of training periods.            Default is 500.
+--n_epoch                int     Number of training periods.            Default is 500.
 --lr                    float   Learning rate.                         Default is 0.001.
 --l2                    float   Weight decay.                          Default is 1e-5.
 --temp                  float   Temperature.                           Default is 1.0.
@@ -45,17 +45,16 @@ In the paper(as well as authors' repo), the training set and testing set are spl
 
 ```python
 # Cora with random split in paper
-python main.py --dataset cora --epochs 200 --lr 5e-4 --l2 1e-5 --hid_dim 256 --drop_edge_rate_1 0.2 --drop_edge_rate_2 0.2 --drop_feature_rate_1 0.2 --dfr2 0.2 --temp 1
+python grace_trainer.py --dataset cora --n_epoch 200 --lr 5e-4 --l2 1e-5 --hid_dim 256 --drop_edge_rate_1 0.2 --drop_edge_rate_2 0.2 --drop_feature_rate_1 0.2 --drop_feature_rate_2 0.2 --temp 1
+
+# Citeseer with random split in paper
+python grace_trainer.py --dataset citeseer --n_epoch 200 --lr 1e-3 --l2 1e-5 --hid_dim 256 --drop_edge_rate_1 0.2 --drop_edge_rate_2 0.0 --drop_feature_rate_1 0.3 --drop_feature_rate_2 0.2 --temp 0.9
+
+# Pubmed with random split in paper
+python grace_trainer.py --dataset pubmed --n_epoch 1500 --lr 1e-3 --l2 1e-5 --hid_dim 256 --drop_edge_rate_1 0.4 --drop_edge_rate_2 0.1 --drop_feature_rate_1 0.0 --drop_feature_rate_2 0.2 --temp 0.7
 
 # Cora by GammaGL
-python main.py --dataset cora --epochs 500 --lr 5e-4 --l2 1e-5 --hid_dim 128 --drop_edge_rate_1 0.2 --drop_edge_rate_2 0.4 --drop_feature_rate_1 0.3 --dfr2 0.4 --temp 0.4
-
-# Citeseer with random split
-python main.py --dataset citeseer --epochs 200 --lr 1e-3 --l2 1e-5 --hid_dim 256 --drop_edge_rate_1 0.2 --drop_edge_rate_2 0.0 --drop_feature_rate_1 0.3 --dfr2 0.2 --temp 0.9
-
-# Pubmed with random split
-python main.py --dataset pubmed --epochs 1500 --lr 1e-3 --l2 1e-5 --hid_dim 256 --drop_edge_rate_1 0.4 --drop_edge_rate_2 0.1 --drop_feature_rate_1 0.0 --drop_feature_rate_2 0.2 --temp 0.7
-
+python grace_trainer.py --dataset cora
 ```
 
 ## 	Performance
@@ -66,7 +65,11 @@ Random split (Train/Test = 1:9)
 
 |      Dataset      | Cora | Citeseer | Pubmed |
 | :---------------: | :--: | :------: | :----: |
+|     GammaGL(tf)   | 82.9 |   69.1   |  OOM   |
+|     GammaGL(th)   | --.- |   --.-   |  OOM   |
+|     GammaGL(pd)   | --.- |   --.-   |  OOM   |
+|     GammaGL(ms)   | --.- |   --.-   |  OOM   |
 |        DGL        | 83.3 |   72.1   |  86.7  |
 |   Author's Code   | 83.1 |   71.0   |  86.3  |
-|     GammaGL       | 83.1 |   --.-   |  --.-  |
+
 
