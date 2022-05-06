@@ -74,7 +74,7 @@ def main(args):
                      alpha=args.alpha,
                      drop_rate=args.drop_rate,
                      name="APPNP")
-    optimizer = tlx.optimizers.Adam(learning_rate=args.lr, weight_decay=args.l2_coef)
+    optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
     train_weights = net.trainable_weights
 

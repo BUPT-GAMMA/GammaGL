@@ -37,5 +37,14 @@ We give a development tutorial in Chinese on [wiki](https://github.com/BUPT-GAMM
 |                                   | TensorFlow         | PyTorch            | Paddle             | MindSpore          |
 | --------------------------------- | ------------------ | ------------------ | ------------------ | ------------------ |
 | [GCN [ICLR 2017]](./examples/gcn) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-|                                   |                    |                    |                    |                    |
+| [GAT [ICLR 2018]](./examples/gat) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [GraphSAGE [NeurIPS 2017]](./examples/sage) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [SGC [ICML 2019]](./examples/sgc) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [GATv2 [ICLR 2021]](./examples/gatv2) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [APPNP [ICLR 2019]](./examples/appnp) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [GCNII [ICLR 2017]](./examples/gcnii) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [AGNN [arxiv]](./examples/agnn) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [DGI [ICLR 2019]](./examples/dgi) |:heavy_check_mark: |                    |                    |                    |
+| [SIGN [ICML 2020 Workshop]](./examples/sign) | :heavy_check_mark: | :heavy_check_mark: |  |   |
+| [GRACE [ICML 2020 Workshop]](./examples/grace) | :heavy_check_mark:|  |  |   |
 |                                   |                    |                    |                    |                    |

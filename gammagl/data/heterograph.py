@@ -29,7 +29,7 @@ class HeteroGraph(BaseGraph):
     In addition, it provides useful functionality for analyzing graph
     structures, and provides basic PyTorch tensor functionalities.
     .. code-block::
-        from torch_geometric.data import HeteroGraph
+        from gammagl.data import HeteroGraph
         data = HeteroGraph()
         # Create two node types "paper" and "author" holding a feature matrix:
         data['paper'].x = torch.randn(num_papers, num_paper_features)
@@ -41,15 +41,13 @@ class HeteroGraph(BaseGraph):
         >>> 23
         data['author', 'writes', 'paper'].num_edges
         >>> 52
-        # PyTorch tensor functionality:
-        data = data.pin_memory()
-        data = data.to('cuda:0', non_blocking=True)
+        
     Note that there exists multiple ways to create a heterogeneous graph data,
     *e.g.*:
     * To initialize a node of type :obj:`"paper"` holding a node feature
       matrix :obj:`x_paper` named :obj:`x`:
       .. code-block:: python
-        from torch_geometric.data import HeteroGraph
+        from gammagl.data import HeteroGraph
         data = HeteroGraph()
         data['paper'].x = x_paper
         data = HeteroGraph(paper={ 'x': x_paper })
@@ -258,6 +256,8 @@ class HeteroGraph(BaseGraph):
     
     def adj(self, scipy_fmt='coo', etype=None):
         row, col = self[etype].edge_index
+        row = tlx.convert_to_numpy(row)
+        col = tlx.convert_to_numpy(col)
         if hasattr(self[etype], 'x'):
             x = self[etype].x
         else:

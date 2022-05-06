@@ -80,7 +80,7 @@ def main():
                       name = "AGNN")
     
     loss = tlx.losses.softmax_cross_entropy_with_logits
-    optimizer = tlx.optimizers.Adam(learning_rate = args.lr,weight_decay=args.weight_decay)
+    optimizer = tlx.optimizers.Adam(lr = args.lr,weight_decay=args.weight_decay)
     metrics = tlx.metrics.Accuracy()
     train_weights = model.trainable_weights
 
