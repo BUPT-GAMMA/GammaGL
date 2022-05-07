@@ -85,6 +85,6 @@ def label_classification(embeddings, y, train_mask, test_mask, split='random', r
     macro = f1_score(y_test, y_pred, average="macro")
 
     return {
-        'F1Mi': micro,
-        'F1Ma': macro
+        'F1Micro': micro,
+        'F1Macro': macro
     }
