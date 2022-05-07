@@ -11,15 +11,15 @@ Results
 
 Run with following (available dataset: "cora", "citeseer", "pubmed")
 ```bash
-python gcn_train.py --dataset cora --params
-python gcn_train.py --dataset citeseer 
 python gcn_train.py --dataset cora
+python gcn_train.py --dataset citeseer 
+python gcn_train.py --dataset pubmend
 ```
 
 
-| Dataset | Paper | Accuracy | Time | Params |
-| ---- | ---- | ---- | ---- | ---- |
-| cora | 81.5 |81.83(0.22) | | backend=paddle, lr=0.01, l2_coef=5e-3, drop_rate=0.9|
-| pubmed | 70.3 |
-| citeseer | 79.0 |
+| Dataset  | Paper | Our(pd)    | Our(tf) |
+|----------|-------|-------------|---------|
+| cora     | 81.5  | 81.83(0.22) |80.54(1.12)|
+| pubmed   | 70.3  | 68.9(0.02) |68.34(0.68)|
+| citeseer | 79.0  | 78.29(0.01) |78.28(1.08)|
 

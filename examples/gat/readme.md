@@ -21,8 +21,8 @@ python gat_trainer.py
 Results
 -------
 
-| Dataset | Paper | Accuracy | Time | Params |
-| ---- | ---- | ---- | ---- | ---- |
-| cora | 
-| pubmed | 
-| citeseer | 
+| Dataset | Paper | Our(pd) | Our(tf) |
+| ---- | ---- | ---- | ---- |
+| cora |83.0(0.7)|83.54(0.75)|83.26(0.96)|
+| pubmed |72.5(0.7)|72.74(0.76)|72.5(0.65)|
+| citeseer |79.0(0.3)|OOM|OOM|
