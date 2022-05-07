@@ -12,7 +12,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 from pyinstrument import Profiler
 import numpy as np
 import tensorlayerx as tlx
-
+import gammagl.mpops as mpops
 
 edge_index = np.load('edge_index.npy')
 num_nodes = np.max(edge_index)+1
@@ -27,7 +27,7 @@ pf = Profiler()
 pf.start()
 for j in range(1000):
     msg = tlx.gather(x, src)
-    tlx.unsorted_segment_sum(msg, dst, num_nodes)
+    mpops.unsorted_segment_sum(msg, dst, num_nodes)
 pf.stop()
 print(pf.output_text(unicode=True, color=True))
 
@@ -39,6 +39,6 @@ dst = tlx.gather(tlx.convert_to_tensor(dst, dtype=tlx.int64), tlx.convert_to_ten
 pf.start()
 for j in range(1000):
     msg = tlx.gather(x, src)
-    tlx.segment_sum(msg, dst)
+    mpops.segment_sum(msg, dst)
 pf.stop()
 print(pf.output_text(unicode=True, color=True))

@@ -15,9 +15,8 @@ python3 gatv2_trainer.py
 Results
 -------
 
-| Dataset  | Test Accuracy |
-| -------- | ------------- |
-| Cora     |        |
-| Citeseer |        |
-| Pubmed   |        |
-
+| Dataset  | Our(pd)     | Our(tf)     |
+| -------- | ----------- | ----------- |
+| cora     | 82.45(0.34) | 81.78(0.29) |
+| pubmed   | 70.9(1.28)  | 69.9(0.23)  |
+| citeseer | 78.46(0.19) | 77.49(0.08) |

@@ -44,10 +44,12 @@ This example was implemented by Siyuan Zhang
 In the paper(as well as authors' repo), the training set and testing set are split randomly with 1:9 ratio. In order to fairly compare it with other methods with the public split (20 training nodes each class), in this repo we also provide its results using the public split (with fine-tuned hyper-parameters). To run the examples, follow the following instructions.
 
 ```python
+
 # Cora with random split by GammaGL
 python grace_trainer.py --dataset cora
 # Citeseer with random split by GammaGL
 python grace_trainer.py --dataset citeseer
+
 
 ```
 
@@ -62,11 +64,10 @@ It will support other background soon.
 
 |      Dataset      | Cora | Citeseer | Pubmed |
 | :---------------: | :--: | :------: | :----: |
-|        DGL        | 83.3 |   72.1   |  86.7  |
 |   Author's Code   | 83.1 |   71.0   |  86.3  |
+|        DGL        | 83.3 |   72.1   |  86.7  |
 |     GammaGL(tf)   | 82.9 |   69.1   |  OOM   |
 |     GammaGL(th)   | --.- |   --.-   |  OOM   |
 |     GammaGL(pd)   | --.- |   --.-   |  OOM   |
 |     GammaGL(ms)   | --.- |   --.-   |  OOM   |
-
 

@@ -32,7 +32,7 @@ train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True)
 # super parameters
 n_epoch = 10  # 200
-learning_rate = 0.01  # 0.01
+lr = 0.01  # 0.01
 hidden_dim = 16  # 16
 keep_rate = 0.9  # 0.5
 l2_norm = 3e-4  # 5e-4
@@ -51,7 +51,7 @@ best_model_path = r'./best_models/'
 
 model = GINModel(name="GIN", input_dim=dataset.num_features, hidden=64, out_dim=dataset.num_classes)
 train_weights = model.trainable_weights
-optimizer = tlx.optimizers.Adam(learning_rate)
+optimizer = tlx.optimizers.Adam(lr)
 best_val_acc = 0.
 
 print('training starts')

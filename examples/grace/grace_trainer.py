@@ -1,14 +1,13 @@
 import os
-
 os.environ['TL_BACKEND'] = 'tensorflow'
 # note, now can only support tensorflow, due to tlx dont support update operation
 # set your backend here, default 'tensorflow', you can choose 'paddle'、'tensorflow'、'torch'
 
+import argparse
 from tqdm import tqdm
 from gammagl.data import Graph
 from gammagl.datasets import Planetoid
 import tensorlayerx as tlx
-import argparse
 from gammagl.models.grace import grace, calc
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.utils.corrupt_graph import dfde_norm_g
@@ -25,17 +24,15 @@ class Unsupervised_Loss(WithLoss):
 
 
 def main(args):
-    # load cora dataset
     if str.lower(args.dataset) not in ['cora', 'pubmed', 'citeseer']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)
-    dataset.process()
     graph = dataset[0]
     row, col, weight = calc(graph.edge_index, graph.num_nodes)
-    # orign graph
-    orgin_graph = Graph(x=graph.x, edge_index=tlx.convert_to_tensor([row, col], dtype=tlx.int64),
+    # original graph
+    original_graph = Graph(x=graph.x, edge_index=tlx.convert_to_tensor([row, col], dtype=tlx.int64),
                         num_nodes=graph.num_nodes, y=graph.y)
-    orgin_graph.edge_weight = tlx.convert_to_tensor(weight)
+    original_graph.edge_weight = tlx.convert_to_tensor(weight)
 
     x = graph.x
 
@@ -74,7 +71,8 @@ def main(args):
     print("=== Final ===")
     net.load_weights(args.best_model_path + "Grace.npz")
     net.set_eval()
-    embeds = net.get_embeding(orgin_graph.x, orgin_graph.edge_index, orgin_graph.edge_weight, graph.num_nodes)
+
+    embeds = net.get_embeding(original_graph.x, original_graph.edge_index, original_graph.edge_weight, graph.num_nodes)
 
     '''Evaluation Embeddings  '''
     label_classification(embeds, tlx.argmax(graph.y, 1), graph.train_mask, graph.test_mask, args.split)
