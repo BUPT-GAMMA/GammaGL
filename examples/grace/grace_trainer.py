@@ -31,7 +31,6 @@ def main(args):
     dataset = Planetoid(args.dataset_path, args.dataset)
     dataset.process()
     graph = dataset[0]
-    graph.tensor()
     row, col, weight = calc(graph.edge_index, graph.num_nodes)
     # orign graph
     orgin_graph = Graph(x=graph.x, edge_index=tlx.convert_to_tensor([row, col], dtype=tlx.int64),
