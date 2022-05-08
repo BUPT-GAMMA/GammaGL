@@ -64,9 +64,9 @@ It will support other background soon.
 | :---------------: | :--: | :------: | :----: |
 |        DGL        | 83.3 |   72.1   |  86.7  |
 |   Author's Code   | 83.1 |   71.0   |  86.3  |
-|     GammaGL(tf)   | 82.9 |   69.1   |  OOM   |
+|     GammaGL(tf)   | 83.5 |   70.1   |  OOM   |
 |     GammaGL(th)   | --.- |   --.-   |  OOM   |
-|     GammaGL(pd)   | --.- |   --.-   |  OOM   |
+|     GammaGL(pd)   | 82.5 |   70.5   |  OOM   |
 |     GammaGL(ms)   | --.- |   --.-   |  OOM   |
 
 

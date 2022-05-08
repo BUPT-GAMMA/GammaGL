@@ -1,17 +1,28 @@
 import tensorlayerx as tlx
 import numpy as np
 import scipy.sparse as sp
+from gammagl.utils.loop import add_self_loops
+
 from gammagl.layers.conv import GCNConv
 
 
 def calc(edge, num_node):
-    weight = np.ones(edge.shape[1])
-    sparse_adj = sp.coo_matrix((weight, (edge[0], edge[1])), shape=(num_node, num_node))
-    A = (sparse_adj + sp.eye(num_node)).tocoo()
-    col, row, weight = A.col, A.row, A.data
-    deg = np.array(A.sum(1))
-    deg_inv_sqrt = np.power(deg, -0.5).flatten()
-    return col, row, np.array(deg_inv_sqrt[row] * weight * deg_inv_sqrt[col], dtype=np.float32)
+    edge, _ = add_self_loops(edge, 1)
+    edge_weight = tlx.ones((edge.shape[1],))
+    src, dst = edge[0], edge[1]
+    deg = tlx.reshape(tlx.ops.unsorted_segment_sum(tlx.reshape(edge_weight, (-1, 1)), src, num_segments=num_node),
+                      (-1,))  # tlx更新后可以去掉 reshape
+    deg_inv_sqrt = tlx.pow(deg, -0.5)
+    # deg_inv_sqrt[tlx.is_inf(deg_inv_sqrt)] = 0 # may exist solo node
+    weights = tlx.ops.gather(deg_inv_sqrt, src) * edge_weight * tlx.ops.gather(deg_inv_sqrt, dst)
+    return edge, weights
+    # weight = np.ones(edge.shape[1])
+    # sparse_adj = sp.coo_matrix((weight, (edge[0], edge[1])), shape=(num_node, num_node))
+    # A = (sparse_adj + sp.eye(num_node)).tocoo()
+    # col, row, weight = A.col, A.row, A.data
+    # deg = np.array(A.sum(1))
+    # deg_inv_sqrt = np.power(deg, -0.5).flatten()
+    # return col, row, np.array(deg_inv_sqrt[row] * weight * deg_inv_sqrt[col], dtype=np.float32)
 
 
 
@@ -62,8 +73,8 @@ class grace(tlx.nn.Module):
         between_sim = f(self.sim(z1, z2))  # inter-view pairs
 
         # between_sim.diag(): positive pairs
-        x1 = tlx.reduce_sum(refl_sim, axis=1) + tlx.reduce_sum(between_sim, axis=1) - tlx.convert_to_tensor(np.diag(refl_sim, k=0))
-        loss = -tlx.log(tlx.convert_to_tensor(np.diag(between_sim, k=0)) / x1)
+        x1 = tlx.reduce_sum(refl_sim, axis=1) + tlx.reduce_sum(between_sim, axis=1) - tlx.diag(refl_sim, 0)
+        loss = -tlx.log(tlx.diag(between_sim, 0) / x1)
 
         return loss
 

@@ -32,11 +32,11 @@ def main(args):
     dataset.process()
     graph = dataset[0]
     graph.tensor()
-    row, col, weight = calc(graph.edge_index, graph.num_nodes)
+    edge, weight = calc(graph.edge_index, graph.num_nodes)
     # orign graph
-    orgin_graph = Graph(x=graph.x, edge_index=tlx.convert_to_tensor([row, col], dtype=tlx.int64),
+    orgin_graph = Graph(x=graph.x, edge_index=edge,
                         num_nodes=graph.num_nodes, y=graph.y)
-    orgin_graph.edge_weight = tlx.convert_to_tensor(weight)
+    orgin_graph.edge_weight = weight
 
     x = graph.x
 
@@ -61,19 +61,19 @@ def main(args):
                              args.drop_edge_rate_2)
         data = {"graph1": graph1, "graph2": graph2}
         loss = train_one_step(data, label=None)
-        if loss < best:
-            best = loss
-            cnt_wait = 0
-            net.save_weights(args.best_model_path + "Grace.npz")
-        else:
-            cnt_wait += 1
-
-        if cnt_wait == args.patience:
-            print('Early stopping!')
-            break
+        # if loss < best:
+        #     best = loss
+        #     cnt_wait = 0
+        #     net.save_weights(args.best_model_path + "Grace.npz")
+        # else:
+        #     cnt_wait += 1
+        #
+        # if cnt_wait == args.patience:
+        #     print('Early stopping!')
+        #     break
         print("loss :{:4f}".format(loss.item()))
     print("=== Final ===")
-    net.load_weights(args.best_model_path + "Grace.npz")
+    # net.load_weights(args.best_model_path + "Grace.npz")
     net.set_eval()
     embeds = net.get_embeding(orgin_graph.x, orgin_graph.edge_index, orgin_graph.edge_weight, graph.num_nodes)
 
@@ -87,19 +87,20 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=500, help="number of epoch")
-    parser.add_argument("--hid_dim", type=int, default=512, help="dimention of hidden layers")
-    parser.add_argument("--drop_edge_rate_1", type=float, default=0.2)
-    parser.add_argument("--drop_edge_rate_2", type=float, default=0.2)
-    parser.add_argument("--drop_feature_rate_1", type=float, default=0.2)
+    parser.add_argument("--hid_dim", type=int, default=256, help="dimention of hidden layers")
+    parser.add_argument("--drop_edge_rate_1", type=float, default=0.4)
+    parser.add_argument("--drop_edge_rate_2", type=float, default=0.1)
+    parser.add_argument("--drop_feature_rate_1", type=float, default=0.0)
     parser.add_argument("--drop_feature_rate_2", type=float, default=0.2)
-    parser.add_argument("--temp", type=float, default=1)
+    parser.add_argument("--temp", type=float, default=0.7)
     parser.add_argument("--num_layers", type=int, default=2)
     parser.add_argument("--patience", type=int, default=20)
     parser.add_argument("--l2", type=float, default=1e-5, help="l2 loss coeficient")
-    parser.add_argument('--dataset', type=str, default='citeseer', help='dataset,cora/pubmed/citeseer')
+    parser.add_argument('--dataset', type=str, default='pubmed', help='dataset,cora/pubmed/citeseer')
     parser.add_argument('--split', type=str, default='random', help='random or public')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
 
     args = parser.parse_args()
+    # for i in tqdm(range(20)):
     main(args)
