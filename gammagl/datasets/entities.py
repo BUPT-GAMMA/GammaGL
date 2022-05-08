@@ -47,7 +47,8 @@ class Entities(InMemoryDataset):
 		assert self.name in ['aifb', 'am', 'mutag', 'bgs']
 		super().__init__(root, transform, pre_transform)
 		self.data, self.slices = self.load_data(self.processed_paths[0])
-		# self.data, self.slices = torch.load(self.processed_paths[0])
+	
+	# self.data, self.slices = torch.load(self.processed_paths[0])
 	
 	@property
 	def raw_dir(self) -> str:
@@ -148,8 +149,6 @@ class Entities(InMemoryDataset):
 		
 		train_idx = np.array(train_indices)
 		train_y = np.array(train_labels)
-		# train_idx = torch.tensor(train_indices, dtype=torch.long)
-		# train_y = torch.tensor(train_labels, dtype=torch.long)
 		
 		test_labels_df = pd.read_csv(test_file, sep='\t')
 		test_indices, test_labels = [], []
@@ -160,8 +159,6 @@ class Entities(InMemoryDataset):
 		
 		test_idx = np.array(test_indices)
 		test_y = np.array(test_labels)
-		# test_idx = torch.tensor(test_indices, dtype=torch.long)
-		# test_y = torch.tensor(test_labels, dtype=torch.long)
 		
 		data = Graph(edge_index=edge_index, edge_type=edge_type, train_idx=train_idx, train_y=train_y,
 					 test_idx=test_idx, test_y=test_y, num_nodes=N)
@@ -170,8 +167,6 @@ class Entities(InMemoryDataset):
 			data = data.to_heterogeneous(node_type_names=['v'])
 		
 		self.save_data(self.collate([data]), self.processed_paths[0])
-	
-	# torch.save(self.collate([data]), self.processed_paths[0])
 	
 	def __repr__(self) -> str:
 		return f'{self.name.upper()}{self.__class__.__name__}()'

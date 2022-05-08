@@ -48,8 +48,7 @@ class Flickr(InMemoryDataset):
     def __init__(self, root: str, transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None):
         super().__init__(root, transform, pre_transform)
-        with open(self.processed_paths[0], 'rb') as f:
-            self.data, self.slices = pickle.load(f)
+        self.data, self.slices = self.load_data(self.processed_paths[0])
 
     @property
     def raw_file_names(self) -> List[str]:
@@ -106,9 +105,7 @@ class Flickr(InMemoryDataset):
         data.num_classes = 7
 
         data = data if self.pre_transform is None else self.pre_transform(data)
-
-        with open(self.processed_paths[0], 'wb') as f:
-            pickle.dump(self.collate([data]), f)
+        self.save_data(self.collate([data]), self.processed_paths[0])
 
 
 def calc_sign(adj, feat, data):
