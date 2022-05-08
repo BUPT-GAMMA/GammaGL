@@ -121,8 +121,7 @@ class TUDataset(InMemoryDataset):
         self.name = name
         self.cleaned = cleaned
         super().__init__(root, transform, pre_transform, pre_filter)
-        with open(self.processed_paths[0], 'rb') as f:
-            self.data, self.slices = pickle.load(f)
+        self.data, self.slices = self.load_data(self.processed_paths[0])
         if self.data.x is not None and not use_node_attr:
             num_node_attributes = self.num_node_attributes
             self.data.x = self.data.x[:, num_node_attributes:]
@@ -201,8 +200,7 @@ class TUDataset(InMemoryDataset):
             data_list = [self.get(idx) for idx in range(len(self))]
             data_list = [self.pre_transform(data) for data in data_list]
             self.data, self.slices = self.collate(data_list)
-        with open(self.processed_paths[0], 'wb') as f:
-            pickle.dump((self.data, self.slices), f)
+        self.save_data(self.collate([self.data]), self.processed_paths[0])
 
     def __repr__(self) -> str:
         return f'{self.name}({len(self)})'
