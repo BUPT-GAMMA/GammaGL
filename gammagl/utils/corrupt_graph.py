@@ -62,5 +62,3 @@ def drop_feat(feat, drop_feat_rate):
     feat[:, drop_mask] = 0
 
     return tlx.convert_to_tensor(feat)
-
-
