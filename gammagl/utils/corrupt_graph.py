@@ -57,9 +57,8 @@ def drop_feat(feat, drop_feat_rate):
         drop_mask = np.ones(feat.shape[1], dtype=np.bool8)
     else:
         drop_mask = np.random.uniform(size=(feat.shape[1], )) < drop_feat_rate
-    # use numpy
+    # use numpy 
     feat = feat.numpy()
     feat[:, drop_mask] = 0
 
     return tlx.convert_to_tensor(feat)
-
