@@ -13,7 +13,6 @@ def calc_sign(adj, deg, feat):
     return new_adj @ feat
 
 
-
 def normalize_feat(feat):
     feat = feat - np.min(feat)
     #
