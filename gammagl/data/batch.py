@@ -5,7 +5,7 @@ from typing import Any, List, Optional, Union
 import numpy as np
 # import torch
 # from torch import Tensor
-
+import tensorlayerx as tlx
 from gammagl.data import Graph
 from gammagl.data.collate import collate
 from gammagl.data.dataset import IndexType
@@ -143,7 +143,7 @@ class Batch(metaclass=DynamicInheritance):
 
     def __getitem__(self, idx: Union[int, np.integer, str, IndexType]) -> Any:
         if (isinstance(idx, (int, np.integer))
-                or (isinstance(idx, Tensor) and idx.dim() == 0)
+                or (tlx.ops.is_tensor(idx) and idx.ndim() == 0)
                 or (isinstance(idx, np.ndarray) and np.isscalar(idx))):
             return self.get_example(idx)
         elif isinstance(idx, str) or (isinstance(idx, tuple)
