@@ -6,6 +6,7 @@
 """
 import tensorlayerx as tlx
 from tensorlayerx.nn.layers import LSTM, Linear
+import tensorflow as tf
 
 
 class JumpingKnowledge(tlx.nn.Module):
@@ -74,15 +75,17 @@ class JumpingKnowledge(tlx.nn.Module):
             x = tlx.concat(xs, axis=-1)
             return x
         elif self.mode == 'max':
-            x = tlx.stack(xs, axis=-1).max(axis=-1)
+            x = tlx.stack(xs, axis=-1)
+            x = tlx.reduce_max(x, axis=-1)
             return x
         elif self.mode == 'lstm':
             x = tlx.stack(xs, axis=1)  # [num_nodes, num_layers, num_channels]
-
             alpha, _ = self.lstm(x)
-            alpha = self.att(alpha).squeeze(-1)  # [num_nodes, num_layers]
+            alpha = tlx.squeeze(self.att(alpha),axis=-1)
             alpha = tlx.softmax(alpha, axis=-1)
-            return (x * alpha.unsqueeze(-1)).sum(axis=1)
+            x = x * tlx.expand_dims(alpha,axis=-1)
+            x = tlx.reduce_sum(x,axis=1)
+            return x
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}({self.mode})'

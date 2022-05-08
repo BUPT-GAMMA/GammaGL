@@ -7,7 +7,7 @@
 
 import os
 import tensorflow as tf
-os.environ['TL_BACKEND'] = 'paddle'
+os.environ['TL_BACKEND'] = 'tensorflow'
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 physical_gpus = tf.config.experimental.list_physical_devices('GPU')
 print(physical_gpus)
@@ -68,6 +68,26 @@ def main(args):
     dataset = Planetoid(args.dataset_path, args.dataset)
     dataset.process()  # suggest to execute explicitly so far
     graph = dataset[0]
+    useful_node = 0
+    useful_index = []
+    useful_mask = []
+    for i in range(graph.num_nodes):
+        new = graph.train_mask[i] or graph.test_mask[i] or graph.val_mask[i]
+        useful_mask.append(new)
+        if new:
+            useful_index.append(i)
+            useful_node += 1
+    useful_mask = tlx.convert_to_tensor(useful_mask)
+    train_num = int(useful_node * 0.6)
+    val_num = int(useful_node * 0.2)
+    test_num = useful_node - train_num - val_num
+    graph.train_mask[:] = False
+    graph.train_mask[useful_index[:train_num]] = True
+    graph.val_mask[:] = False
+    graph.val_mask[useful_index[train_num:train_num + val_num]] = True
+    graph.test_mask[:] = False
+    graph.test_mask[useful_index[train_num + val_num:train_num + val_num + test_num]] = True
+
     graph.tensor()
 
     edge_index, _ = add_self_loops(graph.edge_index, n_loops=args.self_loops)
@@ -90,25 +110,7 @@ def main(args):
         "val_mask": graph.val_mask,
         "num_nodes": graph.num_nodes,
     }
-    useful_node=0
-    useful_index = []
-    useful_mask=[]
-    for i in range(graph.num_nodes):
-        new = graph.train_mask[i] or graph.test_mask[i] or graph.val_mask[i]
-        useful_mask.append(new)
-        if new:
-            useful_index.append(i)
-            useful_node += 1
-    useful_mask = tlx.convert_to_tensor(useful_mask)
-    train_num = int(useful_node * 0.6)
-    val_num = int(useful_node * 0.2)
-    test_num = useful_node - train_num - val_num
-    graph.train_mask[:]  =False
-    graph.train_mask[useful_index[:train_num]] = True
-    graph.val_mask[:] = False
-    graph.val_mask[useful_index[train_num:train_num+val_num]] = True
-    graph.test_mask[:] = False
-    graph.test_mask[useful_index[train_num+val_num:train_num+val_num+test_num]] = True
+
 
     best_val_acc = 0
     for epoch in range(args.n_epoch):
@@ -145,8 +147,6 @@ if __name__ == '__main__':
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     parser.add_argument("--mode", type=str, default='max', help="mode of jumping knowledge")  #max cat lstm
-
-
 
     args = parser.parse_args()
 
