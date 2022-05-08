@@ -83,7 +83,8 @@ if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=500, help="number of epoch")
+    parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
+
     parser.add_argument("--hid_dim", type=int, default=512, help="dimention of hidden layers")
     parser.add_argument("--drop_edge_rate_1", type=float, default=0.2)
     parser.add_argument("--drop_edge_rate_2", type=float, default=0.2)
