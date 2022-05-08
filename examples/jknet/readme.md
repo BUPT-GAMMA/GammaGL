@@ -20,8 +20,9 @@ python jknet_trainer.py --dataset cora
 ```
 
 
-| Dataset | Accuracy | std | Paper |
+
+| Dataset | Paper | Our(pd) | Our(tf) |
 | ---- | ---- | ---- | ---- |
-| cora | 0.847 | 0.01 | 0.896(0.005) |
-| pubmed | 0.7782 | 0.003 | |
-| citeseer | 0.7554 | 0.0013 | 0.783(0.008)|
+| cora | 0.896(0.005) | 0.847(0.01) | 0.8584(0.007) |
+| pubmed |  | 0.7782(0.003) | 0.7826(0.005) |
+| citeseer | 0.783(0.008) | 0.7554(0.001) | 0.761(0.01)|
