@@ -5,9 +5,8 @@ import pickle
 import tensorlayerx as tlx
 import numpy as np
 import scipy.sparse as sp
-
 from gammagl.data import extract_zip, download_url, InMemoryDataset, Graph
-from gammagl.sparse import CSRAdj
+
 
 
 class Reddit(InMemoryDataset):
@@ -51,45 +50,24 @@ class Reddit(InMemoryDataset):
     def process(self):
         data = np.load(osp.join(self.raw_dir, 'reddit_data.npz'))
         x = tlx.convert_to_tensor(data['feature'], dtype=tlx.float32)
-        y = (data['label'], tlx.int32)
+        y = tlx.convert_to_tensor(data['label'], tlx.int32)
         split = tlx.convert_to_tensor(data['node_types'])
 
         adj = sp.load_npz(osp.join(self.raw_dir, 'reddit_graph.npz'))
-        row = tlx.convert_to_tensor(adj.row, dtype=tlx.int32)
-        col = tlx.convert_to_tensor(adj.col, dtype=tlx.int32)
-        edge_index = tlx.stack([row, col], axis=0)
-        # edge_index, _ = coalesce(edge_index, None, x.size(0), x.size(0))
-        data = Graph(edge_index=edge_index, x=x, y=y)
-        # data = Data(x=x, edge_index=edge_index, y=y)
-        data.train_mask = split == 1
-        data.val_mask = split == 2
-        data.test_mask = split == 3
 
-        data = data if self.pre_transform is None else self.pre_transform(data)
-
-        # torch.save(self.collate([data]), self.processed_paths[0])
-
-    def process(self):
-        data = np.load(osp.join(self.raw_dir, 'reddit_data.npz'))
-        x = data['feature']
-        y = data['label']
-        split = tlx.convert_to_tensor(data['node_types'])
-
-        adj = sp.load_npz(osp.join(self.raw_dir, 'reddit_graph.npz'))
-        row = tlx.convert_to_tensor(adj.row, dtype=tlx.int32)
-        col = tlx.convert_to_tensor(adj.col, dtype=tlx.int32)
-        # 如果图有处理的edge的操作，这下面就可以删去
-        edge = np.array([col, row])
+        edge = np.array([adj.col, adj.row], dtype=np.int64)
+        e_id = np.arange(adj.col.shape[0], dtype=np.int64)
+        csr = sp.csr_matrix((e_id, edge))
         ind = np.argsort(edge[1], axis=0)
         edge = np.array(edge.T[ind])
-        # cur = CSRAdj.from_edges(col, row, 232965)
-        # cur.
+
         data = Graph(edge_index=edge.T, x=x, y=y)
-        # data = Data(x=x, edge_index=edge_index, y=y)
+
         data.train_mask = split == 1
         data.val_mask = split == 2
         data.test_mask = split == 3
-
+        data.indptr = np.array(csr.indptr, dtype=np.int64)
+        data.num_class = 41
         data = data if self.pre_transform is None else self.pre_transform(data)
         with open(self.processed_paths[0], 'wb') as f:
             pickle.dump(self.collate([data]), f)
