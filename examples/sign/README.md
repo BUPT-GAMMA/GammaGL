@@ -8,17 +8,17 @@ Results
 ### Flickr
 
 ```bash
-python sign.py
+python sign_trainer.py
 ```
 
 
 |      Dataset      | Flickr | 
 | :---------------: | :--: |
+|   Author's Code   | 51.4 |
 |     GammaGL(tf)   | 51.9 |
 |     GammaGL(th)   | 51.9 |
-|     GammaGL(pd)   | --.- |
+|     GammaGL(pd)   | 51.9 |
 |     GammaGL(ms)   | --.- |
-|   Author's Code   | 51.4 |
 
 
 

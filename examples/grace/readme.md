@@ -24,7 +24,7 @@ This example was implemented by Siyuan Zhang
 
 ```
 --dataset               str     The graph dataset name.                Default is 'cora'.
---epochs                int     Number of training periods.            Default is 500.
+--n_epoch                int     Number of training periods.            Default is 500.
 --lr                    float   Learning rate.                         Default is 0.001.
 --l2                    float   Weight decay.                          Default is 1e-5.
 --temp                  float   Temperature.                           Default is 1.0.
@@ -44,18 +44,10 @@ This example was implemented by Siyuan Zhang
 In the paper(as well as authors' repo), the training set and testing set are split randomly with 1:9 ratio. In order to fairly compare it with other methods with the public split (20 training nodes each class), in this repo we also provide its results using the public split (with fine-tuned hyper-parameters). To run the examples, follow the following instructions.
 
 ```python
-# Cora with random split in paper
-python main.py --dataset cora --epochs 200 --lr 5e-4 --l2 1e-5 --hid_dim 256 --drop_edge_rate_1 0.2 --drop_edge_rate_2 0.2 --drop_feature_rate_1 0.2 --dfr2 0.2 --temp 1
-
-# Cora by GammaGL
-python main.py --dataset cora --epochs 500 --lr 5e-4 --l2 1e-5 --hid_dim 128 --drop_edge_rate_1 0.2 --drop_edge_rate_2 0.4 --drop_feature_rate_1 0.3 --dfr2 0.4 --temp 0.4
-
+# Cora with random split
+python grace_trainer.py --dataset cora
 # Citeseer with random split
-python main.py --dataset citeseer --epochs 200 --lr 1e-3 --l2 1e-5 --hid_dim 256 --drop_edge_rate_1 0.2 --drop_edge_rate_2 0.0 --drop_feature_rate_1 0.3 --dfr2 0.2 --temp 0.9
-
-# Pubmed with random split
-python main.py --dataset pubmed --epochs 1500 --lr 1e-3 --l2 1e-5 --hid_dim 256 --drop_edge_rate_1 0.4 --drop_edge_rate_2 0.1 --drop_feature_rate_1 0.0 --drop_feature_rate_2 0.2 --temp 0.7
-
+python grace_trainer.py --dataset citeseer
 ```
 
 ## 	Performance
@@ -64,9 +56,14 @@ For random split, we use the hyper-parameters as stated in the paper. For public
 
 Random split (Train/Test = 1:9)
 
+Due to tlx don't have diag operation, now GRACE only support Tensorflow.
+It will support other background soon.
+
 |      Dataset      | Cora | Citeseer | Pubmed |
 | :---------------: | :--: | :------: | :----: |
-|        DGL        | 83.3 |   72.1   |  86.7  |
 |   Author's Code   | 83.1 |   71.0   |  86.3  |
-|     GammaGL       | 83.1 |   --.-   |  --.-  |
-
+|        DGL        | 83.3 |   72.1   |  86.7  |
+|     GammaGL(tf)   | 82.9 |   69.1   |  OOM   |
+|     GammaGL(th)   | --.- |   --.-   |  OOM   |
+|     GammaGL(pd)   | --.- |   --.-   |  OOM   |
+|     GammaGL(ms)   | --.- |   --.-   |  OOM   |
