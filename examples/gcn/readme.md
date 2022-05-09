@@ -28,6 +28,7 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 
 
 Results
+-------
 ```bash
 TL_BACKEND="paddle" python gcn_trainer.py --dataset cora --lr 0.01 --l2_coef 0.005 --drop_rate 0.9
 TL_BACKEND="paddle" python gcn_trainer.py --dataset citeseer --lr 0.01 --l2_coef 0.01 --drop_rate 0.7
