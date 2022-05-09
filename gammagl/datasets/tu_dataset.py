@@ -200,7 +200,7 @@ class TUDataset(InMemoryDataset):
             data_list = [self.get(idx) for idx in range(len(self))]
             data_list = [self.pre_transform(data) for data in data_list]
             self.data, self.slices = self.collate(data_list)
-        self.save_data(self.collate([self.data]), self.processed_paths[0])
+        self.save_data((self.data, self.slices), self.processed_paths[0])
 
     def __repr__(self) -> str:
         return f'{self.name}({len(self)})'

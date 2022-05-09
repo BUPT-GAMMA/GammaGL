@@ -1,10 +1,8 @@
 from typing import Optional
-import tensorflow as tf
 import tensorlayerx as tlx
 
 
-def global_sum_pool(x: tf.Tensor, batch: Optional[tf.Tensor],
-                    size: Optional[int] = None) -> tf.Tensor:
+def global_sum_pool(x, batch, size: Optional[int] = None):
     r"""Returns batch-wise graph-level-outputs by adding node features
     across the node dimension, so that for a single graph
     :math:`\mathcal{G}_i` its output is computed by
@@ -21,13 +19,11 @@ def global_sum_pool(x: tf.Tensor, batch: Optional[tf.Tensor],
     """
     if batch is None:
         return x.sum(dim=0, keepdim=True)
-    size = int(batch.max().item() + 1) if size is None else size
+    size = int(tlx.ops.reduce_max(batch) + 1) if size is None else size
     return tlx.ops.unsorted_segment_sum(x, batch, size)
-    # return scatter(x, batch, dim=0, dim_size=size, reduce='add')
 
 
-def global_mean_pool(x: tf.Tensor, batch: Optional[tf.Tensor],
-                     size: Optional[int] = None) -> tf.Tensor:
+def global_mean_pool(x, batch, size: Optional[int] = None):
     r"""Returns batch-wise graph-level-outputs by averaging node features
     across the node dimension, so that for a single graph
     :math:`\mathcal{G}_i` its output is computed by
@@ -44,13 +40,11 @@ def global_mean_pool(x: tf.Tensor, batch: Optional[tf.Tensor],
     """
     if batch is None:
         return x.mean(dim=0, keepdim=True)
-    size = batch[-1] + 1 if size is None else size
+    size = int(tlx.ops.reduce_max(batch) + 1) if size is None else size
     return tlx.ops.unsorted_segment_mean(x, batch, size)
-    # return tf.scatter(x, batch, dim=0, dim_size=size, reduce='mean')
 
 
-def global_max_pool(x: tf.Tensor, batch: Optional[tf.Tensor],
-                    size: Optional[int] = None) -> tf.Tensor:
+def global_max_pool(x, batch, size: Optional[int] = None):
     r"""Returns batch-wise graph-level-outputs by taking the channel-wise
     maximum across the node dimension, so that for a single graph
     :math:`\mathcal{G}_i` its output is computed by
@@ -67,6 +61,5 @@ def global_max_pool(x: tf.Tensor, batch: Optional[tf.Tensor],
     """
     if batch is None:
         return x.max(dim=0, keepdim=True)[0]
-    size = int(batch.max().item() + 1) if size is None else size
+    size = int(tlx.ops.reduce_max(batch) + 1) if size is None else size
     return tlx.ops.unsorted_segment_max(x, batch, size)
-    # return scatter(x, batch, dim=0, dim_size=size, reduce='max')
