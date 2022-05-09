@@ -28,9 +28,9 @@ python3 appnp_trainer.py
 Results
 -------
 ```bash
-TL_BACKEND="paddle" python appnp_trainer.py --dataet cora --lr 0.15 --n_epoch 200 --hidden_dim 64 --drop_rate 0.4 --l2_coef 0.02 --iter_K 6 --self_loops 0
-TL_BACKEND="paddle" python appnp_trainer.py --dataet pubmed --lr 0.2 --n_epoch 250 --hidden_dim 64 --drop_rate 0.6 --l2_coef 0.001 --iter_K 10 --self_loops 2
-TL_BACKEND="paddle" python appnp_trainer.py --dataet citeseer --lr 0.05 --n_epoch 500 --hidden_dim 32 --drop_rate 0.8 --l2_coef 0.001 --iter_K 5 --self_loops 3
+TL_BACKEND="paddle" python appnp_trainer.py --dataset cora --lr 0.15 --n_epoch 200 --hidden_dim 64 --drop_rate 0.4 --l2_coef 0.02 --iter_K 6 --self_loops 0
+TL_BACKEND="paddle" python appnp_trainer.py --dataset pubmed --lr 0.2 --n_epoch 250 --hidden_dim 64 --drop_rate 0.6 --l2_coef 0.001 --iter_K 10 --self_loops 2
+TL_BACKEND="paddle" python appnp_trainer.py --dataset citeseer --lr 0.05 --n_epoch 500 --hidden_dim 32 --drop_rate 0.8 --l2_coef 0.001 --iter_K 5 --self_loops 3
 ```
 | dataset  | paper        | our(pd)     | our(tf)     |
 | -------- |--------------|-------------|-------------|

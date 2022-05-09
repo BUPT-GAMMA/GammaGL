@@ -24,7 +24,7 @@ python3 gatv2_trainer.py
 Results
 -------
 ```bash
-TL_BACKEND="paddle" python gatv2_trainer.py --dataet cora --lr 0.01 --l2_coef 0.01 --drop_rate 0.7
+TL_BACKEND="paddle" python gatv2_trainer.py --dataset cora --lr 0.01 --l2_coef 0.01 --drop_rate 0.7
 TL_BACKEND="paddle" python gatv2_trainer.py --dataset citeseet --lr 0.0005 --l2_coef 0.01 --drop_rate 0.3
 TL_BACKEND="paddle" python gatv2_trainer.py --dataset citeseet --lr 0.01 --l2_coef 0.001 --drop_rate 0.4
 ```
