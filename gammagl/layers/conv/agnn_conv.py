@@ -72,10 +72,10 @@ class AGNNConv(MessagePassing):
         x_dst = tlx.ops.gather(x, node_dst)
         
         cos = tlx.ops.reduce_sum(
-            tlx.ops.l2_normalize(x_src) * tlx.ops.l2_normalize(x_dst), axis = -1, keepdims=True)
+            tlx.ops.l2_normalize(x_src) * tlx.ops.l2_normalize(x_dst), axis = -1)
         unsoftmax_weight = cos * self.beta
 
-        softmax_weight = segment_softmax(unsoftmax_weight, node_dst, num_nodes)
+        softmax_weight = tlx.ops.expand_dims(segment_softmax(unsoftmax_weight, node_dst, num_nodes), axis = -1)
     
         return  softmax_weight * x_src  
 
