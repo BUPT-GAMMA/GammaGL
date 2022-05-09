@@ -9,20 +9,20 @@ Structure
 -------
 ![img.png](img.png)
 
+How to run
+----------
+Run with following (available dataset: "cora", "citeseer", "pubmed")
+```bash
+python jknet_trainer.py --dataset cora 
+```
+> For details settings, please refer to [here](https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/gcn#how-to-run).
+
+
 Results
 -------
 
-Run with following (available dataset: "cora", "citeseer", "pubmed")
-```bash
-python jknet_trainer.py --dataset cora --params
-python jknet_trainer.py --dataset citeseer 
-python jknet_trainer.py --dataset cora
-```
-
-
-
 | Dataset | Paper | Our(pd) | Our(tf) |
 | ---- | ---- | ---- | ---- |
-| cora | 0.896(0.005) | 0.847(0.01) | 0.8584(0.007) |
-| pubmed |  | 0.7782(0.003) | 0.7826(0.005) |
-| citeseer | 0.783(0.008) | 0.7554(0.001) | 0.761(0.01)|
+| cora | 0.896(±0.005) | 0.847(±0.01) | 0.8584(±0.007) |
+| pubmed |  | 0.7782(±0.003) | 0.7826(±0.005) |
+| citeseer | 0.783(±0.008) | 0.7554(±0.001) | 0.761(±0.01)|
