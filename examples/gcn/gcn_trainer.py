@@ -7,8 +7,6 @@
 """
 
 import os
-os.environ['TL_BACKEND'] = 'paddle' # set your backend here, default `tensorflow`
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import sys
 sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 import argparse
@@ -55,9 +53,7 @@ def main(args):
     if str.lower(args.dataset) not in ['cora','pubmed','citeseer']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)
-    dataset.process()
     graph = dataset[0]
-    graph.tensor()
     edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=args.self_loops)
     edge_weight = tlx.ops.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
     x = graph.x

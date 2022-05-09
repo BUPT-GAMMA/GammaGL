@@ -7,8 +7,6 @@
 
 
 import os
-os.environ['TL_BACKEND'] = 'paddle'
-# os.environ["CUDA_VISIBLE_DEVICES"] = "9"
 import sys
 # sys.path.insert(0, os.path.abspath('../'))  # adds path2gammagl to execute in command line.
 import argparse
@@ -57,9 +55,7 @@ def main(args):
     if str.lower(args.dataset) not in ['cora', 'pubmed', 'citeseer']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)
-    dataset.process()  # suggest to execute explicitly so far
     graph = dataset[0]
-    graph.tensor()
     edge_index, _ = add_self_loops(graph.edge_index, n_loops=args.self_loops)
     x = graph.x
     y = tlx.argmax(graph.y, axis=1)
