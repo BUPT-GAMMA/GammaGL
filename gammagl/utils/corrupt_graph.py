@@ -1,5 +1,5 @@
 import tensorlayerx as tlx
-import tensorflow as tf
+# import tensorflow as tf
 import scipy.sparse as sp
 from gammagl.data import Graph
 import numpy as np
@@ -19,12 +19,13 @@ def calc(edge, num_node):
 def dfde_norm_g(edge_index, feat, feat_drop_rate, drop_edge_rate):
     num_node = feat.shape[0]
     edge_mask = drop_edge(edge_index, drop_edge_rate)
+    edge_index = edge_index.numpy()
     new_edge = edge_index.T[edge_mask]
     # tlx can't assignment, so still use tf
     feat = drop_feat(feat, feat_drop_rate)
     row, col, weight = calc(new_edge.T, num_node)
     new_g = Graph(edge_index=tlx.convert_to_tensor([row, col], dtype=tlx.int64), x=feat, num_nodes=num_node)
-    new_g.edge_weight = weight
+    new_g.edge_weight = tlx.convert_to_tensor(weight)
 
     return new_g
 
@@ -49,20 +50,15 @@ def drop_edge(edge_index, drop_edge_rate=0.5):
 
 # random drop node's feat
 def drop_feat(feat, drop_feat_rate):
-    if drop_feat_rate < 0. or drop_feat_rate > 1.:
+    if drop_feat_rate < 0. or drop_feat_rate >= 1.:
         raise ValueError(f'Dropout probability has to be between 0 and 1 '
                          f'(got {drop_feat_rate}')
     if drop_feat_rate == 0.:
-        drop_mask = tlx.convert_to_tensor(np.ones(feat.shape[1], dtype=np.bool8))
+        drop_mask = np.ones(feat.shape[1], dtype=np.bool8)
     else:
-        drop_mask = tlx.ops.random_uniform(shape=[feat.shape[1]],
-                                           minval=0, maxval=1, dtype=tlx.float32) < drop_feat_rate
-    # update tlx don't have
-    drop_mask = tlx.arange(0, drop_mask.shape[0])[drop_mask]
-    zero = tlx.zeros((drop_mask.shape[0], feat.shape[0]), dtype=tlx.float32)
-    feat = tf.tensor_scatter_nd_update(tlx.transpose(feat), tlx.expand_dims(drop_mask, -1), zero)
-    feat = tlx.transpose(feat)
+        drop_mask = np.random.uniform(size=(feat.shape[1], )) < drop_feat_rate
+    # use numpy 
+    feat = feat.numpy()
+    feat[:, drop_mask] = 0
 
-    return feat
-
-
+    return tlx.convert_to_tensor(feat)

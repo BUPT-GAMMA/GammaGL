@@ -3,10 +3,8 @@ import os
 import os.path as osp
 import pickle
 from typing import Callable, List, Optional
-import tensorlayerx as tlx
 import numpy as np
 import scipy.sparse as sp
-
 from gammagl.data import InMemoryDataset, download_url, Graph
 
 
@@ -50,16 +48,11 @@ class Flickr(InMemoryDataset):
     def __init__(self, root: str, transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None):
         super().__init__(root, transform, pre_transform)
-        with open(self.processed_paths[0], 'rb') as f:
-            self.data, self.slices = pickle.load(f)
+        self.data, self.slices = self.load_data(self.processed_paths[0])
 
     @property
     def raw_file_names(self) -> List[str]:
         return ['adj_full.npz', 'feats.npy', 'class_map.json', 'role.json']
-
-    @property
-    def processed_file_names(self) -> str:
-        return 'data.pt'
 
     def download(self):
         path = download_url(self.url.format(self.adj_full_id), self.raw_dir)
@@ -80,11 +73,11 @@ class Flickr(InMemoryDataset):
         adj = adj.tocoo()
         row = adj.row
         col = adj.col
-        edge_index = tlx.convert_to_tensor([row, col], dtype=tlx.int64)
+        deg = np.array(adj.sum(1))
+        edge_index = np.array([row, col], dtype=np.int64)
 
         x = np.load(osp.join(self.raw_dir, 'feats.npy'))
-        # x = tlx.convert_to_tensor(x, dtype=tlx.float32)
-        x = normalize_feat(x)
+
         ys = [-1] * x.shape[0]
         with open(osp.join(self.raw_dir, 'class_map.json')) as f:
             class_map = json.load(f)
@@ -104,20 +97,16 @@ class Flickr(InMemoryDataset):
         test_mask = np.zeros(x.shape[0], dtype=np.bool8)
         test_mask[role['te']] = True
 
-
         data = Graph(x=x, edge_index=edge_index, y=ys)
         data.train_mask = train_mask
         data.val_mask = val_mask
         data.test_mask = test_mask
+        data.deg = deg
         data.num_classes = 7
-        # get k layers feat
-
 
         data = data if self.pre_transform is None else self.pre_transform(data)
+        self.save_data(self.collate([data]), self.processed_paths[0])
 
-        calc_sign(adj, x, data)
-        with open(self.processed_paths[0], 'wb') as f:
-            pickle.dump(self.collate([data]), f)
 
 def calc_sign(adj, feat, data):
     col = adj.col
