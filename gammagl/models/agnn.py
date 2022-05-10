@@ -65,7 +65,7 @@ class AGNNModel(tlx.nn.Module):
                                                 out_channels =  self.hidden_dim,
                                                 edge_index = edge_index,
                                                 num_nodes = num_nodes))
-        self.att_layers = tlx.nn.SequentialLayer(self.att_layers_list)
+        self.att_layers = tlx.nn.Sequential(self.att_layers_list)
         
         self.output_layer = tlx.nn.Linear(out_features = self.num_class,
                                              W_init = W_initor,
