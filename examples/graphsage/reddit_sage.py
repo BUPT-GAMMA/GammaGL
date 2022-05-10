@@ -1,8 +1,7 @@
 import os
 from time import time
 
-os.environ['TL_BACKEND'] = 'paddle'
-os.environ['CUDA_VISIBLE_DEVICES']=' '
+
 from tensorlayerx.model import WithLoss, TrainOneStep
 from tqdm import tqdm
 import numpy as np
@@ -44,18 +43,15 @@ def main(args):
     dataset = Reddit(args.dataset_path, args.dataset)
     # dataset.process()  # suggest to execute explicitly so far
     graph = dataset.data
-    train_loader = Neighbor_Sampler(edge_index=graph.edge_index,
-                                    indptr=graph.indptr,
+    train_loader = Neighbor_Sampler(edge_index=graph.edge_index.numpy(),
                                     dst_nodes=tlx.arange(graph.x.shape[0])[graph.train_mask],
                                     sample_lists=[25, 10], batch_size=1024, shuffle=True, num_workers=0)
 
-    val_loader = Neighbor_Sampler(edge_index=graph.edge_index,
+    val_loader = Neighbor_Sampler(edge_index=graph.edge_index.numpy(),
                                   dst_nodes=tlx.arange(graph.x.shape[0])[graph.val_mask],
-                                  indptr=graph.indptr,
                                   sample_lists=[-1], batch_size=2048 * 2, shuffle=False, num_workers=0)
-    test_loader = Neighbor_Sampler(edge_index=graph.edge_index,
+    test_loader = Neighbor_Sampler(edge_index=graph.edge_index.numpy(),
                                    dst_nodes=tlx.arange(graph.x.shape[0])[graph.test_mask],
-                                   indptr=graph.indptr,
                                    sample_lists=[-1], batch_size=2048 * 2, shuffle=False, num_workers=0)
 
     x = tlx.convert_to_tensor(graph.x)
