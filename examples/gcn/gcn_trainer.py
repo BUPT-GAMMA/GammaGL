@@ -17,13 +17,6 @@ from gammagl.models import GCNModel
 from gammagl.utils.loop import add_self_loops
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.utils.norm import calc_gcn_norm
-import tensorflow as tf
-# 获取所有 GPU 设备列表
-gpus = tf.config.experimental.list_physical_devices('GPU')
-print(gpus)
-tf.config.experimental.set_memory_growth(gpus[0], True)
-
-
 
 
 class SemiSpvzLoss(WithLoss):
@@ -99,18 +92,18 @@ def main(args):
         train_loss = train_one_step(data, y)
         val_acc = evaluate(net, data, y, data['val_mask'], metrics)
 
-        # print("Epoch [{:0>3d}] ".format(epoch+1)\
-        #       + "  train loss: {:.4f}".format(train_loss.item())\
-        #       + "  val acc: {:.4f}".format(val_acc))
+        print("Epoch [{:0>3d}] ".format(epoch+1)\
+              + "  train loss: {:.4f}".format(train_loss.item())\
+              + "  val acc: {:.4f}".format(val_acc))
 
         # save best model on evaluation set
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            net.save_weights(args.best_model_path+net.name+".npz", format='npz_dict')
+            net.save_weights(args.best_model_path+net.name+"_"+args.dataset+".npz", format='npz_dict')
 
-    net.load_weights(args.best_model_path+net.name+".npz", format='npz_dict')
+    net.load_weights(args.best_model_path+net.name+"_"+args.dataset+".npz", format='npz_dict')
     test_acc = evaluate(net, data, y, data['test_mask'], metrics)
-    print("{} {} {} Test acc:  {:.4f}".format(args.lr, args.l2_coef, args.drop_rate, test_acc))
+    print("Test acc:  {:.4f}".format(test_acc))
 
 
 if __name__ == '__main__':
