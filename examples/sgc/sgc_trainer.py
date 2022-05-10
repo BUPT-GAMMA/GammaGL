@@ -12,7 +12,7 @@ import sys
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
-from gammagl.models import SGCModel, GCNModel
+from gammagl.models import SGCModel
 from gammagl.utils.loop import add_self_loops
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.utils.norm import calc_gcn_norm
