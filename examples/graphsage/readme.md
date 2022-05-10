@@ -18,10 +18,17 @@ python train_full.py --dataset cora     # full graph
 
 Run with following (available dataset: "cora", "citeseer", "pubmed")
 ```bash
-python train_full.py --dataset cora --n_epoch 100 --lr 0.001 --hidden_dim 512
-python train_full.py --dataset citeseer --n_epoch 100 --lr 0.001 --hidden_dim 512 
-python train_full.py --dataset pubmed --n_epoch 200 --lr 0.01 --hidden_dim 16
-python reddit_sage.py 
+# use Tensorflow
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python train_full.py --dataset cora --n_epoch 100 --lr 0.001 --hidden_dim 512
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python train_full.py --dataset citeseer --n_epoch 100 --lr 0.001 --hidden_dim 512 
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python train_full.py --dataset pubmed --n_epoch 200 --lr 0.01 --hidden_dim 16
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python reddit_sage.py 
+
+# use Paddle
+CUDA_VISIBLE_DEVICES=" " TL_BACKEND="paddle" python train_full.py --dataset cora --n_epoch 100 --lr 0.001 --hidden_dim 512
+CUDA_VISIBLE_DEVICES=" " TL_BACKEND="paddle" python train_full.py --dataset citeseer --n_epoch 100 --lr 0.001 --hidden_dim 512 
+CUDA_VISIBLE_DEVICES=" " TL_BACKEND="paddle" python train_full.py --dataset pubmed --n_epoch 200 --lr 0.01 --hidden_dim 16
+CUDA_VISIBLE_DEVICES=" " TL_BACKEND="paddle" python reddit_sage.py 
 ```
 
 

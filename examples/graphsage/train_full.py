@@ -1,6 +1,5 @@
 import os
 
-os.environ['TL_BACKEND'] = 'tensorflow'  # set your backend here, default `tensorflow`
 from gammagl.models.graphsage import GraphSAGE_Full_Model
 import tensorflow as tf
 import argparse

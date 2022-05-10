@@ -1,7 +1,6 @@
 import os
 from time import time
 
-os.environ['TL_BACKEND'] = 'tensorflow'  # set your backend here, default `tensorflow`
 
 from tensorlayerx.model import WithLoss, TrainOneStep
 from tqdm import tqdm
