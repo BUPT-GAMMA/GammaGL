@@ -109,12 +109,14 @@ def main(args):
             root=args.dataset_path, name=args.dataset, geom_gcn_preprocess=False, transform=T.NormalizeFeatures())
         dataset = WikipediaNetwork(
             root=args.dataset_path, name=args.dataset, geom_gcn_preprocess=True, transform=T.NormalizeFeatures())
-        dataset[0].edge_index = preProcDs[0].edge_index
+        # dataset[0].edge_index = preProcDs[0].edge_index
+    
     else:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
-    dataset.process() # suggest to execute explicitly so far
+    # dataset.process() # suggest to execute explicitly so far
     graph = dataset[0]
-    graph.num_nodes = graph.x.shape[0]
+    graph.edge_index = preProcDs[0].edge_index
+    print(graph.edge_index)
 
 ###########
 ####  split the datasets as defined in GPRGNN original paper
@@ -143,7 +145,6 @@ def main(args):
                    Gamma=args.Gamma)
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
-    # 这里如果不用all_weights,则会导致即使设置lernt weight为trainable,也无法被更新,具体原因还不详细
     train_weights = net.all_weights
     # print(net.trainable_weights)
     # print(net.all_weights)
@@ -179,7 +180,7 @@ def main(args):
             best_val_acc = val_acc
             net.save_weights(args.best_model_path+net.name+'_'+args.dataset+".npz", format='npz_dict')
         
-        if epoch > args.early_stopping:
+        if args.early_stopping > 0 and epoch > args.early_stopping:
             tmp = np.array(val_acc_history[-(args.early_stopping + 1):-1])
             tmp = tlx.convert_to_tensor(tmp.mean())
             if val_acc < tmp:
@@ -206,7 +207,7 @@ if __name__ == '__main__':
     parser.add_argument("--early_stopping", type=int, default=200, help="epoch begining to early stop")
     parser.add_argument("--hidden_dim", type=int, default=64, help="dimention of hidden layers")
     parser.add_argument("--drop_rate", type=float, default=0.5, help="drop_rate")
-    parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
+    parser.add_argument("--l2_coef", type=float, default=5e-3, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../datasets', help="path to save dataset")
     parser.add_argument("--train_rate", type=float, default=0.6, help="ratio of training set")

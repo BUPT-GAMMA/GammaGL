@@ -53,7 +53,8 @@ class WikipediaNetwork(InMemoryDataset):
             raise AttributeError("The dataset 'crocodile' is not available in "
                                  "case 'geom_gcn_preprocess=True'")
         super().__init__(root, transform, pre_transform)
-        self.data, self.slices = self.load_data(self.processed_paths[0])
+        # self.data, self.slices = self.load_data(self.processed_paths[0])
+        self.data, self.slices = np.load(self.processed_paths[0], allow_pickle=True)
 
     @property
     def raw_dir(self) -> str:
@@ -79,7 +80,8 @@ class WikipediaNetwork(InMemoryDataset):
 
     @property
     def processed_file_names(self) -> str:
-        return tlx.BACKEND+'_data.pt'
+        # return tlx.BACKEND+'_data.pt'
+        return 'data.npy'
 
     def download(self):
         if self.geom_gcn_preprocess:
@@ -131,8 +133,9 @@ class WikipediaNetwork(InMemoryDataset):
 
         if self.pre_transform is not None:
             data = self.pre_transform(data)
-
+ 
         self.save_data(self.collate([data]), self.processed_paths[0])
+        np.save(self.processed_paths[0], self.collate([data]))
 
 
 
