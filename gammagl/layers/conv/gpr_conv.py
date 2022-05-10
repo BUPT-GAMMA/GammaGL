@@ -57,12 +57,8 @@ class GPRConv(MessagePassing):
         elif Init == 'WS':
             # Specify Gamma
             TEMP = Gamma
-        #########
-        ### If use tlx.Variable() to set gamma as trainable,
-        ### when backend is "tensorflow", though gamma is require_gradient, model would not add gamma to model.trainable_parameters
-        ### then we must use net.all_parameters() to abstract parameters gamma (not elegant!)
-        #########
-        self.temp = tlx.Variable(tlx.convert_to_tensor(TEMP, dtype='float32'), name='/gamma', trainable=True)
+        init = tlx.initializers.Constant(value=TEMP)
+        self.temp = self._get_weights(var_name='Gamma', shape=self.K+1, init=init)
 
 
     def reset_parameters(self):
@@ -72,9 +68,6 @@ class GPRConv(MessagePassing):
         self.temp.data[-1] = (1-self.alpha)**self.K
 
     def forward(self, x, edge_index, edge_weight=None, num_nodes=None):
-        # edge_index, norm = gcn_norm(
-        #     edge_index, edge_weight, num_nodes=x.size(0), dtype=x.dtype)
-
         hidden = x*(self.temp[0])
         for k in range(self.K):
             x = self.propagate(x, edge_index, edge_weight=edge_weight, num_nodes=num_nodes)

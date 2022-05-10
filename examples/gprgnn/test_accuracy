@@ -58,96 +58,80 @@ tensorflow photo 92.89
 tensorflow photo 87.86
 tensorflow photo 92.06 1.60
 
-tensorflow chameleon 43.98
-tensorflow chameleon 41.14
-tensorflow chameleon 42.89
-tensorflow chameleon 44.86
-tensorflow chameleon 44.64
-tensorflow chameleon 43.11
-tensorflow chameleon 42.89
-tensorflow chameleon 44.64
-tensorflow chameleon 46.17
-tensorflow chameleon 42.45
-tensorflow chameleon 43.64 1.45
+tensorflow cora 77.43
+tensorflow cora 79.34
+tensorflow cora 80.47
+tensorflow cora 78.48
+tensorflow cora 78.25
+tensorflow cora 80.12
+tensorflow cora 79.53
+tensorflow cora 77.04
+tensorflow cora 80.93
+tensorflow cora 77.55
+tensorflow cora 79.08 1.26
 
-tensorflow squirrel 23.63
-tensorflow squirrel 33.53
-tensorflow squirrel 33.62
-tensorflow squirrel 32.47
-tensorflow squirrel 23.34
-tensorflow squirrel 35.93
-tensorflow squirrel 34.77
-tensorflow squirrel 32.18
-tensorflow squirrel 34.10
-tensorflow squirrel 30.55
-tensorflow squirrel 32.28 3.48
+tensorflow citeseer 65.92
+tensorflow citeseer 69.37
+tensorflow citeseer 59.68
+tensorflow citeseer 62.97
+tensorflow citeseer 65.35
+tensorflow citeseer 66.30
+tensorflow citeseer 68.86
+tensorflow citeseer 61.49
+tensorflow citeseer 64.11
+tensorflow citeseer 63.67
+tensorflow citeseer 64.64 3.02
 
-tensorflow texas 88.52
+tensorflow pubmed 83.61
+tensorflow pubmed 84.28
+tensorflow pubmed 83.17
+tensorflow pubmed 83.38
+tensorflow pubmed 83.51
+tensorflow pubmed 83.58
+tensorflow pubmed 83.19
+tensorflow pubmed 84.69
+tensorflow pubmed 83.76
+tensorflow pubmed 84.09
+tensorflow pubmed 83.74 0.49
+
+tensorflow chameleon 71.33
+tensorflow chameleon 68.93
+tensorflow chameleon 68.27
+tensorflow chameleon 66.96
+tensorflow chameleon 70.02
+tensorflow chameleon 66.30
+tensorflow chameleon 66.08
+tensorflow chameleon 68.93
+tensorflow chameleon 64.11
+tensorflow chameleon 68.93
+tensorflow chameleon 67.61 1.77
+
+tensorflow squirrel 50.43
+tensorflow squirrel 48.51
+tensorflow squirrel 52.16
+
 tensorflow texas 85.25
-tensorflow texas 81.97
-tensorflow texas 70.49
-tensorflow texas 88.52
+tensorflow texas 85.25
+tensorflow texas 86.89
+tensorflow texas 93.44
+tensorflow texas 88.85
+tensorflow texas 93.44
 tensorflow texas 86.89
 tensorflow texas 83.61
-tensorflow texas 65.57
-tensorflow texas 88.52
-tensorflow texas 80.33
-tensorflow texas 81.24 7.62
+tensorflow texas 90.16
+tensorflow texas 83.61
+tensorflow texas 88.02 3.55
 
-tensorflow cornell 80.33
-tensorflow cornell 77.05
-tensorflow cornell 78.69
-tensorflow cornell 90.16
 tensorflow cornell 83.61
-tensorflow cornell 86.89
-tensorflow cornell 62.30
-tensorflow cornell 77.05
+tensorflow cornell 91.80
+tensorflow cornell 80.33
 tensorflow cornell 75.41
-tensorflow cornell 65.57
-tensorflow cornell 77.41 8.60
+tensorflow cornell 77.05
+tensorflow cornell 73.77
+tensorflow cornell 78.69
+tensorflow cornell 72.13
+tensorflow cornell 86.89
+tensorflow cornell 78.69
+tensorflow cornell 79.42 5.94
 
-tensorflow squirrel 33.81
-tensorflow chameleon 42.89
-tensorflow chameleon 47.48
-tensorflow chameleon 49.02
-tensorflow chameleon 43.98
-tensorflow chameleon 47.70
-tensorflow chameleon 43.33
-tensorflow chameleon 49.23
-tensorflow chameleon 46.61
-tensorflow chameleon 47.70
-tensorflow chameleon 43.11
-tensorflow chameleon 43.54
-tensorflow chameleon 51.42
-tensorflow chameleon 48.14
-tensorflow chameleon 44.86
-tensorflow chameleon 46.44 2.76
-
-tensorflow squirrel 21.90
-tensorflow squirrel 34.49
-tensorflow squirrel 33.91
-tensorflow squirrel 23.05
-tensorflow squirrel 31.89
-tensorflow squirrel 31.70
-tensorflow squirrel 28.63
-tensorflow squirrel 22.38
-tensorflow squirrel 33.72
-tensorflow squirrel 31.70
-tensorflow squirrel 30.16 4.30
-
-tensorflow chameleon 46.17
-tensorflow chameleon 44.64
-tensorflow chameleon 42.67
-tensorflow chameleon 42.01
-tensorflow chameleon 44.86
-tensorflow chameleon 42.23
-tensorflow chameleon 40.26
-tensorflow chameleon 45.51
-tensorflow chameleon 45.95
-tensorflow chameleon 40.48
-tensorflow chameleon 44.20
-tensorflow chameleon 39.82
-tensorflow chameleon 44.42
-tensorflow chameleon 43.54
-tensorflow chameleon 42.67
-tensorflow chameleon 66.52
+tensorflow chameleon 69.80

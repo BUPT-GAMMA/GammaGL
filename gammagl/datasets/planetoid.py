@@ -147,7 +147,6 @@ import sys
 from itertools import repeat
 import tensorlayerx as tlx
 import numpy as np
-import torch
 from gammagl.data import Graph
 
 
