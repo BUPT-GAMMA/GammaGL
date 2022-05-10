@@ -56,6 +56,7 @@ class DGIModel(tlx.nn.Module):
         neg_loss = self.loss(neg, tlx.zeros(neg.shape))
 
         return pos_loss + neg_loss
+
 import numpy as np
 import scipy.sparse as sp
 def calc(edge, num_node):
