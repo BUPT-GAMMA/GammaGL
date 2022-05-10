@@ -19,8 +19,8 @@ def global_sum_pool(x, batch, size: Optional[int] = None):
     """
     if batch is None:
         return x.sum(dim=0, keepdim=True)
-    size = int(tlx.ops.reduce_max(batch) + 1) if size is None else size
-    return tlx.ops.unsorted_segment_sum(x, batch, size)
+    size = int(tlx.reduce_max(batch) + 1) if size is None else size
+    return tlx.unsorted_segment_sum(x, batch, size)
 
 
 def global_mean_pool(x, batch, size: Optional[int] = None):
@@ -40,8 +40,8 @@ def global_mean_pool(x, batch, size: Optional[int] = None):
     """
     if batch is None:
         return x.mean(dim=0, keepdim=True)
-    size = int(tlx.ops.reduce_max(batch) + 1) if size is None else size
-    return tlx.ops.unsorted_segment_mean(x, batch, size)
+    size = int(tlx.reduce_max(batch) + 1) if size is None else size
+    return tlx.unsorted_segment_mean(x, batch, size)
 
 
 def global_max_pool(x, batch, size: Optional[int] = None):
@@ -61,5 +61,5 @@ def global_max_pool(x, batch, size: Optional[int] = None):
     """
     if batch is None:
         return x.max(dim=0, keepdim=True)[0]
-    size = int(tlx.ops.reduce_max(batch) + 1) if size is None else size
-    return tlx.ops.unsorted_segment_max(x, batch, size)
+    size = int(tlx.reduce_max(batch) + 1) if size is None else size
+    return tlx.unsorted_segment_max(x, batch, size)

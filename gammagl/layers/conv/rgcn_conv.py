@@ -129,7 +129,7 @@ class RGCNConv(MessagePassing):
                 edges = masked_edge_index(edge_index, edge_type == i)
                 h = self.propagate(x_l, edges, size[1])
                 h = tlx.reshape(h, (-1, weight.shape[1], weight.shape[2]))
-                h = tlx.ops.einsum('abc,bcd->abd', h, weight[i]) # tlx还不支持，因为ms没有这个算子。
+                h = tlx.einsum('abc,bcd->abd', h, weight[i]) # tlx还不支持，因为ms没有这个算子。
                 out += h.contiguous().view(-1, self.out_channels)
 
         else:  # No regularization/Basis-decomposition ========================

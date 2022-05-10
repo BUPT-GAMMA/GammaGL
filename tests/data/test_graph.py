@@ -9,8 +9,8 @@ from gammagl.data import Graph
 def test_data():
 	# torch_geometric.set_debug(True)
 	
-	x = tlx.ops.convert_to_tensor([[1, 3], [2, 4], [1, 2]], dtype=tlx.float32)
-	edge_index = tlx.ops.convert_to_tensor([[0, 0, 1, 1, 2], [1, 1, 0, 2, 1]])
+	x = tlx.convert_to_tensor([[1, 3], [2, 4], [1, 2]], dtype=tlx.float32)
+	edge_index = tlx.convert_to_tensor([[0, 0, 1, 1, 2], [1, 1, 0, 2, 1]])
 	data = Graph(x=x, edge_index=edge_index)
 	
 	N = data.num_nodes
@@ -83,7 +83,7 @@ def test_data():
 	assert data.num_node_features == 2
 	assert data.num_features == 2
 
-	data.edge_attr = tlx.ops.zeros((data.num_edges, 2))
+	data.edge_attr = tlx.zeros((data.num_edges, 2))
 	assert data.num_edge_features == 2
 	data.edge_attr = None
 

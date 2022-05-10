@@ -587,22 +587,22 @@ class Graph(BaseGraph):
 		elif isinstance(value, dict):
 			if inplace:
 				for k, v in value.items():
-					value[k] = tlx.ops.convert_to_tensor(v)
+					value[k] = tlx.convert_to_tensor(v)
 			else:
 				new_value = {}
 				for k, v in value.items():
-					new_value[k] = tlx.ops.convert_to_tensor(v)
+					new_value[k] = tlx.convert_to_tensor(v)
 				value = new_value
 		else:
-			if tlx.ops.is_tensor(value):
+			if tlx.is_tensor(value):
 				pass
 			elif check_is_numpy(value):
 				if key in ['edge_index', 'y', 'edge_type', 'train_idx', 'test_idx', 'train_y']:
-					value = tlx.ops.convert_to_tensor(value, dtype=tlx.int64)
+					value = tlx.convert_to_tensor(value, dtype=tlx.int64)
 				elif key in ['train_mask', 'val_mask', 'test_mask', ]:
-					value = tlx.ops.convert_to_tensor(value, dtype=tlx.bool)
+					value = tlx.convert_to_tensor(value, dtype=tlx.bool)
 				else:
-					value = tlx.ops.convert_to_tensor(value, dtype=tlx.float32)
+					value = tlx.convert_to_tensor(value, dtype=tlx.float32)
 		return value
 	
 	def tensor(self, inplace=True):
@@ -654,9 +654,9 @@ class Graph(BaseGraph):
 		else:
 			if check_is_numpy(value):
 				pass
-			elif tlx.ops.is_tensor(value):
+			elif tlx.is_tensor(value):
 				# can't assign type of numpy
-				value = tlx.ops.convert_to_numpy(value)
+				value = tlx.convert_to_numpy(value)
 		return value
 	
 	def numpy(self, inplace=True):
@@ -725,7 +725,7 @@ class Graph(BaseGraph):
 	# 	if node_type is None:
 	# 		node_type = self._store.get('node_type', None)
 	# 	if node_type is None:
-	# 		node_type = tlx.ops.zeros(self.num_nodes, dtype=tlx.long)
+	# 		node_type = tlx.zeros(self.num_nodes, dtype=tlx.long)
 	#
 	# 	if node_type_names is None:
 	# 		store = self._store
@@ -736,7 +736,7 @@ class Graph(BaseGraph):
 	# 	if edge_type is None:
 	# 		edge_type = self._store.get('edge_type', None)
 	# 	if edge_type is None:
-	# 		edge_type = tlx.ops.zeros(self.num_edges, dtype=tlx.long)
+	# 		edge_type = tlx.zeros(self.num_edges, dtype=tlx.long)
 	#
 	# 	if edge_type_names is None:
 	# 		store = self._store
@@ -1076,9 +1076,9 @@ class BatchGraph(Graph):
 
 def size_repr(key: Any, value: Any, indent: int = 0) -> str:
 	pad = ' ' * indent
-	if tlx.ops.is_tensor(value) and value.shape == 0:
+	if tlx.is_tensor(value) and value.shape == 0:
 		out = value.item()
-	elif tlx.ops.is_tensor(value):
+	elif tlx.is_tensor(value):
 		out = str(list(value.shape))
 	elif isinstance(value, np.ndarray):
 		out = str(list(value.shape))

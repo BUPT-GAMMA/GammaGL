@@ -44,7 +44,7 @@ def drop_edge(edge_index, drop_edge_rate=0.5):
                          f'(got {drop_edge_rate}')
     if drop_edge_rate == 0.:
         return tlx.convert_to_tensor(np.ones(edge_index.shape[1], dtype=np.bool8))
-    mask = tlx.ops.random_uniform(shape=[edge_index.shape[1]],
+    mask = tlx.random_uniform(shape=[edge_index.shape[1]],
                                   minval=0, maxval=1, dtype=tlx.float32) >= drop_edge_rate
     return mask
 

@@ -26,8 +26,8 @@ def train(model, train_loader, optimizer, train_weights):
             out = model(data.x, data.edge_index, data.batch)
             train_loss = tlx.losses.softmax_cross_entropy_with_logits(out, tlx.cast(data.y, dtype=tlx.int32))
             all_loss += train_loss
-            pred = tlx.ops.argmax(out, axis=1)
-            correct += tlx.ops.reduce_sum(tlx.cast((pred == data.y), dtype=tlx.int64))
+            pred = tlx.argmax(out, axis=1)
+            correct += tlx.reduce_sum(tlx.cast((pred == data.y), dtype=tlx.int64))
         grad = tape.gradient(train_loss, train_weights)
         optimizer.apply_gradients(zip(grad, train_weights))
     print(all_loss)
@@ -39,8 +39,8 @@ def evaluate(model, loader):
     correct = 0
     for data in loader:
         out = model(data.x, data.edge_index, data.batch)
-        pred = tlx.ops.argmax(out, axis=1)
-        correct += tlx.ops.reduce_sum(tlx.cast((pred == data.y), dtype=tlx.int64))
+        pred = tlx.argmax(out, axis=1)
+        correct += tlx.reduce_sum(tlx.cast((pred == data.y), dtype=tlx.int64))
     return correct / len(loader.dataset)
 
 
