@@ -1,7 +1,8 @@
 import os
 from time import time
 
-
+os.environ['TL_BACKEND'] = 'paddle'
+os.environ['CUDA_VISIBLE_DEVICES']=' '
 from tensorlayerx.model import WithLoss, TrainOneStep
 from tqdm import tqdm
 import numpy as np
@@ -43,24 +44,23 @@ def main(args):
     dataset = Reddit(args.dataset_path, args.dataset)
     # dataset.process()  # suggest to execute explicitly so far
     graph = dataset.data
-
-    train_loader = Neighbor_Sampler(edge_index=graph.edge_index.numpy(),
+    train_loader = Neighbor_Sampler(edge_index=graph.edge_index,
                                     indptr=graph.indptr,
-                                    dst_nodes=tlx.arange(0, graph.num_nodes)[graph.train_mask],
+                                    dst_nodes=tlx.arange(graph.x.shape[0])[graph.train_mask],
                                     sample_lists=[25, 10], batch_size=1024, shuffle=True, num_workers=0)
 
-    val_loader = Neighbor_Sampler(edge_index=graph.edge_index.numpy(),
-                                  dst_nodes=tlx.arange(graph.num_nodes)[graph.val_mask],
+    val_loader = Neighbor_Sampler(edge_index=graph.edge_index,
+                                  dst_nodes=tlx.arange(graph.x.shape[0])[graph.val_mask],
                                   indptr=graph.indptr,
                                   sample_lists=[-1], batch_size=2048 * 2, shuffle=False, num_workers=0)
-    test_loader = Neighbor_Sampler(edge_index=graph.edge_index.numpy(),
-                                   dst_nodes=tlx.arange(graph.num_nodes)[graph.test_mask],
+    test_loader = Neighbor_Sampler(edge_index=graph.edge_index,
+                                   dst_nodes=tlx.arange(graph.x.shape[0])[graph.test_mask],
                                    indptr=graph.indptr,
                                    sample_lists=[-1], batch_size=2048 * 2, shuffle=False, num_workers=0)
 
-    x = graph.x
+    x = tlx.convert_to_tensor(graph.x)
     # edge_index = graph.edge_index
-    y = graph.y
+    y = tlx.convert_to_tensor(graph.y)
 
     net = GraphSAGE_Sample_Model(in_feat=x.shape[1],
                                  hid_feat=args.hidden_dim,
@@ -85,7 +85,7 @@ def main(args):
                     "subgs": adjs}
             train_loss = train_one_step(data, tlx.gather(y, dst_node))
             pbar.update(len(dst_node))
-            print("Epoch [{:0>3d}] ".format(epoch + 1) + "  train loss: {:.4f}".format(train_loss))
+            print("Epoch [{:0>3d}] ".format(epoch + 1) + "  train loss: {:.4f}".format(train_loss.item()))
         val_acc = evaluate(net, x, val_loader, y, graph.val_mask, metrics)
         test_acc = evaluate(net, x, test_loader, y, graph.test_mask, metrics)
         print("val acc: {:.4f} || test acc{:.4f}".format(val_acc, test_acc))
