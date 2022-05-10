@@ -9,7 +9,7 @@ class subg(object):
             edge: Renumbered subgraph
             size: [int , int ], store all_node's size and dst_node's size, get dst_node by slicing
         '''
-        self.edge = edge
+        self.edge = tlx.convert_to_tensor(edge)
         self.size = size
 
 
@@ -55,7 +55,7 @@ class Neighbor_Sampler(DataLoader):
         # Finally, dst_node will all nodes obtained by sampling
         all_node = dst_node
         # return adjs[::-1], all_node
-        return [np.array(batch), adjs[::-1], all_node]
+        return [tlx.convert_to_tensor(batch), adjs[::-1], tlx.convert_to_tensor(all_node)]
 
     def test(self, batch):
         return batch

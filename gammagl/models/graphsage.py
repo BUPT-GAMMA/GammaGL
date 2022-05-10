@@ -80,6 +80,6 @@ class GraphSAGE_Sample_Model(tlx.nn.Module):
                 if l != len(self.convs) - 1:
                     h = self.dropout(h)
                 # soon will compile
-                y = tlx.tensor_scatter_nd_update(y, dst_node.reshape(-1, 1), h)
+                y = tlx.tensor_scatter_nd_update(y, tlx.reshape(dst_node, shape=(-1, 1)), h)
             feat = y
         return feat
