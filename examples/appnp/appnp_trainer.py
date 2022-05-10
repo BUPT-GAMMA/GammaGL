@@ -57,7 +57,7 @@ def main(args):
     dataset = Planetoid(args.dataset_path, args.dataset)
     graph = dataset[0]
     edge_index, _ = add_self_loops(graph.edge_index, n_loops=args.self_loops)
-    edge_weight = tlx.ops.convert_to_tensor(GCNModel.calc_gcn_norm(edge_index, graph.num_nodes))
+    edge_weight = tlx.convert_to_tensor(GCNModel.calc_gcn_norm(edge_index, graph.num_nodes))
     x = graph.x
     y = tlx.argmax(graph.y,axis=1)
 

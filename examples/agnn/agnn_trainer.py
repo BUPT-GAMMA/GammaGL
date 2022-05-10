@@ -66,7 +66,7 @@ def main():
     edge_index = graph.edge_index
     num_nodes = graph.num_nodes
     x = graph.x
-    x = tlx.ops.l2_normalize(x,axis=-1)
+    x = tlx.l2_normalize(x,axis=-1)
     y = tlx.argmax(graph.y,1)
 
     model = AGNNModel(feature_dim = x.shape[1],

@@ -20,7 +20,7 @@ class MessagePassing(tlx.nn.Module):
         super().__init__()
 
     def message(self, x, edge_index, edge_weight=None, num_nodes=None):
-        msg = tlx.ops.gather(x, edge_index[0, :])
+        msg = tlx.gather(x, edge_index[0, :])
         if edge_weight is not None:
             edge_weight = tlx.expand_dims(edge_weight, -1)
             return msg * edge_weight

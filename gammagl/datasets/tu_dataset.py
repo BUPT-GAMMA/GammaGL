@@ -144,7 +144,7 @@ class TUDataset(InMemoryDataset):
         if self.data.x is None:
             return 0
         for i in range(self.data.x.shape[1]):
-            x = tlx.ops.convert_to_numpy(self.data.x[:, i:])
+            x = tlx.convert_to_numpy(self.data.x[:, i:])
             if ((x == 0) | (x == 1)).sum() == x.shape[0] and (x.sum(axis=1) == 1).sum() == x.shape[0]:
                 return self.data.x.shape[1] - i
         return 0

@@ -69,8 +69,8 @@ class grace(tlx.nn.Module):
 
     def sim(self, z1, z2):
         # normalize embeddings across feature dimension
-        z1 = tlx.ops.l2_normalize(z1, axis=1)
-        z2 = tlx.ops.l2_normalize(z2, axis=1)
+        z1 = tlx.l2_normalize(z1, axis=1)
+        z2 = tlx.l2_normalize(z2, axis=1)
         return tlx.matmul(z1, tlx.transpose(z2))
 
     def get_embeding(self, feat, edge, weight, num_nodes):

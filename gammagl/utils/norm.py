@@ -19,5 +19,5 @@ def calc_gcn_norm(edge_index, num_nodes, edge_weight=None):
     deg = tlx.reshape(mpops.unsorted_segment_sum(tlx.reshape(edge_weight,(-1,1)), src, num_segments=num_nodes), (-1,))# tlx更新后可以去掉 reshape
     deg_inv_sqrt = tlx.pow(deg, -0.5)
     # deg_inv_sqrt[tlx.is_inf(deg_inv_sqrt)] = 0 # may exist solo node
-    weights = tlx.ops.gather(deg_inv_sqrt,src) * edge_weight * tlx.ops.gather(deg_inv_sqrt,dst)
+    weights = tlx.gather(deg_inv_sqrt,src) * edge_weight * tlx.gather(deg_inv_sqrt,dst)
     return weights
