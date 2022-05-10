@@ -69,8 +69,8 @@ class Reddit(InMemoryDataset):
         data.indptr = np.array(csr.indptr, dtype=np.int64)
         data.num_class = 41
         data = data if self.pre_transform is None else self.pre_transform(data)
-        with open(self.processed_paths[0], 'wb') as f:
-            pickle.dump(self.collate([data]), f)
-
+        # with open(self.processed_paths[0], 'wb') as f:
+        #     pickle.dump(self.collate([data]), f)
+        self.save_data(self.collate([data]), self.processed_paths[0])
         # torch.save(self.collate([data]), self.processed_paths[0])
 
