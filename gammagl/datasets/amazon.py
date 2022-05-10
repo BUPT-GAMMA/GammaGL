@@ -4,7 +4,7 @@ import os.path as osp
 
 import numpy as np
 from gammagl.data import InMemoryDataset, download_url, Graph
-from torch_geometric.io import read_npz
+# from torch_geometric.io import read_npz
 import tensorlayerx as tlx
 
 
