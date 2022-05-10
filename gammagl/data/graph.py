@@ -573,9 +573,6 @@ class Graph(BaseGraph):
 		else:
 			dst, src, eid = self._csc_adj.triples()
 		return src, dst, eid
-	
-	def generate_onehot_node_feat(self):
-		self._node_feat = np.eye(self.num_nodes, dtype=np.float32)
 		
 	def _apply_to_tensor(self, key, value, inplace=True):
 		if value is None:
