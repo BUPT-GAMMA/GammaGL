@@ -4,15 +4,15 @@
 
 # Below is for homophily datasets, sparse split
 
-for i in 1 2 3 4 5 6 7 8 9 10
-do
-    python gprgnn_trainer.py --train_rate 0.025 \
-        --val_rate 0.025 \
-        --dataset cora \
-        --lr 0.01 \
-        --alpha 0.1
-done
-python process.py
+# for i in 1 2 3 4 5 6 7 8 9 10
+# do
+#     python gprgnn_trainer.py --train_rate 0.025 \
+#         --val_rate 0.025 \
+#         --dataset cora \
+#         --lr 0.01 \
+#         --alpha 0.1
+# done
+# python process.py
 
 # for i in 1 2 3 4 5 6 7 8 9 10
 # do
@@ -54,7 +54,7 @@ python process.py
 # done
 # python process.py
 
-# # Below is for heterophily datasets, dense split
+# Below is for heterophily datasets, dense split
 for i in 1 2 3 4 5 6 7 8 9 10
 do
     python gprgnn_trainer.py --train_rate 0.6 \

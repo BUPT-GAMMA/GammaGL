@@ -97,11 +97,17 @@ def main(args):
     # load cora dataset
     if str.lower(args.dataset) in ['cora','pubmed','citeseer']:
         dataset = Planetoid(args.dataset_path, args.dataset, transform=T.NormalizeFeatures())
+        dataset.process()
+        graph = dataset[0]
     elif str.lower(args.dataset) in ['cornell','texas']:
         dataset = WebKB(args.dataset_path, args.dataset)
+        dataset.process()
+        graph = dataset[0]
     elif str.lower(args.dataset) in ['computers', 'photo']:
         dataset = Amazon(
             root=args.dataset_path, name=args.dataset, transform=T.NormalizeFeatures())
+        dataset.process()
+        graph = dataset[0]
     elif str.lower(args.dataset) in ['chameleon', 'squirrel']:
         # use everything from "geom_gcn_preprocess=False" and
         # only the node label y from "geom_gcn_preprocess=True"
@@ -109,14 +115,13 @@ def main(args):
             root=args.dataset_path, name=args.dataset, geom_gcn_preprocess=False, transform=T.NormalizeFeatures())
         dataset = WikipediaNetwork(
             root=args.dataset_path, name=args.dataset, geom_gcn_preprocess=True, transform=T.NormalizeFeatures())
-        # dataset[0].edge_index = preProcDs[0].edge_index
-    
+        preProcDs.process()
+        dataset.process()
+        graph = dataset[0]
+        graph.edge_index = preProcDs[0].edge_index
     else:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
-    # dataset.process() # suggest to execute explicitly so far
-    graph = dataset[0]
-    graph.edge_index = preProcDs[0].edge_index
-    print(graph.edge_index)
+    
 
 ###########
 ####  split the datasets as defined in GPRGNN original paper
@@ -145,10 +150,7 @@ def main(args):
                    Gamma=args.Gamma)
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
-    train_weights = net.all_weights
-    # print(net.trainable_weights)
-    # print(net.all_weights)
-    # sys.exit()
+    train_weights = net.trainable_weights
     loss_func = SemiSpvzLoss(net, tlx.losses.softmax_cross_entropy_with_logits)
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
     
