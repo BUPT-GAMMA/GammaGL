@@ -1,7 +1,8 @@
-import os
-os.environ['TL_BACKEND'] = 'tensorflow'
-# note, now can only support tensorflow, due to tlx dont support update operation
-# set your backend here, default 'tensorflow', you can choose 'paddle'、'tensorflow'、'torch'
+# import os
+# # os.environ['TL_BACKEND'] = 'paddle'
+# # os.environ['CUDA_VISIBLE_DEVICES'] = ' '
+# # note, now can only support tensorflow, due to tlx dont support update operation
+# # set your backend here, default 'tensorflow', you can choose 'paddle'、'tensorflow'、'torch'
 
 import argparse
 from tqdm import tqdm

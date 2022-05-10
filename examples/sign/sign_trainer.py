@@ -1,13 +1,16 @@
 import argparse
 import os
-os.environ['TL_BACKEND'] = 'paddle'
+import os.path as osp
+# os.environ['TL_BACKEND'] = 'paddle'
+# os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 # set your backend here, default `tensorflow`, you can choose 'paddle'、'tensorflow'、'torch'
-
 import tensorlayerx as tlx
 from tensorlayerx.model import TrainOneStep, WithLoss
-from sign_utils import normalize_feat, calc_sign
+
+from sign_utils import calc_sign
 from gammagl.datasets.flickr import Flickr
 from gammagl.models.sign import SignModel
+from gammagl.transforms.base_transform import NormalizeFeatures
 
 
 class SemiSpvzLoss(WithLoss):
@@ -31,18 +34,14 @@ def evaluate(net, xs, label, mask, metrics):
 
 
 def main(args):
-    dataset = Flickr(args.dataset_path, args.dataset)
+    path = osp.join(osp.dirname(osp.realpath(__file__)), '..', args.dataset)
+    # transform =
+    dataset = Flickr(path, pre_transform=NormalizeFeatures())
     graph = dataset.data
     x = graph.x
     y = graph.y
     y = tlx.convert_to_tensor(y, dtype=tlx.int64)
-    x = normalize_feat(x)
-    # train_loader = DataLoader(tlx.arange(graph.num_nodes)[graph.train_mask],
-    #                           batch_size=16 * 1024, shuffle=True)
-    #
-    # val_loader = DataLoader(tlx.arange(graph.num_nodes)[graph.val_mask], batch_size=32 * 1024, shuffle=False)
-    # test_loader = DataLoader(tlx.arange(graph.num_nodes)[graph.test_mask], batch_size=32 * 1024, shuffle=False)
-    # build model
+
     net = SignModel(K=2, in_feat=x.shape[1],
                     hid_feat=args.hidden_dim, num_classes=1 + max(y),
                     drop=1 - args.keep_rate)
@@ -52,10 +51,10 @@ def main(args):
 
     loss_func = SemiSpvzLoss(net, tlx.losses.softmax_cross_entropy_with_logits)
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
-    xs = [x]
+    xs = [x.numpy()]
     # default K = 2
     for i in range(1, args.K + 1):
-        xs.append(calc_sign(graph.edge_index, graph.deg, xs[-1]))
+        xs.append(calc_sign(graph, xs[-1]))
     for i in range(0, args.K + 1):
         xs[i] = tlx.convert_to_tensor(xs[i], dtype=tlx.float32)
 

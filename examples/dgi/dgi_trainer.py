@@ -1,6 +1,8 @@
 import os
-os.environ['TL_BACKEND'] = 'tensorflow'
-
+# os.environ['TL_BACKEND'] = 'paddle'
+# os.environ['CUDA_VISIBLE_DEVICES'] = ' '
+# note, now can only support tensorflow, due to tlx dont support update operation
+# set your backend here, default ']tensorflow', you can choose 'paddle'、'tensorflow'、'torch'
 import argparse
 from tqdm import tqdm
 import numpy as np
@@ -111,7 +113,7 @@ def main(args):
         # train classifier
         for a in range(100):
             clf.set_train()
-            if os.environ['TL_BACKEND'] != 'tensorflow':
+            if tlx.BACKEND != 'tensorflow':
                 clf_train_one_step(train_embs.detach(), train_lbls)
             else :
                 clf_train_one_step(train_embs, train_lbls)

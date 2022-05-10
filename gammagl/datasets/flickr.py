@@ -1,7 +1,6 @@
 import json
 import os
 import os.path as osp
-import pickle
 from typing import Callable, List, Optional
 import numpy as np
 import scipy.sparse as sp
@@ -73,7 +72,7 @@ class Flickr(InMemoryDataset):
         adj = adj.tocoo()
         row = adj.row
         col = adj.col
-        deg = np.array(adj.sum(1))
+        # deg = np.array(adj.sum(1))
         edge_index = np.array([row, col], dtype=np.int64)
 
         x = np.load(osp.join(self.raw_dir, 'feats.npy'))
@@ -97,34 +96,15 @@ class Flickr(InMemoryDataset):
         test_mask = np.zeros(x.shape[0], dtype=np.bool8)
         test_mask[role['te']] = True
 
-        data = Graph(x=x, edge_index=edge_index, y=ys)
+        data = Graph(x=x, edge_index=edge_index, y=ys, to_tensor=True)
         data.train_mask = train_mask
         data.val_mask = val_mask
         data.test_mask = test_mask
-        data.deg = deg
         data.num_classes = 7
+        data.csr_adj = adj
 
         data = data if self.pre_transform is None else self.pre_transform(data)
         self.save_data(self.collate([data]), self.processed_paths[0])
 
 
-def calc_sign(adj, feat, data):
-    col = adj.col
-    row = adj.row
-    deg = np.array(adj.sum(1))
-    deg_inv_sqrt = np.power(deg, -0.5).flatten()
-    weight = np.ones_like(adj.col)
-    new_weight = deg_inv_sqrt[row] * weight * deg_inv_sqrt[col]
-    new_adj = sp.coo_matrix((new_weight, [col, row]))
-    xs = [feat]
-    K = 2
-    # default K = 2, due to gammagl dont have pre_transform, so this place solid setting K = 2
-    for i in range(1, K + 1):
-        xs += [new_adj @ xs[-1]]
-        data[f'x{i}'] = xs[-1]
 
-
-def normalize_feat(feat):
-    feat = feat - np.min(feat)
-    feat = np.divide(feat, feat.sum(axis=-1, keepdims=True))
-    return feat
