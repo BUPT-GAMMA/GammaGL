@@ -32,19 +32,43 @@ We give a development tutorial in Chinese on [wiki](https://github.com/BUPT-GAMM
   git clone https://github.com/BUPT-GAMMA/GammaGL.git
   ```
 
+## How to Run
+
+Take [GCN](./examples/gcn) as an example:
+
+```bash
+# cd ./examples/gcn
+# set parameters if necessary
+python gcn_trainer.py --dataset cora --lr 0.01
+```
+
+If you want to use specific `backend` or `GPU`, just set environment variable like:
+
+```bash
+CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
+```
+
+> Note
+> 
+> The DEFAULT backend is  `tensorflow` and GPU is `0`. The backend TensorFlow will take up all GPU left memory by default.
+> 
+> The CANDIDATE backends are `tensorflow`, `paddle`, `torch` and `mindspore`.
+> 
+> Set `CUDA_VISIBLE_DEVICES=""` if you want to run it in CPU.
+
 ## Supported Models
 
-|                                   | TensorFlow         | PyTorch            | Paddle             | MindSpore          |
-| --------------------------------- | ------------------ | ------------------ | ------------------ | ------------------ |
-| [GCN [ICLR 2017]](./examples/gcn) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [GAT [ICLR 2018]](./examples/gat) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [GraphSAGE [NeurIPS 2017]](./examples/sage) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [SGC [ICML 2019]](./examples/sgc) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [GATv2 [ICLR 2021]](./examples/gatv2) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [APPNP [ICLR 2019]](./examples/appnp) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [GCNII [ICLR 2017]](./examples/gcnii) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [AGNN [arxiv]](./examples/agnn) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [DGI [ICLR 2019]](./examples/dgi) |:heavy_check_mark: |                    |                    |                    |
-| [SIGN [ICML 2020 Workshop]](./examples/sign) | :heavy_check_mark: | :heavy_check_mark: |  |   |
-| [GRACE [ICML 2020 Workshop]](./examples/grace) | :heavy_check_mark:|  |  |   |
-|                                   |                    |                    |                    |                    |
+|                                                | TensorFlow         | PyTorch            | Paddle             | MindSpore          |
+| ---------------------------------------------- | ------------------ | ------------------ | ------------------ | ------------------ |
+| [GCN [ICLR 2017]](./examples/gcn)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [GAT [ICLR 2018]](./examples/gat)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [GraphSAGE [NeurIPS 2017]](./examples/sage)    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [SGC [ICML 2019]](./examples/sgc)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [GATv2 [ICLR 2021]](./examples/gatv2)          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [APPNP [ICLR 2019]](./examples/appnp)          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [GCNII [ICLR 2017]](./examples/gcnii)          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [AGNN [arxiv]](./examples/agnn)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [DGI [ICLR 2019]](./examples/dgi)              | :heavy_check_mark: |                    |                    |                    |
+| [SIGN [ICML 2020 Workshop]](./examples/sign)   | :heavy_check_mark: | :heavy_check_mark: |                    |                    |
+| [GRACE [ICML 2020 Workshop]](./examples/grace) | :heavy_check_mark: |                    |                    |                    |
+|                                                |                    |                    |                    |                    |
