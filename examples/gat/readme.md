@@ -9,28 +9,25 @@ Graph Attention Networks (GAT)
 
 Dataset Statics
 -------
+
 | Dataset  | # Nodes | # Edges | # Classes |
-|----------|---------|---------|-----------|
+| -------- | ------- | ------- | --------- |
 | Cora     | 2,708   | 10,556  | 7         |
 | Citeseer | 3,327   | 9,228   | 6         |
 | Pubmed   | 19,717  | 88,651  | 3         |
 
-How to run
-----------
-Run with following:
-```bash
-python gat_trainer.py
-```
-> For details settings, please refer to [here](https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/gcn#how-to-run).
+
 
 Results
 -------
+
 ```bash
 TL_BACKEND="paddle" python gat_trainer.py --dataset cora --lr 0.01 --l2_coef 0.01 --drop_rate 0.7
 TL_BACKEND="paddle" python gat_trainer.py --dataset citeseet --lr 0.006 --l2_coef 0.04 --drop_rate 0.6
 ```
+
 | Dataset  | Paper      | Our(pd)      | Our(tf)      |
-|----------|------------|--------------|--------------|
+| -------- | ---------- | ------------ | ------------ |
 | cora     | 83.0(±0.7) | 83.54(±0.75) | 83.26(±0.96) |
 | pubmed   | 72.5(±0.7) | 72.74(±0.76) | 72.5(±0.65)  |
 | citeseer | 79.0(±0.3) | OOM          | OOM          |
