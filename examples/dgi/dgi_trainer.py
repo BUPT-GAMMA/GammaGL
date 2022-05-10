@@ -1,6 +1,5 @@
 import os
 os.environ['TL_BACKEND'] = 'tensorflow'
-# set your backend here, default `tensorflow`, you can choose 'paddle'、'tensorflow'、'torch'
 
 import argparse
 from tqdm import tqdm
@@ -25,6 +24,7 @@ class Unsupervised_Loss(WithLoss):
 class Clf_Loss(WithLoss):
     def __init__(self, net, lossfn):
         super(Clf_Loss, self).__init__(backbone=net, loss_fn=lossfn)
+
     def forward(self, data, label):
         loss = self._backbone(data)
         return loss
@@ -41,6 +41,7 @@ class Classifier(tlx.nn.Module):
 
 def main(args):
     # load cora dataset
+
     if str.lower(args.dataset) not in ['cora', 'pubmed', 'citeseer']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)
@@ -70,9 +71,10 @@ def main(args):
 
     best = 1e9
     cnt_wait = 0
-    for epoch in tqdm(range(args.n_epoch)):
+    for _ in tqdm(range(args.n_epoch)):
         net.set_train()
-        loss = train_one_step(data, None)
+        # label is None in unsupervised learning.
+        loss = train_one_step(data=data, label=None)
         print("loss :{:4f}".format(loss.item()))
         if loss < best:
             best = loss
@@ -118,7 +120,6 @@ def main(args):
 
         acc = np.sum(preds.numpy() == test_lbls.numpy()) / test_lbls.shape[0]
         accs += acc
-        # print("e", e, "acc", acc)
     print("avg_acc :{:.4f}".format(accs / args.classifier_epochs))
 
 
@@ -137,5 +138,4 @@ if __name__ == '__main__':
     parser.add_argument("--patience", type=int, default=20)
     parser.add_argument("--clf_l2_coef", type=float, default=0.)
     args = parser.parse_args()
-    for i in range(2):
-        main(args)
+    main(args)

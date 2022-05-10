@@ -17,6 +17,7 @@ from gammagl.utils.loop import add_self_loops
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.utils.norm import calc_gcn_norm
 
+
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
         super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
@@ -25,21 +26,22 @@ class SemiSpvzLoss(WithLoss):
         logits = self._backbone(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
         if tlx.BACKEND == 'mindspore':
             idx = tlx.convert_to_tensor([i for i, v in enumerate(data['train_mask']) if v], dtype=tlx.int64)
-            train_logits = tlx.gather(logits,idx)
-            train_y = tlx.gather(y,idx)
+            train_logits = tlx.gather(logits, idx)
+            train_y = tlx.gather(y, idx)
         else:
             train_logits = logits[data['train_mask']]
             train_y = y[data['train_mask']]
         loss = self._loss_fn(train_logits, train_y)
         return loss
 
+
 def evaluate(net, data, y, mask, metrics):
     net.set_eval()
     logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
     if tlx.BACKEND == 'mindspore':
-        idx = tlx.convert_to_tensor([i for i, v in enumerate(mask) if v],dtype=tlx.int64)
-        _logits = tlx.gather(logits,idx)
-        _y = tlx.gather(y,idx)
+        idx = tlx.convert_to_tensor([i for i, v in enumerate(mask) if v], dtype=tlx.int64)
+        _logits = tlx.gather(logits, idx)
+        _y = tlx.gather(y, idx)
     else:
         _logits = logits[mask]
         _y = y[mask]
@@ -48,8 +50,9 @@ def evaluate(net, data, y, mask, metrics):
     metrics.reset()
     return acc
 
+
 def main(args):
-    # load cora dataset
+    # load datasets
     if str.lower(args.dataset) not in ['cora','pubmed','citeseer']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)
@@ -59,12 +62,12 @@ def main(args):
     x = graph.x
     y = tlx.argmax(graph.y, axis=1)
 
-
     net = GCNModel(feature_dim=x.shape[1],
                    hidden_dim=args.hidden_dim,
                    num_class=dataset.num_classes,
                    drop_rate=args.drop_rate,
                    name="GCN")
+
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
     train_weights = net.trainable_weights
