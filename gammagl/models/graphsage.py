@@ -39,10 +39,10 @@ class GraphSAGE_Sample_Model(tlx.nn.Module):
         cfg: configuration of GraphSAGE
     """
 
-    def __init__(self, in_feat, hid_feat, out_feat, keep_rate, num_layers, name=None):
+    def __init__(self, in_feat, hid_feat, out_feat, drop_rate, num_layers, name=None):
         super(GraphSAGE_Sample_Model, self).__init__()
         self.convs = tlx.nn.ModuleList()
-        self.dropout = tlx.nn.Dropout(keep_rate)
+        self.dropout = tlx.nn.Dropout(drop_rate)
 
         self.num_layer = num_layers
         self.num_class = out_feat
