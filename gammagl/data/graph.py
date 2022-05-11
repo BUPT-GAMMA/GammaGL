@@ -346,11 +346,6 @@ class Graph(BaseGraph):
 			self.x = x
 		if y is not None:
 			self.y = y
-		if spr_format is not None:
-			if 'csr' in spr_format:
-				self._csr_adj = CSRAdj.from_edges(self._edge_index[0], self._edge_index[1], self._num_nodes)
-			if 'csc' in spr_format:
-				self._csc_adj = CSRAdj.from_edges(self._edge_index[1], self._edge_index[0], self._num_nodes)
 		# self.num_nodes = num_nodes
 		for key, value in kwargs.items():
 			setattr(self, key, value)
@@ -358,6 +353,11 @@ class Graph(BaseGraph):
 			self.tensor()
 		else:
 			self.numpy()
+		if spr_format is not None:
+			if 'csr' in spr_format:
+				self.csr_adj = CSRAdj.from_edges(self.edge_index[0], self.edge_index[1], self.num_nodes)
+			if 'csc' in spr_format:
+				self.csc_adj = CSRAdj.from_edges(self.edge_index[1], self.edge_index[0], self.num_nodes)
 	
 	def __getattr__(self, key: str) -> Any:
 		# Called when the default attribute access fails, which means getattr
@@ -488,17 +488,6 @@ class Graph(BaseGraph):
 	#
 	# 	return data
 	
-	# @property
-	# def num_nodes(self):
-	# 	r"""
-	# 	Return the number of nodes.
-	# 	"""
-	# 	# try:
-	# 	#     return sum([v.num_nodes for v in self.node_stores])
-	# 	# except TypeError:
-	# 	#     return None
-	# 	return self.x.shape[0]
-	
 	@property
 	def num_edges(self):
 		r"""
@@ -507,43 +496,22 @@ class Graph(BaseGraph):
 		return self.edge_index.shape[-1]
 	
 	@property
-	def indegree(self):
+	def in_degree(self):
 		r"""
 		Graph property, return the node in-degree of the graph.
 		"""
-		if self._csc_adj is not None:
+		if hasattr(self, 'csc_adj'):
 			return self.csc_adj.degree
-		return tlx.unsorted_segment_sum(tlx.ones(self.edge_index.shape[1]), self.edge_index[1], self.num_nodes)
+		return tlx.unsorted_segment_sum(tlx.ones(shape=(self.edge_index.shape[1], ), dtype=tlx.int64), self.edge_index[1], self.num_nodes)
 	
 	@property
-	def outdegree(self):
+	def out_degree(self):
 		r"""
 		Graph property, return the node out-degree of the graph.
 		"""
-		if self._csr_adj is not None:
-			return self._csr_adj.degree
-		return tlx.unsorted_segment_sum(tlx.ones(self.edge_index.shape[1]), self.edge_index[0], self.num_nodes)
-	
-	@property
-	def csc_adj(self):
-		if self._csc_adj is not None:
-			self._csc_adj = CSRAdj.from_edges(self._edge_index[1], self._edge_index[0], self._num_nodes)
-		return self._csc_adj
-	
-	@property
-	def csr_adj(self):
-		if self._csr_adj is not None:
-			self._csr_adj = CSRAdj.from_edges(self._edge_index[0], self._edge_index[1], self._num_nodes)
-		return self._csr_adj
-	
-	# def add_self_loop(self, n_loops=1):
-	#     """
-	#     Args:
-	#         n_loops: number of self loops.
-	#
-	#     """
-	#     self_loop_index = np.stack([np.arange(self.num_nodes), np.arange(self.num_nodes)])
-	#     self._edge_index = np.concatenate([self._edge_index, self_loop_index], axis=1)
+		if hasattr(self, 'csr_adj'):
+			return self.csr_adj.degree
+		return tlx.unsorted_segment_sum(tlx.ones(shape=(self.edge_index.shape[1], ), dtype=tlx.int64), self.edge_index[0], self.num_nodes)
 	
 	def add_self_loop(self, n_loops=1):
 		"""
