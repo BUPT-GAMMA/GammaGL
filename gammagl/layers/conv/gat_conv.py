@@ -104,7 +104,7 @@ class GATConv(MessagePassing):
         else:
             x = tlx.reduce_mean(x, axis=1)
 
-        if self.bias is not None:
+        if self.add_bias:
             x += self.bias
         return x
 
