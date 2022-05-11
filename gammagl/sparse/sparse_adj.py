@@ -61,11 +61,11 @@ class CSRAdj(object):
             self._indptr = np.insert(self._indptr, 0, 0)
             raise NotImplementedError
         else:
-            self._degree = tlx.unsorted_segment_sum(tlx.ones(u.shape[1]), u, num_nodes)
+            self._degree = tlx.unsorted_segment_sum(tlx.ones(shape=(u.shape[0], ), dtype=tlx.int64), u, num_nodes)
             self._sorted_eid = tlx.argsort(u)
             self._sorted_u = tlx.gather(u, self._sorted_eid)
             self._sorted_v = tlx.gather(v, self._sorted_eid)
-            self._indptr = tlx.concat([tlx.zeros(shape=[1, ], dtype=tlx.dtype), tlx.cumsum(self._degree)])
+            self._indptr = tlx.concat(values=[tlx.zeros(shape=(1, ), dtype=tlx.int64), tlx.cumsum(self._degree)], axis=0)
         return self
 
     @property
