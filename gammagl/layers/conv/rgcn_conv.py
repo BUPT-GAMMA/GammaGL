@@ -50,6 +50,7 @@ class RGCNConv(MessagePassing):
         self.num_relations = num_relations
         self.num_bases = num_bases
         self.num_blocks = num_blocks
+        self.add_bias = add_bias
 
         if isinstance(in_channels, int):
             in_channels = (in_channels, in_channels)
@@ -82,7 +83,7 @@ class RGCNConv(MessagePassing):
                                             shape=(in_channels[1], out_channels),
                                             init=initor)
 
-        if add_bias:
+        if self.add_bias:
             self.bias = self._get_weights(var_name="bias", shape=(out_channels,),  init=initor)
 
     def forward(self, x, edge_index, edge_type = None):
@@ -156,7 +157,7 @@ class RGCNConv(MessagePassing):
         if root is not None:
             out += root[x_r] if x_r.dtype == tlx.int64 else x_r @ root
 
-        if self.bias is not None:
+        if self.add_bias:
             out += self.bias
 
         return out
