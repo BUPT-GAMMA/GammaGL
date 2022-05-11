@@ -43,11 +43,30 @@ This example was implemented by Siyuan Zhang
 
 In the paper(as well as authors' repo), the training set and testing set are split randomly with 1:9 ratio. In order to fairly compare it with other methods with the public split (20 training nodes each class), in this repo we also provide its results using the public split (with fine-tuned hyper-parameters). To run the examples, follow the following instructions.
 
-```python
+```bash
+# use paddle background
+
 # Cora with random split
-python grace_trainer.py --dataset cora
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python grace_trainer.py --dataset cora
 # Citeseer with random split
-python grace_trainer.py --dataset citeseer
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python grace_trainer.py --dataset citeseer
+```
+```bash
+# use tensorflow background
+
+# Cora with random split
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python grace_trainer.py --dataset cora
+# Citeseer with random split
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python grace_trainer.py --dataset citeseer
+```
+```bash 
+# use pytorch background
+
+# Cora with random split
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="torch" python grace_trainer.py --dataset cora
+# Citeseer with random split
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="torch" python grace_trainer.py --dataset citeseer
+
 ```
 
 ## 	Performance
@@ -63,7 +82,7 @@ It will support other background soon.
 | :---------------: | :--: | :------: | :----: |
 |   Author's Code   | 83.1 |   71.0   |  86.3  |
 |        DGL        | 83.3 |   72.1   |  86.7  |
-|     GammaGL(tf)   | 82.9 |   69.1   |  OOM   |
-|     GammaGL(th)   | --.- |   --.-   |  OOM   |
-|     GammaGL(pd)   | --.- |   --.-   |  OOM   |
-|     GammaGL(ms)   | --.- |   --.-   |  OOM   |
+|     GammaGL(tf)   | 82.9 |   69.1   |  >1day |
+|     GammaGL(th)   | --.- |   --.-   |  >1day |
+|     GammaGL(pd)   | --.- |   --.-   |  >1day |
+|     GammaGL(ms)   | --.- |   --.-   |  >1day |

@@ -1,10 +1,9 @@
-import os
-from time import time
-
-
+# import os
+# os.environ['TL_BACKEND'] = 'paddle'
+# os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 from tensorlayerx.model import WithLoss, TrainOneStep
 from tqdm import tqdm
-import numpy as np
+
 from gammagl.datasets import Reddit
 import tensorlayerx as tlx
 import argparse
@@ -61,7 +60,7 @@ def main(args):
     net = GraphSAGE_Sample_Model(in_feat=x.shape[1],
                                  hid_feat=args.hidden_dim,
                                  out_feat=graph.num_class,
-                                 keep_rate=args.keep_rate,
+                                 drop_rate=args.drop_rate,
                                  num_layers=args.num_layers)
     optimizer = tlx.optimizers.Adam(args.lr)
     metrics = tlx.metrics.Accuracy()
@@ -94,7 +93,7 @@ if __name__ == '__main__':
     parser.add_argument("--lr", type=float, default=0.0005, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=20, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=256, help="dimention of hidden layers")
-    parser.add_argument("--keep_rate", type=float, default=0.5, help="keep_rate = 1 - drop_rate")
+    parser.add_argument("--drop_rate", type=float, default=0.5, help="drop_rate")
     parser.add_argument("--num_layers", type=int, default=2)
     parser.add_argument("--l2_coef", type=float, default=0., help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='reddit', help='dataset')

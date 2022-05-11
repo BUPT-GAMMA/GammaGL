@@ -1,6 +1,6 @@
-import os
-os.environ['TL_BACKEND'] = 'tensorflow'
-
+# import os
+# os.environ['TL_BACKEND'] = 'paddle'
+# os.environ['CUDA_VISIBLE_DEVICES']=' '
 import argparse
 from tqdm import tqdm
 import numpy as np
@@ -132,7 +132,7 @@ if __name__ == '__main__':
     parser.add_argument("--classifier_lr", type=float, default=1e-2, help="classifier learning rate")
     parser.add_argument("--classifier_epochs", type=int, default=100)
     parser.add_argument("--l2_coef", type=float, default=0., help="l2 loss coeficient")
-    parser.add_argument('--dataset', type=str, default='pubmed', help='dataset, pubmed, cora, citeseer')
+    parser.add_argument('--dataset', type=str, default='cora', help='dataset, pubmed, cora, citeseer')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--patience", type=int, default=20)
