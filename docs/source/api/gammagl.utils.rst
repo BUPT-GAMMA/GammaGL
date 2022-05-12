@@ -20,14 +20,6 @@ gammagl.utils.check module
    :undoc-members:
    :show-inheritance:
 
-gammagl.utils.config module
----------------------------
-
-.. automodule:: gammagl.utils.config
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 gammagl.utils.corrupt\_graph module
 -----------------------------------
 
@@ -60,6 +52,14 @@ gammagl.utils.loop module
    :undoc-members:
    :show-inheritance:
 
+gammagl.utils.norm module
+-------------------------
+
+.. automodule:: gammagl.utils.norm
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 gammagl.utils.num\_nodes module
 -------------------------------
 
@@ -80,22 +80,6 @@ gammagl.utils.spm\_calc module
 ------------------------------
 
 .. automodule:: gammagl.utils.spm_calc
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-gammagl.utils.tf\_sparse\_utils module
---------------------------------------
-
-.. automodule:: gammagl.utils.tf_sparse_utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-gammagl.utils.tf\_utils module
-------------------------------
-
-.. automodule:: gammagl.utils.tf_utils
    :members:
    :undoc-members:
    :show-inheritance:

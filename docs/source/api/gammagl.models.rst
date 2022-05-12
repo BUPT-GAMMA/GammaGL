@@ -4,10 +4,26 @@ gammagl.models package
 Submodules
 ----------
 
+gammagl.models.agnn module
+---------------------------
+
+.. automodule:: gammagl.models.agnn
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 gammagl.models.appnp module
 ---------------------------
 
 .. automodule:: gammagl.models.appnp
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+gammagl.models.dgi module
+---------------------------
+
+.. automodule:: gammagl.models.dgi
    :members:
    :undoc-members:
    :show-inheritance:
@@ -64,6 +80,30 @@ gammagl.models.graphsage module
 -------------------------------
 
 .. automodule:: gammagl.models.graphsage
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+gammagl.models.han module
+-------------------------
+
+.. automodule:: gammagl.models.han
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+gammagl.models.jknet module
+-------------------------
+
+.. automodule:: gammagl.models.jknet
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+gammagl.models.rgcn module
+-------------------------
+
+.. automodule:: gammagl.models.rgcn
    :members:
    :undoc-members:
    :show-inheritance:
