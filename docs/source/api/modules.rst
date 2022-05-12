@@ -5,4 +5,3 @@ GammaGL
    :maxdepth: 4
 
    gammagl
-   setup
