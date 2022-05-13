@@ -10,8 +10,4 @@ from .rgcn_conv import RGCNConv
 from .agnn_conv import AGNNConv
 from .JumpingKnowledge import JumpingKnowledge
 from .han_conv import HANConv
-<<<<<<< HEAD
-
-=======
 from .gpr_conv import GPRConv
->>>>>>> gprgnn
