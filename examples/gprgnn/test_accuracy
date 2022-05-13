@@ -105,8 +105,4 @@ tensorflow cornell 90.16
 tensorflow cornell 86.89
 tensorflow cornell 78.69
 tensorflow cornell 85.25 4.76
-tensorflow cornell 85.25 4.52
 
-tensorflow cora 75.84
-tensorflow citeseer 62.50
-tensorflow pubmed 83.77
