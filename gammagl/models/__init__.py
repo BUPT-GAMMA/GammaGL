@@ -13,3 +13,4 @@ from .han import HAN
 from .dgi import DGIModel
 from .agnn import AGNNModel
 from .grace import grace
+from .gprgnn import GPRGNNModel
