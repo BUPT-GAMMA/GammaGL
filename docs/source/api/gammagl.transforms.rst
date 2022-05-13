@@ -5,7 +5,7 @@ Submodules
 ----------
 
 gammagl.transforms.add\_metapaths module
----------------------------------
+----------------------------------------
 
 .. automodule:: gammagl.transforms.add_metapaths
    :members:
@@ -13,7 +13,7 @@ gammagl.transforms.add\_metapaths module
    :show-inheritance:
 
 gammagl.transforms.base\_transform module
----------------------------------
+-----------------------------------------
 
 .. automodule:: gammagl.transforms.base_transform
    :members:
@@ -29,7 +29,7 @@ gammagl.transforms.compose module
    :show-inheritance:
 
 gammagl.transforms.normalize\_features module
----------------------------------
+---------------------------------------------
 
 .. automodule:: gammagl.transforms.normalize_features
    :members:

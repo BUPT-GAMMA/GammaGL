@@ -69,7 +69,7 @@ gammagl.layers.conv.han\_conv module
    :show-inheritance:
 
 gammagl.layers.conv.hetero\_wrapper module
-------------------------------------
+------------------------------------------
 
 .. automodule:: gammagl.layers.conv.hetero_wrapper
    :members:
