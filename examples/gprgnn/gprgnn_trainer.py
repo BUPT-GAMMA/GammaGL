@@ -99,6 +99,7 @@ def main(args):
         dataset = Planetoid(args.dataset_path, args.dataset, transform=T.NormalizeFeatures())
         dataset.process()
         graph = dataset[0]
+        graph.y = tlx.argmax(graph.y, axis=1)
     elif str.lower(args.dataset) in ['cornell','texas']:
         dataset = WebKB(args.dataset_path, args.dataset)
         dataset.process()
@@ -121,7 +122,7 @@ def main(args):
         graph.edge_index = preProcDs[0].edge_index
     else:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
-    
+        
     graph.numpy()
 
 ###########
@@ -138,6 +139,7 @@ def main(args):
     edge_index, _ = add_self_loops(graph.edge_index, n_loops=args.self_loops)
     edge_weight = tlx.ops.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
     x = graph.x
+    
 
 
     net = GPRGNNModel(feature_dim=x.shape[1],
