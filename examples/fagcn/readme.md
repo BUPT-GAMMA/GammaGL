@@ -33,7 +33,7 @@ TL_BACKEND="tensorflow" python fagcn_trainer.py --dataset cora --lr 0.01 --l2_co
 TL_BACKEND="tensorflow" python fagcn_trainer.py --dataset citeseer --lr 0.01 --l2_coef 0.0005 --drop_rate 0.4 --hidden_dim 16 --eps 0.4 --num_layers 4
 TL_BACKEND="tensorflow" python fagcn_trainer.py --dataset pubmed --lr 0.01 --l2_coef 0.001 --drop_rate 0.4 --hidden_dim 16 --eps 0.1 --num_layers 6
 ```
-| Dataset  | Paper    | Our(pd)  |
+| Dataset  | Paper    | Our(tf)  |
 |----------|----------|----------|
 | cora     | 84.1±0.5 | 83.1±0.4 |
 | citeseer | 72.7±0.8 | 68.3±0.8 |
