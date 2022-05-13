@@ -3,6 +3,7 @@ gammagl.data
 
 
 .. currentmodule:: gammagl.data
+
 .. autosummary::
    :nosignatures:
    {% for cls in gammagl.data.classes %}
@@ -11,12 +12,12 @@ gammagl.data
 
 .. automodule:: gammagl.data
     :members:
-    :exclude-members: Data, HeteroData
+    :exclude-members: Graph, HeteroGraph
 
-    .. autoclass:: Data
+    .. autoclass:: Graph
        :special-members: __cat_dim__, __inc__
        :inherited-members:
 
-    .. autoclass:: HeteroData
+    .. autoclass:: HeteroGraph
        :special-members: __cat_dim__, __inc__
        :inherited-members:

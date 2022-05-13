@@ -20,7 +20,7 @@ Welcome to gammagl's documentation!
    :caption: API Reference
    :hidden:
    :glob:
-
+   
    api/gammagl.data
    api/gammagl.datasets
    api/gammagl.layers.conv
