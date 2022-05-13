@@ -7,15 +7,6 @@ Welcome to gammagl's documentation!
 ===================================
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Get Started
-   :hidden:
-   :glob:
-
-   install/index
-   install/usage
-
-.. toctree::
    :maxdepth: 4
    :caption: API Reference
    :hidden:
