@@ -124,6 +124,7 @@ def main(args):
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
         
     graph.numpy()
+    graph.num_nodes = graph.x.shape[0]
 
 ###########
 ####  split the datasets as defined in GPRGNN original paper
