@@ -5,7 +5,7 @@ Submodules
 ----------
 
 gammagl.loader.Neighbour\_sampler module
---------------------------------
+----------------------------------------
 
 .. automodule:: gammagl.loader.Neighbour_sampler
    :members:

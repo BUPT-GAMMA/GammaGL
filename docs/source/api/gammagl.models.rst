@@ -93,7 +93,7 @@ gammagl.models.han module
    :show-inheritance:
 
 gammagl.models.jknet module
--------------------------
+---------------------------
 
 .. automodule:: gammagl.models.jknet
    :members:
@@ -101,7 +101,7 @@ gammagl.models.jknet module
    :show-inheritance:
 
 gammagl.models.rgcn module
--------------------------
+--------------------------
 
 .. automodule:: gammagl.models.rgcn
    :members:
