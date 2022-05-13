@@ -137,6 +137,7 @@ def main(args):
     edge_index, _ = add_self_loops(graph.edge_index, n_loops=args.self_loops)
     edge_weight = tlx.ops.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
     x = graph.x
+    y = tlx.argmax(graph.y, axis=1)
 
 
     net = GPRGNNModel(feature_dim=x.shape[1],
@@ -169,7 +170,7 @@ def main(args):
 
     for epoch in tqdm(range(args.n_epoch)):
         net.set_train()
-        train_loss = train_one_step(data, graph.y)
+        train_loss = train_one_step(data, y)
         val_acc = evaluate(net, data, graph.y, data['val_mask'], metrics)
         val_acc_history.append(val_acc)
 
