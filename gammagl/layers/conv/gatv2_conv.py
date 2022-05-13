@@ -74,11 +74,11 @@ class GATV2Conv(MessagePassing):
                                           b_init=None)
 
         initor = tlx.initializers.TruncatedNormal()
-        self.att_src = self._get_weights("att_src", shape=(1, self.heads, self.out_channels), init=initor)
-        self.att_dst = self._get_weights("att_dst", shape=(1, self.heads, self.out_channels), init=initor)
+        self.att_src = self._get_weights("att_src", shape=(1, self.heads, self.out_channels), init=initor,order=True)
+        self.att_dst = self._get_weights("att_dst", shape=(1, self.heads, self.out_channels), init=initor,order=True)
 
-        self.leaky_relu = tlx.layers.LeakyReLU(alpha=negative_slope)
-        self.dropout = tlx.layers.Dropout(p=1-self.dropout_rate)
+        self.leaky_relu = tlx.layers.LeakyReLU(negative_slope)
+        self.dropout = tlx.layers.Dropout(self.dropout_rate)
 
         if self.add_bias and concat:
             self.bias = self._get_weights("bias", shape=(self.heads * self.out_channels,), init=initor)
@@ -88,27 +88,27 @@ class GATV2Conv(MessagePassing):
     def message(self, x, edge_index, edge_weight=None, num_nodes=None):
         node_src = edge_index[0, :]
         node_dst = edge_index[1, :]
-        weight_src = self.leaky_relu(tlx.ops.gather(x, node_src))
-        weight_dst = self.leaky_relu(tlx.ops.gather(x, node_dst))
+        weight_src = self.leaky_relu(tlx.gather(x, node_src))
+        weight_dst = self.leaky_relu(tlx.gather(x, node_dst))
         weight = tlx.reduce_mean(weight_src * self.att_src + weight_dst * self.att_dst, -1)
 
         alpha = segment_softmax(weight, node_dst, num_nodes)
         alpha = self.dropout(alpha)
 
-        x = tlx.ops.gather(x, node_src) * tlx.ops.expand_dims(alpha, -1)
+        x = tlx.gather(x, node_src) * tlx.expand_dims(alpha, -1)
         return x * edge_weight if edge_weight else x
 
 
     def forward(self, x, edge_index, num_nodes):
-        x = tlx.ops.reshape(self.linear_w(x), shape=(-1, self.heads, self.out_channels))
+        x = tlx.reshape(self.linear_w(x), shape=(-1, self.heads, self.out_channels))
         x = self.propagate(x, edge_index, num_nodes=num_nodes)
 
         if self.concat:
-            x = tlx.ops.reshape(x, (-1, self.heads * self.out_channels))
+            x = tlx.reshape(x, (-1, self.heads * self.out_channels))
         else:
-            x = tlx.ops.reduce_mean(x, axis=1)
+            x = tlx.reduce_mean(x, axis=1)
 
-        if self.bias is not None:
+        if self.add_bias:
             x += self.bias
         return x
 

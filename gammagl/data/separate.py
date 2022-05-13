@@ -63,7 +63,7 @@ def _separate(
     decrement: bool,
 ) -> Any:
 
-    if tlx.ops.is_tensor(value):
+    if tlx.is_tensor(value):
         # Narrow a `torch.Tensor` based on `slices`.
         # NOTE: We need to take care of decrementing elements appropriately.
         cat_dim = batch.__cat_dim__(key, value, store)

@@ -7,8 +7,6 @@
 """
 
 import os
-os.environ['TL_BACKEND'] = 'torch' # set your backend here, default `tensorflow`
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 #os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 import sys
 sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
@@ -34,7 +32,7 @@ class SemiSpvzLoss(WithLoss):
         train_label = label[data['train_mask']]
         loss = self._loss_fn(train_logits, train_label)
         #Use l2_loss when there is no weight_decay in optimizer
-        #l2_loss = tf.add_n([tf.nn.l2_loss(v) for v in self._backbone.trainable_weights]) * args.weight_decay
+        #l2_loss = tf.add_n([tf.nn.l2_loss(v) for v in self._backbone.trainable_weights]) * args.l2_coef
         return loss #+ l2_loss
 
 
@@ -66,21 +64,21 @@ def main():
     edge_index = graph.edge_index
     num_nodes = graph.num_nodes
     x = graph.x
-    x = tlx.ops.l2_normalize(x,axis=-1)
+    x = tlx.l2_normalize(x,axis=-1)
     y = tlx.argmax(graph.y,1)
 
     model = AGNNModel(feature_dim = x.shape[1],
                       hidden_dim = args.hidden_dim,
                       num_class = graph.y.shape[1],
                       n_att_layers = args.n_att_layers,
-                      dropout_rate = args.dropout_rate,
+                      dropout_rate = args.drop_rate,
                       edge_index = edge_index,
                       num_nodes = num_nodes,
                       is_cora = (args.dataset == 'cora'),
                       name = "AGNN")
     
     loss = tlx.losses.softmax_cross_entropy_with_logits
-    optimizer = tlx.optimizers.Adam(lr = args.lr,weight_decay=args.weight_decay)
+    optimizer = tlx.optimizers.Adam(lr = args.lr,weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
     train_weights = model.trainable_weights
 
@@ -109,7 +107,7 @@ def main():
         val_acc = evaluate(model, data, y, data['val_mask'], metrics)
 
         print("Epoch [{:0>3d}]  ".format(epoch + 1),
-               "   train loss: {:.4f}".format(train_loss),
+               "   train loss: {:.4f}".format(train_loss.item()),
                "   train_acc:{:.4f}".format(train_acc),
                "   val acc: {:.4f}".format(val_acc))
 
@@ -130,9 +128,9 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type = float, default = 0.005)
     parser.add_argument("--n_epoch", type = int, default = 1000)
     parser.add_argument("--hidden_dim", type=float, default = 16)
-    parser.add_argument("--dropout_rate", type = float, default = 0.5)
+    parser.add_argument("--drop_rate", type = float, default = 0.5)
     parser.add_argument("--n_att_layers", type = int, default = 2)
-    parser.add_argument("--weight_decay", type = float, default = 5e-4)
+    parser.add_argument("--l2_coef", type = float, default = 5e-4)
     parser.add_argument("--dataset", type = str, default = "cora")
     parser.add_argument("--dataset_path", type = str, default = r"../")
     parser.add_argument("--best_model_path", type = str, default = r"./")

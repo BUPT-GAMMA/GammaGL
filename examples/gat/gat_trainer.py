@@ -7,10 +7,8 @@
 """
 
 import os
-os.environ['TL_BACKEND'] = 'tensorflow' # set your backend here, default `tensorflow`
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import sys
-# sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
+sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 import time
 import argparse
 import tensorlayerx as tlx
@@ -55,17 +53,14 @@ class SemiSpvzLoss(WithLoss):
 
 
 def main(args):
-    # load cora dataset
+    # load datasets
     if str.lower(args.dataset) not in ['cora', 'pubmed', 'citeseer']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)
-    dataset.process()  # suggest to execute explicitly so far
     graph = dataset[0]
-    graph.tensor()
     edge_index, _ = add_self_loops(graph.edge_index, n_loops=args.self_loops)
     x = graph.x
     y = tlx.argmax(graph.y, axis=1)
-
 
     net = GATModel(feature_dim=x.shape[1],
                    hidden_dim=args.hidden_dim,
@@ -108,6 +103,7 @@ def main(args):
     net.load_weights(args.best_model_path+net.name+".npz", format='npz_dict')
     test_acc = evaluate(net, data, y, data['test_mask'], metrics)
     print("Test acc:  {:.4f}".format(test_acc))
+
 
 if __name__ == "__main__":
     # parameters setting

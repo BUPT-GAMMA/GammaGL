@@ -17,7 +17,7 @@ class GCNIIModel(tlx.nn.Module):
                                              out_features=num_class,
                                              b_init=None)
 
-        self.convs = tlx.nn.LayerList([])
+        self.convs = tlx.nn.ModuleList([])
         for i in range(1, num_layers + 1):
             # beta = lambd / i if variant else beta
             beta = math.log(lambd / i + 1) if variant else beta

@@ -9,7 +9,7 @@ class subg(object):
             edge: Renumbered subgraph
             size: [int , int ], store all_node's size and dst_node's size, get dst_node by slicing
         '''
-        self.edge = edge
+        self.edge = tlx.convert_to_tensor(edge)
         self.size = size
 
 
@@ -18,16 +18,27 @@ import tensorlayerx as tlx
 
 
 class Neighbor_Sampler(DataLoader):
-    def __init__(self, edge_index, indptr,
+    def __init__(self, edge_index,
                  dst_nodes,
-                 sample_lists, replace=False,
+                 sample_lists, indptr=None, replace=False,
                  **kwargs):
+        '''
+
+        :param edge_index: np.ndarray, shape = [2, E] ,[src, dst], dst is sortted
+        :param dst_nodes:  np.ndarray, target nodes, which need to sample its neighbour
+        :param sample_lists: list, sample number
+        :param indptr:  np.ndarray, csr matrix's parameters, use for sample, default = None
+        :param replace: bool, sample with or without replacement default = False
+        '''
         self.sample_list = sample_lists
 
-        self.edge_index = tlx.transpose(edge_index)
+        self.edge_index = edge_index.T
         self.dst_nodes = dst_nodes
         self.replace = replace
-        self.rowptr = indptr
+        if indptr is None:
+            self.rowptr = np.concatenate(([0], np.bincount(edge_index[1]).cumsum()))
+        else:
+            self.rowptr = indptr
         super(Neighbor_Sampler, self).__init__(
             dst_nodes.numpy().tolist(), collate_fn=self.sample, **kwargs)
 
@@ -37,14 +48,14 @@ class Neighbor_Sampler(DataLoader):
         cur = 0
         for sample in self.sample_list:
             dst_node = np.array(dst_node, dtype=np.int64)
-            dst_node, size, edge = sample_subset(sample, dst_node, self.rowptr.numpy(), self.edge_index.numpy(),
+            dst_node, size, edge = sample_subset(sample, dst_node, self.rowptr, self.edge_index,
                                                  self.replace)
             sg = subg(edge.T, size)
             adjs.append(sg)
         # Finally, dst_node will all nodes obtained by sampling
         all_node = dst_node
         # return adjs[::-1], all_node
-        return [np.array(batch), adjs[::-1], all_node]
+        return [tlx.convert_to_tensor(batch), adjs[::-1], tlx.convert_to_tensor(all_node)]
 
     def test(self, batch):
         return batch

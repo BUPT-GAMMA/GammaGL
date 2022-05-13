@@ -46,6 +46,7 @@ class GCNConv(MessagePassing):
         
         self.in_channels = in_channels
         self.out_channels = out_channels
+        self.add_bias = add_bias
 
         self.linear = tlx.layers.Linear(out_features=out_channels,
                                         in_features=in_channels,
@@ -60,7 +61,7 @@ class GCNConv(MessagePassing):
     def forward(self, x, edge_index, edge_weight=None, num_nodes=None):
         x = self.linear(x)
         out = self.propagate(x, edge_index, edge_weight=edge_weight, num_nodes=num_nodes)
-        if self.bias is not None:
+        if self.add_bias:
             out += self.bias
         
         return out

@@ -90,7 +90,6 @@ def main(args):
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     path = osp.join(osp.dirname(osp.realpath(__file__)), '../Entities')
     dataset = Entities(path, args.dataset)
-    dataset.process()
     graph = dataset[0]
 
     graph.numpy()
