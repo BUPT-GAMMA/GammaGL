@@ -151,11 +151,10 @@ class BaseGraph:
 			explicitly via :obj:`graph.num_nodes = ...`.
 			You will be given a warning that requests you to do so.
 		"""
-		# try:
-		# 	return sum([v.num_nodes for v in self.node_stores])
-		# except TypeError:
-		# 	return None
-		return self.x.shape[0]
+		try:
+			return sum([v.num_nodes for v in self.node_stores])
+		except TypeError:
+			return None
 	
 	def size(
 			self, dim: Optional[int] = None
