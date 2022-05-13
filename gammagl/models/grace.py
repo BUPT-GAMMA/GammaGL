@@ -20,11 +20,13 @@ class GCN(tlx.nn.Module):
         super(GCN, self).__init__()
         assert num_layers >= 2
         self.num_layers = num_layers
-        self.convs = tlx.nn.SequentialLayer()
-        self.convs.append(GCNConv(in_channels=in_feat, out_channels=hid_feat))
-        for _ in range(num_layers - 2):
-            self.convs.append(GCNConv(in_channels=hid_feat, out_channels=hid_feat))
-        self.convs.append(GCNConv(in_channels=hid_feat, out_channels=hid_feat))
+        # self.convs = tlx.nn.Sequential()
+        cur = []
+
+        cur.append(GCNConv(in_channels=in_feat, out_channels=hid_feat))
+        for _ in range(num_layers - 1):
+            cur.append(GCNConv(in_channels=hid_feat, out_channels=hid_feat))
+        self.convs = tlx.nn.Sequential(cur)
         self.act = activation
 
     def forward(self, feat, edge_index, edge_weight, num_nodes):
@@ -60,15 +62,15 @@ class grace(tlx.nn.Module):
         between_sim = f(self.sim(z1, z2))  # inter-view pairs
 
         # between_sim.diag(): positive pairs
-        x1 = tlx.reduce_sum(refl_sim, axis=1) + tlx.reduce_sum(between_sim, axis=1) - np.diag(refl_sim, k=0)
-        loss = -tlx.log(np.diag(between_sim, k=0) / x1)
+        x1 = tlx.reduce_sum(refl_sim, axis=1) + tlx.reduce_sum(between_sim, axis=1) - tlx.convert_to_tensor(np.diag(refl_sim, k=0))
+        loss = -tlx.log(tlx.convert_to_tensor(np.diag(between_sim, k=0)) / x1)
 
         return loss
 
     def sim(self, z1, z2):
         # normalize embeddings across feature dimension
-        z1 = tlx.ops.l2_normalize(z1, axis=1)
-        z2 = tlx.ops.l2_normalize(z2, axis=1)
+        z1 = tlx.l2_normalize(z1, axis=1)
+        z2 = tlx.l2_normalize(z2, axis=1)
         return tlx.matmul(z1, tlx.transpose(z2))
 
     def get_embeding(self, feat, edge, weight, num_nodes):

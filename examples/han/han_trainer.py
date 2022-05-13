@@ -54,9 +54,7 @@ def main(args):
     transform = T.AddMetaPaths(metapaths=metapaths, drop_orig_edges=True,
                                drop_unconnected_nodes=True)
     dataset = IMDB(path, transform=transform)
-    dataset.process()
     graph = dataset[0]
-    # graph.tensor()
     y = graph['movie'].y
 
 

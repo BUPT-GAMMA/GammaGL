@@ -1,16 +1,16 @@
 import argparse
-import os
-os.environ['TL_BACKEND'] = 'torch'
+import os.path as osp
+# import os
+# os.environ['TL_BACKEND'] = 'torch'
+# # os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 # set your backend here, default `tensorflow`, you can choose 'paddle'、'tensorflow'、'torch'
-
 import tensorlayerx as tlx
-
 from tensorlayerx.model import TrainOneStep, WithLoss
 
-from examples.sign.sign_utils import normalize_feat, calc_sign
 from gammagl.datasets.flickr import Flickr
 from gammagl.models.sign import SignModel
 
+import gammagl.transforms as T
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -33,23 +33,16 @@ def evaluate(net, xs, label, mask, metrics):
 
 
 def main(args):
-    # load cora dataset
+    path = osp.join(osp.dirname(osp.realpath(__file__)), '..', args.dataset)
+    transform = T.Compose([T.NormalizeFeatures(), T.SIGN(args.K)])
+    dataset = Flickr(root=path, transform=transform)
+    graph = dataset[0]
 
-    dataset = Flickr(args.dataset_path, args.dataset)
-    dataset.process()
-    graph = dataset.data
-    x = graph.x
-    y = graph.y
-    y = tlx.convert_to_tensor(y, dtype=tlx.int64)
-    x = normalize_feat(x)
-    # train_loader = DataLoader(tlx.arange(graph.num_nodes)[graph.train_mask],
-    #                           batch_size=16 * 1024, shuffle=True)
-    #
-    # val_loader = DataLoader(tlx.arange(graph.num_nodes)[graph.val_mask], batch_size=32 * 1024, shuffle=False)
-    # test_loader = DataLoader(tlx.arange(graph.num_nodes)[graph.test_mask], batch_size=32 * 1024, shuffle=False)
-    # build model
-    net = SignModel(K=2, in_feat=x.shape[1],
-                    hid_feat=args.hidden_dim, num_classes=1 + max(y),
+    xs = [graph.x]
+    xs += [tlx.convert_to_tensor(graph[f'x{i}']) for i in range (1, args.K + 1)]
+
+    net = SignModel(K=args.K, in_feat=graph.x.shape[1],
+                    hid_feat=args.hidden_dim, num_classes=graph.num_classes,
                     drop=1 - args.keep_rate)
     optimizer = tlx.optimizers.Adam(args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
@@ -57,20 +50,15 @@ def main(args):
 
     loss_func = SemiSpvzLoss(net, tlx.losses.softmax_cross_entropy_with_logits)
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
-    xs = [x]
-    # default K = 2
-    for i in range(1, args.K + 1):
-        xs.append(calc_sign(graph.edge_index, graph.deg, xs[-1]))
-    for i in range(0, args.K + 1):
-        xs[i] = tlx.convert_to_tensor(xs[i], dtype=tlx.float32)
+
 
     best_val_acc = 0
     data = {"xs": xs,
             "train_mask": graph.train_mask}
     for epoch in range(args.n_epoch):
         net.set_train()
-        train_loss = train_one_step(data, y)
-        val_acc = evaluate(net, xs, y, graph.val_mask, metrics)
+        train_loss = train_one_step(data, graph.y)
+        val_acc = evaluate(net, xs, graph.y, graph.val_mask, metrics)
         print("Epoch [{:0>3d}] ".format(epoch + 1) \
               + "  train loss: {:.4f}".format(train_loss.item()) \
               + "  val acc: {:.4f}".format(val_acc))
@@ -79,7 +67,7 @@ def main(args):
             best_val_acc = val_acc
             net.save_weights(args.best_model_path + "SIGN.npz")
     net.load_weights(args.best_model_path + "SIGN.npz")
-    test_acc = evaluate(net, xs, y, graph.test_mask, metrics)
+    test_acc = evaluate(net, xs, graph.y, graph.test_mask, metrics)
     print("Test acc:  {:.4f}".format(test_acc))
 
 

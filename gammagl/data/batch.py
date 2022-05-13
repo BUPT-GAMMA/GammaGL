@@ -143,7 +143,7 @@ class Batch(metaclass=DynamicInheritance):
 
     def __getitem__(self, idx: Union[int, np.integer, str, IndexType]) -> Any:
         if (isinstance(idx, (int, np.integer))
-                or (tlx.ops.is_tensor(idx) and idx.ndim() == 0)
+                or (tlx.is_tensor(idx) and idx.ndim() == 0)
                 or (isinstance(idx, np.ndarray) and np.isscalar(idx))):
             return self.get_example(idx)
         elif isinstance(idx, str) or (isinstance(idx, tuple)

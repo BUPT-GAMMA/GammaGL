@@ -26,23 +26,24 @@ class SAGEConv(MessagePassing):
 
     """
 
-    def __init__(self, in_channels, out_channels, activation, aggr="mean", add_bias=False):
+    def __init__(self, in_channels, out_channels, activation=None, aggr="mean", add_bias=False):
         super(SAGEConv, self).__init__()
         #
         self.aggr = aggr
         self.act = activation
+        self.in_feat = in_channels
         # relu use he_normal
         initor = tlx.initializers.he_normal()
         # self and neighbor
-        self.fc_neigh = tlx.nn.layers.Dense(in_channels=in_channels, n_units=out_channels, W_init=initor)
+        self.fc_neigh = tlx.nn.Linear(in_features=in_channels, out_features=out_channels, W_init=initor)
         if aggr != 'gcn':
-            self.fc_self = tlx.layers.Dense(n_units=out_channels, in_channels=in_channels, W_init=initor)
+            self.fc_self = tlx.nn.Linear(in_features=in_channels, out_features=out_channels, W_init=initor)
 
         if aggr == "lstm":
             self.lstm = tlx.nn.LSTM(input_size=in_channels, hidden_size=in_channels, batch_first=True)
 
         if aggr == "pool":
-            self.pool = tlx.nn.layers.Dense(in_channels=in_channels, n_units=in_channels, W_init=initor)
+            self.pool = tlx.nn.Linear(in_features=in_channels, out_features=in_channels, W_init=initor)
         self.add_bias = add_bias
         if add_bias:
             init = tlx.initializers.zeros()
@@ -79,14 +80,20 @@ class SAGEConv(MessagePassing):
             out = self.propagate(src_feat, edge, edge_weight=None, num_nodes=num_nodes, aggr='mean')
         elif self.aggr == 'gcn':
             src_feat = self.fc_neigh(src_feat)
-            col, row, weight = calc(edge, num_nodes)
-            out = self.propagate(src_feat, tlx.stack([col, row]), edge_weight=weight, num_nodes=num_nodes, aggr='sum')
+            col, row, weight = calc(edge,  1 + tlx.reduce_max(edge[0]))
+            out = self.propagate(src_feat, tlx.stack([col, row]), edge_weight=weight, num_nodes=(1 + tlx.reduce_max(row)), aggr='sum')
+            out = tlx.gather(out, tlx.arange(num_nodes))
         elif self.aggr == 'pool':
             src_feat = tlx.nn.ReLU()(self.pool(src_feat))
             out = self.propagate(src_feat, edge, edge_weight=None, num_nodes=num_nodes, aggr='max')
             out = self.fc_neigh(out)
         elif self.aggr == 'lstm':
-            pass
+            src_feat = tlx.reshape(src_feat, (dst_feat.shape[0], -1, src_feat.shape[1]))
+            size = dst_feat.shape[0]
+            h = (tlx.zeros((1, size, self.in_feat)),
+                 tlx.zeros((1, size, self.in_feat)))
+            _, (rst, _) = self.lstm(src_feat, h)
+            out = self.fc_neigh(rst[0])
         if self.aggr != 'gcn':
             out += self.fc_self(dst_feat)
         if self.add_bias:
@@ -98,12 +105,12 @@ class SAGEConv(MessagePassing):
         return out
 
 
-
 import numpy as np
 import scipy.sparse as sp
 
 
 def calc(edge, num_nodes):
+    # edge = edge.numpy()
     weight = np.ones(edge.shape[1])
     sparse_adj = sp.coo_matrix((weight, (edge[0], edge[1])), shape=(num_nodes, num_nodes))
     A = (sparse_adj + sp.eye(num_nodes)).tocoo()
@@ -112,6 +119,6 @@ def calc(edge, num_nodes):
     # deg_inv_sqrt = np.power(deg, -0.5).flatten()
     # return col, row, np.array(deg_inv_sqrt[row] * weight * deg_inv_sqrt[col], dtype=np.float32)
     deg_inv_sqrt = np.power(deg, -1).flatten()
-    return col, row, np.array(weight * deg_inv_sqrt[col], dtype=np.float32)
-
-
+    return tlx.convert_to_tensor(col, dtype=tlx.int64), tlx.convert_to_tensor(row,
+                                                                              dtype=tlx.int64), tlx.convert_to_tensor(
+        np.array(weight * deg_inv_sqrt[col], dtype=np.float32))

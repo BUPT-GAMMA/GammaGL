@@ -253,7 +253,7 @@ class NodeStorage(BaseStorage):
 		if 'num_nodes' in self:
 			return self['num_nodes']
 		for key, value in self.items():
-			if (tlx.ops.is_tensor(value)
+			if (tlx.is_tensor(value)
 					and (key in {'x', 'pos', 'batch'} or 'node' in key)):
 				return value.shape[self._parent().__cat_dim__(key, value, self)]
 		# if 'adj' in self and isinstance(self.adj, SparseTensor):
@@ -266,9 +266,9 @@ class NodeStorage(BaseStorage):
 		#     f"attribute of " +
 		#     ("'data'" if self._key is None else f"'data[{self._key}]'") +
 		#     " to suppress this warning")
-		if 'edge_index' in self and tlx.ops.is_tensor(self.edge_index):
+		if 'edge_index' in self and tlx.is_tensor(self.edge_index):
 			if self.edge_index.shape[-1] > 0:
-				return int(tlx.ops.reduce_max(self.edge_index)) + 1
+				return int(tlx.reduce_max(self.edge_index)) + 1
 			else:
 				return 0
 		return None
@@ -332,7 +332,7 @@ class EdgeStorage(BaseStorage):
 	def num_edges(self) -> int:
 		# We sequentially access attributes that reveal the number of edges.
 		for key, value in self.items():
-			if tlx.ops.is_tensor(value) and 'edge' in key:
+			if tlx.is_tensor(value) and 'edge' in key:
 				return value.size(self._parent().__cat_dim__(key, value, self))
 		# for value in self.values('adj', 'adj_t'):
 		#     if isinstance(value, SparseTensor):
@@ -400,7 +400,7 @@ class EdgeStorage(BaseStorage):
 		edge_index, num_nodes = self.edge_index, self.size(1)
 		if num_nodes is None:
 			raise NameError("Unable to infer 'num_nodes'")
-		if tlx.ops.is_tensor(edge_index):
+		if tlx.is_tensor(edge_index):
 			return np.unique(tlx.convert_to_numpy(edge_index[1])).shape[0] < num_nodes
 		else:
 			return np.unique(edge_index[1]).shape[0] < num_nodes
@@ -409,8 +409,8 @@ class EdgeStorage(BaseStorage):
 		if self.is_bipartite():
 			return False
 		edge_index = self.edge_index
-		if tlx.ops.is_tensor(edge_index):
-			return int(tlx.ops.convert_to_numpy((edge_index[0] == edge_index[1])).sum()) > 0
+		if tlx.is_tensor(edge_index):
+			return int(tlx.convert_to_numpy((edge_index[0] == edge_index[1])).sum()) > 0
 		else:
 			return int((edge_index[0] == edge_index[1]).sum()) > 0
 	
@@ -492,7 +492,7 @@ def recursive_apply_(data: Any, func: Callable):
 
 
 def recursive_apply(data: Any, func: Callable) -> Any:
-	if tlx.ops.is_tensor(data):
+	if tlx.is_tensor(data):
 		return func(data)
 	# elif isinstance(data, torch.nn.utils.rnn.PackedSequence):
 	# 	return func(data)

@@ -318,7 +318,7 @@ class Graph(BaseGraph):
 		x (Tensor): Node feature matrix with shape :obj:`[num_nodes, num_node_features]`. (default: :obj:`None`)
 		edge_index (LongTensor): Graph connectivity in COO format with shape :obj:`[2, num_edges]`.
 			(default: :obj:`None`)
-		edge_feat (Tensor): Edge feature matrix with shape
+		edge_attr (Tensor): Edge feature matrix with shape
 			:obj:`[num_edges, num_edge_features]`. (default: :obj:`None`)
 		num_nodes (int): The specified number of nodes. (default: :obj:`None`)
 		y (Tensor): Graph-level or node-level ground-truth labels with arbitrary shape. (default: :obj:`None`)
@@ -326,7 +326,7 @@ class Graph(BaseGraph):
 		spr_format (List(str)): Specify the other sparse storage format, like `csc` and `csr`. (default: :obj:`None`)
 	"""
 	
-	def __init__(self, x=None, edge_index=None, edge_feat=None, num_nodes=None, y=None, spr_format=None, to_tensor=True, **kwargs):
+	def __init__(self, x=None, edge_index=None, edge_attr=None, num_nodes=None, y=None, spr_format=None, to_tensor=True, **kwargs):
 		self.__dict__['_store'] = GlobalStorage(_parent=self)
 		if edge_index is not None:
 			self.edge_index = edge_index
@@ -341,26 +341,24 @@ class Graph(BaseGraph):
 		#     if self._num_nodes <= max_node_id:
 		#         raise ValueError("num_nodes=[{}] should be bigger than max node ID in edge_index.".format(self._num_nodes))
 		
-		if edge_feat is not None:
-			self.edge_feat = edge_feat
+		if edge_attr is not None:
+			self.edge_attr = edge_attr
 		if x is not None:
 			self.x = x
 		if y is not None:
 			self.y = y
-		if spr_format is not None:
-			if 'csr' in spr_format:
-				self._csr_adj = CSRAdj.from_edges(self._edge_index[0], self._edge_index[1], self._num_nodes)
-			if 'csc' in spr_format:
-				self._csc_adj = CSRAdj.from_edges(self._edge_index[1], self._edge_index[0], self._num_nodes)
 		# self.num_nodes = num_nodes
 		for key, value in kwargs.items():
 			setattr(self, key, value)
 		if to_tensor:
-			self._is_tensor = True
 			self.tensor()
 		else:
-			self._is_tensor = False
 			self.numpy()
+		if spr_format is not None:
+			if 'csr' in spr_format:
+				self.csr_adj = CSRAdj.from_edges(self.edge_index[0], self.edge_index[1], self.num_nodes)
+			if 'csc' in spr_format:
+				self.csc_adj = CSRAdj.from_edges(self.edge_index[1], self.edge_index[0], self.num_nodes)
 	
 	def __getattr__(self, key: str) -> Any:
 		# Called when the default attribute access fails, which means getattr
@@ -491,17 +489,6 @@ class Graph(BaseGraph):
 	#
 	# 	return data
 	
-	# @property
-	# def num_nodes(self):
-	# 	r"""
-	# 	Return the number of nodes.
-	# 	"""
-	# 	# try:
-	# 	#     return sum([v.num_nodes for v in self.node_stores])
-	# 	# except TypeError:
-	# 	#     return None
-	# 	return self.x.shape[0]
-	
 	@property
 	def num_edges(self):
 		r"""
@@ -510,43 +497,22 @@ class Graph(BaseGraph):
 		return self.edge_index.shape[-1]
 	
 	@property
-	def indegree(self):
+	def in_degree(self):
 		r"""
 		Graph property, return the node in-degree of the graph.
 		"""
-		if self._csc_adj is not None:
+		if hasattr(self, 'csc_adj'):
 			return self.csc_adj.degree
-		return tlx.unsorted_segment_sum(tlx.ones(self.edge_index.shape[1]), self.edge_index[1], self.num_nodes)
+		return tlx.unsorted_segment_sum(tlx.ones(shape=(self.edge_index.shape[1], ), dtype=tlx.int64), self.edge_index[1], self.num_nodes)
 	
 	@property
-	def outdegree(self):
+	def out_degree(self):
 		r"""
 		Graph property, return the node out-degree of the graph.
 		"""
-		if self._csr_adj is not None:
-			return self._csr_adj.degree
-		return tlx.unsorted_segment_sum(tlx.ones(self.edge_index.shape[1]), self.edge_index[0], self.num_nodes)
-	
-	@property
-	def csc_adj(self):
-		if self._csc_adj is not None:
-			self._csc_adj = CSRAdj.from_edges(self._edge_index[1], self._edge_index[0], self._num_nodes)
-		return self._csc_adj
-	
-	@property
-	def csr_adj(self):
-		if self._csr_adj is not None:
-			self._csr_adj = CSRAdj.from_edges(self._edge_index[0], self._edge_index[1], self._num_nodes)
-		return self._csr_adj
-	
-	# def add_self_loop(self, n_loops=1):
-	#     """
-	#     Args:
-	#         n_loops: number of self loops.
-	#
-	#     """
-	#     self_loop_index = np.stack([np.arange(self.num_nodes), np.arange(self.num_nodes)])
-	#     self._edge_index = np.concatenate([self._edge_index, self_loop_index], axis=1)
+		if hasattr(self, 'csr_adj'):
+			return self.csr_adj.degree
+		return tlx.unsorted_segment_sum(tlx.ones(shape=(self.edge_index.shape[1], ), dtype=tlx.int64), self.edge_index[0], self.num_nodes)
 	
 	def add_self_loop(self, n_loops=1):
 		"""
@@ -555,9 +521,9 @@ class Graph(BaseGraph):
 
 		Returns:
 			edge_index (Tensor) : original edges with self loop edges
-			edge_feat (FloatTensor) : attributes of edges
+			edge_attr (FloatTensor) : attributes of edges
 		"""
-		return add_self_loops(self.edge_index, n_loops, self.edge_feat, num_nodes=self.num_nodes)
+		return add_self_loops(self.edge_index, n_loops, self.edge_attr, num_nodes=self.num_nodes)
 	
 	def sorted_edges(self, sort_by="src"):
 		"""Return sorted edges with different strategies.
@@ -576,17 +542,10 @@ class Graph(BaseGraph):
 		else:
 			dst, src, eid = self._csc_adj.triples()
 		return src, dst, eid
-	
-	def generate_onehot_node_feat(self):
-		self._node_feat = np.eye(self.num_nodes, dtype=np.float32)
 		
 	def _apply_to_tensor(self, key, value, inplace=True):
 		if value is None:
 			return value
-		
-		if key == '_is_tensor':
-			# set is_tensor to True
-			return True
 		
 		if isinstance(value, CSRAdj):
 			value = value.tensor(inplace=inplace)
@@ -594,22 +553,22 @@ class Graph(BaseGraph):
 		elif isinstance(value, dict):
 			if inplace:
 				for k, v in value.items():
-					value[k] = tlx.ops.convert_to_tensor(v)
+					value[k] = tlx.convert_to_tensor(v)
 			else:
 				new_value = {}
 				for k, v in value.items():
-					new_value[k] = tlx.ops.convert_to_tensor(v)
+					new_value[k] = tlx.convert_to_tensor(v)
 				value = new_value
 		else:
-			if tlx.ops.is_tensor(value):
+			if tlx.is_tensor(value):
 				pass
 			elif check_is_numpy(value):
 				if key in ['edge_index', 'y', 'edge_type', 'train_idx', 'test_idx', 'train_y']:
-					value = tlx.ops.convert_to_tensor(value, dtype=tlx.int64)
+					value = tlx.convert_to_tensor(value, dtype=tlx.int64)
 				elif key in ['train_mask', 'val_mask', 'test_mask', ]:
-					value = tlx.ops.convert_to_tensor(value, dtype=tlx.bool)
+					value = tlx.convert_to_tensor(value, dtype=tlx.bool)
 				else:
-					value = tlx.ops.convert_to_tensor(value, dtype=tlx.float32)
+					value = tlx.convert_to_tensor(value, dtype=tlx.float32)
 		return value
 	
 	def tensor(self, inplace=True):
@@ -622,14 +581,10 @@ class Graph(BaseGraph):
 
 		"""
 		
-		if self._is_tensor is True:
-			return self
-		
 		if inplace:
 			for key in self._store:
 				self._store[key] = self._apply_to_tensor(
 					key, self._store[key], inplace)
-			self._is_tensor = True
 			return self
 		else:
 			new_dict = {}
@@ -640,8 +595,8 @@ class Graph(BaseGraph):
 			graph = self.__class__(
 				num_nodes=new_dict["_num_nodes"],
 				edges=new_dict["_edges"],
-				node_feat=new_dict["_node_feat"],
-				edge_feat=new_dict["_edge_feat"],
+				x=new_dict["x"],
+				edge_attr=new_dict["edge_attr"],
 				adj_src_index=new_dict["_adj_src_index"],
 				adj_dst_index=new_dict["_adj_dst_index"],
 				**new_dict)
@@ -650,10 +605,6 @@ class Graph(BaseGraph):
 	def _apply_to_numpy(self, key, value, inplace=True):
 		if value is None:
 			return value
-		
-		if key == '_is_tensor':
-			# set is_tensor to True
-			return False
 		
 		if isinstance(value, CSRAdj):
 			value = value.numpy(inplace=inplace)
@@ -669,9 +620,9 @@ class Graph(BaseGraph):
 		else:
 			if check_is_numpy(value):
 				pass
-			elif tlx.ops.is_tensor(value):
+			elif tlx.is_tensor(value):
 				# can't assign type of numpy
-				value = tlx.ops.convert_to_numpy(value)
+				value = tlx.convert_to_numpy(value)
 		return value
 	
 	def numpy(self, inplace=True):
@@ -683,15 +634,12 @@ class Graph(BaseGraph):
 			inplace: (Default True) Whether to convert the graph into numpy inplace.
 
 		"""
-		if self._is_tensor is False:
-			return self
 		
 		if inplace:
 			
 			for key in self._store:
 				self._store[key] = self._apply_to_numpy(
 					key, self._store[key], inplace)
-			self._is_tensor = False
 			return self
 		else:
 			new_dict = {}
@@ -703,7 +651,7 @@ class Graph(BaseGraph):
 				num_nodes=new_dict["_num_nodes"],
 				edges=new_dict["_edges"],
 				node_feat=new_dict["_node_feat"],
-				edge_feat=new_dict["_edge_feat"],
+				edge_attr=new_dict["edge_attr"],
 				adj_src_index=new_dict["_adj_src_index"],
 				adj_dst_index=new_dict["_adj_dst_index"],
 				**new_dict)
@@ -743,7 +691,7 @@ class Graph(BaseGraph):
 	# 	if node_type is None:
 	# 		node_type = self._store.get('node_type', None)
 	# 	if node_type is None:
-	# 		node_type = tlx.ops.zeros(self.num_nodes, dtype=tlx.long)
+	# 		node_type = tlx.zeros(self.num_nodes, dtype=tlx.long)
 	#
 	# 	if node_type_names is None:
 	# 		store = self._store
@@ -754,7 +702,7 @@ class Graph(BaseGraph):
 	# 	if edge_type is None:
 	# 		edge_type = self._store.get('edge_type', None)
 	# 	if edge_type is None:
-	# 		edge_type = tlx.ops.zeros(self.num_edges, dtype=tlx.long)
+	# 		edge_type = tlx.zeros(self.num_edges, dtype=tlx.long)
 	#
 	# 	if edge_type_names is None:
 	# 		store = self._store
@@ -849,11 +797,12 @@ class Graph(BaseGraph):
 		r"""Returns the number of features per edge in the graph."""
 		return self._store.num_edge_features
 	
-	def __iter__(self) -> Iterable:
-		r"""Iterates over all attributes in the data, yielding their attribute
-		names and values."""
-		for key, value in self._store.items():
-			yield key, value
+	# class `Graph` can't be collections.Iterable, or can't be saved in paddle.
+	# def __iter__(self) -> Iterable:
+	# 	r"""Iterates over all attributes in the data, yielding their attribute
+	# 	names and values."""
+	# 	for key, value in self._store.items():
+	# 		yield key, value
 	
 	def __call__(self, *args: List[str]) -> Iterable:
 		r"""Iterates over all attributes :obj:`*args` in the data, yielding
@@ -1022,7 +971,7 @@ class BatchGraph(Graph):
 	Parameters:
 		edge_index (array_like, optional): list of edges of shape :math:`(|E|, 2)` or :math:`(|E|, 3)`.
 			Each tuple is (node_in, node_out) or (node_in, node_out, relation).
-		edge_feat (array_like, optional): edge weights of shape :math:`(|E|,)`
+		edge_attr (array_like, optional): edge weights of shape :math:`(|E|,)`
 		num_nodes (array_like, optional): number of nodes in each graph
 			By default, it will be inferred from the largest id in `edge_index`
 		num_edges (array_like, optional): number of edges in each graph
@@ -1034,8 +983,8 @@ class BatchGraph(Graph):
 			If not provided, nodes in `edge_index` should be relative index, i.e., the index in each graph.
 			If provided, nodes in `edge_index` should be absolute index, i.e., the index in the packed graph.
 	"""
-	def __init__(self, edge_index, edge_feat=None, num_nodes=None, num_edges=None, node_feat=None, node_label=None, graph_label=None, offsets=None):
-		# super().__init__(edge_index, edge_feat=edge_feat, num_nodes=num_nodes, node_feat=node_feat, node_label=node_label, graph_label=graph_label)
+	def __init__(self, edge_index, edge_attr=None, num_nodes=None, num_edges=None, node_feat=None, node_label=None, graph_label=None, offsets=None):
+		# super().__init__(edge_index, edge_attr=edge_attr, num_nodes=num_nodes, node_feat=node_feat, node_label=node_label, graph_label=graph_label)
 		
 		if offsets is None:
 			offsets = self._cal_offsets()
@@ -1093,9 +1042,9 @@ class BatchGraph(Graph):
 
 def size_repr(key: Any, value: Any, indent: int = 0) -> str:
 	pad = ' ' * indent
-	if tlx.ops.is_tensor(value) and value.shape == 0:
+	if tlx.is_tensor(value) and value.shape == 0:
 		out = value.item()
-	elif tlx.ops.is_tensor(value):
+	elif tlx.is_tensor(value):
 		out = str(list(value.shape))
 	elif isinstance(value, np.ndarray):
 		out = str(list(value.shape))

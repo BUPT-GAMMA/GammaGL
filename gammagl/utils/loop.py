@@ -17,7 +17,7 @@ def add_self_loops(
         >>> from gammagl.data import Graph
         >>> from gammagl.utils.loop import add_self_loops
         >>> import numpy
-        >>> edge_index = tlx.ops.constant([[0, 0, 0], [1, 2, 3]])
+        >>> edge_index = tlx.constant([[0, 0, 0], [1, 2, 3]])
         array([[0, 0, 0],
                 [1, 2, 3]])
         >>> edge_index, _ = add_self_loops(edge_index)
@@ -51,11 +51,11 @@ def add_self_loops(
 
     if edge_attr is not None:
         if fill_value is None:
-            loop_attr = tlx.ops.ones((N, edge_attr.shape[1]), dtype=edge_attr.dtype)
+            loop_attr = tlx.ones((N, edge_attr.shape[1]), dtype=edge_attr.dtype)
         elif isinstance(fill_value, (int, float)):
             # loop_attr = edge_attr.new_full((N, ) + edge_attr.size()[1:],
             #                                fill_value)
-            loop_attr = tlx.ops.constant(fill_value, (N,) + edge_attr.shape[1], dtype=edge_attr.dtype)
+            loop_attr = tlx.constant(fill_value, (N,) + edge_attr.shape[1], dtype=edge_attr.dtype)
         # elif isinstance(fill_value, Tensor):
         #     loop_attr = fill_value.to(edge_attr.device, edge_attr.dtype)
         #     if edge_attr.dim() != loop_attr.dim():

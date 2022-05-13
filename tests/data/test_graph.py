@@ -9,15 +9,18 @@ from gammagl.data import Graph
 def test_data():
 	# torch_geometric.set_debug(True)
 	
-	x = tlx.ops.convert_to_tensor([[1, 3], [2, 4], [1, 2]], dtype=tlx.float32)
-	edge_index = tlx.ops.convert_to_tensor([[0, 0, 1, 1, 2], [1, 1, 0, 2, 1]])
+	x = tlx.convert_to_tensor([[1, 3], [2, 4], [1, 2]], dtype=tlx.float32)
+	edge_index = tlx.convert_to_tensor([[0, 0, 1, 1, 2], [1, 1, 0, 2, 1]])
 	data = Graph(x=x, edge_index=edge_index)
-	
+
 	N = data.num_nodes
 	assert N == 3
+
+	assert tlx.ops.convert_to_numpy(data.out_degree).tolist() == [2, 2, 1]
+	assert tlx.ops.convert_to_numpy(data.in_degree).tolist() == [1, 3, 1]
 	
-	# assert data.x.tolist() == x.tolist()
-	# assert data['x'].tolist() == x.tolist()
+	assert tlx.ops.convert_to_numpy(data.x).tolist() == tlx.ops.convert_to_numpy(x).tolist()
+	assert tlx.ops.convert_to_numpy(data['x']).tolist() == tlx.ops.convert_to_numpy(x).tolist()
 
 	assert sorted(data.keys) == ['edge_index', 'x']
 	assert len(data) == 2
@@ -35,7 +38,7 @@ def test_data():
 	assert data.__cat_dim__('edge_index', data.edge_index) == -1
 	assert data.__inc__('x', data.x) == 0
 	assert data.__inc__('edge_index', data.edge_index) == data.num_nodes
-	#
+
 	# assert not data.x.is_contiguous()
 	# data.contiguous()
 	# assert data.x.is_contiguous()
@@ -83,7 +86,7 @@ def test_data():
 	assert data.num_node_features == 2
 	assert data.num_features == 2
 
-	data.edge_attr = tlx.ops.zeros((data.num_edges, 2))
+	data.edge_attr = tlx.zeros((data.num_edges, 2))
 	assert data.num_edge_features == 2
 	data.edge_attr = None
 
