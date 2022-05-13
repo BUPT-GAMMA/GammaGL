@@ -122,6 +122,7 @@ def main(args):
     else:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     
+    graph.numpy()
 
 ###########
 ####  split the datasets as defined in GPRGNN original paper
