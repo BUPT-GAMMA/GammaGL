@@ -1,10 +1,9 @@
 #! /bin/sh
 #
-# This script is to reproduce our results in Table 2.
 
 # Below is for homophily datasets, sparse split
 
-for i in 1 #2 3 4 5 6 7 8 9 10
+for i in 1 2 3 4 5 6 7 8 9 10
 do
     python gprgnn_trainer.py --train_rate 0.025 \
         --val_rate 0.025 \
@@ -12,9 +11,9 @@ do
         --lr 0.01 \
         --alpha 0.1
 done
-# python process.py
+python process.py
 
-for i in 1 #2 3 4 5 6 7 8 9 10
+for i in 1 2 3 4 5 6 7 8 9 10
 do
     python gprgnn_trainer.py --train_rate 0.025 \
         --val_rate 0.025 \
@@ -22,9 +21,9 @@ do
         --lr 0.01 \
         --alpha 0.1        
 done
-# python process.py
+python process.py
 
-for i in 1 #2 3 4 5 6 7 8 9 10
+for i in 1 2 3 4 5 6 7 8 9 10
 do
     python gprgnn_trainer.py --train_rate 0.025 \
         --val_rate 0.025 \
@@ -32,9 +31,9 @@ do
         --lr 0.05 \
         --alpha 0.2 
 done
-# python process.py
+python process.py
 
-for i in 1 #2 3 4 5 6 7 8 9 10
+for i in 1 2 3 4 5 6 7 8 9 10
 do        
     python gprgnn_trainer.py --train_rate 0.025 \
             --val_rate 0.025 \
@@ -42,9 +41,9 @@ do
             --lr 0.05 \
             --alpha 0.5
 done
-# python process.py
+python process.py
 
-for i in 1 #2 3 4 5 6 7 8 9 10
+for i in 1 2 3 4 5 6 7 8 9 10
 do        
     python gprgnn_trainer.py --train_rate 0.025 \
             --val_rate 0.025 \
@@ -52,10 +51,10 @@ do
             --lr 0.01 \
             --alpha 0.5
 done
-# python process.py
+python process.py
 
 # Below is for heterophily datasets, dense split
-for i in 1 #2 3 4 5 6 7 8 9 10
+for i in 1 2 3 4 5 6 7 8 9 10
 do
     python gprgnn_trainer.py --train_rate 0.6 \
             --val_rate 0.2 \
@@ -65,9 +64,9 @@ do
             --l2_coef 0.0 \
             --dprate 0.7 
 done
-# python process.py
+python process.py
 
-for i in 1 #2 3 4 5 6 7 8 9 10
+for i in 1 2 3 4 5 6 7 8 9 10
 do
     python gprgnn_trainer.py --train_rate 0.6 \
             --val_rate 0.2 \
@@ -77,9 +76,9 @@ do
             --dprate 0.7 \
             --l2_coef 0.0
 done
-# python process.py
+python process.py
 
-for i in 1 #2 3 4 5 6 7 8 9 10
+for i in 1 2 3 4 5 6 7 8 9 10
 do
     python gprgnn_trainer.py --train_rate 0.6 \
             --val_rate 0.2 \
@@ -87,9 +86,9 @@ do
             --lr 0.05 \
             --alpha 1.0
 done
-# python process.py
+python process.py
 
-for i in 1 #2 3 4 5 6 7 8 9 10
+for i in 1 2 3 4 5 6 7 8 9 10
 do       
     python gprgnn_trainer.py --train_rate 0.6 \
             --val_rate 0.2 \
@@ -97,4 +96,4 @@ do
             --lr 0.05 \
             --alpha 0.9 
 done
-# python process.py
+python process.py
