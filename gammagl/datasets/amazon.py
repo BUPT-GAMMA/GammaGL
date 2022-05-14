@@ -1,16 +1,8 @@
-import os
 import os.path as osp
-os.environ['TL_BACKEND'] = 'tensorflow'# set your backend here, default `tensorflow`, you can choose 'paddle'、'tensorflow'、'torch'
-import sys
-sys.path.append(os.getcwd())
 from typing import Callable, Optional
 import tensorlayerx as tlx
-from gammagl.data import InMemoryDataset,download_url,Graph
-import pickle
-import numpy as np
-import scipy.sparse as sp
-from gammagl.utils.loop import remove_self_loops
-from gammagl.utils.undirected import to_undirected
+from gammagl.data import InMemoryDataset,download_url
+from gammagl.io.npz import read_npz
 class Amazon(InMemoryDataset):
     r"""The Amazon Computers and Amazon Photo networks from the
     `"Pitfalls of Graph Neural Network Evaluation"
@@ -63,11 +55,9 @@ class Amazon(InMemoryDataset):
         self.name = name.lower()
         assert self.name in ['computers', 'photo']
         super().__init__(root, transform, pre_transform)
-        with open(self.processed_paths[0], 'rb') as f:
-            self.data, self.slices = pickle.load(f)
+        self.data, self.slices = self.load_data(self.processed_paths[0])
            
     
-
     @property
     def raw_dir(self) -> str:
         return osp.join(self.root, self.name.capitalize(), 'raw')
@@ -82,40 +72,16 @@ class Amazon(InMemoryDataset):
 
     @property
     def processed_file_names(self) -> str:
-        return 'data.pt'
+        return tlx.BACKEND+'data.pt'
 
 
     def download(self):
-        path=download_url(self.url+self.raw_file_names, self.raw_dir)
-        os.unlink(path)
+        download_url(self.url+self.raw_file_names, self.raw_dir)
         
-
-
     def process(self):
-        data = np.load(self.raw_paths[0])
-        x = sp.csr_matrix((data['attr_data'], data['attr_indices'], data['attr_indptr']),
-                      data['attr_shape']).todense()
-        x = np.array(x)
-        x[x > 0] = 1
-        x=tlx.convert_to_tensor(x,dtype=tlx.float32)
-
-        adj = sp.csr_matrix((data['adj_data'], data['adj_indices'], data['adj_indptr']),
-                            data['adj_shape']).tocoo()
-        edge_index = np.array([adj.row, adj.col])
-        edge_index, _ = remove_self_loops(edge_index)
-        edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int32)
-
-        edge_index = to_undirected(edge_index, num_nodes=x.shape[0])
-
- 
-        y = tlx.convert_to_tensor(data['labels'], dtype=tlx.int32)
-
-        data = Graph(x=x, edge_index=edge_index, y=y)
+        data = read_npz(self.raw_paths[0])
         data = data if self.pre_transform is None else self.pre_transform(data)
-        #data = self.pre_transform(data)
-        data, slices = self.collate([data])
-        with open(self.processed_paths[0], 'wb') as f:
-            pickle.dump((data,slices), f)
+        self.save_data(self.collate([data]), self.processed_paths[0])
        
         
 
@@ -123,7 +89,3 @@ class Amazon(InMemoryDataset):
         return f'{self.__class__.__name__}{self.name.capitalize()}()'
 #data=Amazon(root='./Amazon/',name='photo')
 #data.process()
-#print(data[0].x)
-#print(data[0].edge_index.shape)
-
-#print(data[0].)
