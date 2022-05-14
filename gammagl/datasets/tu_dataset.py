@@ -67,7 +67,8 @@ class TUDataset(InMemoryDataset):
         If :obj:`True`, the dataset will
         contain only non-isomorphic graphs. (default: :obj:`False`)
 
-    Stats:
+    Tip
+    ---
         .. list-table::
             :widths: 20 10 10 10 10 10
             :header-rows: 1
