@@ -4,7 +4,7 @@ gammagl.io package
 gammagl.io.tu module
 ----------------------------------
 
-.. automodule:: gammagl.io.tu
+.. automodule:: gammagl.io
    :members:
    :exclude-members: remove_self_loops
 
