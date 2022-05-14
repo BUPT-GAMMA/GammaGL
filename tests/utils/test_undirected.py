@@ -1,5 +1,5 @@
 import tensorlayerx as tlx
-
+os.environ['TL_BACKEND'] = 'tensorflow'
 from gammagl.utils import to_undirected # is_undirected,
 
 

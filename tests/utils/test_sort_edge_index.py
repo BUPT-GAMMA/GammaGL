@@ -1,5 +1,5 @@
 import os
-os.environ['TL_BACKEND'] = 'mindspore'
+os.environ['TL_BACKEND'] = 'tensorflow'
 
 import tensorlayerx as tlx
 
