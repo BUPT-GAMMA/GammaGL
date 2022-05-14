@@ -1,5 +1,5 @@
 import os
-os.environ['TL_BACKEND'] = 'paddle'
+os.environ['TL_BACKEND'] = 'tensorflow'
 
 import tensorlayerx as tlx
 from gammagl.utils import coalesce
