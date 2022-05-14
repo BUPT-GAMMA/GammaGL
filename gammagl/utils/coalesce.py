@@ -1,13 +1,10 @@
-from typing import Union, List, Optional, Tuple
-
-#import torch
-#from torch import Tensor
-#from torch_scatter import scatter
-import tensorlayerx as tlx
-from .num_nodes import maybe_num_nodes
 import numpy as np
+import tensorlayerx as tlx
+import gammagl.mpops as mpops
+from .num_nodes import maybe_num_nodes
 
-def coalesce(edge_index,edge_attr = None, num_nodes = None,reduce="add",is_sorted = False,sort_by_row = True): 
+
+def coalesce(edge_index, edge_attr=None, num_nodes=None, reduce="add", is_sorted=False, sort_by_row=True):
     """Row-wise sorts :obj:`edge_index` and removes its duplicated entries.
     Duplicate entries in :obj:`edge_attr` are merged by scattering them
     together according to the given :obj:`reduce` option.
@@ -34,22 +31,19 @@ def coalesce(edge_index,edge_attr = None, num_nodes = None,reduce="add",is_sorte
     nnz = edge_index.shape[1]
 
     num_nodes = maybe_num_nodes(edge_index, num_nodes)
-    #idx = edge_index.new_empty(nnz + 1)
-    idx=np.zeros(nnz+1)
+    idx = np.zeros(nnz+1)
     idx[0] = -1
     idx[1:] = edge_index[1 - int(sort_by_row)]
-    #idx[1:].mul_(num_nodes).add_(edge_index[int(sort_by_row)])
-    idx[1:] = (np.add(np.multiply(idx[1:],num_nodes),edge_index[int(sort_by_row)]))
+    idx[1:] = (np.add(np.multiply(idx[1:], num_nodes), edge_index[int(sort_by_row)]))
 
-    if not is_sorted:        
-        #idx[1:], perm = idx[1:].sort()
+    if not is_sorted:
         perm = np.argsort(idx[1:])
         idx[1:] = np.sort(idx[1:])
-        edge_index = np.array(edge_index)[:, perm]
+        edge_index = tlx.gather(edge_index, indices=perm, axis=1)
         if edge_attr is not None and tlx.ops.is_tensor(edge_attr):
-            edge_attr = edge_attr[perm]
-        elif edge_attr is not None:
-            edge_attr = [e[perm] for e in edge_attr]
+            edge_attr = tlx.gather(edge_attr, perm, axis=0)
+        elif edge_attr is not None:  # edge_attr is List.
+            edge_attr = [tlx.gather(e, perm, axis=0) for e in edge_attr]
 
     mask = idx[1:] > idx[:-1]
 
@@ -57,19 +51,14 @@ def coalesce(edge_index,edge_attr = None, num_nodes = None,reduce="add",is_sorte
     if mask.all():
         return edge_index if edge_attr is None else (edge_index, edge_attr)
 
-    edge_index = edge_index[:, mask]
+    edge_index = tlx.transpose(tlx.transpose(edge_index)[mask])  # MS may not support mask indices ops.
     if edge_attr is None:
         return edge_index
 
-    #dim_size = edge_index.size(1)
-    #idx = tlx.convert_to_tensor(np.arange(0, nnz))
-    #idx.sub_(mask.logical_not_().cumsum(dim=0))
+    idx = np.arange(0, nnz)
+    idx = idx - (1 - mask).cumsum(axis=0)
 
-    #if tlx.ops.is_tensor(edge_attr):
-    #    edge_attr = scatter(edge_attr, idx, 0, None, dim_size, reduce)
-    #else:
-    #    edge_attr = [
-    #        scatter(e, idx, 0, None, dim_size, reduce) for e in edge_attr
-    #    ]
+    if tlx.ops.is_tensor(edge_attr):
+       edge_attr = mpops.segment_sum(edge_attr, idx)
 
     return edge_index, edge_attr

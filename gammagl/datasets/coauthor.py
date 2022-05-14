@@ -1,8 +1,9 @@
 import os.path as osp
 from typing import Callable, Optional
 import tensorlayerx as tlx
-from gammagl.data import InMemoryDataset,download_url
+from gammagl.data import InMemoryDataset, download_url
 from gammagl.io.npz import read_npz
+
 
 class Coauthor(InMemoryDataset):
     r"""The Coauthor CS and Coauthor Physics networks from the
