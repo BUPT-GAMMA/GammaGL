@@ -18,11 +18,16 @@ class Planetoid(InMemoryDataset):
     <https://arxiv.org/abs/1603.08861>`_ paper.
     Nodes represent documents and edges represent citation links.
     Training, validation and test splits are given by binary masks.
-    Args:
-        root (str): Root directory where the dataset should be saved.
-        name (str): The name of the dataset (:obj:`"Cora"`,
+    
+    Parameters
+    ----------
+        root: str
+            Root directory where the dataset should be saved.
+        name: str
+            The name of the dataset (:obj:`"Cora"`,
             :obj:`"CiteSeer"`, :obj:`"PubMed"`).
-        split (string): The type of dataset split
+        split: string
+            The type of dataset split
             (:obj:`"public"`, :obj:`"full"`, :obj:`"random"`).
             If set to :obj:`"public"`, the split will be the public fixed split
             from the
@@ -35,20 +40,26 @@ class Planetoid(InMemoryDataset):
             If set to :obj:`"random"`, train, validation, and test sets will be
             randomly generated, according to :obj:`num_train_per_class`,
             :obj:`num_val` and :obj:`num_test`. (default: :obj:`"public"`)
-        num_train_per_class (int, optional): The number of training samples
+        num_train_per_class: int, optional
+            The number of training samples
             per class in case of :obj:`"random"` split. (default: :obj:`20`)
-        num_val (int, optional): The number of validation samples in case of
+        num_val: int, optional
+            The number of validation samples in case of
             :obj:`"random"` split. (default: :obj:`500`)
-        num_test (int, optional): The number of test samples in case of
+        num_test: int, optional
+            The number of test samples in case of
             :obj:`"random"` split. (default: :obj:`1000`)
-        transform (callable, optional): A function/transform that takes in an
+        transform: callable, optional
+            A function/transform that takes in an
             :obj:`torch_geometric.data.Data` object and returns a transformed
             version. The data object will be transformed before every access.
             (default: :obj:`None`)
-        pre_transform (callable, optional): A function/transform that takes in
+        pre_transform: callable, optional
+            A function/transform that takes in
             an :obj:`torch_geometric.data.Data` object and returns a
             transformed version. The data object will be transformed before
             being saved to disk. (default: :obj:`None`)
+
     Stats:
         .. list-table::
             :widths: 10 10 10 10 10

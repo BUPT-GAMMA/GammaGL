@@ -14,6 +14,7 @@ Welcome to gammagl's documentation!
    
    api/gammagl.data
    api/gammagl.datasets
+   api/gammagl.io
    api/gammagl.layers.conv
    api/gammagl.loader
    api/gammagl.models
