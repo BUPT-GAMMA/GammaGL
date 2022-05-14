@@ -73,7 +73,9 @@ def remove_self_loops(edge_index, edge_attr=None):
 		Edge weights or multi-dimensional
 		edge features. (default: :obj:`None`)
 
-	:rtype: (:class:`LongTensor`, :class:`Tensor`)
+	Returns
+	-------
+	LongTensor, Tensor
 	"""
 	mask = edge_index[0] != edge_index[1]
 	edge_index = edge_index[:, mask]
