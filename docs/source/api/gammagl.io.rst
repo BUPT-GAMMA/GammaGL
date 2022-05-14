@@ -4,6 +4,6 @@ gammagl.io package
 gammagl.io.remove_self_loops module
 ----------------------------------
 
-.. automodule:: gammagl.io.remove_self_loops
+.. autoclass:: gammagl.io.remove_self_loops
    :members:
-   :exclude-members:
+   :undoc-members:
