@@ -27,7 +27,8 @@ class Flickr(InMemoryDataset):
         transformed version. The data object will be transformed before
         being saved to disk. (default: :obj:`None`)
 
-    Stats:
+    Tip
+    ---
         .. list-table::
             :widths: 10 10 10 10
             :header-rows: 1
