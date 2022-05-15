@@ -24,8 +24,10 @@ class SIGN(BaseTransform):
         <https://github.com/pyg-team/pytorch_geometric/blob/master/examples/
         sign.py>`_.
 
-    Args:
-        K (int): The number of hops/layer.
+    Parameters
+    ----------
+    K: int
+        The number of hops/layer.
     """
     def __init__(self, K):
         self.K = K

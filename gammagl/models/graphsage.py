@@ -32,13 +32,14 @@ class GraphSAGE_Full_Model(tlx.nn.Module):
         return h
     
 class GraphSAGE_Sample_Model(tlx.nn.Module):
-    r""" 
-    The GraphSAGE operator from the `"Inductive Representation Learning on
-       Large Graphs" <https://arxiv.org/abs/1706.02216>`_ paper
-       Parameters:
-        cfg: configuration of GraphSAGE
-    """
+    r"""The GraphSAGE operator from the `"Inductive Representation Learning on Large Graphs"
+    <https://arxiv.org/abs/1706.02216>`_ paper
 
+    Parameters
+    ----------
+    cfg: 
+        configuration of GraphSAGE
+    """
     def __init__(self, in_feat, hid_feat, out_feat, drop_rate, num_layers, name=None):
         super(GraphSAGE_Sample_Model, self).__init__()
         self.convs = tlx.nn.ModuleList()

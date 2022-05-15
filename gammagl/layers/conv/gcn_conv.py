@@ -27,12 +27,17 @@ class GCNConv(MessagePassing):
     :math:`e_{j,i}` denotes the edge weight from source node :obj:`j` to target
     node :obj:`i` (default: :obj:`1.0`)
 
-    Parameters:
-        in_channels: Size of each input sample
-        out_channels: Size of each output sample.
-        add_bias: If set to :obj:`False`, the layer will not learn
+    Parameters
+    ----------
+        in_channels: int
+            Size of each input sample
+        out_channels: int
+            Size of each output sample.
+        add_bias: bool
+            If set to :obj:`False`, the layer will not learn
             an additive bias. (default: :obj:`True`)
-        aggr: way of aggregation(sum, mean, max, min), default=`sum`.
+        aggr: str
+            way of aggregation(sum, mean, max, min), default=`sum`.
 
     Examples:
 

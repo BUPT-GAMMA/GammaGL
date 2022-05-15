@@ -7,8 +7,6 @@ gammagl.data
 
     .. autoclass:: Graph
        :special-members:
-       :inherited-members:
 
     .. autoclass:: HeteroGraph
        :special-members:
-       :inherited-members:
