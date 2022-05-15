@@ -90,7 +90,6 @@ gammagl.layers.conv.han\_conv module
 
    .. autoclass:: HANConv
       :special-members:
-      :members:
 
 gammagl.layers.conv.hetero\_wrapper module
 ------------------------------------------
@@ -126,7 +125,6 @@ gammagl.layers.conv.message\_passing module
 
    .. autoclass:: MessagePassing
       :special-members:
-      :members:
 
 gammagl.layers.conv.rgcn\_conv module
 -------------------------------------
@@ -162,5 +160,4 @@ gammagl.layers.conv.sgc\_conv module
 
    .. autoclass:: SGConv
       :special-members:
-      :members:
 
