@@ -11,7 +11,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 from pyinstrument import Profiler
 import numpy as np
 import tensorlayerx as tlx
-import gammagl.mpops as mpops
+from gammagl.mpops import *
 
 
 edge_index = np.load('edge_index.npy')
