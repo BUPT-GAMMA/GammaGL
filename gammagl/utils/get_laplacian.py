@@ -43,19 +43,21 @@ def get_laplacian(edge_index, num_nodes, edge_weight=None, normalization=None):
         edge_weight = tlx.gather(deg_inv_sqrt, row) * edge_weight * tlx.gather(deg_inv_sqrt, col)
 
         # L = I - A_norm.
+        edge_weight = tlx.reshape(edge_weight, (-1, 1))
         edge_index, tmp = add_self_loops(edge_index, edge_attr=-edge_weight, num_nodes=num_nodes)
         assert tmp is not None
-        edge_weight = tmp
+        edge_weight = tlx.reshape(tmp, (-1,))
     else:
         # Compute A_norm = -D^{-1} A.
         deg_inv = tlx.pow(deg, -1)
         # deg_inv.masked_fill_(deg_inv == float('inf'), 0)
         edge_weight = tlx.gather(deg_inv,row) * edge_weight
+        edge_weight = tlx.reshape(edge_weight, (-1, 1))
 
         # L = I - A_norm.
         edge_index, tmp = add_self_loops(edge_index, edge_attr=-edge_weight, num_nodes=num_nodes)
         assert tmp is not None
-        edge_weight = tmp
+        edge_weight = tlx.reshape(tmp, (-1,))
 
     return edge_index, edge_weight
 
