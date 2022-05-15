@@ -11,7 +11,6 @@ gammagl.transforms.add\_metapaths module
 
    .. autoclass:: AddMetaPaths
       :special-members:
-      :members:
 
 
 gammagl.transforms.base\_transform module
@@ -46,7 +45,6 @@ gammagl.transforms.normalize\_features module
 
    .. autoclass:: NormalizeFeatures
       :special-members:
-      :members:
 
 gammagl.transforms.sign module
 ---------------------------------
