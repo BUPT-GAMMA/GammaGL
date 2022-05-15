@@ -4,6 +4,14 @@ gammagl.loader package
 Submodules
 ----------
 
+gammagl.loader.Neighbour\_sampler module
+--------------------------------
+
+.. automodule:: gammagl.loader.Neighbour_sampler
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 gammagl.loader.dataloader module
 --------------------------------
 
