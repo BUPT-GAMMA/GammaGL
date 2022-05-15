@@ -160,3 +160,4 @@ profiler/tlx_mp_op_speed_test/cora.py
 profiler/tlx_mp_op_speed_test/ms_oneslike.py
 profiler/tlx_mp_op_speed_test/sort_time.py
 profiler/tlx_mp_op_speed_test/ms.py
+gammagl/layers/conv/message_passing.py
