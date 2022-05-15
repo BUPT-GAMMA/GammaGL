@@ -1,22 +1,23 @@
-import tensorlayerx as tlx
+import os
 os.environ['TL_BACKEND'] = 'tensorflow'
-from gammagl.utils import to_undirected # is_undirected,
+import tensorlayerx as tlx
+from gammagl.utils import to_undirected, is_undirected
 
 
-# def test_is_undirected():
-#     row = torch.tensor([0, 1, 0])
-#     col = torch.tensor([1, 0, 0])
-#     sym_weight = torch.tensor([0, 0, 1])
-#     asym_weight = torch.tensor([0, 1, 1])
-#
-#     assert is_undirected(torch.stack([row, col], dim=0))
-#     assert is_undirected(torch.stack([row, col], dim=0), sym_weight)
-#     assert not is_undirected(torch.stack([row, col], dim=0), asym_weight)
-#
-#     row = torch.tensor([0, 1, 1])
-#     col = torch.tensor([1, 0, 2])
-#
-#     assert not is_undirected(torch.stack([row, col], dim=0))
+def test_is_undirected():
+    row = tlx.convert_to_tensor([0, 1, 0])
+    col = tlx.convert_to_tensor([1, 0, 0])
+    sym_weight = tlx.convert_to_tensor([0, 0, 1])
+    asym_weight = tlx.convert_to_tensor([0, 1, 1])
+
+    assert is_undirected(tlx.stack([row, col], axis=0))
+    assert is_undirected(tlx.stack([row, col], axis=0), sym_weight)
+    assert not is_undirected(tlx.stack([row, col], axis=0), asym_weight)
+
+    row = tlx.convert_to_tensor([0, 1, 1])
+    col = tlx.convert_to_tensor([1, 0, 2])
+
+    assert not is_undirected(tlx.stack([row, col], axis=0))
 
 
 def test_to_undirected():
@@ -32,3 +33,5 @@ def test_to_undirected():
                                                        [3.,  3.],
                                                        [-5.,  4.],
                                                        [-5.,  4.]]
+
+# test_is_undirected()
