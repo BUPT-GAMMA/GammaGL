@@ -1,6 +1,6 @@
 # import os
 # os.environ['TL_BACKEND'] = 'paddle'
-# os.environ['CUDA_VISIBLE_DEVICES'] = ' '
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 from tensorlayerx.model import WithLoss, TrainOneStep
 from tqdm import tqdm
 
@@ -84,7 +84,6 @@ def main(args):
         val_acc = evaluate(net, x, val_loader, y, graph.val_mask, metrics)
         test_acc = evaluate(net, x, test_loader, y, graph.test_mask, metrics)
         print("val acc: {:.4f} || test acc{:.4f}".format(val_acc, test_acc))
-
 
 
 if __name__ == '__main__':
