@@ -1,9 +1,6 @@
 gammagl.loader package
 ======================
 
-Submodules
-----------
-
 gammagl.loader.Neighbour\_sampler module
 ----------------------------------------
 
@@ -14,7 +11,6 @@ gammagl.loader.Neighbour\_sampler module
 
    .. autoclass:: Neighbor_Sampler
       :special-members:
-      :members:
 
    .. autoclass:: Neighbor_Sampler_python
       :special-members:
@@ -30,4 +26,3 @@ gammagl.loader.dataloader module
 
    .. autoclass:: DataLoader
       :special-members:
-      :members:

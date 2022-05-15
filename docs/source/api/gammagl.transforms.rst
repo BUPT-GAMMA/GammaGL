@@ -24,7 +24,6 @@ gammagl.transforms.base\_transform module
 
    .. autoclass:: BaseTransform
       :special-members:
-      :members:
 
 gammagl.transforms.compose module
 ---------------------------------
@@ -36,7 +35,6 @@ gammagl.transforms.compose module
 
    .. autoclass:: Compose
       :special-members:
-      :members:
 
 gammagl.transforms.normalize\_features module
 ---------------------------------------------
@@ -60,4 +58,3 @@ gammagl.transforms.sign module
 
    .. autoclass:: SIGN
       :special-members:
-      :members:
