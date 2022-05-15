@@ -5,12 +5,18 @@ import gammagl.mpops as mpops
 def calc_gcn_norm(edge_index, num_nodes, edge_weight=None):
     """
     calculate GCN Normalization.
-    Args:
-        edge_index: edge index
-        num_nodes: number of nodes of graph
-        edge_weight: edge weights of graph
+    
+    Parameters
+    ----------
+    edge_index: 
+        edge index
+    num_nodes: 
+        number of nodes of graph
+    edge_weight: 
+        edge weights of graph
 
-    Returns:
+    Returns
+    -------
         1-dim Tensor
     """
     src, dst = edge_index[0], edge_index[1]

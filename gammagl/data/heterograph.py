@@ -40,9 +40,9 @@ class HeteroGraph(BaseGraph):
         # graph connectivity:
         >>> data['author', 'writes', 'paper'].edge_index = ...  # [2, num_edges]
         >>> data['paper'].num_nodes
-        >>> 23
+        23
         >>> data['author', 'writes', 'paper'].num_edges
-        >>> 52
+        52
         
     Note that there exists multiple ways to create a heterogeneous graph data,
     *e.g.*:
@@ -330,7 +330,7 @@ class HeteroGraph(BaseGraph):
             >>> data['author'].x = ...
             >>> data['author', 'writes', 'paper'].edge_index = ...
             >>> print(data.metadata())
-            >>> (['paper', 'author'], [('author', 'writes', 'paper')])
+            (['paper', 'author'], [('author', 'writes', 'paper')])
         """
         return self.node_types, self.edge_types
 
@@ -343,7 +343,7 @@ class HeteroGraph(BaseGraph):
             >>> data['paper'].x = ...
             >>> data['author'].x = ...
             >>> print(data.collect('x'))
-            >>> { 'paper': ..., 'author': ...}
+            { 'paper': ..., 'author': ...}
 
         .. note::
             This is equivalent to writing :obj:`data.x_dict`.

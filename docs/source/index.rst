@@ -15,9 +15,11 @@ Welcome to gammagl's documentation!
    api/gammagl.data
    api/gammagl.datasets
    api/gammagl.io
-   api/gammagl.layers.conv
+   api/gammagl.layers
    api/gammagl.loader
    api/gammagl.models
+   api/gammagl.transforms
+   api/gammagl.utils
 
 GammaGL is a framework-agnostic graph learning library based on `TensorLayerX <https://github.com/tensorlayer/TensorLayerX>`_, which supports TensorFlow, PyTorch, PaddlePaddle, MindSpore as the backends.
 Inspired by `PyG[PyTorch Geometric] <https://github.com/pyg-team/pytorch_geometric>`_, GammaGL is Tensor-centric. If you are familiar with PyG, it will be friendly and maybe a TensorFlow Geometric, Paddle Geometric, or MindSpore Geometric to you.

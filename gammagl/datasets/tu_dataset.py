@@ -72,6 +72,7 @@ class TUDataset(InMemoryDataset):
         .. list-table::
             :widths: 20 10 10 10 10 10
             :header-rows: 1
+            
             * - Name
               - #graphs
               - #nodes

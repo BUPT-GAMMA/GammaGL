@@ -9,21 +9,25 @@ gammagl.loader.Neighbour\_sampler module
 
 .. automodule:: gammagl.loader.Neighbour_sampler
    :members:
-   :undoc-members:
+   :exclude-members: Neighbor_Sampler, Neighbor_Sampler_python
    :show-inheritance:
+
+   .. autoclass:: Neighbor_Sampler
+      :special-members:
+      :members:
+
+   .. autoclass:: Neighbor_Sampler_python
+      :special-members:
+      :members: small_g
 
 gammagl.loader.dataloader module
 --------------------------------
 
 .. automodule:: gammagl.loader.dataloader
    :members:
-   :undoc-members:
+   :exclude-members: DataLoader
    :show-inheritance:
 
-Module contents
----------------
-
-.. automodule:: gammagl.loader
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   .. autoclass:: DataLoader
+      :special-members:
+      :members:
