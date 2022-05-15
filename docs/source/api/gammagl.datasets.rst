@@ -1,14 +1,14 @@
 gammagl.datasets
 ========================
 
-.. currentmodule:: gammal.datasets
+.. currentmodule:: gammagl.datasets
 
 .. autosummary::
     :nosignatures:
-    {% for cls in gammal.datasets.classes %}
+    {% for cls in gammagl.datasets.classes %}
       {{ cls }}
     {% endfor %}
 
-.. automodule:: gammal.datasets
+.. automodule:: gammagl.datasets
     :members:
     :exclude-members: download, process, processed_file_names, raw_file_names, num_classes, get
