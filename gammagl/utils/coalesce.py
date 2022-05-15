@@ -28,6 +28,8 @@ def coalesce(edge_index, edge_attr=None, num_nodes=None, reduce="add", is_sorted
     :rtype: :class:`LongTensor` if :attr:`edge_attr` is :obj:`None`, else
         (:class:`LongTensor`, :obj:`Tensor` or :obj:`List[Tensor]]`)
     """
+    if tlx.is_tensor(edge_index):
+        edge_index = tlx.convert_to_numpy(edge_index)
     nnz = edge_index.shape[1]
 
     num_nodes = maybe_num_nodes(edge_index, num_nodes)
@@ -39,7 +41,7 @@ def coalesce(edge_index, edge_attr=None, num_nodes=None, reduce="add", is_sorted
     if not is_sorted:
         perm = np.argsort(idx[1:])
         idx[1:] = np.sort(idx[1:])
-        edge_index = tlx.gather(edge_index, indices=perm, axis=1)
+        edge_index = edge_index[:, perm]
         if edge_attr is not None and tlx.ops.is_tensor(edge_attr):
             edge_attr = tlx.gather(edge_attr, perm, axis=0)
         elif edge_attr is not None:  # edge_attr is List.
@@ -49,14 +51,16 @@ def coalesce(edge_index, edge_attr=None, num_nodes=None, reduce="add", is_sorted
 
     # Only perform expensive merging in case there exists duplicates:
     if mask.all():
+        edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int64)
         return edge_index if edge_attr is None else (edge_index, edge_attr)
 
-    edge_index = tlx.transpose(tlx.transpose(edge_index)[mask])  # MS may not support mask indices ops.
+    edge_index = edge_index[:, mask]
+    edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int64)
     if edge_attr is None:
         return edge_index
 
     idx = np.arange(0, nnz)
-    idx = idx - (1 - mask).cumsum(axis=0)
+    idx = tlx.convert_to_tensor(idx - (1 - mask).cumsum(axis=0))
 
     if tlx.ops.is_tensor(edge_attr):
        edge_attr = mpops.segment_sum(edge_attr, idx)

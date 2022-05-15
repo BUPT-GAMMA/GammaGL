@@ -30,7 +30,8 @@ class GraphSAGE_Full_Model(tlx.nn.Module):
             if l < self.n_layers:
                 h = self.dropout(h)
         return h
-    
+
+
 class GraphSAGE_Sample_Model(tlx.nn.Module):
     r""" 
     The GraphSAGE operator from the `"Inductive Representation Learning on

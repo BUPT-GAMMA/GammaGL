@@ -1,4 +1,5 @@
 from copy import copy
+from .check import check_is_numpy
 import tensorlayerx as tlx
 
 
@@ -7,8 +8,10 @@ def maybe_num_nodes(edge_index, num_nodes=None):
         return num_nodes
     elif tlx.is_tensor(edge_index):
         return int(tlx.reduce_max(edge_index)) + 1 if edge_index is not None else 0
+    elif check_is_numpy(edge_index):
+        return edge_index.max() + 1
     else:
-        return max(max(edge_index[0]), max(edge_index[0]))
+        raise ValueError('Edge_index Type ERROR!')
 
 
 def maybe_num_nodes_dict(edge_index_dict, num_nodes_dict=None):
