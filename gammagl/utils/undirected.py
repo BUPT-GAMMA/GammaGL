@@ -35,9 +35,9 @@ def is_undirected(
         sort_by_row=False,
     )
 
-    return (bool(torch.all(edge_index1[0] == edge_index2[1]))
-            and bool(torch.all(edge_index1[1] == edge_index2[0])) and all([
-                torch.all(e == e_T) for e, e_T in zip(edge_attr1, edge_attr2)
+    return (bool(tlx.all(edge_index1[0] == edge_index2[1]))
+            and bool(tlx.all(edge_index1[1] == edge_index2[0])) and all([
+                tlx.all(e == e_T) for e, e_T in zip(edge_attr1, edge_attr2)
             ]))
 
 
