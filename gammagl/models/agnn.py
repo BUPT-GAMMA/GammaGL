@@ -3,14 +3,14 @@ from gammagl.layers.conv import AGNNConv
 
 
 def segment_log_softmax(weight, segment_ids, num_nodes):
-    max_values = tlx.ops.unsorted_segment_max(weight, segment_ids, num_segments = num_nodes)
-    gathered_max_values = tlx.ops.gather(max_values, segment_ids)
+    max_values = tlx.unsorted_segment_max(weight, segment_ids, num_segments = num_nodes)
+    gathered_max_values = tlx.gather(max_values, segment_ids)
     weight = weight - gathered_max_values
-    exp_weight = tlx.ops.exp(weight)
+    exp_weight = tlx.exp(weight)
 
-    sum_weights = tlx.ops.unsorted_segment_sum(exp_weight, segment_ids, num_segments = num_nodes)
-    sum_weights = tlx.ops.gather(sum_weights, segment_ids)
-    softmax_weight = tlx.ops.divide(exp_weight, sum_weights)
+    sum_weights = tlx.unsorted_segment_sum(exp_weight, segment_ids, num_segments = num_nodes)
+    sum_weights = tlx.gather(sum_weights, segment_ids)
+    softmax_weight = tlx.divide(exp_weight, sum_weights)
 
     return softmax_weight
 
@@ -45,7 +45,7 @@ class AGNNModel(tlx.nn.Module):
         self.num_class = num_class
         self.n_att_layers = n_att_layers
         self.dropout_rate = dropout_rate
-        self.dropout = tlx.layers.Dropout(1 - self.dropout_rate)
+        self.dropout = tlx.layers.Dropout(self.dropout_rate)
 
         W_initor = tlx.initializers.XavierUniform()
         self.embedding_layer = tlx.nn.Linear(out_features = self.hidden_dim,
@@ -65,7 +65,7 @@ class AGNNModel(tlx.nn.Module):
                                                 out_channels =  self.hidden_dim,
                                                 edge_index = edge_index,
                                                 num_nodes = num_nodes))
-        self.att_layers = tlx.nn.SequentialLayer(self.att_layers_list)
+        self.att_layers = tlx.nn.Sequential(self.att_layers_list)
         
         self.output_layer = tlx.nn.Linear(out_features = self.num_class,
                                              W_init = W_initor,
