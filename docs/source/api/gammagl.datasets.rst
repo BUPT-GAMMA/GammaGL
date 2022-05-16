@@ -3,24 +3,12 @@ gammagl.datasets
 
 .. currentmodule:: gammagl.datasets
 
+.. autosummary::
+    :nosignatures:
+    {% for cls in gammagl.datasets.classes %}
+      {{ cls }}
+    {% endfor %}
+
 .. automodule:: gammagl.datasets
     :members:
-    :exclude-members: Entities, Flickr, IMDB, Reddit, Planetoid, TUDataset
-
-    .. autoclass:: Entities
-       :special-members:
-
-    .. autoclass:: Flickr
-       :special-members:
-
-    .. autoclass:: IMDB
-       :special-members:
-
-    .. autoclass:: Planetoid
-       :special-members:
-
-    .. autoclass:: Reddit
-       :special-members:
-
-    .. autoclass:: TUDataset
-       :special-members:
+    :exclude-members: download, process, processed_file_names, raw_file_names, num_classes, get
