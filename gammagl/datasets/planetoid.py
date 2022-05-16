@@ -78,7 +78,7 @@ class Planetoid(InMemoryDataset):
 
     url = 'https://github.com/kimiyoung/planetoid/raw/master/data'
 
-    def __init__(self, root: str, name: str, split: str = "random",
+    def __init__(self, root: str, name: str, split: str = "public",
                  num_train_per_class: int = 20, num_val: int = 500,
                  num_test: int = 1000, transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None):

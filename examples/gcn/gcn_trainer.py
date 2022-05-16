@@ -8,8 +8,8 @@
 
 import os
 # os.environ['CUDA_VISIBLE_DEVICES']='1'
-# os.environ['CUDA_VISIBLE_DEVICES']='6'
-# os.environ['TL_BACKEND'] = 'tensorflow'
+os.environ['CUDA_VISIBLE_DEVICES']='6'
+os.environ['TL_BACKEND'] = 'tensorflow'
 # os.environ['TL_BACKEND'] = 'mindspore'
 # os.environ['TL_BACKEND'] = 'paddle'
 # os.environ['TL_BACKEND'] = 'torch'
@@ -23,7 +23,7 @@ from gammagl.models import GCNModel
 from gammagl.utils.loop import add_self_loops
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.utils.norm import calc_gcn_norm
-from pyinstrument import Profiler
+# from pyinstrument import Profiler
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -65,8 +65,8 @@ def main(args):
     graph.test_idx = tlx.convert_to_tensor([i for i, v in enumerate(graph.test_mask) if v], dtype=tlx.int64)
     graph.val_idx = tlx.convert_to_tensor([i for i, v in enumerate(graph.val_mask) if v], dtype=tlx.int64)
 
-    pf = Profiler()
-    pf.start()
+    # pf = Profiler()
+    # pf.start()
     net = GCNModel(feature_dim=x.shape[1],
                    hidden_dim=args.hidden_dim,
                    num_class=dataset.num_classes,
@@ -115,8 +115,8 @@ def main(args):
         net.to(data['x'].device)
     test_acc = clac_acc_loss(net, data, 'test_idx', metrics=metrics)
     print("Test acc:  {:.4f}".format(test_acc))
-    pf.stop()
-    print(pf.output_text(unicode=True, color=True))
+    # pf.stop()
+    # print(pf.output_text(unicode=True, color=True))
 
 
 if __name__ == '__main__':
