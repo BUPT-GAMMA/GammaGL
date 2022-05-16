@@ -1,7 +1,6 @@
 SIGN: Scalable Inception Graph Neural Networks
 ===============
 This repository contains the code to run the SIGN model on the Flickr dataset
-If you want to know more about SIGN checkout its arXiv page and its ICML 2020 GRL+ Workshop version.
 - paper link: [https://arxiv.org/pdf/2004.11198.pdf](https://arxiv.org/pdf/2004.11198.pdf)
 
 Results
