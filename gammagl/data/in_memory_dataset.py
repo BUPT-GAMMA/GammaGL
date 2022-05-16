@@ -2,12 +2,11 @@ import copy
 from collections.abc import Mapping
 from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-# from torch import Tensor
-from . import Graph
+from gammagl.data import Graph
 from gammagl.data.collate import collate
-from .dataset import Dataset, IndexType
+from gammagl.data.dataset import Dataset, IndexType
 from gammagl.data.separate import separate
-import tensorflow as tf
+import tensorlayerx as tlx
 
 
 class InMemoryDataset(Dataset):
@@ -37,9 +36,9 @@ class InMemoryDataset(Dataset):
     def raw_file_names(self) -> Union[str, List[str], Tuple]:
         raise NotImplementedError
 
-    # @property
-    # def processed_file_names(self) -> Union[str, List[str], Tuple]:
-    #     raise NotImplementedError
+    @property
+    def processed_file_names(self) -> Union[str, List[str], Tuple]:
+        raise NotImplementedError
 
     def download(self):
         raise NotImplementedError
@@ -65,7 +64,7 @@ class InMemoryDataset(Dataset):
         # elif y.numel() == y.size(0) and not torch.is_floating_point(y):
         #     return int(self.data.y.max()) + 1
         elif y.ndim == 1:
-            return int(tf.experimental.numpy.max(y) + 1)
+            return int(tlx.reduce_max(y) + 1)
         else:
             return self.data.y.shape[-1]
 
