@@ -192,13 +192,13 @@ class BaseGraph:
 	
 	# The Graph is directed in GammaGL.
 	
-	# def is_undirected(self) -> bool:
-	# 	r"""Returns :obj:`True` if graph edges are undirected."""
-	# 	return all([store.is_undirected() for store in self.edge_stores])
-	#
-	# def is_directed(self) -> bool:
-	# 	r"""Returns :obj:`True` if graph edges are directed."""
-	# 	return not self.is_undirected()
+	def is_undirected(self) -> bool:
+		r"""Returns :obj:`True` if graph edges are undirected."""
+		return all([store.is_undirected() for store in self.edge_stores])
+
+	def is_directed(self) -> bool:
+		r"""Returns :obj:`True` if graph edges are directed."""
+		return not self.is_undirected()
 	
 	def apply_(self, func: Callable, *args: List[str]):
 		r"""Applies the in-place function :obj:`func`, either to all attributes

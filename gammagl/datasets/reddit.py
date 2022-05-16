@@ -1,12 +1,9 @@
 import os
 import os.path as osp
-import pickle
-
-
 import numpy as np
 import scipy.sparse as sp
 from gammagl.data import extract_zip, download_url, InMemoryDataset, Graph
-
+from gammagl.utils import coalesce, is_undirected
 
 
 class Reddit(InMemoryDataset):
@@ -54,22 +51,15 @@ class Reddit(InMemoryDataset):
 
         adj = sp.load_npz(osp.join(self.raw_dir, 'reddit_graph.npz'))
 
-        edge = np.array([adj.col, adj.row], dtype=np.int64)
+        edge_index = np.array([adj.row, adj.col], dtype=np.int64)
 
-
-        ind = np.argsort(edge[1], axis=0)
-        edge = np.array(edge.T[ind])
-
-        data = Graph(edge_index=edge.T, x=x, y=y)
+        edge_index = coalesce(edge_index, None, x.shape[0])
+        a = is_undirected(edge_index)
+        data = Graph(edge_index=edge_index, x=x, y=y)
 
         data.train_mask = split == 1
         data.val_mask = split == 2
         data.test_mask = split == 3
 
-        data.num_class = 41
         data = data if self.pre_transform is None else self.pre_transform(data)
-        # with open(self.processed_paths[0], 'wb') as f:
-        #     pickle.dump(self.collate([data]), f)
         self.save_data(self.collate([data]), self.processed_paths[0])
-        # torch.save(self.collate([data]), self.processed_paths[0])
-

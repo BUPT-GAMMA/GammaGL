@@ -4,6 +4,14 @@ gammagl.layers.conv package
 Submodules
 ----------
 
+gammagl.layers.conv.agnn\_conv module
+--------------------------------------
+
+.. automodule:: gammagl.layers.conv.agnn_conv
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 gammagl.layers.conv.appnp\_conv module
 --------------------------------------
 
@@ -48,6 +56,22 @@ gammagl.layers.conv.gin\_conv module
 ------------------------------------
 
 .. automodule:: gammagl.layers.conv.gin_conv
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+gammagl.layers.conv.han\_conv module
+------------------------------------
+
+.. automodule:: gammagl.layers.conv.han_conv
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+gammagl.layers.conv.hetero\_wrapper module
+------------------------------------
+
+.. automodule:: gammagl.layers.conv.hetero_wrapper
    :members:
    :undoc-members:
    :show-inheritance:
