@@ -6,20 +6,16 @@
 @Author  :   Han Hui
 '''
 
-import os
-os.environ['TL_BACKEND'] = 'paddle'
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-import sys
+# import os
+# import sys
 # sys.path.insert(0, os.path.abspath('../')) # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
 from gammagl.utils.loop import add_self_loops
-from gammagl.models import GCNModel, APPNPModel
+from gammagl.models import APPNPModel
 from tensorlayerx.model import TrainOneStep, WithLoss
-
-
-
+from gammagl.utils.norm import calc_gcn_norm
 
 
 class SemiSpvzLoss(WithLoss):
@@ -60,11 +56,9 @@ def main(args):
     if str.lower(args.dataset) not in ['cora', 'pubmed', 'citeseer']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)
-    dataset.process() # suggest to execute explicitly so far
     graph = dataset[0]
-    graph.tensor()
     edge_index, _ = add_self_loops(graph.edge_index, n_loops=args.self_loops)
-    edge_weight = tlx.ops.convert_to_tensor(GCNModel.calc_gcn_norm(edge_index, graph.num_nodes))
+    edge_weight = tlx.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
     x = graph.x
     y = tlx.argmax(graph.y,axis=1)
 
@@ -74,7 +68,7 @@ def main(args):
                      alpha=args.alpha,
                      drop_rate=args.drop_rate,
                      name="APPNP")
-    optimizer = tlx.optimizers.Adam(learning_rate=args.lr, weight_decay=args.l2_coef)
+    optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
     train_weights = net.trainable_weights
 

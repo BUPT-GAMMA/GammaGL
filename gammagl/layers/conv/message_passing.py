@@ -1,4 +1,5 @@
 import tensorlayerx as tlx
+from gammagl.mpops import *
 
 
 class MessagePassing(tlx.nn.Module):
@@ -19,7 +20,7 @@ class MessagePassing(tlx.nn.Module):
         super().__init__()
 
     def message(self, x, edge_index, edge_weight=None, num_nodes=None):
-        msg = tlx.ops.gather(x, edge_index[0, :])
+        msg = tlx.gather(x, edge_index[0, :])
         if edge_weight is not None:
             edge_weight = tlx.expand_dims(edge_weight, -1)
             return msg * edge_weight
@@ -29,13 +30,13 @@ class MessagePassing(tlx.nn.Module):
     def aggregate(self, msg, edge_index, num_nodes=None, aggr_type='sum'):
         dst_index = edge_index[1, :]
         if aggr_type == 'sum':
-            return tlx.ops.unsorted_segment_sum(msg, dst_index, num_nodes)
-        if aggr_type == 'mean':
-            return tlx.ops.unsorted_segment_mean(msg, dst_index, num_nodes)
-        if aggr_type == 'max':
-            return tlx.ops.unsorted_segment_max(msg, dst_index, num_nodes)
-        if aggr_type == 'min':
-            return tlx.ops.unsorted_segment_min(msg, dst_index, num_nodes)
+            return unsorted_segment_sum(msg, dst_index, num_nodes)
+        elif aggr_type == 'mean':
+            return unsorted_segment_mean(msg, dst_index, num_nodes)
+        elif aggr_type == 'max':
+            return unsorted_segment_max(msg, dst_index, num_nodes)
+        else:
+            raise NotImplementedError('Not support for this opearator')
 
     def update(self, x):
         return x

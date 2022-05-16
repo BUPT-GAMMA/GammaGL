@@ -1,0 +1,10 @@
+sphinx
+sphinx_rtd_theme
+sphinx-markdown-tables
+sphinx-intl
+recommonmark
+sphinx_copybutton==0.4.0
+numpy
+scipy
+git+https://github.com/tensorlayer/tensorlayerx.git
+pytest
