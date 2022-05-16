@@ -3,8 +3,10 @@ from time import time
 
 # from tqdm import tqdm
 
-os.environ['TL_BACKEND'] = 'paddle'  # set your backend here, default `tensorflow`
+os.environ['TL_BACKEND'] = 'paddle'
+# set your backend here, default `tensorflow`
 os.environ['CUDA_VISIBLE_DEVICES'] = ' '
+
 # os.environ["CUDA_VISIBLE_DEVICES"] = "5"
 import argparse
 import tensorlayerx as tlx
@@ -33,17 +35,16 @@ def main(args):
     dataset.process()  # suggest to execute explicitly so far
     graph = dataset[0]
 
-    diff_adj, feat, label, train_idx, val_idx, test_idx = process_dataset(args.dataset, graph)
-    n_feat = feat.shape[1]
-    # 建议加上处理的数据机上加一个 分类的个数
-    # n_classes = graph.num_classes
-    n_classes = 7
+    diff_adj, feat, label, train_idx, val_idx, test_idx = process_dataset(args.dataset, graph, args.epsilon)
+
 
     lbl1 = tlx.ones((graph.num_nodes * 2,))
     lbl2 = tlx.zeros_like(lbl1)
     lbl = tlx.concat((lbl1, lbl2), axis=0)
     # create model
-    net = MVGRL(feat.shape[1], args.hidden_dim)
+
+    net = MVGRL(dataset.num_features, args.hidden_dim)
+
     optim = tlx.optimizers.Adam(args.lr, weight_decay=args.l2_coef)
 
     train_weights = net.trainable_weights
@@ -55,7 +56,7 @@ def main(args):
     for epoch in range(args.n_epoch):
         net.set_train()
         shuf_idx = np.random.permutation(graph.num_nodes)
-        feat = feat.numpy()
+        feat = tlx.convert_to_numpy(feat)
         shuf_feat = feat[shuf_idx, :]
         shuf_feat = shuf_feat
         data = {"edge_index": graph.edge_index, "diff_adj": tlx.convert_to_tensor(diff_adj),
@@ -83,19 +84,20 @@ def main(args):
     test_embs = embed[graph.test_mask]
     y = tlx.convert_to_tensor(graph.y)
     train_lbls = y[graph.train_mask]
-    train_lbls = tlx.argmax(train_lbls, axis=1)
+
     test_lbls = y[graph.test_mask]
-    test_lbls = tlx.argmax(test_lbls, axis=1)
+
     accs = 0.
     for e in range(5):
-        clf = LogReg(args.hidden_dim, y.shape[1])
-        clf_opt = tlx.optimizers.Adam(lr=args.classifier_lr, weight_decay=args.clf_l2_coef)
+        clf = LogReg(args.hidden_dim, dataset.num_classes)
+        clf_opt = tlx.optimizers.Adam(lr=args.clf_lr, weight_decay=args.clf_l2_coef)
+
         clf_loss_func = WithLoss(clf, tlx.losses.softmax_cross_entropy_with_logits)
         clf_train_one_step = TrainOneStep(clf_loss_func, clf_opt, clf.trainable_weights)
         # train classifier
         for a in range(300):
             clf.set_train()
-            if os.environ['TL_BACKEND'] != 'tensorflow':
+            if tlx.BACKEND != 'tensorflow':
                 clf_train_one_step(train_embs.detach(), train_lbls)
             else:
                 clf_train_one_step(train_embs, train_lbls)
@@ -111,16 +113,19 @@ def main(args):
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='cora', help='dataset')
+    parser.add_argument('--dataset', type=str, default='citeseer', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--hidden_dim", type=int, default=512, help="dimention of hidden layers")
     parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
     parser.add_argument("--l2_coef", type=float, default=0., help="l2 loss coeficient")
+
     parser.add_argument("--n_epoch", type=int, default=1, help="number of epoch")
-    parser.add_argument("--classifier_lr", type=float, default=1e-2, help="classifier learning rate")
+    parser.add_argument("--clf_lr", type=float, default=1e-2, help="classifier learning rate")
     parser.add_argument("--clf_l2_coef", type=float, default=0.)
-    parser.add_argument("--patience", type=int, default=30)
+    parser.add_argument("--patience", type=int, default=20)
+    parser.add_argument('--epsilon', type=float, default=0.01, help='Edge mask threshold of diffusion graph.')
+
     args = parser.parse_args()
 
     main(args)
