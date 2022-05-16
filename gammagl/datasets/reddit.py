@@ -29,7 +29,6 @@ class Reddit(InMemoryDataset):
         super().__init__(root, transform, pre_transform)
         self.data, self.slices = self.load_data(self.processed_paths[0])
 
-
     @property
     def raw_file_names(self):
         return ['reddit_data.npz', 'reddit_graph.npz']
@@ -54,7 +53,7 @@ class Reddit(InMemoryDataset):
         edge_index = np.array([adj.row, adj.col], dtype=np.int64)
 
         edge_index = coalesce(edge_index, None, x.shape[0])
-        a = is_undirected(edge_index)
+
         data = Graph(edge_index=edge_index, x=x, y=y)
 
         data.train_mask = split == 1

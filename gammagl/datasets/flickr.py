@@ -4,6 +4,7 @@ import os.path as osp
 from typing import Callable, List, Optional
 import numpy as np
 import scipy.sparse as sp
+import tensorlayerx as tlx
 from gammagl.data import InMemoryDataset, download_url, Graph
 
 
@@ -52,6 +53,10 @@ class Flickr(InMemoryDataset):
     @property
     def raw_file_names(self) -> List[str]:
         return ['adj_full.npz', 'feats.npy', 'class_map.json', 'role.json']
+
+    @property
+    def processed_file_names(self) -> str:
+        return tlx.BACKEND+'data.pt'
 
     def download(self):
         path = download_url(self.url.format(self.adj_full_id), self.raw_dir)
