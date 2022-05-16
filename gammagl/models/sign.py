@@ -1,5 +1,6 @@
 import tensorlayerx as tlx
 
+
 class SignModel(tlx.nn.Module):
     def __init__(self, K, in_feat, hid_feat, num_classes, drop):
         super(SignModel, self).__init__()
@@ -13,6 +14,7 @@ class SignModel(tlx.nn.Module):
             cur.append(tlx.nn.Linear(in_features=in_feat, out_features=hid_feat))
         self.lin = tlx.nn.Linear(in_features=(K + 1) * hid_feat, out_features=num_classes)
         self.lins = tlx.nn.Sequential(cur)
+
     def forward(self, xs):
         hs = []
         for x, lin in zip(xs, self.lins):
