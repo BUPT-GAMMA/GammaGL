@@ -63,5 +63,3 @@ class Reddit(InMemoryDataset):
 
         data = data if self.pre_transform is None else self.pre_transform(data)
         self.save_data(self.collate([data]), self.processed_paths[0])
-
-Reddit('./')
