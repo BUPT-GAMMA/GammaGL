@@ -3,7 +3,6 @@ from collections.abc import Mapping, Sequence
 from typing import Any, List, Optional, Tuple, Union
 
 import tensorlayerx as tlx
-import tensorflow as tf
 from gammagl.data import BaseGraph
 from gammagl.data.storage import BaseStorage, NodeStorage
 
@@ -82,7 +81,7 @@ def collate(
             value, slices, incs = _collate(attr, values, data_list, stores,
                                            increment)
 
-            device = value.device if isinstance(value, tf.Tensor) else device
+            device = value.device if tlx.is_tensor(value) else device
 
             out_store[attr] = value
             if key is not None:
@@ -93,7 +92,7 @@ def collate(
                 inc_dict[attr] = incs
 
             # Add an additional batch vector for the given attribute:
-            if (attr in follow_batch and isinstance(slices, tf.Tensor)
+            if (attr in follow_batch and tlx.is_tensor(slices)
                     and slices.dim() == 1):
                 repeats = slices[1:] - slices[:-1]
                 batch = repeat_interleave(repeats.tolist(), device=device)
@@ -121,7 +120,7 @@ def _collate(
 
     elem = values[0]
 
-    if isinstance(elem, tf.Tensor):
+    if tlx.is_tensor(elem):
         # Concatenate a list of `torch.Tensor` along the `cat_dim`.
         # NOTE: We need to take care of incrementing elements appropriately.
         cat_dim = data_list[0].__cat_dim__(key, elem, stores[0])
@@ -203,26 +202,26 @@ def _collate(
 
 def repeat_interleave(
     repeats: List[int],
-    device: Optional[tf.device] = None,
-) -> tf.Tensor:
+    device = None,
+):
     outs = [tlx.constant(value=i, shape=(n, ), dtype=tlx.int64) for i, n in enumerate(repeats)]
     return tlx.concat(outs, axis=0)
 
 
-def cumsum(value: Union[tf.Tensor, List[int]]) -> tf.Tensor:
-    if not isinstance(value, tf.Tensor):
+def cumsum(value) :
+    if not tlx.is_tensor(value):
         value = tlx.convert_to_tensor(value, dtype=tlx.int64)
     out = tlx.concat([tlx.zeros(1, dtype=tlx.int64), tlx.cumsum(value, 0)], axis=0)
     return out
 
 
 def get_incs(key, values: List[Any], data_list: List[BaseGraph],
-             stores: List[BaseStorage]) -> tf.Tensor:
+             stores: List[BaseStorage]):
     repeats = [
         data.__inc__(key, value, store)
         for value, data, store in zip(values, data_list, stores)
     ]
-    if isinstance(repeats[0], tf.Tensor):
+    if tlx.is_tensor(repeats[0]):
         repeats = tlx.stack(repeats, axis=0)
     else:
         repeats = tlx.convert_to_tensor(repeats, dtype=tlx.int64)

@@ -3,7 +3,7 @@ import tensorlayerx as tlx
 import numpy as np
 from .num_nodes import maybe_num_nodes
 def add_self_loops(
-        edge_index, n_loops=None, edge_attr=None,
+        edge_index, n_loops=1, edge_attr=None,
         fill_value: Union[float, str] = None,
         num_nodes: Optional[int] = None):
     r"""Adds a self-loop :math:`(i,i) \in \mathcal{E}` to every node
@@ -46,8 +46,8 @@ def add_self_loops(
 
     # loop_index = tlx.convert_to_tensor(np.arange(0, N), dtype=tlx.int64)
     # edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int64) # 否则，torch 可能报错
-    loop_index = tlx.convert_to_tensor([np.arange(N).repeat(1),
-                                             np.arange(N).repeat(1)], dtype=edge_index.dtype)
+    loop_index = tlx.convert_to_tensor([np.arange(N).repeat(n_loops),
+                                             np.arange(N).repeat(n_loops)], dtype=edge_index.dtype)
 
     if edge_attr is not None:
         if fill_value is None:
@@ -73,3 +73,19 @@ def add_self_loops(
 
     edge_index = tlx.concat([edge_index, loop_index], axis=1)
     return edge_index, edge_attr
+
+def remove_self_loops(edge_index, edge_attr=None):
+    r"""Removes every self-loop in the graph given by :attr:`edge_index`, so
+    that :math:`(i,i) \not\in \mathcal{E}` for every :math:`i \in \mathcal{V}`.
+    Args:
+        edge_index (LongTensor): The edge indices.
+        edge_attr (Tensor, optional): Edge weights or multi-dimensional
+            edge features. (default: :obj:`None`)
+    :rtype: (:class:`LongTensor`, :class:`Tensor`)
+    """
+    mask = edge_index[0] != edge_index[1]
+    edge_index = edge_index[:, mask]
+    if edge_attr is None:
+        return edge_index, None
+    else:
+        return edge_index, edge_attr[mask]

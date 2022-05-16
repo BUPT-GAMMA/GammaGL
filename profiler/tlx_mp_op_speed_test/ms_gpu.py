@@ -13,8 +13,7 @@ sys.path.insert(0, os.path.abspath('../../'))
 from pyinstrument import Profiler
 import numpy as np
 import tensorlayerx as tlx
-import gammagl.mpops as mpops
-
+from gammagl.mpops import *
 
 edge_index = np.load('edge_index.npy')
 num_nodes = int(np.max(edge_index))+1
@@ -28,9 +27,9 @@ pf = Profiler()
 pf.start()
 for j in range(1000):
     msg = tlx.gather(x, src)
-    # mpops.unsorted_segment_sum(msg, dst, num_nodes)
-    # mpops.unsorted_segment_mean(msg, dst, num_nodes)
-    mpops.unsorted_segment_max(msg, dst, num_nodes)
+    # unsorted_segment_sum(msg, dst, num_nodes)
+    # unsorted_segment_mean(msg, dst, num_nodes)
+    unsorted_segment_max(msg, dst, num_nodes)
 pf.stop()
 print(pf.output_text(unicode=True, color=True))
 
@@ -42,8 +41,8 @@ dst = tlx.gather(tlx.convert_to_tensor(dst, dtype=tlx.int32), tlx.convert_to_ten
 pf.start()
 for j in range(1000):
     msg = tlx.gather(x, src)
-    # mpops.segment_sum(msg, dst, num_nodes)
-    # mpops.segment_mean(msg, dst, num_nodes)
-    mpops.segment_max(msg, dst, num_nodes)
+    # segment_sum(msg, dst, num_nodes)
+    # segment_mean(msg, dst, num_nodes)
+    segment_max(msg, dst, num_nodes)
 pf.stop()
 print(pf.output_text(unicode=True, color=True))
