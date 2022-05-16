@@ -38,10 +38,7 @@ class InMemoryDataset(Dataset):
 
     @property
     def processed_file_names(self) -> Union[str, List[str], Tuple]:
-        r"""
-        Set different name of processed_files_name for different backend.
-        """
-        return tlx.BACKEND + '_data.pt'
+        raise NotImplementedError
 
     def download(self):
         raise NotImplementedError
