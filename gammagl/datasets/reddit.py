@@ -1,13 +1,9 @@
 import os
 import os.path as osp
-import pickle
-
-import tensorlayerx as tlx
 import numpy as np
 import scipy.sparse as sp
-
 from gammagl.data import extract_zip, download_url, InMemoryDataset, Graph
-from gammagl.sparse import CSRAdj
+from gammagl.utils import coalesce, is_undirected
 
 
 class Reddit(InMemoryDataset):
@@ -31,9 +27,7 @@ class Reddit(InMemoryDataset):
 
     def __init__(self, root, transform=None, pre_transform=None):
         super().__init__(root, transform, pre_transform)
-        # self.data, self.slices = torch.load(self.processed_paths[0])
-        with open(self.processed_paths[0], 'rb') as f:
-            self.data, self.slices = pickle.load(f)
+        self.data, self.slices = self.load_data(self.processed_paths[0])
 
     @property
     def raw_file_names(self):
@@ -50,49 +44,21 @@ class Reddit(InMemoryDataset):
 
     def process(self):
         data = np.load(osp.join(self.raw_dir, 'reddit_data.npz'))
-        x = tlx.convert_to_tensor(data['feature'], dtype=tlx.float32)
-        y = (data['label'], tlx.int32)
-        split = tlx.convert_to_tensor(data['node_types'])
+        x = np.array(data['feature'], dtype=np.float32)
+        y = np.array(data['label'], np.int32)
+        split = np.array(data['node_types'])
 
         adj = sp.load_npz(osp.join(self.raw_dir, 'reddit_graph.npz'))
-        row = tlx.convert_to_tensor(adj.row, dtype=tlx.int32)
-        col = tlx.convert_to_tensor(adj.col, dtype=tlx.int32)
-        edge_index = tlx.stack([row, col], axis=0)
-        # edge_index, _ = coalesce(edge_index, None, x.size(0), x.size(0))
+
+        edge_index = np.array([adj.row, adj.col], dtype=np.int64)
+
+        edge_index = coalesce(edge_index, None, x.shape[0])
+
         data = Graph(edge_index=edge_index, x=x, y=y)
-        # data = Data(x=x, edge_index=edge_index, y=y)
+
         data.train_mask = split == 1
         data.val_mask = split == 2
         data.test_mask = split == 3
 
         data = data if self.pre_transform is None else self.pre_transform(data)
-
-        # torch.save(self.collate([data]), self.processed_paths[0])
-
-    def process(self):
-        data = np.load(osp.join(self.raw_dir, 'reddit_data.npz'))
-        x = data['feature']
-        y = data['label']
-        split = tlx.convert_to_tensor(data['node_types'])
-
-        adj = sp.load_npz(osp.join(self.raw_dir, 'reddit_graph.npz'))
-        row = tlx.convert_to_tensor(adj.row, dtype=tlx.int32)
-        col = tlx.convert_to_tensor(adj.col, dtype=tlx.int32)
-        # 如果图有处理的edge的操作，这下面就可以删去
-        edge = np.array([col, row])
-        ind = np.argsort(edge[1], axis=0)
-        edge = np.array(edge.T[ind])
-        # cur = CSRAdj.from_edges(col, row, 232965)
-        # cur.
-        data = Graph(edge_index=edge.T, x=x, y=y)
-        # data = Data(x=x, edge_index=edge_index, y=y)
-        data.train_mask = split == 1
-        data.val_mask = split == 2
-        data.test_mask = split == 3
-
-        data = data if self.pre_transform is None else self.pre_transform(data)
-        with open(self.processed_paths[0], 'wb') as f:
-            pickle.dump(self.collate([data]), f)
-
-        # torch.save(self.collate([data]), self.processed_paths[0])
-
+        self.save_data(self.collate([data]), self.processed_paths[0])

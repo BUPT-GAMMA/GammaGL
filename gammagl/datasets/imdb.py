@@ -24,11 +24,11 @@ class IMDB(InMemoryDataset):
     Args:
         root (string): Root directory where the dataset should be saved.
         transform (callable, optional): A function/transform that takes in an
-            :obj:`torch_geometric.data.HeteroData` object and returns a
+            :obj:`gammagl.data.HeteroGraph` object and returns a
             transformed version. The data object will be transformed before
             every access. (default: :obj:`None`)
         pre_transform (callable, optional): A function/transform that takes in
-            an :obj:`torch_geometric.data.HeteroData` object and returns a
+            an :obj:`gammagl.data.HeteroGraph` object and returns a
             transformed version. The data object will be transformed before
             being saved to disk. (default: :obj:`None`)
     """
@@ -47,6 +47,10 @@ class IMDB(InMemoryDataset):
             'labels.npy', 'train_val_test_idx.npz'
         ]
 
+    @property
+    def processed_file_names(self) -> str:
+        return tlx.BACKEND+'data.pt'
+
     def download(self):
         path = download_url(self.url, self.raw_dir)
         extract_zip(path, self.raw_dir)
@@ -58,10 +62,10 @@ class IMDB(InMemoryDataset):
         node_types = ['movie', 'director', 'actor']
         for i, node_type in enumerate(node_types):
             x = sp.load_npz(osp.join(self.raw_dir, f'features_{i}.npz'))
-            data[node_type].x = tlx.ops.convert_to_tensor(x.todense(), dtype=tlx.float32)
+            data[node_type].x = tlx.convert_to_tensor(x.todense(), dtype=tlx.float32)
 
         y = np.load(osp.join(self.raw_dir, 'labels.npy'))
-        data['movie'].y = tlx.ops.convert_to_tensor(y, dtype=tlx.int64)
+        data['movie'].y = tlx.convert_to_tensor(y, dtype=tlx.int64)
 
         split = np.load(osp.join(self.raw_dir, 'train_val_test_idx.npz'))
         for name in ['train', 'val', 'test']:
@@ -82,9 +86,9 @@ class IMDB(InMemoryDataset):
         for src, dst in product(node_types, node_types):
             A_sub = A[s[src][0]:s[src][1], s[dst][0]:s[dst][1]].tocoo()
             if A_sub.nnz > 0:
-                row = tlx.ops.convert_to_tensor(A_sub.row, dtype=tlx.int64)
-                col = tlx.ops.convert_to_tensor(A_sub.col, dtype=tlx.int64)
-                data[src, dst].edge_index = tlx.ops.stack([row, col], axis=0)
+                row = tlx.convert_to_tensor(A_sub.row, dtype=tlx.int64)
+                col = tlx.convert_to_tensor(A_sub.col, dtype=tlx.int64)
+                data[src, dst].edge_index = tlx.stack([row, col], axis=0)
 
         if self.pre_transform is not None:
             data = self.pre_transform(data)

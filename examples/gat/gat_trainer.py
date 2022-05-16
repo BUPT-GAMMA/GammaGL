@@ -7,10 +7,14 @@
 """
 
 import os
-os.environ['TL_BACKEND'] = 'tensorflow' # set your backend here, default `tensorflow`
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+# os.environ['CUDA_VISIBLE_DEVICES']='1'
+os.environ['CUDA_VISIBLE_DEVICES']='7'
+# os.environ['TL_BACKEND'] = 'tensorflow'
+os.environ['TL_BACKEND'] = 'mindspore'
+# os.environ['TL_BACKEND'] = 'paddle'
+# os.environ['TL_BACKEND'] = 'torch'
 import sys
-# sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
+sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 import time
 import argparse
 import tensorlayerx as tlx
@@ -18,13 +22,14 @@ from gammagl.datasets import Planetoid
 from gammagl.models import GATModel
 from gammagl.utils.loop import add_self_loops
 from tensorlayerx.model import TrainOneStep, WithLoss
+from pyinstrument import Profiler
 
 
 def evaluate(net, data, y, mask, metrics):
     net.set_eval()
     logits = net(data['x'], data['edge_index'], data['num_nodes'])
     if tlx.BACKEND == 'mindspore':
-        idx = tlx.convert_to_tensor([i for i, v in enumerate(mask) if v], dtype=tlx.int64)
+        idx = tlx.convert_to_tensor(tlx.convert_to_numpy(data['train_mask']).nonzero()[0], dtype=tlx.int64)
         _logits = tlx.gather(logits, idx)
         _label = tlx.gather(y, idx)
     else:
@@ -43,7 +48,7 @@ class SemiSpvzLoss(WithLoss):
     def forward(self, data, label):
         logits = self._backbone(data['x'], data['edge_index'], data['num_nodes'])
         if tlx.BACKEND == 'mindspore':
-            idx = tlx.convert_to_tensor([i for i, v in enumerate(data['train_mask']) if v], dtype=tlx.int64)
+            idx = tlx.convert_to_tensor(tlx.convert_to_numpy(data['train_mask']).nonzero()[0], dtype=tlx.int64)
             train_logits = tlx.gather(logits, idx)
             train_label = tlx.gather(label, idx)
         else:
@@ -55,18 +60,17 @@ class SemiSpvzLoss(WithLoss):
 
 
 def main(args):
-    # load cora dataset
+    # load datasets
     if str.lower(args.dataset) not in ['cora', 'pubmed', 'citeseer']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)
-    dataset.process()  # suggest to execute explicitly so far
     graph = dataset[0]
-    graph.tensor()
-    edge_index, _ = add_self_loops(graph.edge_index, n_loops=args.self_loops)
+    edge_index, _ = add_self_loops(graph.edge_index, n_loops=args.self_loops, num_nodes=graph.num_nodes)
     x = graph.x
     y = tlx.argmax(graph.y, axis=1)
 
-
+    # pf = Profiler()
+    # pf.start()
     net = GATModel(feature_dim=x.shape[1],
                    hidden_dim=args.hidden_dim,
                    num_class=graph.y.shape[1],
@@ -74,7 +78,7 @@ def main(args):
                    drop_rate=args.drop_rate,
                    name="GAT")
     loss = tlx.losses.softmax_cross_entropy_with_logits
-    optimizer = tlx.optimizers.Adam(learning_rate=args.lr, weight_decay=args.l2_coef)
+    optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
     train_weights = net.trainable_weights
 
@@ -108,6 +112,9 @@ def main(args):
     net.load_weights(args.best_model_path+net.name+".npz", format='npz_dict')
     test_acc = evaluate(net, data, y, data['test_mask'], metrics)
     print("Test acc:  {:.4f}".format(test_acc))
+    # pf.stop()
+    # print(pf.output_text(unicode=True, color=True))
+
 
 if __name__ == "__main__":
     # parameters setting
