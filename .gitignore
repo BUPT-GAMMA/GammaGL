@@ -162,3 +162,5 @@ profiler/tlx_mp_op_speed_test/sort_time.py
 profiler/tlx_mp_op_speed_test/ms.py
 gammagl/layers/conv/message_passing.py
 profiler/tlx_mp_op_speed_test/ogbn-arxiv.py
+tests/datasets/citeseer/*
+tests/datasets/cora/*
