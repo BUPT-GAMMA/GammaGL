@@ -72,7 +72,6 @@ class Flickr(InMemoryDataset):
         adj = adj.tocoo()
         row = adj.row
         col = adj.col
-        # deg = np.array(adj.sum(1))
         edge_index = np.array([row, col], dtype=np.int64)
 
         x = np.load(osp.join(self.raw_dir, 'feats.npy'))
@@ -82,10 +81,6 @@ class Flickr(InMemoryDataset):
             class_map = json.load(f)
             for key, item in class_map.items():
                 ys[int(key)] = item
-
-        # y = np.array(ys, dtype=np.int32)
-        # label = np.zeros((y.size, y.max() + 1), dtype=np.float32)
-        # label[np.arange(y.size), y] = 1
 
         with open(osp.join(self.raw_dir, 'role.json')) as f:
             role = json.load(f)
@@ -100,7 +95,6 @@ class Flickr(InMemoryDataset):
         data.train_mask = train_mask
         data.val_mask = val_mask
         data.test_mask = test_mask
-        data.num_classes = 7
 
         data = data if self.pre_transform is None else self.pre_transform(data)
         self.save_data(self.collate([data]), self.processed_paths[0])
