@@ -1,3 +1,4 @@
+import numpy as np
 import tensorlayerx as tlx
 import os.path as osp
 from typing import Callable, List, Optional
@@ -77,7 +78,7 @@ class Planetoid(InMemoryDataset):
 
     url = 'https://github.com/kimiyoung/planetoid/raw/master/data'
 
-    def __init__(self, root: str, name: str, split: str = "public",
+    def __init__(self, root: str, name: str, split: str = "random",
                  num_train_per_class: int = 20, num_val: int = 500,
                  num_test: int = 1000, transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None):
@@ -90,27 +91,31 @@ class Planetoid(InMemoryDataset):
 
         if split == 'full':
             data = self.get(0)
-            data.train_mask.fill_(True)
+            data.numpy()
+            data.train_mask.fill(True)
             data.train_mask[data.val_mask | data.test_mask] = False
+            data.tensor()
             self.data, self.slices = self.collate([data])
 
         elif split == 'random':
             data = self.get(0)
-            data.train_mask.fill_(False)
+            data.numpy()
+            data.train_mask.fill(False)
             for c in range(self.num_classes):
-                idx = (data.y == c).nonzero(as_tuple=False).view(-1)
-                idx = idx[torch.randperm(idx.size(0))[:num_train_per_class]]
+                idx = np.array((data.y == c).nonzero()).reshape((-1))
+                idx = idx[np.random.permutation(idx.shape[0])[:num_train_per_class]]
                 data.train_mask[idx] = True
 
-            remaining = (~data.train_mask).nonzero(as_tuple=False).view(-1)
-            remaining = remaining[torch.randperm(remaining.size(0))]
+            remaining = np.array((~data.train_mask).nonzero()).reshape((-1))
+            # remaining = (~data.train_mask).nonzero(as_tuple=False).view(-1)
+            remaining = remaining[np.random.permutation(remaining.shape[0])]
 
-            data.val_mask.fill_(False)
+            data.val_mask.fill(False)
             data.val_mask[remaining[:num_val]] = True
 
-            data.test_mask.fill_(False)
+            data.test_mask.fill(False)
             data.test_mask[remaining[num_val:num_val + num_test]] = True
-
+            data.tensor()
             self.data, self.slices = self.collate([data])
 
     @property
