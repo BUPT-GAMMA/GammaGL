@@ -107,8 +107,9 @@ def update_moving_average(ema_updater, ma_model, current_model):
 def update_moving_average(ema_updater, ma_model, current_model):
     length=len(np.array(ma_model.trainable_weights))
     for i in range(length):
-        old_weight, up_weight = copy.copy(ma_model.trainable_weights[i]),  copy.copy(current_model.trainable_weights[i])
-        ma_model.trainable_weights[i] = ema_updater.update_average(old_weight, up_weight)
+        #old_weight, up_weight = copy.copy(ma_model.trainable_weights[i]),  copy.copy(current_model.trainable_weights[i])
+        ma_model.trainable_weights[i] = ema_updater.update_average(ma_model.trainable_weights[i],\
+            current_model.trainable_weights[i])
 #def set_requires_grad(model, val):
 #    for p in model.all_weights:
 #        p.requires_grad = val
@@ -158,16 +159,19 @@ class MERIT(tlx.nn.Module):
         f = lambda x: tlx.exp(x)
         intra_sim = f(self.sim(h1, h1))
         inter_sim = f(self.sim(h1, h2))
-        return -tlx.log(np.diag(inter_sim, k=0) /
-                        ( tlx.reduce_sum(intra_sim, axis=1) + tlx.reduce_sum(inter_sim, axis=1) - np.diag(intra_sim, k=0)) )
+
+        return -tlx.log(tlx.convert_to_tensor(np.diag(inter_sim, k=0))/\
+                        ( tlx.reduce_sum(intra_sim, axis=1) + \
+                            tlx.reduce_sum(inter_sim, axis=1) -\
+                                 tlx.convert_to_tensor(np.diag(intra_sim, k=0))) )
 
 
     def contrastive_loss_wo_cross_view(self,h1,z):
         f = lambda x: tlx.exp(x)
         in_sim=f(self.sim(h1,h1))
         cross_sim = f(self.sim(h1, z))
-        return -tlx.log(np.diag(cross_sim, k=0) / 
-                       (tlx.reduce_sum(cross_sim, axis=1) + tlx.reduce_sum(in_sim, axis=1) - np.diag(in_sim, k=0)))
+        return -tlx.log(tlx.convert_to_tensor(np.diag(cross_sim, k=0))/\
+                       (tlx.reduce_sum(cross_sim, axis=1) + tlx.reduce_sum(in_sim, axis=1) -tlx.convert_to_tensor(np.diag(in_sim, k=0))))
         #return -tlx.log(np.diag(cross_sim, k=0) / 
         #                tlx.reduce_sum(cross_sim, axis=1))
 

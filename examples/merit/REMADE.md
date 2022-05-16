@@ -52,4 +52,4 @@ python merit_trainer.py --dataset cora --epochs 500 --drop_edge_rate_1 0.2 --dro
 |    Dataset    | Cora | Citeseer | Pubmed |
 | :-----------: | :--: | :------: | :----: |
 | Author's Code | 83.1 |   74.0   |  80.2  |
-|    GammaGL    | 83.5 |   71.3   |  --.-  |
+|    GammaGL    | 83.1 |   71.3   |  --.-  |

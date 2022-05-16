@@ -3,6 +3,12 @@ import scipy.sparse as sp
 import argparse
 import os
 os.environ['TL_BACKEND'] = 'tensorflow'# set your backend here, default `tensorflow`, you can choose 'paddle'、'tensorflow'、'torch'
+#os.environ['TL_BACKEND'] = 'paddle'
+#os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+import sys
+sys.path.append(os.getcwd())
+import warnings
+warnings.filterwarnings("ignore")
 import tensorlayerx as tlx
 from gammagl.models.merit import MERIT,calc,gdc
 from gammagl.datasets import Planetoid
@@ -43,7 +49,8 @@ def main(args):
 
     features=tlx.convert_to_tensor(graph.x)
     #labels = tlx.convert_to_tensor(graph.y)
-    labels = tlx.argmax(graph.y, axis=1)
+    y=tlx.convert_to_tensor(graph.y)
+    labels = tlx.argmax(y, axis=1)
     train_mask=tlx.convert_to_tensor(graph.train_mask)
     val_mask=tlx.convert_to_tensor(graph.val_mask)
     test_mask=tlx.convert_to_tensor(graph.test_mask)
@@ -118,7 +125,7 @@ def main(args):
             else:
                 patience_count += 1
             results.append(acc)
-            print('\t epoch {:03d} | loss {:.5f} | test acc {:.5f} | F1 micro {:.5f}'.format(epoch, loss.item(),acc,micro))
+            print('\t epoch {:03d} | loss {:.5f}'.format(epoch, loss.item()))
             if patience_count >= args.patience:
                 print('Early Stopping.')
                 break
