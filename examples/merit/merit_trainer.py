@@ -5,8 +5,6 @@ import os
 os.environ['TL_BACKEND'] = 'tensorflow'# set your backend here, default `tensorflow`, you can choose 'paddle'、'tensorflow'、'torch'
 #os.environ['TL_BACKEND'] = 'paddle'
 #os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-import sys
-sys.path.append(os.getcwd())
 import warnings
 warnings.filterwarnings("ignore")
 import tensorlayerx as tlx
