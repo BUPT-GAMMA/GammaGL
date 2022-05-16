@@ -210,4 +210,65 @@ class HGBDataset(InMemoryDataset):
 
 
 dataset = HGBDataset("../../data/", 'dblp')
-print(dataset.data['author'].y)
+data = dataset[0]
+print(data[('author','to','paper')])
+'''
+data 格式介绍
+data['author'].x
+data['author'].y
+data['author'].train_mask
+data['author'].test_mask
+
+data['paper'].y
+data['term'].x
+data['venue'].x
+
+data[('author','to','paper')].edge_index
+data[('paper','to','term')].edge_index
+data[('paper','to','venue')].edge_index
+data[('paper','to','author')].edge_index
+data[('term','to','paper')].edge_index
+data[('venue','to','paper')].edge_index
+
+HeteroGraph(
+  author={
+    x=tensor([[0., 0., 1.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.]]),
+    y=tensor([ 2, -1, -1,  ..., -1, -1, -1]),
+    train_mask=tensor([ True, False, False,  ..., False, False, False]),
+    test_mask=tensor([False,  True,  True,  ...,  True,  True,  True])  
+  },
+  paper={ x=tensor([[0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.]]) },
+  term={ x=tensor([[-0.6924, -0.4659,  1.1540,  ...,  0.9178,  0.1995, -0.6360],
+        [ 1.2031, -0.4003,  0.0740,  ...,  1.3262, -0.3325,  0.8198],
+        [ 0.3748,  0.5731,  0.4802,  ...,  1.1522,  0.6010, -0.4309],
+        ...,
+        [ 0.4180,  0.2497, -0.4124,  ..., -0.1841, -0.1151, -0.7858],
+        [ 0.1724, -0.2723, -1.3368,  ..., -0.0881,  0.0225,  0.1166],
+        [ 0.2197,  0.0253,  0.1220,  ...,  0.0871, -0.5351, -0.4949]]) },
+  venue={ num_nodes=20 },
+  (author, to, paper)={ edge_index=tensor([[    0,     0,     1,  ...,  4054,  4055,  4056],
+        [ 2364,  6457,  2365,  ..., 13891, 13891, 13892]], dtype=torch.int32) },
+  (paper, to, term)={ edge_index=tensor([[    0,     0,     0,  ..., 14327, 14327, 14327],
+        [    4,     5,     6,  ...,   586,   730,  1311]], dtype=torch.int32) },
+  (paper, to, venue)={ edge_index=tensor([[    0,     1,     2,  ..., 14325, 14326, 14327],
+        [    0,     0,     0,  ...,    19,    19,    19]], dtype=torch.int32) },
+  (paper, to, author)={ edge_index=tensor([[    0,     1,     2,  ..., 14327, 14327, 14327],
+        [  262,   263,   263,  ...,   324,  1068,  3647]], dtype=torch.int32) },
+  (term, to, paper)={ edge_index=tensor([[   0,    0,    0,  ..., 7720, 7721, 7722],
+        [  19,   30,  225,  ..., 5166, 5168, 5174]], dtype=torch.int32) },
+  (venue, to, paper)={ edge_index=tensor([[    0,     0,     0,  ...,    19,    19,    19],
+        [    0,     1,     2,  ..., 14325, 14326, 14327]], dtype=torch.int32) }
+)
+'''

@@ -48,8 +48,17 @@ class SimpleHGN(MessagePassing):
             else:
                 #self.fc_res = 
                 TODO()
+        else:
+            TODO()
         self.activation = activation
         self.bias = bias
+        if bias:
+            TODO()
+        self.beta = beta
+
+    
+    def forward(self, ):
+        TODO()
 
 
         
