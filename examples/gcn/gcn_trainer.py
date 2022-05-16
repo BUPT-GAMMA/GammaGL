@@ -8,11 +8,12 @@
 
 import os
 # os.environ['CUDA_VISIBLE_DEVICES']='1'
-os.environ['CUDA_VISIBLE_DEVICES']='6'
-os.environ['TL_BACKEND'] = 'tensorflow'
-# os.environ['TL_BACKEND'] = 'mindspore'
+os.environ['CUDA_VISIBLE_DEVICES']='7'
+# os.environ['TL_BACKEND'] = 'tensorflow'
+os.environ['TL_BACKEND'] = 'mindspore'
 # os.environ['TL_BACKEND'] = 'paddle'
 # os.environ['TL_BACKEND'] = 'torch'
+# import tensorflow as tf
 
 import sys
 sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
@@ -60,7 +61,6 @@ def main(args):
     edge_weight = tlx.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
     x = graph.x
     y = tlx.argmax(graph.y, axis=1)
-    getattr(tlx, 'reduce_max')
     graph.train_idx = tlx.convert_to_tensor([i for i, v in enumerate(graph.train_mask) if v], dtype=tlx.int64)
     graph.test_idx = tlx.convert_to_tensor([i for i, v in enumerate(graph.test_mask) if v], dtype=tlx.int64)
     graph.val_idx = tlx.convert_to_tensor([i for i, v in enumerate(graph.val_mask) if v], dtype=tlx.int64)
@@ -82,7 +82,7 @@ def main(args):
 
     data = {
         "x": x,
-        'y':y,
+        'y': y,
         "edge_index": edge_index,
         "edge_weight": edge_weight,
         "train_mask": graph.train_mask,

@@ -1,9 +1,7 @@
-import argparse
-import os.path as osp
 # import os
 # os.environ['TL_BACKEND'] = 'torch'
-# # os.environ['CUDA_VISIBLE_DEVICES'] = ' '
-# set your backend here, default `tensorflow`, you can choose 'paddle'、'tensorflow'、'torch'
+# # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+import argparse
 import tensorlayerx as tlx
 from tensorlayerx.model import TrainOneStep, WithLoss
 
@@ -11,6 +9,7 @@ from gammagl.datasets.flickr import Flickr
 from gammagl.models.sign import SignModel
 
 import gammagl.transforms as T
+
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -27,30 +26,30 @@ def evaluate(net, xs, label, mask, metrics):
     net.set_eval()
     logits = net(xs)
     metrics.update(logits[mask], label[mask])
-    acc = metrics.result()  # [0]
+    acc = metrics.result()
     metrics.reset()
     return acc
 
 
 def main(args):
-    path = osp.join(osp.dirname(osp.realpath(__file__)), '..', args.dataset)
     transform = T.Compose([T.NormalizeFeatures(), T.SIGN(args.K)])
-    dataset = Flickr(root=path, transform=transform)
+    dataset = Flickr(args.dataset_path, transform=transform)
     graph = dataset[0]
+    graph = graph.tensor()  # transform may modify some data into Numpy.ndarray.
 
     xs = [graph.x]
-    xs += [tlx.convert_to_tensor(graph[f'x{i}']) for i in range (1, args.K + 1)]
+    xs += [graph[f'x{i}']for i in range(1, args.K + 1)]
 
-    net = SignModel(K=args.K, in_feat=graph.x.shape[1],
-                    hid_feat=args.hidden_dim, num_classes=graph.num_classes,
+    net = SignModel(K=args.K, in_feat=dataset.num_node_features,
+                    hid_feat=args.hidden_dim, num_classes=dataset.num_classes,
                     drop=1 - args.keep_rate)
+
     optimizer = tlx.optimizers.Adam(args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
     train_weights = net.trainable_weights
 
     loss_func = SemiSpvzLoss(net, tlx.losses.softmax_cross_entropy_with_logits)
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
-
 
     best_val_acc = 0
     data = {"xs": xs,
@@ -75,7 +74,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.01, help="learnin rate")
     parser.add_argument("--dataset_path", type=str, default=r'../Flickr', help="path to save dataset")
-    parser.add_argument('--dataset', type=str, default='Flickr')
+    parser.add_argument('--dataset', type=str, default='Flickr', help='Only flickr')
     parser.add_argument("--hidden_dim", type=int, default=1024, help="dimention of hidden layers")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
