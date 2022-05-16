@@ -7,7 +7,7 @@ def maybe_num_nodes(edge_index, num_nodes=None):
     if num_nodes is not None:
         return num_nodes
     elif tlx.is_tensor(edge_index):
-        return int(tlx.reduce_max(edge_index)) + 1 if edge_index is not None else 0
+        return int(tlx.reduce_max(edge_index)) + 1 if edge_index is not None else 0 # BUG: mindspore reduce max only support float tensor.
     elif check_is_numpy(edge_index):
         return edge_index.max() + 1
     else:
