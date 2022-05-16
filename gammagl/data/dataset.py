@@ -5,12 +5,12 @@ import sys
 import warnings
 from collections.abc import Sequence
 from typing import Any, Callable, List, Optional, Tuple, Union
-from tensorlayerx.dataflow import Dataset
-import tensorlayerx as tlx
+
 import numpy as np
-# from torch import Tensor
-from . import Graph
-from .makedirs import makedirs
+import tensorlayerx as tlx
+from tensorlayerx.dataflow import Dataset
+from gammagl.data import Graph
+from gammagl.data.makedirs import makedirs
 
 try:
     import cPickle as pickle
@@ -50,7 +50,7 @@ class Dataset(Dataset):
     def processed_file_names(self) -> Union[str, List[str], Tuple]:
         r"""The name of the files in the :obj:`self.processed_dir` folder that
         must be present in order to skip processing."""
-        return tlx.BACKEND+'_data.pt'
+        raise NotImplementedError
     
     def download(self):
         r"""Downloads the dataset to the :obj:`self.raw_dir` folder."""
@@ -89,8 +89,20 @@ class Dataset(Dataset):
         if 'process' in self.__class__.__dict__:
             self._process()
 
+    def save_with_pickle(self, obj, file_name):
+        with open(file_name, 'wb') as f:
+            pickle.dump(obj, f)
+        return True
+
+    def load_with_pickle(self, file_name):
+        with open(file_name, 'rb') as f:
+            obj = pickle.load(f)
+        return obj
+
     def save_data(self, obj, file_name):
         if tlx.BACKEND == 'paddle':
+            # with open(file_name, 'wb') as f:
+            #     pickle.dump(obj, f)
             import paddle
             obj[0].numpy()
             paddle.save(obj, file_name)
@@ -99,13 +111,16 @@ class Dataset(Dataset):
             torch.save(obj, file_name)
         else:
             with open(file_name, 'wb') as f:
+                obj[0].numpy()
                 pickle.dump(obj, f)
         return True
         
     def load_data(self, file_name):
         if tlx.BACKEND == 'paddle':
+            # with open(file_name, 'rb') as f:
+            #     obj = pickle.load(f)
             import paddle
-            obj = paddle.load(file_name)
+            obj = paddle.load(file_name, return_numpy=True)
             obj[0].tensor()
         elif tlx.BACKEND == 'torch':
             import torch
@@ -113,6 +128,7 @@ class Dataset(Dataset):
         else:
             with open(file_name, 'rb') as f:
                 obj = pickle.load(f)
+                obj[0].tensor()
         return obj
                 
     def indices(self) -> Sequence:
@@ -174,16 +190,16 @@ class Dataset(Dataset):
         self.download()
 
     def _process(self):
-        f = osp.join(self.processed_dir, 'pre_transform.pt')
-        if osp.exists(f) and torch.load(f) != _repr(self.pre_transform):
+        f = osp.join(self.processed_dir, tlx.BACKEND + '_pre_transform.pt')
+        if osp.exists(f) and self.load_with_pickle(f) != _repr(self.pre_transform):
             warnings.warn(
                 f"The `pre_transform` argument differs from the one used in "
                 f"the pre-processed version of this dataset. If you want to "
                 f"make use of another pre-processing technique, make sure to "
                 f"sure to delete '{self.processed_dir}' first")
 
-        f = osp.join(self.processed_dir, 'pre_filter.pt')
-        if osp.exists(f) and torch.load(f) != _repr(self.pre_filter):
+        f = osp.join(self.processed_dir, tlx.BACKEND + '_pre_filter.pt')
+        if osp.exists(f) and self.load_with_pickle(f) != _repr(self.pre_filter):
             warnings.warn(
                 "The `pre_filter` argument differs from the one used in the "
                 "pre-processed version of this dataset. If you want to make "
@@ -191,6 +207,7 @@ class Dataset(Dataset):
                 "'{self.processed_dir}' first")
 
         if files_exist(self.processed_paths):  # pragma: no cover
+            # self.process()
             return
 
         print('Processing...', file=sys.stderr)
@@ -198,10 +215,10 @@ class Dataset(Dataset):
         makedirs(self.processed_dir)
         self.process()
 
-        # path = osp.join(self.processed_dir, 'pre_transform.pt')
-        # torch.save(_repr(self.pre_transform), path)
-        # path = osp.join(self.processed_dir, 'pre_filter.pt')
-        # torch.save(_repr(self.pre_filter), path)
+        path = osp.join(self.processed_dir, tlx.BACKEND + '_pre_transform.pt')
+        self.save_with_pickle(_repr(self.pre_transform), path)
+        path = osp.join(self.processed_dir, tlx.BACKEND + '_pre_filter.pt')
+        self.save_with_pickle(_repr(self.pre_filter), path)
 
         print('Done!', file=sys.stderr)
 
@@ -239,10 +256,10 @@ class Dataset(Dataset):
         if isinstance(idx, slice):
             indices = indices[idx]
 
-        elif isinstance(idx, Tensor) and idx.dtype == torch.long:
+        elif tlx.ops.is_tensor(idx) and idx.dtype == tlx.long:
             return self.index_select(idx.flatten().tolist())
 
-        elif isinstance(idx, Tensor) and idx.dtype == torch.bool:
+        elif tlx.ops.is_tensor(idx) and idx.dtype == tlx.bool:
             idx = idx.flatten().nonzero(as_tuple=False)
             return self.index_select(idx.flatten().tolist())
 

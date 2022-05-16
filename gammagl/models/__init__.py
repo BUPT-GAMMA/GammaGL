@@ -6,4 +6,10 @@ from .graphsage import GraphSAGE_Full_Model, GraphSAGE_Sample_Model
 from .gcnii import GCNIIModel
 from .appnp import APPNPModel
 from .gin import GINModel
+from .rgcn import RGCN
 from .agnn import AGNNModel
+from .jknet import JKNet
+from .han import HAN
+from .dgi import DGIModel
+from .agnn import AGNNModel
+from .grace import grace
