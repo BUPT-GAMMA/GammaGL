@@ -16,6 +16,7 @@ class InMemoryDataset(Dataset):
     See `here <https://pytorch-geometric.readthedocs.io/en/latest/notes/
     create_dataset.html#creating-in-memory-datasets>`__ for the accompanying
     tutorial.
+
     Args:
         root (string, optional): Root directory where the dataset should be
             saved. (default: :obj:`None`)
