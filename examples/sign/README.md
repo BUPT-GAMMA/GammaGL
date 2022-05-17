@@ -1,6 +1,6 @@
 SIGN: Scalable Inception Graph Neural Networks
 ===============
-
+This repository contains the code to run the SIGN model on the Flickr dataset
 - paper link: [https://arxiv.org/pdf/2004.11198.pdf](https://arxiv.org/pdf/2004.11198.pdf)
 
 Results
@@ -8,7 +8,12 @@ Results
 ### Flickr
 
 ```bash
-python sign_trainer.py
+# use TensorFlow background
+CUDA_VISIBLE_DEVICES="1" TL_BACKEND="tensorflow" python sign_trainer.py
+# use Paddle background
+CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python sign_trainer.py
+# use Pytorch background
+CUDA_VISIBLE_DEVICES="1" TL_BACKEND="torch" python sign_trainer.py
 ```
 
 

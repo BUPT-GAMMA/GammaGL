@@ -47,6 +47,10 @@ class IMDB(InMemoryDataset):
             'labels.npy', 'train_val_test_idx.npz'
         ]
 
+    @property
+    def processed_file_names(self) -> str:
+        return tlx.BACKEND+'data.pt'
+
     def download(self):
         path = download_url(self.url, self.raw_dir)
         extract_zip(path, self.raw_dir)
