@@ -1,3 +1,4 @@
+# !/usr/bin/env python
 # -*- encoding: utf-8 -*-
 """
 @File   :  fagcn_conv.py
