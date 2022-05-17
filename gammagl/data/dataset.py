@@ -111,6 +111,7 @@ class Dataset(Dataset):
             torch.save(obj, file_name)
         else:
             with open(file_name, 'wb') as f:
+                obj[0].numpy()
                 pickle.dump(obj, f)
         return True
         
@@ -127,6 +128,7 @@ class Dataset(Dataset):
         else:
             with open(file_name, 'rb') as f:
                 obj = pickle.load(f)
+                obj[0].tensor()
         return obj
                 
     def indices(self) -> Sequence:
@@ -205,7 +207,7 @@ class Dataset(Dataset):
                 "'{self.processed_dir}' first")
 
         if files_exist(self.processed_paths):  # pragma: no cover
-            self.process()
+            # self.process()
             return
 
         print('Processing...', file=sys.stderr)

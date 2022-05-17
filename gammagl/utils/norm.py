@@ -1,5 +1,5 @@
 import tensorlayerx as tlx
-import gammagl.mpops as mpops
+from gammagl.mpops import *
 
 
 def calc_gcn_norm(edge_index, num_nodes, edge_weight=None):
@@ -16,7 +16,7 @@ def calc_gcn_norm(edge_index, num_nodes, edge_weight=None):
     src, dst = edge_index[0], edge_index[1]
     if edge_weight is None:
         edge_weight = tlx.ones(shape=(edge_index.shape[1], 1))  # torch backend `shape` should be tuple.
-    deg = tlx.reshape(mpops.unsorted_segment_sum(edge_weight, src, num_segments=num_nodes), (-1,))
+    deg = tlx.reshape(unsorted_segment_sum(edge_weight, src, num_segments=num_nodes), (-1,))
     deg_inv_sqrt = tlx.pow(deg, -0.5)
     weights = tlx.ops.gather(deg_inv_sqrt, src) * tlx.reshape(edge_weight, (-1,)) * tlx.ops.gather(deg_inv_sqrt, dst)
     return weights

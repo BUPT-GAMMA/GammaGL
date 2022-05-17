@@ -1,5 +1,5 @@
 import tensorlayerx as tlx
-import gammagl.mpops as mpops
+from gammagl.mpops import *
 
 
 class MessagePassing(tlx.nn.Module):
@@ -30,11 +30,11 @@ class MessagePassing(tlx.nn.Module):
     def aggregate(self, msg, edge_index, num_nodes=None, aggr_type='sum'):
         dst_index = edge_index[1, :]
         if aggr_type == 'sum':
-            return mpops.unsorted_segment_sum(msg, dst_index, num_nodes)
+            return unsorted_segment_sum(msg, dst_index, num_nodes)
         elif aggr_type == 'mean':
-            return mpops.unsorted_segment_mean(msg, dst_index, num_nodes)
+            return unsorted_segment_mean(msg, dst_index, num_nodes)
         elif aggr_type == 'max':
-            return mpops.unsorted_segment_max(msg, dst_index, num_nodes)
+            return unsorted_segment_max(msg, dst_index, num_nodes)
         else:
             raise NotImplementedError('Not support for this opearator')
 

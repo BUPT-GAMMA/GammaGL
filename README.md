@@ -69,6 +69,6 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [GCNII [ICLR 2017]](./examples/gcnii)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [AGNN [arxiv]](./examples/agnn)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [DGI [ICLR 2019]](./examples/dgi)                | :heavy_check_mark: |                    |                    |                    |
-| [SIGN [ICML 2020 Workshop]](./examples/sign)     | :heavy_check_mark: | :heavy_check_mark: |                    |                    |
+| [SIGN [ICML 2020 Workshop]](./examples/sign)     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [GRACE [ICML 2020 Workshop]](./examples/grace)   | :heavy_check_mark: |                    |                    |                    |
 |                                                  |                    |                    |                    |                    |
