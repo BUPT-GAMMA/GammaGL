@@ -27,8 +27,7 @@ In order to create a :class:`gammagl.data.InMemoryDataset`, you need to implemen
 * :func:`gammagl.data.InMemoryDataset.raw_file_names`: A list of files in the :obj:`raw_dir` which needs to be found in order to skip the download.
 
 * :func:`gammagl.data.InMemoryDataset.processed_file_names`: A list of files in the :obj:`processed_dir` which needs to be found in order to skip the processing.
-
-GammaGL recommends setting it with `tlx.BACKEND + '_data.pt`` due to involving multi-backends.
+  GammaGL recommends setting it with `tlx.BACKEND + '_data.pt`` due to involving multi-backends.
 
 * :func:`gammagl.data.InMemoryDataset.download`: Downloads raw data into :obj:`raw_dir`.
 
