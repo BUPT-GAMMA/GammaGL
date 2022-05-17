@@ -42,7 +42,7 @@ class FAGCNModel(nn.Module):
             self.mid_layers.append(FAGCNConv(src_degree=src_degree, dst_degree=dst_degree,
                                              hidden_dim=hidden_dim, drop_rate=drop_rate))
 
-        init = nn.initializers.XavierNormal(seed=1.414)
+        init = nn.initializers.XavierNormal()
         self.first_layer = nn.Linear(in_features=feature_dim, out_features=hidden_dim, W_init=init)
         self.last_layer = nn.Linear(in_features=hidden_dim, out_features=num_class, W_init=init)
 
@@ -51,10 +51,10 @@ class FAGCNModel(nn.Module):
         x = self.dropout(x)
         x = self.relu(self.first_layer(x))
         x = self.dropout(x)
-        raw = x  # h_0
+        x_0 = x
         for i in range(self.num_layers):
             x = self.mid_layers[i](x, edge_index, num_nodes)
-            x = self.eps * raw + x
+            x = self.eps * x_0 + x
         x = self.last_layer(x)
 
         return x

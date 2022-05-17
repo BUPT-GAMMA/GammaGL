@@ -44,7 +44,7 @@ class FAGCNConv(MessagePassing):
         self.dropout = nn.Dropout(drop_rate)
         self.tanh = nn.Tanh()
 
-        init = nn.initializers.XavierNormal(seed=1.414)
+        init = nn.initializers.XavierNormal()
         self.att_src = self._get_weights("att_src", shape=(1, hidden_dim), init=init)
         self.att_dst = self._get_weights("att_dst", shape=(1, hidden_dim), init=init)
         self.bias_src = self._get_weights("bias_src", shape=(hidden_dim,))

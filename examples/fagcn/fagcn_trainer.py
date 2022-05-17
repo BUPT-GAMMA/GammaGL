@@ -1,13 +1,14 @@
+# !/usr/bin/env python
 # -*- encoding: utf-8 -*-
 """
-@File   :  fagcn_trainer.py
-@Time   :  2022/5/10 10:55
-@Author :  Ma Zeyao
+@File    :   fagcn_trainer.py
+@Time    :   2022/5/10 10:55
+@Author  :   Ma Zeyao
 """
 
 import os
-os.environ['TL_BACKEND'] = 'tensorflow'
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ['TL_BACKEND'] = 'paddle'
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import sys
 sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import argparse
@@ -16,11 +17,6 @@ import numpy as np
 from gammagl.datasets import Planetoid
 from gammagl.models import FAGCNModel
 from tensorlayerx.model import TrainOneStep, WithLoss
-import tensorflow as tf
-physical_gpus = tf.config.experimental.list_physical_devices('GPU')
-if len(physical_gpus) > 0:
-    # dynamic allocate gpu memory
-    tf.config.experimental.set_memory_growth(physical_gpus[0], True)
 
 
 def evaluate(net, data, y, mask, metrics):
@@ -81,8 +77,8 @@ def main(args):
     for i in range(0, len(src_node)):
         src_degree[i] = degree[src_node[i]]
         dst_degree[i] = degree[dst_node[i]]
-    src_degree = tlx.convert_to_tensor(src_degree, dtype=float)
-    dst_degree = tlx.convert_to_tensor(dst_degree, dtype=float)
+    src_degree = tlx.convert_to_tensor(src_degree, dtype='float32')
+    dst_degree = tlx.convert_to_tensor(dst_degree, dtype='float32')
 
     net = FAGCNModel(src_degree=src_degree,
                      dst_degree=dst_degree,
@@ -135,7 +131,7 @@ if __name__ == "__main__":
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.01, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
+    parser.add_argument("--n_epoch", type=int, default=500, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=16, help="dimention of hidden layers")
     parser.add_argument("--drop_rate", type=float, default=0.4, help="drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
