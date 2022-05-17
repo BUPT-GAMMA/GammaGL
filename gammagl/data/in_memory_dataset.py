@@ -64,7 +64,8 @@ class InMemoryDataset(Dataset):
         # elif y.numel() == y.size(0) and not torch.is_floating_point(y):
         #     return int(self.data.y.max()) + 1
         elif y.ndim == 1:
-            return int(tlx.reduce_max(y) + 1)
+            y = tlx.convert_to_numpy(y)
+            return int(y.max() + 1)
         else:
             return self.data.y.shape[-1]
 
