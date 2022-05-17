@@ -24,8 +24,10 @@ class SIGN(BaseTransform):
         For an example of using SIGN, see `examples/sign.py
         <https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/sign>`_.
 
-    Args:
-        K (int): The number of hops/layer.
+    Parameters
+    ----------
+    K: int
+        The number of hops/layer.
     """
     def __init__(self, K):
         self.K = K
