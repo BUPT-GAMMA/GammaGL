@@ -10,7 +10,6 @@ gammagl.transforms.add\_metapaths module
    :show-inheritance:
 
    .. autoclass:: AddMetaPaths
-      :special-members:
 
 
 gammagl.transforms.base\_transform module
@@ -22,7 +21,6 @@ gammagl.transforms.base\_transform module
    :show-inheritance:
 
    .. autoclass:: BaseTransform
-      :special-members:
 
 gammagl.transforms.compose module
 ---------------------------------
@@ -33,7 +31,6 @@ gammagl.transforms.compose module
    :show-inheritance:
 
    .. autoclass:: Compose
-      :special-members:
 
 gammagl.transforms.normalize\_features module
 ---------------------------------------------
@@ -44,7 +41,6 @@ gammagl.transforms.normalize\_features module
    :show-inheritance:
 
    .. autoclass:: NormalizeFeatures
-      :special-members:
 
 gammagl.transforms.sign module
 ---------------------------------
@@ -55,4 +51,3 @@ gammagl.transforms.sign module
    :show-inheritance:
 
    .. autoclass:: SIGN
-      :special-members:

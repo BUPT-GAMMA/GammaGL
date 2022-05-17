@@ -1,4 +1,4 @@
-gammagl.models package
+gammagl.models
 ======================
 
 gammagl.models.agnn module
