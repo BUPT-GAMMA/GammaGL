@@ -21,8 +21,7 @@ class SIGN(BaseTransform):
         Since intermediate node representations are pre-computed, this operator
         is able to scale well to large graphs via classic mini-batching.
         For an example of using SIGN, see `examples/sign.py
-        <https://github.com/pyg-team/pytorch_geometric/blob/master/examples/
-        sign.py>`_.
+        <https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/sign>`_.
 
     Parameters
     ----------
@@ -36,8 +35,9 @@ class SIGN(BaseTransform):
         assert graph.edge_index is not None
         row, col = graph.edge_index.numpy()
         weight = np.ones_like(row, dtype=np.float32)
-#paddle compute degrees very slow
-        deg = graph.out_degree.numpy()
+
+        # Here the graph is undirected.
+        deg = np.bincount(graph.edge_index[0])
         deg_inv_sqrt = np.power(deg, -0.5, dtype=np.float32).flatten()
         deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
         new_weight = deg_inv_sqrt[row] * weight * deg_inv_sqrt[col]

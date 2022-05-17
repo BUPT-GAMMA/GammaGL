@@ -4,6 +4,7 @@ import os.path as osp
 from typing import Callable, List, Optional
 import numpy as np
 import scipy.sparse as sp
+import tensorlayerx as tlx
 from gammagl.data import InMemoryDataset, download_url, Graph
 
 
@@ -58,6 +59,10 @@ class Flickr(InMemoryDataset):
     def raw_file_names(self) -> List[str]:
         return ['adj_full.npz', 'feats.npy', 'class_map.json', 'role.json']
 
+    @property
+    def processed_file_names(self) -> str:
+        return tlx.BACKEND+'data.pt'
+
     def download(self):
         path = download_url(self.url.format(self.adj_full_id), self.raw_dir)
         os.rename(path, osp.join(self.raw_dir, 'adj_full.npz'))
@@ -77,7 +82,6 @@ class Flickr(InMemoryDataset):
         adj = adj.tocoo()
         row = adj.row
         col = adj.col
-        # deg = np.array(adj.sum(1))
         edge_index = np.array([row, col], dtype=np.int64)
 
         x = np.load(osp.join(self.raw_dir, 'feats.npy'))
@@ -87,10 +91,6 @@ class Flickr(InMemoryDataset):
             class_map = json.load(f)
             for key, item in class_map.items():
                 ys[int(key)] = item
-
-        # y = np.array(ys, dtype=np.int32)
-        # label = np.zeros((y.size, y.max() + 1), dtype=np.float32)
-        # label[np.arange(y.size), y] = 1
 
         with open(osp.join(self.raw_dir, 'role.json')) as f:
             role = json.load(f)
@@ -105,7 +105,6 @@ class Flickr(InMemoryDataset):
         data.train_mask = train_mask
         data.val_mask = val_mask
         data.test_mask = test_mask
-        data.num_classes = 7
 
         data = data if self.pre_transform is None else self.pre_transform(data)
         self.save_data(self.collate([data]), self.processed_paths[0])
