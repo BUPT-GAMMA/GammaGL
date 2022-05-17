@@ -24,7 +24,7 @@ class NormalizeFeatures(BaseTransform):
         for store in graph.stores:
             for key, value in store.items(*self.attrs):
                 if not isinstance(value, np.ndarray):
-                    value = value.numpy()
+                    value = tlx.convert_to_numpy(value)
                 value = value - value.min()
                 value = np.divide(value, value.sum(axis=-1, keepdims=True).clip(min=1.))
                 store[key] = tlx.convert_to_tensor(value, dtype=tlx.float32)

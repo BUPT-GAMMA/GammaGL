@@ -7,13 +7,8 @@
 """
 
 import os
-# os.environ['CUDA_VISIBLE_DEVICES']='1'
-os.environ['CUDA_VISIBLE_DEVICES']='7'
-# os.environ['TL_BACKEND'] = 'tensorflow'
-os.environ['TL_BACKEND'] = 'mindspore'
+# os.environ['CUDA_VISIBLE_DEVICES']='0'
 # os.environ['TL_BACKEND'] = 'paddle'
-# os.environ['TL_BACKEND'] = 'torch'
-# import tensorflow as tf
 
 import sys
 sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
@@ -21,34 +16,37 @@ import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
 from gammagl.models import GCNModel
-from gammagl.utils.loop import add_self_loops
+from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss
-from gammagl.utils.norm import calc_gcn_norm
-# from pyinstrument import Profiler
+
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
         super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
 
     def forward(self, data, y):
-        loss = clac_acc_loss(self.backbone_network, data, 'train_idx', loss_func=self._loss_fn)
+        logits = self.backbone_network(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
+        train_logits = tlx.gather(logits, data['train_idx'])
+        train_y = tlx.gather(data['y'], data['train_idx'])
+        loss = self._loss_fn(train_logits, train_y)
         return loss
 
 
-def clac_acc_loss(net, data, idx_type, loss_func=None, metrics=None):
-    logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
-    _logits = tlx.gather(logits, data[idx_type])
-    _y = tlx.gather(data['y'], data[idx_type])
+def calculate_acc(logits, y, metrics):
+    """
+    Args:
+        logits: node logits
+        y: node labels
+        metrics: tensorlayerx.metrics
 
-    if loss_func is not None:
-        loss = loss_func(_logits, _y)
-        return loss
+    Returns:
+        rst
+    """
 
-    if metrics is not None:
-        metrics.update(_logits, _y)
-        acc = metrics.result()
-        metrics.reset()
-        return acc
+    metrics.update(logits, y)
+    rst = metrics.result()
+    metrics.reset()
+    return rst
 
 
 def main(args):
@@ -59,15 +57,13 @@ def main(args):
     graph = dataset[0]
     edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=args.self_loops)
     edge_weight = tlx.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
-    x = graph.x
-    y = tlx.argmax(graph.y, axis=1)
-    graph.train_idx = tlx.convert_to_tensor([i for i, v in enumerate(graph.train_mask) if v], dtype=tlx.int64)
-    graph.test_idx = tlx.convert_to_tensor([i for i, v in enumerate(graph.test_mask) if v], dtype=tlx.int64)
-    graph.val_idx = tlx.convert_to_tensor([i for i, v in enumerate(graph.val_mask) if v], dtype=tlx.int64)
 
-    # pf = Profiler()
-    # pf.start()
-    net = GCNModel(feature_dim=x.shape[1],
+    # for mindspore, it should be passed into node indices
+    train_idx = mask_to_index(graph.train_mask)
+    test_idx = mask_to_index(graph.test_mask)
+    val_idx = mask_to_index(graph.val_mask)
+
+    net = GCNModel(feature_dim=dataset.num_node_features,
                    hidden_dim=args.hidden_dim,
                    num_class=dataset.num_classes,
                    drop_rate=args.drop_rate,
@@ -81,25 +77,25 @@ def main(args):
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
     data = {
-        "x": x,
-        'y': y,
+        "x": graph.x,
+        "y": graph.y,
         "edge_index": edge_index,
         "edge_weight": edge_weight,
-        "train_mask": graph.train_mask,
-        "test_mask": graph.test_mask,
-        "val_mask": graph.val_mask,
-        "train_idx": graph.train_idx,
-        "test_idx": graph.test_idx,
-        "val_idx": graph.val_idx,
+        "train_idx": train_idx,
+        "test_idx": test_idx,
+        "val_idx": val_idx,
         "num_nodes": graph.num_nodes,
     }
 
     best_val_acc = 0
     for epoch in range(args.n_epoch):
         net.set_train()
-        train_loss = train_one_step(data, y)
+        train_loss = train_one_step(data, graph.y)
         net.set_eval()
-        val_acc = clac_acc_loss(net, data, 'val_idx', metrics=metrics)
+        logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
+        val_logits = tlx.gather(logits, data['val_idx'])
+        val_y = tlx.gather(data['y'], data['val_idx'])
+        val_acc = calculate_acc(val_logits, val_y, metrics)
 
         print("Epoch [{:0>3d}] ".format(epoch+1)\
               + "  train loss: {:.4f}".format(train_loss.item())\
@@ -108,15 +104,17 @@ def main(args):
         # save best model on evaluation set
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            net.save_weights(args.best_model_path+net.name+"_"+args.dataset+".npz", format='npz_dict')
+            net.save_weights(args.best_model_path+"GCN_"+args.dataset+".npz", format='npz_dict')
 
-    net.load_weights(args.best_model_path+net.name+"_"+args.dataset+".npz", format='npz_dict')
-    if os.environ['TL_BACKEND'] == 'torch':
+    net.load_weights(args.best_model_path+"GCN_"+args.dataset+".npz", format='npz_dict')
+    if tlx.BACKEND == 'torch':
         net.to(data['x'].device)
-    test_acc = clac_acc_loss(net, data, 'test_idx', metrics=metrics)
+    net.set_eval()
+    logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
+    test_logits = tlx.gather(logits, data['test_idx'])
+    test_y = tlx.gather(data['y'], data['test_idx'])
+    test_acc = calculate_acc(test_logits, test_y, metrics)
     print("Test acc:  {:.4f}".format(test_acc))
-    # pf.stop()
-    # print(pf.output_text(unicode=True, color=True))
 
 
 if __name__ == '__main__':

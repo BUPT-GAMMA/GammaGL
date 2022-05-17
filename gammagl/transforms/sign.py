@@ -1,6 +1,7 @@
-from gammagl.transforms import BaseTransform
-import scipy.sparse as sp
 import numpy as np
+import scipy.sparse as sp
+import tensorlayerx as tlx
+from gammagl.transforms import BaseTransform
 
 
 class SIGN(BaseTransform):
@@ -33,17 +34,24 @@ class SIGN(BaseTransform):
 
     def __call__(self, graph):
         assert graph.edge_index is not None
-        row, col = graph.edge_index.numpy()
+        if tlx.is_tensor(graph.edge_index):
+            row, col = tlx.convert_to_numpy(graph.edge_index)
+        else:
+            row, col = graph.edge_index
         weight = np.ones_like(row, dtype=np.float32)
 
         # Here the graph is undirected.
-        deg = np.bincount(graph.edge_index[0])
+        deg = np.bincount(row)
         deg_inv_sqrt = np.power(deg, -0.5, dtype=np.float32).flatten()
         deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
         new_weight = deg_inv_sqrt[row] * weight * deg_inv_sqrt[col]
         new_adj = sp.coo_matrix((new_weight, [col, row]))
         assert graph.x is not None
-        xs = [graph.x.numpy()]
+        if tlx.is_tensor(graph.x):
+            x = tlx.convert_to_numpy(graph.x)
+        else:
+            x = graph.x
+        xs = [x]
         for i in range(1, self.K + 1):
             xs += [new_adj @ xs[-1]]
             graph[f'x{i}'] = xs[-1]

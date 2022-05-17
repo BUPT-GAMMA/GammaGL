@@ -11,7 +11,7 @@ def unsorted_segment_sum(x, segment_ids, num_segments=None):
 
 
     if len(segment_ids.shape) == 1:
-        s = torch.prod(torch.tensor(x.shape[1:], device=x.device)).to(torch.int32)
+        s = torch.prod(torch.tensor(x.shape[1:], device=x.device)).to(torch.int64)
         segment_ids = segment_ids.repeat_interleave(s).view(segment_ids.shape[0], *x.shape[1:])
 
     assert x.shape == segment_ids.shape, "data.shape and segment_ids.shape should be equal"
@@ -30,7 +30,7 @@ def unsorted_segment_mean(x, segment_ids, num_segments=None):
     # assert segment_ids.max() < num_segments
 
     if len(segment_ids.shape) == 1:
-        s = torch.prod(torch.tensor(x.shape[1:], device=x.device)).to(torch.int32)
+        s = torch.prod(torch.tensor(x.shape[1:], device=x.device)).to(torch.int64)
         segment_ids = segment_ids.repeat_interleave(s).view(segment_ids.shape[0], *x.shape[1:])
 
     assert x.shape == segment_ids.shape, "data.shape and segment_ids.shape should be equal"
