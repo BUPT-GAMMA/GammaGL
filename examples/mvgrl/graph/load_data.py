@@ -24,18 +24,6 @@ def compute_ppr(graph: nx.Graph, alpha=0.2, self_loop=True):
     return alpha * inv((np.eye(a.shape[0], dtype=np.float32) - (1 - alpha) * at))  # a(I_n-(1-a)A~)^-1
 
 
-# def normalize_adj(adj, self_loop=True):
-#     """Symmetrically normalize adjacency matrix."""
-#     if self_loop:
-#         adj = adj + sp.eye(adj.shape[0])
-#     adj = sp.coo_matrix(adj)
-#     rowsum = np.array(adj.sum(1))
-#     d_inv_sqrt = np.power(rowsum, -0.5).flatten()
-#     d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
-#     d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
-#     return adj.dot(d_mat_inv_sqrt).transpose().dot(d_mat_inv_sqrt).tocoo()
-
-
 def download(root, name):
     url = 'https://www.chrsmrrs.com/graphkerneldatasets'
     basedir = os.path.dirname(os.path.abspath(__file__))

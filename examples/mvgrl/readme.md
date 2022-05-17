@@ -67,47 +67,32 @@ Author's code: https://github.com/kavehhassani/mvgrl
 cd graph
 
 # MUTAG:
-python main.py --dataname MUTAG --epochs 20
+python main.py --dataset MUTAG --n_epoch 20
 
 # PTC_MR:
-python main.py --dataname PTC_MR --epochs 32 --hid_dim 128
-
-# REDDIT-BINARY
-python main.py --dataname REDDIT-BINARY --epochs 20 --hid_dim 128
+python main.py --dataset PTC_MR --epochs 32 --hid_dim 128
 
 # IMDB-BINARY
-python main.py --dataname IMDB-BINARY --epochs 20 --hid_dim 512 --n_layers 2
+python main.py --dataset IMDB-BINARY --epochs 20 --hid_dim 512 --n_layers 2
 
 # IMDB-MULTI
-python main.py --dataname IMDB-MULTI --epochs 20 --hid_dim 512 --n_layers 2
+python main.py --dataset IMDB-MULTI --epochs 20 --hid_dim 512 --n_layers 2
 ```
 ###### Node Classification
 
-For semi-supervised node classification on 'Cora', 'Citeseer' and 'Pubmed', we provide two implementations:
+For semi-supervised node classification on 'Cora', 'Citeseer'
 
-1. full-graph training, see 'main.py', where we contrast the local and global representations of the whole graph.
-2. subgraph training, see 'main_sample.py', where we contrast the local and global representations of a sampled subgraph with fixed number of nodes.
-
-For larger graphs(e.g. Pubmed), it would be hard to calculate the graph diffusion matrix(i.e., PPR matrix), so we try to approximate it with [APPNP](https://arxiv.org/abs/1810.05997), see function 'process_dataset_appnp'  in 'node/dataset.py' for details.
+full-graph training, see 'mvgrl_trainer.py', where we contrast the local and global representations of the whole graph.
 
 ```python
 # Enter the 'node' directory
 cd node
 
 # Cora with full graph
-python main.py --dataname cora --gpu 0
+python mvgrl_trainer.py --dataset cora 
 
-# Cora with sampled subgraphs
-python main_sample.py --dataname cora --gpu 0
-
-# Citeseer with full graph
-python main.py --dataname citeseer --wd1 0.001 --wd2 0.01 --epochs 200 --gpu 0
-
-# Citeseer with sampled subgraphs
-python main_sample.py --dataname citeseer --wd2 0.01 --gpu 0
-
-# Pubmed with sampled subgraphs
-python main_sample.py --dataname pubmed --sample_size 4000 --epochs 400 --patience 999 --gpu 0
+# Citeseer 
+python mvgrl_trainer.py --dataset citeseer
 ```
 
 ## 	Performance
@@ -120,6 +105,10 @@ We use the same  hyper-parameter settings as stated in the original paper.
 | :---------------: | :---: | :----: | :------: | :----: | :----: |
 | Accuracy Reported | 89.7  |  62.5  |   84.5   |  74.2  |  51.2  |
 |        DGL        | 89.4  |  62.2  |   85.0   |  73.8  |  51.1  |
+|    GammaGL(tf)    | 89.4  |  60.0  |   OOM    |  74.0  |  50.5  |
+|    GammaGL(th)    | --.-  |  --.-  |   --.-   |  --.-  |  --.-  |
+|    GammaGL(pd)    | --.-  |  --.-  |   --.-   |  --.-  |  --.-  |
+|    GammaGL(ms)    | --.-  |  --.-  |   --.-   |  --.-  |  --.-  |
 
 * The datasets that the authors used are slightly different from standard TUDataset (see dgl.data.GINDataset) in the nodes' features(e.g. The node features of 'MUTAG' dataset are of dimensionality 11 rather than 7")
 
@@ -130,6 +119,11 @@ We use the same  hyper-parameter settings as stated in the original paper.
 | Accuracy Reported | 86.8 |   73.3   |  80.1  |
 |    DGL-sample     | 83.2 |   72.6   |  79.8  |
 |     DGL-full      | 83.5 |   73.7   |  OOM   |
+|     GammaGL(tf)   | 82.8 |   70.1   |  OOM   |
+|     GammaGL(th)   | --.- |   --.-   |  OOM   |
+|     GammaGL(pd)   | --.- |   --.-   |  OOM   |
+|     GammaGL(ms)   | --.- |   --.-   |  OOM   |
+
 
 * We fail to reproduce the reported accuracy on 'Cora', even with the authors' code.
 * The accuracy reported by the original paper is based on fixed-sized subgraph-training.
