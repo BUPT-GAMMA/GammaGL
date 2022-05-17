@@ -1,9 +1,47 @@
-gammagl.layers package
+gammagl.layers
 ======================
 
-.. toctree::
-   :maxdepth: 4
+.. contents:: Contents
+    :local:
 
-   gammagl.layers.conv
-   gammagl.layers.kernel
-   gammagl.layers.pool
+Convolutional Layers
+--------------------
+
+.. currentmodule:: gammagl.layers.conv
+.. autosummary::
+   :nosignatures:
+   {% for cls in gammagl.layers.conv.classes %}
+     {{ cls }}
+   {% endfor %}
+
+.. automodule:: gammagl.layers.conv
+    :members:
+    :undoc-members:
+
+Pooling Layers
+--------------
+
+.. currentmodule:: gammagl.layers.pool
+.. autosummary::
+   :nosignatures:
+   {% for cls in gammagl.layers.pool.classes %}
+     {{ cls }}
+   {% endfor %}
+
+.. automodule:: gammagl.layers.pool
+   :members:
+   :undoc-members:
+
+Model
+-----
+
+.. currentmodule:: gammagl.models
+.. autosummary::
+   :nosignatures:
+   {% for cls in gammagl.models.classes %}
+     {{ cls }}
+   {% endfor %}
+
+.. automodule:: gammagl.models
+    :members:
+    :undoc-members:

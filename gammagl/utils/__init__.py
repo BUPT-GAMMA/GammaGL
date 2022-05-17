@@ -6,3 +6,18 @@ from .coalesce import coalesce
 from .undirected import to_undirected, is_undirected
 from .degree import degree
 from .loop import add_self_loops, remove_self_loops
+
+__all__ = [
+    'calc_A_norm_hat',
+    'calc_gcn_norm',
+    'segment_softmax',
+    'sort_edge_index',
+    'coalesce',
+    'to_undirected',
+    'is_undirected',
+    'degree',
+    'add_self_loops',
+    'remove_self_loops'
+]
+
+classes = __all__
