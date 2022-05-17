@@ -20,10 +20,10 @@ class Collater:
                                         self.exclude_keys)
         # elif isinstance(elem, torch.Tensor):
         #     return default_collate(batch)
-        # elif isinstance(elem, float):
-        #     return torch.tensor(batch, dtype=torch.float)
-        # elif isinstance(elem, int):
-        #     return torch.tensor(batch)
+        elif isinstance(elem, float):
+            return tlx.convert_to_tensor(batch, dtype=tlx.float32)
+        elif isinstance(elem, int):
+            return tlx.convert_to_tensor(batch, dtype=tlx.int64)
         elif isinstance(elem, str):
             return batch
         elif isinstance(elem, Mapping):
