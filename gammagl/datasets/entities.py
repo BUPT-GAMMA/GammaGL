@@ -20,21 +20,28 @@ class Entities(InMemoryDataset):
     the `"Modeling Relational Data with Graph Convolutional Networks"
     <https://arxiv.org/abs/1703.06103>`_ paper.
     Training and test splits are given by node indices.
-    Args:
-        root (string): Root directory where the dataset should be saved.
-        name (string): The name of the dataset (:obj:`"AIFB"`,
-            :obj:`"MUTAG"`, :obj:`"BGS"`, :obj:`"AM"`).
-        hetero (bool, optional): If set to :obj:`True`, will save the dataset
-            as a :class:`~torch_geometric.data.HeteroData` object.
-            (default: :obj:`False`)
-        transform (callable, optional): A function/transform that takes in an
-            :obj:`torch_geometric.data.Data` object and returns a transformed
-            version. The data object will be transformed before every access.
-            (default: :obj:`None`)
-        pre_transform (callable, optional): A function/transform that takes in
-            an :obj:`torch_geometric.data.Data` object and returns a
-            transformed version. The data object will be transformed before
-            being saved to disk. (default: :obj:`None`)
+    
+    Parameters
+    ----------
+	root: string
+		Root directory where the dataset should be saved.
+	name: string
+		The name of the dataset (:obj:`"AIFB"`,
+		:obj:`"MUTAG"`, :obj:`"BGS"`, :obj:`"AM"`).
+	hetero: bool, optional
+		If set to :obj:`True`, will save the dataset
+		as a :class:`~torch_geometric.data.HeteroData` object.
+		(default: :obj:`False`)
+	transform: callable, optional
+		A function/transform that takes in an
+		:obj:`torch_geometric.data.Data` object and returns a transformed
+		version. The data object will be transformed before every access.
+		(default: :obj:`None`)
+	pre_transform: callable, optional
+		A function/transform that takes in
+		an :obj:`torch_geometric.data.Data` object and returns a
+		transformed version. The data object will be transformed before
+		being saved to disk. (default: :obj:`None`)
     """
 	
 	url = 'https://data.dgl.ai/dataset/{}.tgz'

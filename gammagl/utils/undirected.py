@@ -7,6 +7,7 @@ def is_undirected(
     edge_index, edge_attr=None, num_nodes=None) -> bool:
     r"""Returns :obj:`True` if the graph given by :attr:`edge_index` is
     undirected.
+    
     Args:
         edge_index (LongTensor): The edge indices.
         edge_attr (Tensor or List[Tensor], optional): Edge weights or multi-
@@ -15,6 +16,7 @@ def is_undirected(
             (default: :obj:`None`)
         num_nodes (int, optional): The number of nodes, *i.e.*
             :obj:`max_val + 1` of :attr:`edge_index`. (default: :obj:`None`)
+
     :rtype: bool
     """
     num_nodes = maybe_num_nodes(edge_index, num_nodes)
