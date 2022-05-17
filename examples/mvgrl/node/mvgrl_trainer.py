@@ -3,9 +3,9 @@ from time import time
 
 # from tqdm import tqdm
 
-os.environ['TL_BACKEND'] = 'paddle'
-# set your backend here, default `tensorflow`
-os.environ['CUDA_VISIBLE_DEVICES'] = ' '
+# os.environ['TL_BACKEND'] = 'paddle'
+# # set your backend here, default `tensorflow`
+# os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "5"
 import argparse
@@ -53,10 +53,10 @@ def main(args):
     # Step 4: Training epochs ================================================================ #
     best = float('inf')
     cnt_wait = 0
+    # feat = tlx.convert_to_numpy(feat)
     for epoch in range(args.n_epoch):
         net.set_train()
         shuf_idx = np.random.permutation(graph.num_nodes)
-        feat = tlx.convert_to_numpy(feat)
         shuf_feat = feat[shuf_idx, :]
         shuf_feat = shuf_feat
         data = {"edge_index": graph.edge_index, "diff_adj": tlx.convert_to_tensor(diff_adj),
@@ -117,12 +117,12 @@ if __name__ == '__main__':
     parser.add_argument("--dataset_path", type=str, default=r'../../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--hidden_dim", type=int, default=512, help="dimention of hidden layers")
-    parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
-    parser.add_argument("--l2_coef", type=float, default=0., help="l2 loss coeficient")
+    parser.add_argument("--lr", type=float, default=0.0005, help="learnin rate")
+    parser.add_argument("--l2_coef", type=float, default=0.01, help="l2 loss coeficient")
 
-    parser.add_argument("--n_epoch", type=int, default=1, help="number of epoch")
+    parser.add_argument("--n_epoch", type=int, default=500,  help="number of epoch")
     parser.add_argument("--clf_lr", type=float, default=1e-2, help="classifier learning rate")
-    parser.add_argument("--clf_l2_coef", type=float, default=0.)
+    parser.add_argument("--clf_l2_coef", type=float, default=0.01)
     parser.add_argument("--patience", type=int, default=20)
     parser.add_argument('--epsilon', type=float, default=0.01, help='Edge mask threshold of diffusion graph.')
 

@@ -160,7 +160,7 @@ class MVGRL(tlx.nn.Module):
         # self.pooling = AvgPooling()
         # self.average = Average()  avgPooling 实现一样的就是dgi的readout
         self.disc = Discriminator(out_dim)
-        self.act_fn = tlx.Sigmoid()
+        self.act_fn = tlx.nn.Sigmoid()
         self.loss = tlx.losses.sigmoid_cross_entropy
 
     def get_embedding(self, edge_index, diff_adj, feat):

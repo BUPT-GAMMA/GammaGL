@@ -1,8 +1,8 @@
 import argparse
-import os
+# import os
 # os.environ['TL_BACKEND'] = 'tensorflow'
 # os.environ['CUDA_VISIBLE_DEVICES'] = ' '
-from time import time
+
 
 import tensorlayerx as tlx
 from tensorlayerx.dataflow import DataLoader
@@ -12,10 +12,7 @@ from load_data import mvgrl_load
 from tqdm import tqdm
 
 from gammagl.data import Batch
-from gammagl.datasets import TUDataset
 
-# from gammagl.models.mvgrl import MVGRL_Graph
-# from gammagl.utils.tu_utils import linearsvc
 from gammagl.models.mvgrl import MVGRL_Graph
 from gammagl.utils.tu_utils import linearsvc
 
@@ -104,9 +101,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=20, help="number of epoch")
-    parser.add_argument("--hidden_dim", type=int, default=128, help="dimention of hidden layers")
+    parser.add_argument("--hidden_dim", type=int, default=32, help="dimention of hidden layers")
     parser.add_argument("--l2_coef", type=float, default=0., help="l2 loss coeficient")
-    parser.add_argument('--dataset', type=str, default='PTC_MR',
+    parser.add_argument('--dataset', type=str, default='MUTAG',
                         help='dataset, MUTAG, PTC_MR, IMDB-BINARY, IMDB-MULTI, REDDIT-BINARY')
     parser.add_argument('--batch_size', type=int, default=64, help='batch size')
     parser.add_argument('--patience', type=int, default=20, help='Early stopping steps.')
