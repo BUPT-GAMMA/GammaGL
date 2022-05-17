@@ -8,6 +8,17 @@ Welcome to gammagl's documentation!
 
 .. toctree::
    :maxdepth: 4
+   :caption: NOTES
+   :hidden:
+   :glob:
+
+   notes/batching
+   notes/create_dataset
+   notes/create_gnn
+   notes/installation
+
+.. toctree::
+   :maxdepth: 4
    :caption: API Reference
    :hidden:
    :glob:
