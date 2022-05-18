@@ -12,7 +12,7 @@ def add_self_loops(
     (:obj:`edge_attr != None`), edge features of self-loops will be added
     according to :obj:`fill_value`.
     
-    .. code-block:: python
+    .. code:: python
 
         >>> from gammagl.data import Graph
         >>> from gammagl.utils.loop import add_self_loops
@@ -25,22 +25,31 @@ def add_self_loops(
                [1, 2, 3, 0, 1, 2, 3]])
 
         
-    Args:
-        edge_index (LongTensor): The edge indices.
-        n_loops (int): the number of loops
-        edge_attr (Tensor, optional): Edge weights or multi-dimensional edge
-            features. (default: :obj:`None`)
-        fill_value (float or Tensor or str, optional): The way to generate
-            edge features of self-loops (in case :obj:`edge_attr != None`).
-            If given as :obj:`float` or :class:`torch.Tensor`, edge features of
-            self-loops will be directly given by :obj:`fill_value`.
-            If given as :obj:`str`, edge features of self-loops are computed by
-            aggregating all features of edges that point to the specific node,
-            according to a reduce operation. (:obj:`"add"`, :obj:`"mean"`,
-            :obj:`"min"`, :obj:`"max"`, :obj:`"mul"`). (default: :obj:`1.`)
-        num_nodes (int, optional): The number of nodes, *i.e.*
-            :obj:`max_val + 1` of :attr:`edge_index`. (default: :obj:`None`)
-    :rtype: (:class:`LongTensor`, :class:`Tensor`)
+    Parameters
+    ----------
+    edge_index: LongTensor
+        The edge indices.
+    n_loops: int
+        the number of loops
+    edge_attr: Tensor, optional
+        Edge weights or multi-dimensional edge
+        features. (default: :obj:`None`)
+    fill_value: float or Tensor or str, optional
+        The way to generate
+        edge features of self-loops (in case :obj:`edge_attr != None`).
+        If given as :obj:`float` or :class:`torch.Tensor`, edge features of
+        self-loops will be directly given by :obj:`fill_value`.
+        If given as :obj:`str`, edge features of self-loops are computed by
+        aggregating all features of edges that point to the specific node,
+        according to a reduce operation. (:obj:`"add"`, :obj:`"mean"`,
+        :obj:`"min"`, :obj:`"max"`, :obj:`"mul"`). (default: :obj:`1.`)
+    num_nodes: int, optional
+        The number of nodes, *i.e.*
+        :obj:`max_val + 1` of :attr:`edge_index`. (default: :obj:`None`)
+
+    Returns
+    -------
+    :class:`LongTensor`, :class:`Tensor`
     """
     N = maybe_num_nodes(edge_index, num_nodes)
 
@@ -77,10 +86,12 @@ def add_self_loops(
 def remove_self_loops(edge_index, edge_attr=None):
     r"""Removes every self-loop in the graph given by :attr:`edge_index`, so
     that :math:`(i,i) \not\in \mathcal{E}` for every :math:`i \in \mathcal{V}`.
+    
     Args:
         edge_index (LongTensor): The edge indices.
         edge_attr (Tensor, optional): Edge weights or multi-dimensional
             edge features. (default: :obj:`None`)
+
     :rtype: (:class:`LongTensor`, :class:`Tensor`)
     """
     mask = edge_index[0] != edge_index[1]

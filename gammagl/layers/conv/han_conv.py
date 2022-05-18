@@ -39,25 +39,33 @@ class HANConv(MessagePassing):
             <https://github.com/pyg-team/pytorch_geometric/blob/master/examples/
             hetero/han_imdb.py>`_.
 
-        Args:
-            in_channels (int or Dict[str, int]): Size of each input sample of every
-                node type, or :obj:`-1` to derive the size from the first input(s)
-                to the forward method.
-            out_channels (int): Size of each output sample.
-            metadata (Tuple[List[str], List[Tuple[str, str, str]]]): The metadata
-                of the heterogeneous graph, *i.e.* its node and edge types given
-                by a list of strings and a list of string triplets, respectively.
-                See :meth:`torch_geometric.data.HeteroData.metadata` for more
-                information.
-            heads (int, optional): Number of multi-head-attentions.
-                (default: :obj:`1`)
-            negative_slope (float, optional): LeakyReLU angle of the negative
-                slope. (default: :obj:`0.2`)
-            dropout (float, optional): Dropout probability of the normalized
-                attention coefficients which exposes each node to a stochastically
-                sampled neighborhood during training. (default: :obj:`0`)
-            **kwargs (optional): Additional arguments of
-                :class:`torch_geometric.nn.conv.MessagePassing`.
+        Parameters
+        ----------
+        in_channels: int or Dict[str, int]
+            Size of each input sample of every
+            node type, or :obj:`-1` to derive the size from the first input(s)
+            to the forward method.
+        out_channels: int
+            Size of each output sample.
+        metadata: Tuple[List[str], List[Tuple[str, str, str]]]
+            The metadata
+            of the heterogeneous graph, *i.e.* its node and edge types given
+            by a list of strings and a list of string triplets, respectively.
+            See :meth:`torch_geometric.data.HeteroData.metadata` for more
+            information.
+        heads: int, optional
+            Number of multi-head-attentions.
+            (default: :obj:`1`)
+        negative_slope: float, optional
+            LeakyReLU angle of the negative
+            slope. (default: :obj:`0.2`)
+        dropout: float, optional
+            Dropout probability of the normalized
+            attention coefficients which exposes each node to a stochastically
+            sampled neighborhood during training. (default: :obj:`0`)
+        **kwargs: optional
+            Additional arguments of
+            :class:`torch_geometric.nn.conv.MessagePassing`.
         """
     def __init__(self,
                  in_channels,
