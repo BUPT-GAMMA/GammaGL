@@ -24,6 +24,7 @@ class Dataset(Dataset):
     r"""Dataset base class for creating graph datasets.
     See `here <https://pytorch-geometric.readthedocs.io/en/latest/notes/
     create_dataset.html>`__ for the accompanying tutorial.
+
     Args:
         root (string, optional): Root directory where the dataset should be
             saved. (optional: :obj:`None`)
@@ -289,6 +290,7 @@ class Dataset(Dataset):
     ):
         #    -> Union['Dataset', Tuple['Dataset', tf.Tensor]]:
         r"""Randomly shuffles the examples in the dataset.
+
         Args:
             return_perm (bool, optional): If set to :obj:`True`, will also
                 return the random permutation used to shuffle the dataset.
