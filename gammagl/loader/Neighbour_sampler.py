@@ -49,7 +49,7 @@ class Neighbor_Sampler(DataLoader):
         else:
             self.rowptr = indptr
         super(Neighbor_Sampler, self).__init__(
-            dst_nodes.numpy().tolist(), collate_fn=self.sample, **kwargs)
+            dst_nodes.tolist(), collate_fn=self.sample, **kwargs)
 
     def sample(self, batch):
         adjs = []

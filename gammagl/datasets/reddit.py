@@ -4,7 +4,7 @@ import numpy as np
 import scipy.sparse as sp
 from gammagl.data import extract_zip, download_url, InMemoryDataset, Graph
 from gammagl.utils import coalesce, is_undirected
-
+import tensorlayerx as tlx
 
 class Reddit(InMemoryDataset):
     r"""The Reddit dataset from the `"Inductive Representation Learning on
@@ -39,7 +39,7 @@ class Reddit(InMemoryDataset):
 
     @property
     def processed_file_names(self):
-        return 'data.pt'
+        return tlx.BACKEND + 'data.pt'
 
     def download(self):
         path = download_url(self.url, self.raw_dir)
