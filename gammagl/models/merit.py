@@ -28,7 +28,7 @@ def calc(edge, num_node):
 
 
 
-'''
+
 class MLP(tlx.nn.Module):
 
     def __init__(self, inp_size, outp_size, hidden_size):
@@ -36,7 +36,7 @@ class MLP(tlx.nn.Module):
         self.net_list =[]
         self.net_list.append(tlx.nn.Linear(in_features=inp_size, out_features=hidden_size))
         self.net_list.append(tlx.nn.BatchNorm1d(num_features=hidden_size))
-        self.net_list.append(tlx.nn.PRelu(hidden_size,a_init=tlx.initializers.constant(0.25),data_format='channels_first')) 
+        self.net_list.append(tlx.nn.PRelu(hidden_size)) 
         self.net_list.append(tlx.nn.Linear(in_features=hidden_size, out_features=outp_size))
         self.net=tlx.nn.Sequential(self.net_list)
         #self.linear1 = tlx.nn.Linear(out_features=hidden_size, act=None, in_features=inp_size)
@@ -65,7 +65,7 @@ class MLP(tlx.nn.Module):
         x = tlx.elu(self.fc1(x))
         
         return self.fc2(x)
-
+'''
 class GraphEncoder(tlx.nn.Module):
 
     def __init__(self, gnn,
@@ -75,7 +75,7 @@ class GraphEncoder(tlx.nn.Module):
         super().__init__()
         
         self.gnn =  gnn
-        self.act=tlx.nn.PRelu(512,a_init=tlx.initializers.constant(0.25))
+        self.act=tlx.nn.PRelu(512)
         self.projector = MLP(512, projection_size, projection_hidden_size)           
         
     def forward(self, feat, edge, weight, num_nodes):
@@ -160,20 +160,20 @@ class MERIT(tlx.nn.Module):
         intra_sim = f(self.sim(h1, h1))
         inter_sim = f(self.sim(h1, h2))
 
-        return -tlx.log(tlx.convert_to_tensor(np.diag(inter_sim, k=0))/\
+        return -tlx.log(tlx.convert_to_tensor(tlx.diag(inter_sim))/\
                         ( tlx.reduce_sum(intra_sim, axis=1) + \
                             tlx.reduce_sum(inter_sim, axis=1) -\
-                                 tlx.convert_to_tensor(np.diag(intra_sim, k=0))) )
+                                 tlx.convert_to_tensor(tlx.diag(intra_sim))) )
 
 
     def contrastive_loss_wo_cross_view(self,h1,z):
         f = lambda x: tlx.exp(x)
         in_sim=f(self.sim(h1,h1))
         cross_sim = f(self.sim(h1, z))
-        return -tlx.log(tlx.convert_to_tensor(np.diag(cross_sim, k=0))/\
-                       (tlx.reduce_sum(cross_sim, axis=1) + tlx.reduce_sum(in_sim, axis=1) -tlx.convert_to_tensor(np.diag(in_sim, k=0))))
-        #return -tlx.log(np.diag(cross_sim, k=0) / 
-        #                tlx.reduce_sum(cross_sim, axis=1))
+        #return -tlx.log(tlx.convert_to_tensor(np.diag(cross_sim))/\
+        #               (tlx.reduce_sum(cross_sim, axis=1) + tlx.reduce_sum(in_sim, axis=1) -tlx.convert_to_tensor(np.diag(in_sim))))
+        return -tlx.log(tlx.diag(cross_sim) / 
+                        tlx.reduce_sum(cross_sim, axis=1))
 
     def forward(self, graph1, graph2):
         online_proj_one = self.online_encoder(graph1.x, graph1.edge_index, graph1.edge_weight, graph1.num_nodes)

@@ -42,7 +42,10 @@ In the paper(as well as authors' repo), the training set are full graph training
 
 ```python
 # Cora by GammaGL
-python merit_trainer.py --dataset cora --epochs 500 --drop_edge_rate_1 0.2 --drop_edge_rate_2 0.4 --drop_feature_rate_1 0.5 --drop_feature_rate_2 0.5 --lr 3e-4 --beta 0.5
+CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python merit_trainer.py --dataset cora --epochs 500 --drop_edge_rate_1 0.2 --drop_edge_rate_2 0.2 --drop_feature_rate_1 0.5 --drop_feature_rate_2 0.5 --lr 3e-4 --beta 0.5
+
+#Citeseer by GammaGL
+CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python merit_trainer.py --dataset cora --epochs 500 --drop_edge_rate_1 0.4 --drop_edge_rate_2 0.4 --drop_feature_rate_1 0.5 --drop_feature_rate_2 0.5 --lr 3e-4 --beta 0.6
 
 ```
 
@@ -52,4 +55,6 @@ python merit_trainer.py --dataset cora --epochs 500 --drop_edge_rate_1 0.2 --dro
 |    Dataset    | Cora | Citeseer | Pubmed |
 | :-----------: | :--: | :------: | :----: |
 | Author's Code | 83.1 |   74.0   |  80.2  |
-|    GammaGL    | 83.1 |   71.3   |  --.-  |
+|    GammaGL    | 84.3 |   72.2   |  --.-  |
+
+ 

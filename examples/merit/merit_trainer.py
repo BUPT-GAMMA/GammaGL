@@ -1,12 +1,11 @@
+from cProfile import label
 import numpy as np
 import scipy.sparse as sp
 import argparse
 import os
-os.environ['TL_BACKEND'] = 'tensorflow'# set your backend here, default `tensorflow`, you can choose 'paddle'、'tensorflow'、'torch'
+#os.environ['TL_BACKEND'] = 'tensorflow'# set your backend here, default `tensorflow`, you can choose 'paddle'、'tensorflow'、'torch'
 #os.environ['TL_BACKEND'] = 'paddle'
 #os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-import warnings
-warnings.filterwarnings("ignore")
 import tensorlayerx as tlx
 from gammagl.models.merit import MERIT,calc,gdc
 from gammagl.datasets import Planetoid
@@ -46,9 +45,10 @@ def main(args):
     orgin_graph.edge_weight = tlx.convert_to_tensor(weight)
 
     features=tlx.convert_to_tensor(graph.x)
-    #labels = tlx.convert_to_tensor(graph.y)
-    y=tlx.convert_to_tensor(graph.y)
-    labels = tlx.argmax(y, axis=1)
+
+    labels=tlx.convert_to_tensor(graph.y)
+
+    #labels = tlx.argmax(graph.y, axis=1)
     train_mask=tlx.convert_to_tensor(graph.train_mask)
     val_mask=tlx.convert_to_tensor(graph.val_mask)
     test_mask=tlx.convert_to_tensor(graph.test_mask)
@@ -81,7 +81,7 @@ def main(args):
         projection_size=args.proj_size,
         projection_hidden_size=args.proj_hid,
         prediction_size=args.pred_size,
-        activation=tlx.nn.PRelu(args.proj_hid,a_init=tlx.initializers.constant(0.25)),
+        activation=tlx.nn.PRelu(args.proj_hid),
         prediction_hidden_size=args.pred_hid,
         moving_average_decay=args.momentum, beta=args.beta)
     #adj=tlx.convert_to_tensor(adj.todense())
@@ -114,7 +114,7 @@ def main(args):
         if epoch % args.eval_every_epoch == 0:
             net.set_eval()
             acc, micro = evaluation(orgin_graph.edge_index, orgin_graph.edge_weight, diff_edge_index, diff_weight,\
-                 features, model, train_mask, test_mask, args.sparse,labels,tlx.nn.PRelu(args.gnn_dim, tlx.nn.initializers.constant(0.25)))
+                 features, model, train_mask, test_mask, args.sparse,labels,tlx.nn.PRelu(args.gnn_dim))
             if acc > best:
                 best = acc
                 patience_count = 0
@@ -123,7 +123,7 @@ def main(args):
             else:
                 patience_count += 1
             results.append(acc)
-            print('\t epoch {:03d} | loss {:.5f}'.format(epoch, loss.item()))
+            print('\t epoch {:03d} | loss {:.4f}'.format(epoch, loss.item()))
             if patience_count >= args.patience:
                 print('Early Stopping.')
                 break
@@ -147,7 +147,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--seed', type=int, default=2021)
     parser.add_argument('--num_layers',type=int, default=2)
-    parser.add_argument('--data', type=str, default='cora',help='dataset,cora/pubmed/citeseer')
+    parser.add_argument('--data', type=str, default='citeseer',help='dataset,cora/pubmed/citeseer')
     parser.add_argument('--runs', type=int, default=1)
     parser.add_argument('--eval_every_epoch', type=int, default=1)
     parser.add_argument('--epochs', type=int, default=500)
@@ -158,7 +158,7 @@ if __name__ == '__main__':
     parser.add_argument('--patience', type=int, default=100)
     parser.add_argument('--sparse', type=str_to_bool, default=True)
 
-    parser.add_argument('--input_dim', type=int, default=1433)#feature.shape[1]
+    parser.add_argument('--input_dim', type=int, default=3703)#feature.shape[1]
     parser.add_argument('--gnn_dim', type=int, default=512)
     parser.add_argument('--proj_size', type=int, default=512)
     parser.add_argument('--proj_hid', type=int, default=4096)
