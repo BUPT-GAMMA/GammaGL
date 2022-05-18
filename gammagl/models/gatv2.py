@@ -5,8 +5,9 @@ class GATV2Model(tlx.nn.Module):
     r"""`"How Attentive are Graph Attention Networks?"
     <https://arxiv.org/abs/2105.14491>`_ paper.
 
-    Parameters:
-        cfg: configuration of GAT
+    Parameters
+    ----------
+    cfg: configuration of GAT
     """
 
     def __init__(self, feature_dim, hidden_dim, heads,

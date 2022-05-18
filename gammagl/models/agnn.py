@@ -16,19 +16,28 @@ def segment_log_softmax(weight, segment_ids, num_nodes):
 
 class AGNNModel(tlx.nn.Module):
     r'''The graph attention operator from the `"Attention-based Graph Neural Network for Semi-supervised Learning"
-    <http://arxiv.org/abs/1803.03735>`_paper
+    <http://arxiv.org/abs/1803.03735>`_ paper
 
 
-    Args:
-        feature_dim(int): Dimension of feature vector in original input.
-        hidden_dim(intg): Dimension of feature vector in AGNN.
-        num_class(int): Dimension of feature vector in forward output.
-        n_att_layers(int): Number of attention layers.
-        dropout_rate(float): Dropout rate.
-        edge_index(2-D tensor): Shape:(2, num_edges). A element(integer) of dim-1 expresses a node of graph and
-            edge_index[0,i] points to edge_index[1,i].
-        num_nodes(int): Number of nodes on the graph.
-        is_cora(bool,optional): Whether the dateset is cora. There is a special operation on cora
+    Parameters
+    ----------
+    feature_dim: int
+        Dimension of feature vector in original input.
+    hidden_dim: intg
+        Dimension of feature vector in AGNN.
+    num_class: int
+        Dimension of feature vector in forward output.
+    n_att_layers: int
+        Number of attention layers.
+    dropout_rate: float
+        Dropout rate.
+    edge_index: 2-D tensor
+        Shape:(2, num_edges). A element(integer) of dim-1 expresses a node of graph and
+        edge_index[0,i] points to edge_index[1,i].
+    num_nodes: int
+        Number of nodes on the graph.
+    is_cora: bool,optional
+        Whether the dateset is cora. There is a special operation on cora
     '''
     def __init__(self,
                 feature_dim,

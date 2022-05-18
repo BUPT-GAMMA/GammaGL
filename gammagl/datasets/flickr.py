@@ -13,18 +13,23 @@ class Flickr(InMemoryDataset):
     Inductive Learning Method" <https://arxiv.org/abs/1907.04931>`_ paper,
     containing descriptions and common properties of images.
 
-    Args:
-        root (string): Root directory where the dataset should be saved.
-        transform (callable, optional): A function/transform that takes in an
-            :obj:`tlx_geometric.data.Data` object and returns a transformed
-            version. The data object will be transformed before every access.
-            (default: :obj:`None`)
-        pre_transform (callable, optional): A function/transform that takes in
-            an :obj:`tlx_geometric.data.Data` object and returns a
-            transformed version. The data object will be transformed before
-            being saved to disk. (default: :obj:`None`)
+    Parameters
+    ----------
+    root: string
+        Root directory where the dataset should be saved.
+    transform: callable, optional
+        A function/transform that takes in an
+        :obj:`tlx_geometric.data.Data` object and returns a transformed
+        version. The data object will be transformed before every access.
+        (default: :obj:`None`)
+    pre_transform: callable, optional
+        A function/transform that takes in
+        an :obj:`tlx_geometric.data.Data` object and returns a
+        transformed version. The data object will be transformed before
+        being saved to disk. (default: :obj:`None`)
 
-    Stats:
+    Tip
+    ---
         .. list-table::
             :widths: 10 10 10 10
             :header-rows: 1
