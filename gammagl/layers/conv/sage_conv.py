@@ -1,5 +1,6 @@
 import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
+from gammagl.utils import add_self_loops, calc_gcn_norm
 
 
 class SAGEConv(MessagePassing):
@@ -80,9 +81,12 @@ class SAGEConv(MessagePassing):
             out = self.propagate(src_feat, edge, edge_weight=None, num_nodes=num_nodes, aggr='mean')
         elif self.aggr == 'gcn':
             src_feat = self.fc_neigh(src_feat)
-            col, row, weight = calc(edge,  1 + tlx.reduce_max(edge[0]))
-            out = self.propagate(src_feat, tlx.stack([col, row]), edge_weight=weight, num_nodes=(1 + tlx.reduce_max(row)), aggr='sum')
-            out = tlx.gather(out, tlx.arange(num_nodes))
+            cur_nodes = 1 + tlx.reduce_max(edge[0])
+            edge_index, _ = add_self_loops(edge, num_nodes=cur_nodes, n_loops=1)
+            edge_weight = tlx.convert_to_tensor(calc_gcn_norm(edge_index, cur_nodes))
+
+            out = self.propagate(src_feat, edge_index, edge_weight, num_nodes=cur_nodes, aggr='sum')
+            out = tlx.gather(out, tlx.arange(0, num_nodes))
         elif self.aggr == 'pool':
             src_feat = tlx.nn.ReLU()(self.pool(src_feat))
             out = self.propagate(src_feat, edge, edge_weight=None, num_nodes=num_nodes, aggr='max')
@@ -103,22 +107,3 @@ class SAGEConv(MessagePassing):
             out = self.act(out)
 
         return out
-
-
-import numpy as np
-import scipy.sparse as sp
-
-
-def calc(edge, num_nodes):
-    # edge = edge.numpy()
-    weight = np.ones(edge.shape[1])
-    sparse_adj = sp.coo_matrix((weight, (edge[0], edge[1])), shape=(num_nodes, num_nodes))
-    A = (sparse_adj + sp.eye(num_nodes)).tocoo()
-    col, row, weight = A.col, A.row, A.data
-    deg = np.array(A.sum(1))
-    # deg_inv_sqrt = np.power(deg, -0.5).flatten()
-    # return col, row, np.array(deg_inv_sqrt[row] * weight * deg_inv_sqrt[col], dtype=np.float32)
-    deg_inv_sqrt = np.power(deg, -1).flatten()
-    return tlx.convert_to_tensor(col, dtype=tlx.int64), tlx.convert_to_tensor(row,
-                                                                              dtype=tlx.int64), tlx.convert_to_tensor(
-        np.array(weight * deg_inv_sqrt[col], dtype=np.float32))

@@ -63,7 +63,7 @@ class GraphSAGE_Sample_Model(tlx.nn.Module):
 
     def forward(self, feat, subg):
         h = feat
-        for l, (layer, sg )in enumerate(zip(self.convs, subg)):
+        for l, (layer, sg)in enumerate(zip(self.convs, subg)):
             # sg = subg[l]
             target_feat = tlx.gather(h, tlx.arange(0, sg.size[1]))  # Target nodes are always placed first.
             h = layer((h, target_feat), sg.edge)

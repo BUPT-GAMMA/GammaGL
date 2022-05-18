@@ -1,17 +1,8 @@
 import tensorlayerx as tlx
-import numpy as np
-import scipy.sparse as sp
+
+
 from gammagl.layers.conv import GCNConv
 
-
-def calc(edge, num_node):
-    weight = np.ones(edge.shape[1])
-    sparse_adj = sp.coo_matrix((weight, (edge[0], edge[1])), shape=(num_node, num_node))
-    A = (sparse_adj + sp.eye(num_node)).tocoo()
-    col, row, weight = A.col, A.row, A.data
-    deg = np.array(A.sum(1))
-    deg_inv_sqrt = np.power(deg, -0.5).flatten()
-    return col, row, np.array(deg_inv_sqrt[row] * weight * deg_inv_sqrt[col], dtype=np.float32)
 
 
 
@@ -62,8 +53,8 @@ class grace(tlx.nn.Module):
         between_sim = f(self.sim(z1, z2))  # inter-view pairs
 
         # between_sim.diag(): positive pairs
-        x1 = tlx.reduce_sum(refl_sim, axis=1) + tlx.reduce_sum(between_sim, axis=1) - tlx.convert_to_tensor(np.diag(refl_sim, k=0))
-        loss = -tlx.log(tlx.convert_to_tensor(np.diag(between_sim, k=0)) / x1)
+        x1 = tlx.reduce_sum(refl_sim, axis=1) + tlx.reduce_sum(between_sim, axis=1) - tlx.convert_to_tensor(tlx.diag(refl_sim, 0))
+        loss = -tlx.log(tlx.convert_to_tensor(tlx.diag(between_sim, 0)) / x1)
 
         return loss
 
@@ -77,10 +68,11 @@ class grace(tlx.nn.Module):
         h = self.encoder(feat, edge, weight, num_nodes)
         return h
 
-    def forward(self, graph1, graph2):
+    # def forward(self, graph1, graph2):
+    def forward(self, feat1, edge1, weight1, num_node1, feat2, edge2, weight2, num_node2):
         # encoding
-        h1 = self.encoder(graph1.x, graph1.edge_index, graph1.edge_weight, graph1.num_nodes)
-        h2 = self.encoder(graph2.x, graph2.edge_index, graph2.edge_weight, graph2.num_nodes)
+        h1 = self.encoder(feat1, edge1, weight1, num_node1)
+        h2 = self.encoder(feat2, edge2, weight2, num_node2)
         # projection
         z1 = self.proj(h1)
         z2 = self.proj(h2)
