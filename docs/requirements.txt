@@ -6,5 +6,8 @@ recommonmark
 sphinx_copybutton==0.4.0
 numpy
 scipy
+tensorflow
+hyperdash
 git+https://github.com/tensorlayer/tensorlayerx.git
 pytest
+cython

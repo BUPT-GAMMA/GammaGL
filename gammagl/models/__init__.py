@@ -11,5 +11,24 @@ from .agnn import AGNNModel
 from .jknet import JKNet
 from .han import HAN
 from .dgi import DGIModel
-from .agnn import AGNNModel
 from .grace import grace
+
+__all__ = [
+    'GCNModel',
+    'GATModel',
+    'SGCModel',
+    'GATV2Model',
+    'GraphSAGE_Full_Model',
+    'GraphSAGE_Sample_Model',
+    'GCNIIModel',
+    'APPNPModel',
+    'GINModel',
+    'RGCN',
+    'AGNNModel',
+    'JKNet',
+    'HAN',
+    'DGIModel',
+    'grace'
+]
+
+classes = __all__

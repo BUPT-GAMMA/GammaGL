@@ -18,14 +18,16 @@ def masked_edge_index(edge_index, edge_mask):
 
 
 class RGCNConv(MessagePassing):
-    """
+    r"""
     The relational graph convolutional operator from the `"Modeling
     Relational Data with Graph Convolutional Networks"
     <https://arxiv.org/abs/1703.06103>`_ paper
+    
     .. math::
         \mathbf{x}^{\prime}_i = \mathbf{\Theta}_{\textrm{root}} \cdot
         \mathbf{x}_i + \sum_{r \in \mathcal{R}} \sum_{j \in \mathcal{N}_r(i)}
-        \frac{1}{|\mathcal{N}_r(i)|} \mathbf{\Theta}_r \cdot \mathbf{x}_j,
+        \frac{1}{|\mathcal{N}_r(i)|} \mathbf{\Theta}_r \cdot \mathbf{x}_j
+
     where :math:`\mathcal{R}` denotes the set of relations, *i.e.* edge types.
     Edge type needs to be a one-dimensional :obj:`torch.long` tensor which
     stores a relation identifier
@@ -88,20 +90,23 @@ class RGCNConv(MessagePassing):
 
     def forward(self, x, edge_index, edge_type = None):
         r"""
-        Args:
-
-            x: The input node features. Can be either a :obj:`[num_nodes,
-               in_channels]` node feature matrix, or an optional
-               one-dimensional node index tensor (in which case input features
-               are treated as trainable node embeddings).
-               Furthermore, :obj:`x` can be of type :obj:`tuple` denoting
-               source and destination node features.
-            edge_index: edge index
-            edge_type: The one-dimensional relation type/index for each edge in
-               :obj:`edge_index`.
-               Should be only :obj:`None` in case :obj:`edge_index` is of type
-               :class:`torch_sparse.tensor.SparseTensor`.
-               (default: :obj:`None`)
+        Parameters
+        ----------
+        x: 
+            The input node features. Can be either a :obj:`[num_nodes,
+            in_channels]` node feature matrix, or an optional
+            one-dimensional node index tensor (in which case input features
+            are treated as trainable node embeddings).
+            Furthermore, :obj:`x` can be of type :obj:`tuple` denoting
+            source and destination node features.
+        edge_index: 
+            edge index
+        edge_type: 
+            The one-dimensional relation type/index for each edge in
+            :obj:`edge_index`.
+            Should be only :obj:`None` in case :obj:`edge_index` is of type
+            :class:`torch_sparse.tensor.SparseTensor`.
+            (default: :obj:`None`)
         """
         x_l = None
         if isinstance(x, tuple):

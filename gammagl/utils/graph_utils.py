@@ -125,11 +125,15 @@ def merge_duplicated_edge(edge_index, edge_props=None, merge_modes=None):
 
 def convert_edge_to_upper(edge_index, edge_props=None, merge_modes=None):
     """
+    Parameters
+    ----------
+    edge_index:
+    edge_props:
+    merge_modes: 
+        List of merge modes. Merge Modes: "min" | "max" | "mean" | "sum"
 
-    :param edge_index:
-    :param edge_props:
-    :param merge_modes: List of merge modes. Merge Modes: "min" | "max" | "mean" | "sum"
-    :return:
+    Returns
+    -------
     """
 
     edge_index_is_tensor = tf.is_tensor(edge_index)
@@ -155,10 +159,17 @@ def convert_edge_to_directed(edge_index, edge_props=None, merge_modes=None):
     Convert edge from undirected format to directed format.
     For example, [[1,3,5], [2,1,4]] => [[1,3,5,2,1,4], [2,1,4,1,3,5]]
 
-    :param edge_index: Input edge index.
-    :param edge_props: List of edge properties, for example: [edge_weight]
-    :param merge_modes: List of merge modes. Merge Modes: "min" | "max" | "mean" | "sum"
-    :return:
+    Parameters
+    ----------
+    edge_index: 
+        Input edge index.
+    edge_props: 
+        List of edge properties, for example: [edge_weight]
+    merge_modes: 
+        List of merge modes. Merge Modes: "min" | "max" | "mean" | "sum"
+
+    Returns
+    -------
     """
 
     edge_index_is_tensor = tf.is_tensor(edge_index)
@@ -279,17 +290,23 @@ def convert_dense_adj_to_edge(dense_adj):
 def convert_dense_assign_to_edge(dense_assign, node_graph_index=None, num_nodes=None, num_clusters=None):
     """
     Convert a dense assignment matrix [num_nodes, num_clusters] of a Graph or BatchGraph to edge_index, edge_weight.
+
     In the single-graph scenario (when node_graph_index is None), there are num_clusters clusters and 
-        the j_th column of each row correspond to the j_th clusters.
+    the j_th column of each row correspond to the j_th clusters.
+
     In the multi-graph scenario (where node_graph_index is not None), there are num_clusters * num_graphs clusters and
-        the j_th column of the i_th row correspond to the j_th cluster in the corresponding graph, and the cluster index
-        is num_clusters * node_graph_index[i] + j
-    
-    :param dense_assign: 
-    :param node_graph_index: 
-    :param num_nodes: 
-    :param num_clusters: 
-    :return: 
+    the j_th column of the i_th row correspond to the j_th cluster in the corresponding graph, and the cluster index
+    is num_clusters * node_graph_index[i] + j
+
+    Parameters
+    ----------
+    dense_assign: 
+    node_graph_index: 
+    num_nodes: 
+    num_clusters: 
+
+    Returns
+    ------- 
     """
     dense_shape = tf.shape(dense_assign)
 
@@ -357,13 +374,18 @@ def add_self_loop_edge(edge_index, num_nodes, edge_weight=None, fill_weight=1.0)
 def negative_sampling(num_samples, num_nodes, edge_index=None, replace=True, mode="undirected",
                       batch_size=None):
     """
+    Parameters
+    ----------
+    num_samples:
+    num_nodes:
+    edge_index: 
+        if edge_index is provided, sampled positive edges will be filtered
+    replace: 
+        only works when edge_index is provided, deciding whether sampled edges should be unique
+        if batch_size is None, return edge_index, otherwise return a list of batch_size edge_index
 
-    :param num_samples:
-    :param num_nodes:
-    :param edge_index: if edge_index is provided, sampled positive edges will be filtered
-    :param replace: only works when edge_index is provided, deciding whether sampled edges should be unique
-    :param if batch_size is None, return edge_index, otherwise return a list of batch_size edge_index
-    :return:
+    Returns
+    -------
     """
 
     edge_index = convert_union_to_numpy(edge_index, np.int32)
@@ -402,11 +424,15 @@ def negative_sampling(num_samples, num_nodes, edge_index=None, replace=True, mod
 
 def negative_sampling_with_start_node(start_node_index, num_nodes, edge_index=None):
     """
+    Parameters
+    ----------
+    start_node_index: Tensor or ndarray
+    num_nodes:
+    edge_index: 
+        if edge_index is provided, sampled positive edges will be filtered
 
-    :param start_node_index: Tensor or ndarray
-    :param num_nodes:
-    :param edge_index: if edge_index is provided, sampled positive edges will be filtered
-    :return:
+    Returns
+    -------
     """
 
     start_node_index_is_tensor = tf.is_tensor(start_node_index)
@@ -475,12 +501,15 @@ def extract_unique_edge(edge_index, edge_weight=None, mode="undirected"):
 
 def edge_train_test_split(edge_index, test_size, edge_weight=None, mode="undirected", **kwargs):
     """
+    Parameters
+    ----------
+    edge_index:
+    test_size:
+    edge_weight:
+    mode:
 
-    :param edge_index:
-    :param test_size:
-    :param edge_weight:
-    :param mode:
-    :return:
+    Returns
+    -------
     """
 
     # todo: warn user if they pass into "num_nodes", deprecated
@@ -595,12 +624,16 @@ def to_scipy_sparse_matrix(edge_index, edge_weight=None, num_nodes=None):
     r"""Converts a graph given by edge indices and edge attributes to a scipy
     sparse matrix.
 
-    Args:
-        edge_index (LongTensor): The edge indices.
-        edge_attr (Tensor, optional): Edge weights or multi-dimensional
-            edge features. (default: :obj:`None`)
-        num_nodes (int, optional): The number of nodes, *i.e.*
-            :obj:`max_val + 1` of :attr:`index`. (default: :obj:`None`)
+    Parameters
+    ----------
+    edge_index: LongTensor
+        The edge indices.
+    edge_attr: Tensor, optional
+        Edge weights or multi-dimensional
+        edge features. (default: :obj:`None`)
+    num_nodes: int, optional
+        The number of nodes, *i.e.*
+        :obj:`max_val + 1` of :attr:`index`. (default: :obj:`None`)
     """
     row, col = edge_index
 
