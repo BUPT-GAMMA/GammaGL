@@ -10,8 +10,9 @@ class GCNModel(tlx.nn.Module):
     .. _Semi-Supervised Classification with Graph Convolutional Networks:
         https://arxiv.org/pdf/1609.02907.pdf
     
-    Parameters:
-        cfg: configuration of GCN
+    Parameters
+    ----------
+    cfg: configuration of GCN
     """
 
     def __init__(self, feature_dim,

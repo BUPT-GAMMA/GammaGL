@@ -15,9 +15,11 @@ class AddMetaPaths(BaseTransform):
     Meta-path based neighbors can exploit different aspects of structure
     information in heterogeneous graphs.
     Formally, a metapath is a path of the form
+
     .. math::
         \mathcal{V}_1 \xrightarrow{R_1} \mathcal{V}_2 \xrightarrow{R_2} \ldots
         \xrightarrow{R_{\ell-1}} \mathcal{V}_{\ell}
+
     in which :math:`\mathcal{V}_i` represents node types, and :math:`R_j`
     represents the edge type connecting two node types.
     The added edge type is given by the sequential multiplication  of
@@ -29,11 +31,13 @@ class AddMetaPaths(BaseTransform):
     In addition, a :obj:`metapath_dict` object is added to the
     :class:`~torch_geometric.data.HeteroData` object which maps the
     metapath-based edge type to its original metapath.
-    .. code-block:: python
-        from torch_geometric.datasets import DBLP
-        from torch_geometric.data import HeteroData
-        from torch_geometric.transforms import AddMetaPaths
-        data = DBLP(root)[0]
+
+    .. code:: python
+
+        >>> from torch_geometric.datasets import DBLP
+        >>> from torch_geometric.data import HeteroData
+        >>> from torch_geometric.transforms import AddMetaPaths
+        >>> data = DBLP(root)[0]
         # 4 node types: "paper", "author", "conference", and "term"
         # 6 edge types: ("paper","author"), ("author", "paper"),
         #               ("paper, "term"), ("paper", "conference"),
@@ -41,32 +45,38 @@ class AddMetaPaths(BaseTransform):
         # Add two metapaths:
         # 1. From "paper" to "paper" through "conference"
         # 2. From "author" to "conference" through "paper"
-        metapaths = [[("paper", "conference"), ("conference", "paper")],
+        >>> metapaths = [[("paper", "conference"), ("conference", "paper")],
                      [("author", "paper"), ("paper", "conference")]]
-        data = AddMetaPaths(metapaths)(data)
-        print(data.edge_types)
-        >>> [("author", "to", "paper"), ("paper", "to", "author"),
+        >>> data = AddMetaPaths(metapaths)(data)
+        >>> print(data.edge_types)
+        [("author", "to", "paper"), ("paper", "to", "author"),
              ("paper", "to", "term"), ("paper", "to", "conference"),
              ("term", "to", "paper"), ("conference", "to", "paper"),
              ("paper", "metapath_0", "paper"),
              ("author", "metapath_1", "conference")]
-        print(data.metapath_dict)
-        >>> {("paper", "metapath_0", "paper"): [("paper", "conference"),
+        >>> print(data.metapath_dict)
+        {("paper", "metapath_0", "paper"): [("paper", "conference"),
                                                 ("conference", "paper")],
              ("author", "metapath_1", "conference"): [("author", "paper"),
                                                       ("paper", "conference")]}
-    Args:
-        metapaths (List[List[Tuple[str, str, str]]]): The metapaths described
-            by a list of lists of
-            :obj:`(src_node_type, rel_type, dst_node_type)` tuples.
-        drop_orig_edges (bool, optional): If set to :obj:`True`, existing edge
-            types will be dropped. (default: :obj:`False`)
-        keep_same_node_type (bool, optional): If set to :obj:`True`, existing
-            edge types between the same node type are not dropped even in case
-            :obj:`drop_orig_edges` is set to :obj:`True`.
-            (default: :obj:`False`)
-        drop_unconnected_nodes (bool, optional): If set to :obj:`True` drop
-            node types not connected by any edge type. (default: :obj:`False`)
+
+    Parameters
+    ----------
+    metapaths: List[List[Tuple[str, str, str]]]
+        The metapaths described
+        by a list of lists of
+        :obj:`(src_node_type, rel_type, dst_node_type)` tuples.
+    drop_orig_edges: bool, optional
+        If set to :obj:`True`, existing edge
+        types will be dropped. (default: :obj:`False`)
+    keep_same_node_type: bool, optional
+        If set to :obj:`True`, existing
+        edge types between the same node type are not dropped even in case
+        :obj:`drop_orig_edges` is set to :obj:`True`.
+        (default: :obj:`False`)
+    drop_unconnected_nodes: bool, optional
+        If set to :obj:`True` drop
+        node types not connected by any edge type. (default: :obj:`False`)
     """
     def __init__(self, metapaths: List[List[EdgeType]],
                  drop_orig_edges: bool = False,
