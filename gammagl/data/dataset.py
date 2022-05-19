@@ -22,22 +22,21 @@ IndexType = Union[slice, np.ndarray, Sequence]
 
 class Dataset(Dataset):
     r"""Dataset base class for creating graph datasets.
-    See `here <https://pytorch-geometric.readthedocs.io/en/latest/notes/
-    create_dataset.html>`__ for the accompanying tutorial.
+    See `here <https://gammagl.readthedocs.io/en/latest/notes/create_dataset.html#l>`__ for the accompanying tutorial.
 
     Args:
         root (string, optional): Root directory where the dataset should be
             saved. (optional: :obj:`None`)
         transform (callable, optional): A function/transform that takes in an
-            :obj:`torch_geometric.data.Data` object and returns a transformed
+            :obj:`gammagl.data.Data` object and returns a transformed
             version. The data object will be transformed before every access.
             (default: :obj:`None`)
         pre_transform (callable, optional): A function/transform that takes in
-            an :obj:`torch_geometric.data.Data` object and returns a
+            an :obj:`gammagl.data.Data` object and returns a
             transformed version. The data object will be transformed before
             being saved to disk. (default: :obj:`None`)
         pre_filter (callable, optional): A function that takes in an
-            :obj:`torch_geometric.data.Data` object and returns a boolean
+            :obj:`gammagl.data.Data` object and returns a boolean
             value, indicating whether the data object should be included in the
             final dataset. (default: :obj:`None`)
     """
@@ -101,6 +100,7 @@ class Dataset(Dataset):
         return obj
 
     def save_data(self, obj, file_name):
+        r"""Support save data according to different backend."""
         if tlx.BACKEND == 'paddle':
             # with open(file_name, 'wb') as f:
             #     pickle.dump(obj, f)
@@ -117,6 +117,7 @@ class Dataset(Dataset):
         return True
         
     def load_data(self, file_name):
+        r"""Support load data according to different backend."""
         if tlx.BACKEND == 'paddle':
             # with open(file_name, 'rb') as f:
             #     obj = pickle.load(f)
@@ -235,7 +236,7 @@ class Dataset(Dataset):
         at index :obj:`idx` (and transforms it in case :obj:`transform` is
         present).
         In case :obj:`idx` is a slicing object, *e.g.*, :obj:`[2:5]`, a list, a
-        tuple, or a :obj:`torch.Tensor` or :obj:`np.ndarray` of type long or
+        tuple, or a :obj:`Tensor` or :obj:`np.ndarray` of type long or
         bool, will return a subset of the dataset at the specified indices."""
         if (isinstance(idx, (int, np.integer))
                 or (isinstance(idx, np.ndarray) and np.isscalar(idx))):
@@ -250,7 +251,7 @@ class Dataset(Dataset):
     def index_select(self, idx: IndexType) -> 'Dataset':
         r"""Creates a subset of the dataset from specified indices :obj:`idx`.
         Indices :obj:`idx` can be a slicing object, *e.g.*, :obj:`[2:5]`, a
-        list, a tuple, or a :obj:`torch.Tensor` or :obj:`np.ndarray` of type
+        list, a tuple, or a :obj:`Tensor` or :obj:`np.ndarray` of type
         long or bool."""
         indices = self.indices()
 
@@ -276,7 +277,7 @@ class Dataset(Dataset):
 
         else:
             raise IndexError(
-                f"Only slices (':'), list, tuples, torch.tensor and "
+                f"Only slices (':'), list, tuples, Tensor and "
                 f"np.ndarray of dtype long or bool are valid indices (got "
                 f"'{type(idx).__name__}')")
 

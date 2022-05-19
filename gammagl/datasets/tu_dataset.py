@@ -29,8 +29,8 @@ class TUDataset(InMemoryDataset):
         You can then either make use of the argument :obj:`use_node_attr`
         to load additional continuous node attributes (if present) or provide
         synthetic node features using transforms such as
-        like :class:`torch_geometric.transforms.Constant` or
-        :class:`torch_geometric.transforms.OneHotDegree`.
+        like :class:`gammagl.transforms.Constant` or
+        :class:`gammagl.transforms.OneHotDegree`.
 
     Parameters
     ----------
@@ -42,17 +42,17 @@ class TUDataset(InMemoryDataset):
         dataset.
     transform: callable, optional
         A function/transform that takes in an
-        :obj:`torch_geometric.data.Data` object and returns a transformed
+        :obj:`gammagl.data.Graph` object and returns a transformed
         version. The data object will be transformed before every access.
         (default: :obj:`None`)
     pre_transform: callable, optional
         A function/transform that takes in
-        an :obj:`torch_geometric.data.Data` object and returns a
+        an :obj:`gammagl.data.Graph` object and returns a
         transformed version. The data object will be transformed before
         being saved to disk. (default: :obj:`None`)
     pre_filter: callable, optional
         A function that takes in an
-        :obj:`torch_geometric.data.Data` object and returns a boolean
+        :obj:`gammagl.data.Graph` object and returns a boolean
         value, indicating whether the data object should be included in the
         final dataset. (default: :obj:`None`)
     use_node_attr: bool, optional
