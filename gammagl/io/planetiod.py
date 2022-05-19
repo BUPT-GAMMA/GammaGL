@@ -51,7 +51,7 @@ def read_planetoid_data(folder, prefix):
     data.train_mask = train_mask
     data.val_mask = val_mask
     data.test_mask = test_mask
-
+    data.tensor()
     return data
 
 

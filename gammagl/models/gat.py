@@ -5,8 +5,9 @@ class GATModel(tlx.nn.Module):
     r"""The graph attentional operator from the `"Graph Attention Networks"
     <https://arxiv.org/abs/1710.10903>`_ paper
 
-    Parameters:
-        cfg: configuration of GAT
+    Parameters
+    ----------
+    cfg: configuration of GAT
     """
 
     def __init__(self,feature_dim,

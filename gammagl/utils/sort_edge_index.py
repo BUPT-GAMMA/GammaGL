@@ -4,6 +4,7 @@ from .num_nodes import maybe_num_nodes
 
 def sort_edge_index(edge_index, edge_attr=None, num_nodes=None, sort_by_row: bool = True):
     """Row-wise sorts :obj:`edge_index`.
+    
     Args:
         edge_index (LongTensor): The edge indices.
         edge_attr (Tensor or List[Tensor], optional): Edge weights or multi-
@@ -14,6 +15,7 @@ def sort_edge_index(edge_index, edge_attr=None, num_nodes=None, sort_by_row: boo
             :obj:`max_val + 1` of :attr:`edge_index`. (default: :obj:`None`)
         sort_by_row (bool, optional): If set to :obj:`False`, will sort
             :obj:`edge_index` column-wise.
+
     :rtype: :class:`LongTensor` if :attr:`edge_attr` is :obj:`None`, else
         (:class:`LongTensor`, :obj:`Tensor` or :obj:`List[Tensor]]`)
     """

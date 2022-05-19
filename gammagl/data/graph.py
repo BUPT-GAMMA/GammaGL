@@ -86,10 +86,11 @@ class BaseGraph:
 		r"""Returns the dimension for which the value :obj:`value` of the
 		attribute :obj:`key` will get concatenated when creating mini-batches
 		using :class:`gammagl.loader.DataLoader`.
+
 		.. note::
-			This method is for internal use only, and should only be overridden
-			in case the mini-batch creation process is corrupted for a specific
-			attribute.
+		   This method is for internal use only, and should only be overridden
+		   in case the mini-batch creation process is corrupted for a specific
+		   attribute.
 		"""
 		raise NotImplementedError
 	
@@ -97,10 +98,11 @@ class BaseGraph:
 		r"""Returns the incremental count to cumulatively increase the value
 		:obj:`value` of the attribute :obj:`key` when creating mini-batches
 		using :class:`gammagl.loader.DataLoader`.
+
 		.. note::
-			This method is for internal use only, and should only be overridden
-			in case the mini-batch creation process is corrupted for a specific
-			attribute.
+		   This method is for internal use only, and should only be overridden
+		   in case the mini-batch creation process is corrupted for a specific
+		   attribute.
 		"""
 		raise NotImplementedError
 	
@@ -138,18 +140,19 @@ class BaseGraph:
 	@property
 	def num_nodes(self) -> Optional[int]:
 		r"""Returns the number of nodes in the graph.
+
 		.. note::
-			The number of nodes in the data object is automatically inferred
-			in case node-level attributes are present, *e.g.*, :obj:`data.x`.
-			In some cases, however, a graph may only be given without any
-			node-level attributes.
-			GammaGL then *guesses* the number of nodes according to
-			:obj:`edge_index.max().item() + 1`.
-			However, in case there exists isolated nodes, this number does not
-			have to be correct which can result in unexpected behaviour.
-			Thus, we recommend to set the number of nodes in your data object
-			explicitly via :obj:`graph.num_nodes = ...`.
-			You will be given a warning that requests you to do so.
+		   The number of nodes in the data object is automatically inferred
+		   in case node-level attributes are present, *e.g.*, :obj:`data.x`.
+		   In some cases, however, a graph may only be given without any
+		   node-level attributes.
+		   GammaGL then *guesses* the number of nodes according to
+		   :obj:`edge_index.max().item() + 1`.
+		   However, in case there exists isolated nodes, this number does not
+		   have to be correct which can result in unexpected behaviour.
+		   Thus, we recommend to set the number of nodes in your data object
+		   explicitly via :obj:`graph.num_nodes = ...`.
+		   You will be given a warning that requests you to do so.
 		"""
 		try:
 			return sum([v.num_nodes for v in self.node_stores])
@@ -300,7 +303,7 @@ class Graph(BaseGraph):
 	functionality for analyzing graph structures, and provides basic
 	tensor functionalities.
 
-	.. code-block:: python
+	.. code:: python
 
 		>>> from gammagl.data import Graph
 		>>> import numpy
@@ -313,16 +316,22 @@ class Graph(BaseGraph):
 		>>> print(g.indegree.numpy(), g.outdegree.numpy())
 		[0. 1. 1. 1. 0.] [3. 0. 0. 0. 0.]
 	
-	Args:
-		x (Tensor): Node feature matrix with shape :obj:`[num_nodes, num_node_features]`. (default: :obj:`None`)
-		edge_index (LongTensor): Graph connectivity in COO format with shape :obj:`[2, num_edges]`.
-			(default: :obj:`None`)
-		edge_attr (Tensor): Edge feature matrix with shape
-			:obj:`[num_edges, num_edge_features]`. (default: :obj:`None`)
-		num_nodes (int): The specified number of nodes. (default: :obj:`None`)
-		y (Tensor): Graph-level or node-level ground-truth labels with arbitrary shape. (default: :obj:`None`)
-		to_tensor (Bool): Set data to tensor
-		spr_format (List(str)): Specify the other sparse storage format, like `csc` and `csr`. (default: :obj:`None`)
+	Parameters
+	----------
+	x: Tensor 
+		Node feature matrix with shape :obj:`[num_nodes, num_node_features]`. (default: :obj:`None`)
+	edge_index: LongTensor
+		Graph connectivity in COO format with shape :obj:`[2, num_edges]`. (default: :obj:`None`)
+	edge_attr: Tensor
+		Edge feature matrix with shape :obj:`[num_edges, num_edge_features]`. (default: :obj:`None`)
+	num_nodes: int
+		The specified number of nodes. (default: :obj:`None`)
+	y: Tensor
+		Graph-level or node-level ground-truth labels with arbitrary shape. (default: :obj:`None`)
+	to_tensor: Bool
+		Set data to tensor
+	spr_format: List(str)
+		Specify the other sparse storage format, like `csc` and `csr`. (default: :obj:`None`)
 	"""
 	
 	def __init__(self, x=None, edge_index=None, edge_attr=None, num_nodes=None, y=None, spr_format=None, to_tensor=True, **kwargs):
@@ -515,12 +524,16 @@ class Graph(BaseGraph):
 	
 	def add_self_loop(self, n_loops=1):
 		"""
-		Args:
-			n_loops (int):
-
-		Returns:
-			edge_index (Tensor) : original edges with self loop edges
-			edge_attr (FloatTensor) : attributes of edges
+		Parameters
+		----------
+		n_loops: int
+			
+		Returns
+		-------
+		edge_index: Tensor
+  			original edges with self loop edges.
+		edge_attr: FloatTensor
+  			attributes of edges.
 		"""
 		return add_self_loops(self.edge_index, n_loops, self.edge_attr, num_nodes=self.num_nodes)
 	
@@ -529,9 +542,15 @@ class Graph(BaseGraph):
 		This function will return sorted edges with different strategy.
 		If :code:`sort_by="src"`, then edges will be sorted by :code:`src`
 		nodes and otherwise :code:`dst`.
-		Args:
-			sort_by: The type for sorted edges. ("src" or "dst")
-		Return:
+
+		Parameters
+		----------
+		sort_by: str
+			The type for sorted edges. ("src" or "dst")
+
+		Returns
+		-------
+		tuple
 			A tuple of (sorted_src, sorted_dst, sorted_eid).
 		"""
 		if sort_by not in ["src", "dst"]:
@@ -575,8 +594,10 @@ class Graph(BaseGraph):
 		In paddle.Tensor format, the graph edges and node features are in paddle.Tensor format.
 		You can use send and recv in paddle.Tensor graph.
 
-		Args:
-			inplace: (Default True) Whether to convert the graph into tensor inplace.
+		Parameters
+		----------
+		inplace: bool
+			(Default True) Whether to convert the graph into tensor inplace.
 
 		"""
 		
@@ -629,8 +650,10 @@ class Graph(BaseGraph):
 		In numpy format, the graph edges and node features are in numpy.ndarray format.
 		But you can't use send and recv in numpy graph.
 
-		Args:
-			inplace: (Default True) Whether to convert the graph into numpy inplace.
+		Parameters
+		----------
+		inplace: bool
+			(Default True) Whether to convert the graph into numpy inplace.
 
 		"""
 		
@@ -847,8 +870,10 @@ class Graph(BaseGraph):
 		This function will dump the graph information into the given directory path.
 		The graph can be read back with :code:`pgl.Graph.load`
 
-		Args:
-			path: The directory for the storage of the graph.
+		Parameters
+		----------
+		path: str
+			The directory for the storage of the graph.
 		"""
 		pass
 		
@@ -900,11 +925,12 @@ class Graph(BaseGraph):
 	def load(cls, path, mmap_mode="r"):
 		"""Load Graph from path and return a Graph in numpy.
 
-		Args:
-
-			path: The directory path of the stored Graph.
-
-			mmap_mode: Default :code:`mmap_mode="r"`. If not None, memory-map the graph.
+		Parameters
+		----------
+		path: str
+			The directory path of the stored Graph.
+		mmap_mode: str
+			Default :code:`mmap_mode="r"`. If not None, memory-map the graph.
 		"""
 		pass
 		
@@ -967,20 +993,30 @@ class BatchGraph(Graph):
 	r"""
 	Batch of graph objects that describe batched graphs.
 
-	Parameters:
-		edge_index (array_like, optional): list of edges of shape :math:`(|E|, 2)` or :math:`(|E|, 3)`.
-			Each tuple is (node_in, node_out) or (node_in, node_out, relation).
-		edge_attr (array_like, optional): edge weights of shape :math:`(|E|,)`
-		num_nodes (array_like, optional): number of nodes in each graph
-			By default, it will be inferred from the largest id in `edge_index`
-		num_edges (array_like, optional): number of edges in each graph
-		num_relation (int, optional): number of relations
-		node_feat (array_like, optional): node features of shape :math:`(|V|, ...)`
-		edge_feat (array_like, optional): edge features of shape :math:`(|E|, ...)`
-		graph_label (array_like, optional): graph label.
-		offsets (array_like, optional): node id offsets of shape :math:`(|E|,)`.
-			If not provided, nodes in `edge_index` should be relative index, i.e., the index in each graph.
-			If provided, nodes in `edge_index` should be absolute index, i.e., the index in the packed graph.
+	Parameters
+	----------
+	edge_index: array_like, optional
+		list of edges of shape :math:`(|E|, 2)` or :math:`(|E|, 3)`.
+		Each tuple is (node_in, node_out) or (node_in, node_out, relation).
+	edge_attr: array_like, optional
+		edge weights of shape :math:`(|E|,)`
+	num_nodes: array_like, optional
+		number of nodes in each graph
+		By default, it will be inferred from the largest id in `edge_index`
+	num_edges: array_like, optional
+		number of edges in each graph
+	num_relation: int, optional
+		number of relations
+	node_feat: array_like, optional
+		node features of shape :math:`(|V|, ...)`
+	edge_feat: array_like, optional
+		edge features of shape :math:`(|E|, ...)`
+	graph_label: array_like, optional
+		graph label.
+	offsets: array_like, optional
+		node id offsets of shape :math:`(|E|,)`.
+		If not provided, nodes in `edge_index` should be relative index, i.e., the index in each graph.
+		If provided, nodes in `edge_index` should be absolute index, i.e., the index in the packed graph.
 	"""
 	def __init__(self, edge_index, edge_attr=None, num_nodes=None, num_edges=None, node_feat=None, node_label=None, graph_label=None, offsets=None):
 		# super().__init__(edge_index, edge_attr=edge_attr, num_nodes=num_nodes, node_feat=node_feat, node_label=node_label, graph_label=graph_label)
@@ -1000,8 +1036,9 @@ class BatchGraph(Graph):
 		r"""
 		unpack batch graph to graph list.
 
-		Returns:
-			list[Graph]
+		Returns
+		-------
+		list[Graph]
 		"""
 		pass
 	
@@ -1010,8 +1047,9 @@ class BatchGraph(Graph):
 		r"""
 		classmethod that pack Graph list to BatchGraph.
 
-		Return:
-			BatchGraph
+		Returns
+		-------
+		BatchGraph
 		"""
 		pass
 	
@@ -1019,8 +1057,10 @@ class BatchGraph(Graph):
 		"""
 		Merge multiple graphs into a single graph.
 
-		Parameters:
-			graph2graph (array_like): ID of the new graph each graph belongs to
+		Parameters
+		----------
+		graph2graph: array_like
+			ID of the new graph each graph belongs to
 		"""
 		pass
 	
@@ -1030,11 +1070,14 @@ class BatchGraph(Graph):
 
 		.. _torch.repeat_interleave: https://pytorch.org/docs/stable/generated/torch.repeat_interleave.html
 
-		Parameters:
-			repeats (Tensor or int): number of repetitions for each graph
+		Parameters
+		----------
+		repeats: Tensor or int
+			number of repetitions for each graph
 
-		Returns:
-			BatchGraph
+		Returns
+		-------
+		BatchGraph
 		"""
 		pass
 

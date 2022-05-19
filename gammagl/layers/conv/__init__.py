@@ -11,3 +11,19 @@ from .agnn_conv import AGNNConv
 from .JumpingKnowledge import JumpingKnowledge
 from .han_conv import HANConv
 
+__all__ = [
+    'MessagePassing',
+    'GCNConv',
+    'GATConv',
+    'SGConv',
+    'SAGEConv',
+    'GATV2Conv',
+    'GCNIIConv',
+    'APPNPConv',
+    'RGCNConv',
+    'AGNNConv',
+    'JumpingKnowledge',
+    'HANConv'
+]
+
+classes = __all__
