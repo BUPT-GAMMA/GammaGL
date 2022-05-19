@@ -104,9 +104,9 @@ def main(args):
         # save best model on evaluation set
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            net.save_weights(args.best_model_path+"GCN_"+args.dataset+".npz", format='npz_dict')
+            net.save_weights(args.best_model_path+net.name+".npz", format='npz_dict')
 
-    net.load_weights(args.best_model_path+"GCN_"+args.dataset+".npz", format='npz_dict')
+    net.load_weights(args.best_model_path+net.name+".npz", format='npz_dict')
     if tlx.BACKEND == 'torch':
         net.to(data['x'].device)
     net.set_eval()
