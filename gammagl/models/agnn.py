@@ -2,18 +2,6 @@ import tensorlayerx as tlx
 from gammagl.layers.conv import AGNNConv
 
 
-def segment_log_softmax(weight, segment_ids, num_nodes):
-    max_values = tlx.unsorted_segment_max(weight, segment_ids, num_segments = num_nodes)
-    gathered_max_values = tlx.gather(max_values, segment_ids)
-    weight = weight - gathered_max_values
-    exp_weight = tlx.exp(weight)
-
-    sum_weights = tlx.unsorted_segment_sum(exp_weight, segment_ids, num_segments = num_nodes)
-    sum_weights = tlx.gather(sum_weights, segment_ids)
-    softmax_weight = tlx.divide(exp_weight, sum_weights)
-
-    return softmax_weight
-
 class AGNNModel(tlx.nn.Module):
     r'''The graph attention operator from the `"Attention-based Graph Neural Network for Semi-supervised Learning"
     <http://arxiv.org/abs/1803.03735>`_ paper
