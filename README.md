@@ -75,7 +75,7 @@ for epoch in range(200):
 
 </details>
 
-More information about evaluating final model performance can be found in the corresponding [example]((https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/gcn).
+More information about evaluating final model performance can be found in the corresponding [example](https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/gcn).
 
 ### Create your own GNN layer
 
