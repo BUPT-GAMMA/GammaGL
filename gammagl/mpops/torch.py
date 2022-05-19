@@ -57,14 +57,14 @@ def unsorted_segment_max(x, segment_ids, num_segments=None):
     return torch.stack(res, dim=0)
 
 
-def segment_max(x, segment_ids):
-    return unsorted_segment_max(x, segment_ids)
+def segment_max(x, segment_ids, num_segments=None):
+    return unsorted_segment_max(x, segment_ids,num_segments)
 
 
-def segment_mean(x, segment_ids):
-    return unsorted_segment_mean(x, segment_ids)
+def segment_mean(x, segment_ids,num_segments=None):
+    return unsorted_segment_mean(x, segment_ids,num_segments)
 
 
-def segment_sum(x, segment_ids):
-    return unsorted_segment_sum(x, segment_ids)
+def segment_sum(x, segment_ids,num_segments=None):
+    return unsorted_segment_sum(x, segment_ids,num_segments)
 
