@@ -21,16 +21,21 @@ class IMDB(InMemoryDataset):
     to their genre.
     Movie features correspond to elements of a bag-of-words representation of
     its plot keywords.
-    Args:
-        root (string): Root directory where the dataset should be saved.
-        transform (callable, optional): A function/transform that takes in an
-            :obj:`gammagl.data.HeteroGraph` object and returns a
-            transformed version. The data object will be transformed before
-            every access. (default: :obj:`None`)
-        pre_transform (callable, optional): A function/transform that takes in
-            an :obj:`gammagl.data.HeteroGraph` object and returns a
-            transformed version. The data object will be transformed before
-            being saved to disk. (default: :obj:`None`)
+    
+    Parameters
+    ----------
+    root: string
+        Root directory where the dataset should be saved.
+    transform: callable, optional
+        A function/transform that takes in an
+        :obj:`gammagl.data.HeteroGraph` object and returns a
+        transformed version. The data object will be transformed before
+        every access. (default: :obj:`None`)
+    pre_transform: callable, optional
+        A function/transform that takes in
+        an :obj:`gammagl.data.HeteroGraph` object and returns a
+        transformed version. The data object will be transformed before
+        being saved to disk. (default: :obj:`None`)
     """
 
     url = 'https://www.dropbox.com/s/g0btk9ctr1es39x/IMDB_processed.zip?dl=1'
