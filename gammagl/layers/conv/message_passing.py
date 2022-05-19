@@ -19,7 +19,7 @@ class MessagePassing(tlx.nn.Module):
     def __init__(self):
         super().__init__()
 
-    def message(self, x, edge_index, edge_weight=None, num_nodes=None):
+    def message(self, x, edge_index, edge_weight=None):
         msg = tlx.gather(x, edge_index[0, :])
         if edge_weight is not None:
             edge_weight = tlx.expand_dims(edge_weight, -1)
@@ -44,7 +44,7 @@ class MessagePassing(tlx.nn.Module):
     def propagate(self, x, edge_index, edge_weight=None, num_nodes=None, aggr='sum'):
         if num_nodes is None:
             num_nodes = x.shape[0]
-        msg = self.message(x, edge_index, edge_weight=edge_weight, num_nodes=num_nodes)
+        msg = self.message(x, edge_index, edge_weight=edge_weight)
         x = self.aggregate(msg, edge_index, num_nodes=num_nodes, aggr_type=aggr)
         x = self.update(x)
         return x

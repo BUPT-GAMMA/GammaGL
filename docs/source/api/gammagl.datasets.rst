@@ -11,4 +11,4 @@ gammagl.datasets
 
 .. automodule:: gammagl.datasets
     :members:
-    :exclude-members: download, process, processed_file_names, raw_file_names, num_classes, get
+    :undoc-members:

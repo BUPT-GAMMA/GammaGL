@@ -1,5 +1,3 @@
-# import os
-# os.environ['TL_BACKEND'] = 'torch'
 import tensorlayerx as tlx
 
 from gammagl.data import Graph, HeteroGraph
