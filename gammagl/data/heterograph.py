@@ -28,41 +28,47 @@ class HeteroGraph(BaseGraph):
     behaviour of a regular **nested** Python dictionary.
     In addition, it provides useful functionality for analyzing graph
     structures, and provides basic PyTorch tensor functionalities.
-    .. code-block::
-        from gammagl.data import HeteroGraph
-        data = HeteroGraph()
+    
+    .. code:: python
+    
+        >>> from gammagl.data import HeteroGraph
+        >>> data = HeteroGraph()
         # Create two node types "paper" and "author" holding a feature matrix:
-        data['paper'].x = torch.randn(num_papers, num_paper_features)
-        data['author'].x = torch.randn(num_authors, num_authors_features)
+        >>> data['paper'].x = torch.randn(num_papers, num_paper_features)
+        >>> data['author'].x = torch.randn(num_authors, num_authors_features)
         # Create an edge type "(author, writes, paper)" and building the
         # graph connectivity:
-        data['author', 'writes', 'paper'].edge_index = ...  # [2, num_edges]
-        data['paper'].num_nodes
-        >>> 23
-        data['author', 'writes', 'paper'].num_edges
-        >>> 52
+        >>> data['author', 'writes', 'paper'].edge_index = ...  # [2, num_edges]
+        >>> data['paper'].num_nodes
+        23
+        >>> data['author', 'writes', 'paper'].num_edges
+        52
         
     Note that there exists multiple ways to create a heterogeneous graph data,
     *e.g.*:
-    * To initialize a node of type :obj:`"paper"` holding a node feature
-      matrix :obj:`x_paper` named :obj:`x`:
-      .. code-block:: python
-        from gammagl.data import HeteroGraph
-        data = HeteroGraph()
-        data['paper'].x = x_paper
-        data = HeteroGraph(paper={ 'x': x_paper })
-        data = HeteroGraph({'paper': { 'x': x_paper }})
+    * To initialize a node of type :obj:`"paper"` holding a node feature matrix :obj:`x_paper` named :obj:`x`:
+
+    .. code:: python
+
+        >>> from gammagl.data import HeteroGraph
+        >>> data = HeteroGraph()
+        >>> data['paper'].x = x_paper
+        >>> data = HeteroGraph(paper={ 'x': x_paper })
+        >>> data = HeteroGraph({'paper': { 'x': x_paper }})
+
     * To initialize an edge from source node type :obj:`"author"` to
       destination node type :obj:`"paper"` with relation type :obj:`"writes"`
       holding a graph connectivity matrix :obj:`edge_index_author_paper` named
       :obj:`edge_index`:
-      .. code-block:: python
-        data = HeteroGraph()
-        data['author', 'writes', 'paper'].edge_index = edge_index_author_paper
-        data = HeteroGraph(author__writes__paper={
+
+      .. code:: python
+
+        >>> data = HeteroGraph()
+        >>> data['author', 'writes', 'paper'].edge_index = edge_index_author_paper
+        >>> data = HeteroGraph(author__writes__paper={
             'edge_index': edge_index_author_paper
         })
-        data = HeteroGraph({
+        >>> data = HeteroGraph({
             ('author', 'writes', 'paper'):
             { 'edge_index': edge_index_author_paper }
         })
@@ -316,24 +322,29 @@ class HeteroGraph(BaseGraph):
     def metadata(self) -> Tuple[List[NodeType], List[EdgeType]]:
         r"""Returns the heterogeneous meta-data, *i.e.* its node and edge
         types.
-        .. code-block:: python
-            data = HeteroGraph()
-            data['paper'].x = ...
-            data['author'].x = ...
-            data['author', 'writes', 'paper'].edge_index = ...
-            print(data.metadata())
-            >>> (['paper', 'author'], [('author', 'writes', 'paper')])
+
+        .. code:: python
+
+            >>> data = HeteroGraph()
+            >>> data['paper'].x = ...
+            >>> data['author'].x = ...
+            >>> data['author', 'writes', 'paper'].edge_index = ...
+            >>> print(data.metadata())
+            (['paper', 'author'], [('author', 'writes', 'paper')])
         """
         return self.node_types, self.edge_types
 
     def collect(self, key: str) -> Dict[NodeOrEdgeType, Any]:
         r"""Collects the attribute :attr:`key` from all node and edge types.
-        .. code-block:: python
-            data = HeteroGraph()
-            data['paper'].x = ...
-            data['author'].x = ...
-            print(data.collect('x'))
-            # >>> { 'paper': ..., 'author': ...}
+
+        .. code:: python
+
+            >>> data = HeteroGraph()
+            >>> data['paper'].x = ...
+            >>> data['author'].x = ...
+            >>> print(data.collect('x'))
+            { 'paper': ..., 'author': ...}
+
         .. note::
             This is equivalent to writing :obj:`data.x_dict`.
         """
@@ -350,9 +361,11 @@ class HeteroGraph(BaseGraph):
         If the storage is not present yet, will create a new
         :class:`torch_geometric.data.storage.NodeStorage` object for the given
         node type.
-        .. code-block:: python
-            data = HeteroGraph()
-            node_storage = data.get_node_store('paper')
+
+        .. code:: python
+
+            >>> data = HeteroGraph()
+            >>> node_storage = data.get_node_store('paper')
         """
         out = self._node_store_dict.get(key, None)
         if out is None:
@@ -366,9 +379,11 @@ class HeteroGraph(BaseGraph):
         If the storage is not present yet, will create a new
         :class:`torch_geometric.data.storage.EdgeStorage` object for the given
         edge type.
-        .. code-block:: python
-            data = HeteroGraph()
-            edge_storage = data.get_edge_store('author', 'writes', 'paper')
+
+        .. code:: python
+
+            >>> data = HeteroGraph()
+            >>> edge_storage = data.get_edge_store('author', 'writes', 'paper')
         """
         key = (src, rel, dst)
         out = self._edge_store_dict.get(key, None)

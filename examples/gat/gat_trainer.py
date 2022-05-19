@@ -8,37 +8,16 @@
 
 import os
 # os.environ['CUDA_VISIBLE_DEVICES']='1'
-os.environ['CUDA_VISIBLE_DEVICES']='7'
-# os.environ['TL_BACKEND'] = 'tensorflow'
-os.environ['TL_BACKEND'] = 'mindspore'
 # os.environ['TL_BACKEND'] = 'paddle'
-# os.environ['TL_BACKEND'] = 'torch'
+
 import sys
 sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
-import time
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
 from gammagl.models import GATModel
-from gammagl.utils.loop import add_self_loops
+from gammagl.utils import add_self_loops, mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss
-from pyinstrument import Profiler
-
-
-def evaluate(net, data, y, mask, metrics):
-    net.set_eval()
-    logits = net(data['x'], data['edge_index'], data['num_nodes'])
-    if tlx.BACKEND == 'mindspore':
-        idx = tlx.convert_to_tensor(tlx.convert_to_numpy(data['train_mask']).nonzero()[0], dtype=tlx.int64)
-        _logits = tlx.gather(logits, idx)
-        _label = tlx.gather(y, idx)
-    else:
-        _logits = logits[mask]
-        _label = y[mask]
-    metrics.update(_logits, _label)
-    acc = metrics.result()
-    metrics.reset()
-    return acc
 
 
 class SemiSpvzLoss(WithLoss):
@@ -46,18 +25,27 @@ class SemiSpvzLoss(WithLoss):
         super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
 
     def forward(self, data, label):
-        logits = self._backbone(data['x'], data['edge_index'], data['num_nodes'])
-        if tlx.BACKEND == 'mindspore':
-            idx = tlx.convert_to_tensor(tlx.convert_to_numpy(data['train_mask']).nonzero()[0], dtype=tlx.int64)
-            train_logits = tlx.gather(logits, idx)
-            train_label = tlx.gather(label, idx)
-        else:
-            train_logits = logits[data['train_mask']]
-            train_label = label[data['train_mask']]
-        loss = self._loss_fn(train_logits, train_label)
+        logits = self.backbone_network(data['x'], data['edge_index'], data['num_nodes'])
+        train_logits = tlx.gather(logits, data['train_idx'])
+        train_y = tlx.gather(data['y'], data['train_idx'])
+        loss = self._loss_fn(train_logits, train_y)
         return loss
 
+def calculate_acc(logits, y, metrics):
+    """
+    Args:
+        logits: node logits
+        y: node labels
+        metrics: tensorlayerx.metrics
 
+    Returns:
+        rst
+    """
+
+    metrics.update(logits, y)
+    rst = metrics.result()
+    metrics.reset()
+    return rst
 
 def main(args):
     # load datasets
@@ -66,17 +54,19 @@ def main(args):
     dataset = Planetoid(args.dataset_path, args.dataset)
     graph = dataset[0]
     edge_index, _ = add_self_loops(graph.edge_index, n_loops=args.self_loops, num_nodes=graph.num_nodes)
-    x = graph.x
-    y = tlx.argmax(graph.y, axis=1)
 
-    # pf = Profiler()
-    # pf.start()
-    net = GATModel(feature_dim=x.shape[1],
+    # for mindspore, it should be passed into node indices
+    train_idx = mask_to_index(graph.train_mask)
+    test_idx = mask_to_index(graph.test_mask)
+    val_idx = mask_to_index(graph.val_mask)
+
+    net = GATModel(feature_dim=dataset.num_node_features,
                    hidden_dim=args.hidden_dim,
-                   num_class=graph.y.shape[1],
+                   num_class=dataset.num_classes,
                    heads=args.heads,
                    drop_rate=args.drop_rate,
                    name="GAT")
+
     loss = tlx.losses.softmax_cross_entropy_with_logits
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
@@ -86,19 +76,25 @@ def main(args):
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
     data = {
-        "x": x,
+        "x": graph.x,
+        "y": graph.y,
         "edge_index": edge_index,
-        "train_mask": graph.train_mask,
-        "test_mask": graph.test_mask,
-        "val_mask": graph.val_mask,
+        "train_idx": train_idx,
+        "test_idx": test_idx,
+        "val_idx": val_idx,
         "num_nodes": graph.num_nodes,
     }
 
     best_val_acc = 0
     for epoch in range(args.n_epoch):
         net.set_train()
-        train_loss = train_one_step(data, y)
-        val_acc = evaluate(net, data, y, data['val_mask'], metrics)
+        train_loss = train_one_step(data, graph.y)
+        net.set_eval()
+        logits = net(data['x'], data['edge_index'], data['num_nodes'])
+        val_logits = tlx.gather(logits, data['val_idx'])
+        val_y = tlx.gather(data['y'], data['val_idx'])
+        val_acc = calculate_acc(val_logits, val_y, metrics)
+
 
         print("Epoch [{:0>3d}]  ".format(epoch + 1)
               + "   train loss: {:.4f}".format(train_loss.item())
@@ -110,10 +106,14 @@ def main(args):
             net.save_weights(args.best_model_path+net.name+".npz", format='npz_dict')
 
     net.load_weights(args.best_model_path+net.name+".npz", format='npz_dict')
-    test_acc = evaluate(net, data, y, data['test_mask'], metrics)
+    if tlx.BACKEND == 'torch':
+        net.to(data['x'].device)
+    net.set_eval()
+    logits = net(data['x'], data['edge_index'], data['num_nodes'])
+    test_logits = tlx.gather(logits, data['test_idx'])
+    test_y = tlx.gather(data['y'], data['test_idx'])
+    test_acc = calculate_acc(test_logits, test_y, metrics)
     print("Test acc:  {:.4f}".format(test_acc))
-    # pf.stop()
-    # print(pf.output_text(unicode=True, color=True))
 
 
 if __name__ == "__main__":

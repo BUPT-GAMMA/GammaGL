@@ -68,8 +68,9 @@ class MLP(nn.Module):
 
 	def __init__(self, num_layers, input_dim, hidden_dim, output_dim):
 		"""MLP layers construction
-        Paramters
-        ---------
+
+        Parameters
+        ----------
         num_layers: int
             The number of linear layers
         input_dim: int
@@ -117,34 +118,36 @@ class MLP(nn.Module):
 
 
 class GINModel(nn.Module):
-	"""GIN model"""
+	"""GIN model
+
+	model parameters setting
+
+	Parameters
+	----------
+	num_layers: int
+		The number of linear layers in the neural network
+	num_mlp_layers: int
+		The number of linear layers in mlps
+	input_dim: int
+		The dimensionality of input features
+	hidden_dim: int
+		The dimensionality of hidden units at ALL layers
+	output_dim: int
+		The number of classes for prediction
+	final_dropout: float
+		dropout ratio on the final linear layer
+	learn_eps: boolean
+		If True, learn epsilon to distinguish center nodes from neighbors
+		If False, aggregate neighbors and center nodes altogether.
+	neighbor_pooling_type: str
+		how to aggregate neighbors (sum, mean, or max)
+	graph_pooling_type: str
+		how to aggregate entire nodes in a graph (sum, mean or max)
+	"""
 
 	def __init__(self, num_layers, num_mlp_layers, input_dim, hidden_dim,
 	             output_dim, final_dropout, learn_eps, graph_pooling_type,
 	             neighbor_pooling_type,*args, **kwargs):
-		"""model parameters setting
-        Paramters
-        ---------
-        num_layers: int
-            The number of linear layers in the neural network
-        num_mlp_layers: int
-            The number of linear layers in mlps
-        input_dim: int
-            The dimensionality of input features
-        hidden_dim: int
-            The dimensionality of hidden units at ALL layers
-        output_dim: int
-            The number of classes for prediction
-        final_dropout: float
-            dropout ratio on the final linear layer
-        learn_eps: boolean
-            If True, learn epsilon to distinguish center nodes from neighbors
-            If False, aggregate neighbors and center nodes altogether.
-        neighbor_pooling_type: str
-            how to aggregate neighbors (sum, mean, or max)
-        graph_pooling_type: str
-            how to aggregate entire nodes in a graph (sum, mean or max)
-        """
 		super(GINModel, self).__init__(*args, **kwargs)
 		self.num_layers = num_layers
 		self.learn_eps = learn_eps
