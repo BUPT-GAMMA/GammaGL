@@ -2,7 +2,6 @@ import json
 import sys
 import os
 os.environ['TL_BACKEND'] = 'torch'
-os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 import os.path as osp
 sys.path.insert(0, osp.abspath('../../'))
 from collections import defaultdict
