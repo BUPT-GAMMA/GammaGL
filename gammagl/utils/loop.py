@@ -1,6 +1,8 @@
-from typing import Optional, Tuple, Union
-import tensorlayerx as tlx
+from typing import Optional, Union
+
 import numpy as np
+import tensorlayerx as tlx
+
 from .num_nodes import maybe_num_nodes
 
 
@@ -33,6 +35,7 @@ def remove_self_loops(edge_index, edge_attr=None):
     else:
         return edge_index, edge_attr[mask]
 
+
 def add_self_loops(
         edge_index, edge_attr=None, n_loops=1,
         fill_value: Union[float, str] = None,
@@ -42,9 +45,8 @@ def add_self_loops(
     In case the graph is weighted or has multi-dimensional edge features
     (:obj:`edge_attr != None`), edge features of self-loops will be added
     according to :obj:`fill_value`.
-    
-    .. code:: python
 
+    .. code:: python
         >>> from gammagl.data import Graph
         >>> from gammagl.utils.loop import add_self_loops
         >>> import numpy
@@ -55,7 +57,6 @@ def add_self_loops(
         array([[0, 0, 0, 0, 1, 2, 3],
                [1, 2, 3, 0, 1, 2, 3]])
 
-        
     Parameters
     ----------
     edge_index: LongTensor
@@ -77,7 +78,6 @@ def add_self_loops(
     num_nodes: int, optional
         The number of nodes, *i.e.*
         :obj:`max_val + 1` of :attr:`edge_index`. (default: :obj:`None`)
-
     Returns
     -------
     :class:`LongTensor`, :class:`Tensor`
@@ -86,7 +86,7 @@ def add_self_loops(
 
     # loop_index = tlx.convert_to_tensor(np.arange(0, N), dtype=tlx.int64)
     # edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int64) # torch raise Error
-    loop_index = tlx.convert_to_tensor(np.arange(int(N)).repeat(n_loops), dtype=edge_index.dtype)
+    loop_index = tlx.convert_to_tensor(np.arange(N).repeat(n_loops), dtype=edge_index.dtype)
     loop_index = tlx.stack([loop_index, loop_index])
 
     if edge_attr is not None:
@@ -97,12 +97,12 @@ def add_self_loops(
         if fill_value is None:
             loop_attr = tlx.ones(shape, dtype=edge_attr.dtype)
         elif isinstance(fill_value, (int, float)):
-            loop_attr = tlx.constant(value=fill_value, shape=shape, dtype=edge_attr.dtype)
+            loop_attr = tlx.constant(fill_value, dtype=edge_attr.dtype, shape=shape)
         elif tlx.is_tensor(fill_value):
             loop_attr = tlx.convert_to_numpy(fill_value)
             if edge_attr.ndim != loop_attr.size:
                 loop_attr = np.expand_dims(loop_attr, axis=0)
-            #sizes = [N] + [1] * (loop_attr.size - 1)
+            # sizes = [N] + [1] * (loop_attr.size - 1)
             loop_attr = tlx.convert_to_tensor(np.repeat(loop_attr, [N], axis=0), dtype=fill_value.dtype)
 
         elif isinstance(fill_value, str):
@@ -117,5 +117,3 @@ def add_self_loops(
 
     edge_index = tlx.concat([edge_index, loop_index], axis=1)
     return edge_index, edge_attr
-
-#
