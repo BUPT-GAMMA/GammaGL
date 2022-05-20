@@ -5,9 +5,6 @@ from collections.abc import Mapping
 from itertools import chain
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 
-# import torch
-# from torch import Tensor
-# from torch_sparse import SparseTensor
 import numpy as np
 import scipy
 import tensorlayerx as tlx
@@ -27,15 +24,16 @@ class HeteroGraph(BaseGraph):
     In general, :class:`~gammagl.data.HeteroGraph` tries to mimic the
     behaviour of a regular **nested** Python dictionary.
     In addition, it provides useful functionality for analyzing graph
-    structures, and provides basic PyTorch tensor functionalities.
+    structures, and provides basic tensor functionalities.
     
     .. code:: python
     
         >>> from gammagl.data import HeteroGraph
+        >>> import tensorlayerx as tlx
         >>> data = HeteroGraph()
         # Create two node types "paper" and "author" holding a feature matrix:
-        >>> data['paper'].x = torch.randn(num_papers, num_paper_features)
-        >>> data['author'].x = torch.randn(num_authors, num_authors_features)
+        >>> data['paper'].x = tlx.random_uniform((num_papers, num_paper_features))
+        >>> data['author'].x =  tlx.random_uniform((num_authors, num_authors_features)))
         # Create an edge type "(author, writes, paper)" and building the
         # graph connectivity:
         >>> data['author', 'writes', 'paper'].edge_index = ...  # [2, num_edges]
@@ -279,6 +277,39 @@ class HeteroGraph(BaseGraph):
         
     def debug(self):
         pass  # TODO
+
+    def tensor(self, inplace=True):
+        if inplace:
+            for store_dict in [self._edge_store_dict, self._node_store_dict]:
+                for key, values in store_dict.items():
+                    for name, value in values.items():
+                        store_dict[key][name] = self._apply_to_tensor(key=name, value=value)
+            return self
+        else:
+            # TODO
+            raise NotImplementedError
+
+    def numpy(self, inplace=True):
+        """Convert the Graph into numpy format.
+        In numpy format, the graph edges and node features are in numpy.ndarray format.
+        But you can't use send and recv in numpy graph.
+
+        Parameters
+        ----------
+        inplace: bool
+            (Default True) Whether to convert the graph into numpy inplace.
+
+        """
+
+        if inplace:
+            for store_dict in [self._edge_store_dict, self._node_store_dict]:
+                for key, values in store_dict.items():
+                    for name, value in values.items():
+                        store_dict[key][name] = self._apply_to_numpy(key=name, value=value)
+            return self
+        else:
+            # TODO
+            raise NotImplementedError
 
     ###########################################################################
 
