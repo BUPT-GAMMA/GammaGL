@@ -34,9 +34,9 @@ class FAGCNConv(MessagePassing):
     Parameters
     ----------
     src_degree: 1-D tensor
-        Shape: (, num_nodes). Normalized node degree from source node of edge
+        Shape: (num_nodes, ). Normalized node degree from source node of edge
     dst_degree: 1-D tensor
-        Shape: (, num_nodes). Normalized node degree from destination node of edge
+        Shape: (num_nodes, ). Normalized node degree from destination node of edge
     hidden_dim: int
         Hidden dimension of layer
     drop_rate: float
