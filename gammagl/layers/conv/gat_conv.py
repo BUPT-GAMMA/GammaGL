@@ -76,7 +76,7 @@ class GATConv(MessagePassing):
         # self.add_self_loops = add_self_loops
         self.add_bias = add_bias
 
-        self.linear_w = tlx.layers.Linear(out_features=self.out_channels * self.heads,
+        self.linear = tlx.layers.Linear(out_features=self.out_channels * self.heads,
                                         in_features=self.in_channels,
                                         b_init=None)
 
@@ -105,7 +105,7 @@ class GATConv(MessagePassing):
 
 
     def forward(self, x, edge_index, num_nodes):
-        x = tlx.reshape(self.linear_w(x), shape=(-1, self.heads, self.out_channels))
+        x = tlx.reshape(self.linear(x), shape=(-1, self.heads, self.out_channels))
         x = self.propagate(x, edge_index, num_nodes=num_nodes)
 
         if self.concat:
