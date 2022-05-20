@@ -7,11 +7,21 @@ class GATV2Model(tlx.nn.Module):
 
     Parameters
     ----------
-    cfg: configuration of GAT
+        feature_dim (int): input feature dimension
+        hidden_dim (int): hidden dimension
+        num_class (int): number of classes
+        heads (int): number of attention heads
+        drop_rate (float): dropout rate
+        name (str): model name
     """
 
-    def __init__(self, feature_dim, hidden_dim, heads,
-                 num_class, drop_rate, name=None):
+    def __init__(self,
+                 feature_dim,
+                 hidden_dim,
+                 heads,
+                 num_class,
+                 drop_rate,
+                 name=None):
         super().__init__(name=name)
 
         self.conv1 = GATV2Conv(in_channels=feature_dim,
