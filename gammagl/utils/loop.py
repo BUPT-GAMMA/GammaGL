@@ -86,7 +86,7 @@ def add_self_loops(
 
     # loop_index = tlx.convert_to_tensor(np.arange(0, N), dtype=tlx.int64)
     # edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int64) # torch raise Error
-    loop_index = tlx.convert_to_tensor(np.arange(N).repeat(n_loops), dtype=edge_index.dtype)
+    loop_index = tlx.convert_to_tensor(np.arange(int(N)).repeat(n_loops), dtype=edge_index.dtype)
     loop_index = tlx.stack([loop_index, loop_index])
 
     if edge_attr is not None:
