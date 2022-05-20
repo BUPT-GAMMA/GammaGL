@@ -40,6 +40,7 @@ def unsorted_segment_mean(x, segment_ids, num_segments=None):
     tensor = torch.zeros(*shape, device=x.device).to(x.dtype).scatter_add(0, segment_ids, x)
     tensor_nums = torch.zeros(*shape, device=x.device).to(x.dtype).scatter_add(0, segment_ids, ones_data)
     tensor = tensor / tensor_nums
+    tensor[torch.isnan(tensor)] = 0
     return tensor
 
 

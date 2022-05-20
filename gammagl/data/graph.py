@@ -224,6 +224,57 @@ class BaseGraph:
 		"""
 		return copy.copy(self).apply(lambda x: x.clone(), *args)
 
+	def _apply_to_tensor(self, key, value, inplace=True):
+		if value is None:
+			return value
+
+		if isinstance(value, CSRAdj):
+			value = value.tensor(inplace=inplace)
+
+		elif isinstance(value, dict):
+			if inplace:
+				for k, v in value.items():
+					value[k] = tlx.convert_to_tensor(v)
+			else:
+				new_value = {}
+				for k, v in value.items():
+					new_value[k] = tlx.convert_to_tensor(v)
+				value = new_value
+		else:
+			if tlx.is_tensor(value):
+				pass
+			elif check_is_numpy(value):
+				if key in ['edge_index', 'y', 'edge_type', 'train_idx', 'test_idx', 'train_y']:
+					value = tlx.convert_to_tensor(value, dtype=tlx.int64)
+				elif key in ['train_mask', 'val_mask', 'test_mask', ]:
+					value = tlx.convert_to_tensor(value, dtype=tlx.bool)
+				else:
+					value = tlx.convert_to_tensor(value, dtype=tlx.float32)
+		return value
+
+	def _apply_to_numpy(self, key, value, inplace=True):
+		if value is None:
+			return value
+
+		if isinstance(value, CSRAdj):
+			value = value.numpy(inplace=inplace)
+		elif isinstance(value, dict):
+			if inplace:
+				for k, v in value.items():
+					value[k] = v.numpy()
+			else:
+				new_value = {}
+				for k, v in value.items():
+					new_value[k] = v.numpy()
+				value = new_value
+		else:
+			if check_is_numpy(value):
+				pass
+			elif tlx.is_tensor(value):
+				# can't assign type of numpy
+				value = tlx.convert_to_numpy(value)
+		return value
+
 	# def contiguous(self, *args: List[str]):
 	# 	r"""Ensures a contiguous memory layout, either for all attributes or
 	# 	only the ones given in :obj:`*args`."""
@@ -560,34 +611,6 @@ class Graph(BaseGraph):
 		else:
 			dst, src, eid = self._csc_adj.triples()
 		return src, dst, eid
-		
-	def _apply_to_tensor(self, key, value, inplace=True):
-		if value is None:
-			return value
-		
-		if isinstance(value, CSRAdj):
-			value = value.tensor(inplace=inplace)
-		
-		elif isinstance(value, dict):
-			if inplace:
-				for k, v in value.items():
-					value[k] = tlx.convert_to_tensor(v)
-			else:
-				new_value = {}
-				for k, v in value.items():
-					new_value[k] = tlx.convert_to_tensor(v)
-				value = new_value
-		else:
-			if tlx.is_tensor(value):
-				pass
-			elif check_is_numpy(value):
-				if key in ['edge_index', 'y', 'edge_type', 'train_idx', 'test_idx', 'train_y']:
-					value = tlx.convert_to_tensor(value, dtype=tlx.int64)
-				elif key in ['train_mask', 'val_mask', 'test_mask', ]:
-					value = tlx.convert_to_tensor(value, dtype=tlx.bool)
-				else:
-					value = tlx.convert_to_tensor(value, dtype=tlx.float32)
-		return value
 	
 	def tensor(self, inplace=True):
 		"""Convert the Graph into paddle.Tensor format.
@@ -621,29 +644,6 @@ class Graph(BaseGraph):
 				adj_dst_index=new_dict["_adj_dst_index"],
 				**new_dict)
 			return graph
-	
-	def _apply_to_numpy(self, key, value, inplace=True):
-		if value is None:
-			return value
-		
-		if isinstance(value, CSRAdj):
-			value = value.numpy(inplace=inplace)
-		elif isinstance(value, dict):
-			if inplace:
-				for k, v in value.items():
-					value[k] = v.numpy()
-			else:
-				new_value = {}
-				for k, v in value.items():
-					new_value[k] = v.numpy()
-				value = new_value
-		else:
-			if check_is_numpy(value):
-				pass
-			elif tlx.is_tensor(value):
-				# can't assign type of numpy
-				value = tlx.convert_to_numpy(value)
-		return value
 	
 	def numpy(self, inplace=True):
 		"""Convert the Graph into numpy format.
@@ -799,7 +799,7 @@ class Graph(BaseGraph):
 	
 	@classmethod
 	def from_dict(cls, mapping: Dict[str, Any]):
-		r"""Creates a :class:`~torch_geometric.data.Data` object from a Python
+		r"""Creates a :class:`~gammagl.data.Data` object from a Python
 		dictionary."""
 		return cls(**mapping)
 	
@@ -1066,7 +1066,7 @@ class BatchGraph(Graph):
 	
 	def repeat_interleave(self):
 		r"""
-		Repeat this packed graph. This function behaves similarly to `torch.repeat_interleave`_.
+		Repeat this packed graph. This function behaves similarly to `gammagl.repeat_interleave`_.
 
 		.. _torch.repeat_interleave: https://pytorch.org/docs/stable/generated/torch.repeat_interleave.html
 
