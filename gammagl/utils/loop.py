@@ -55,8 +55,8 @@ def add_self_loops(
 
     # loop_index = tlx.convert_to_tensor(np.arange(0, N), dtype=tlx.int64)
     # edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int64) # 否则，torch 可能报错
-    loop_index = tlx.convert_to_tensor([np.arange(N).repeat(n_loops),
-                                             np.arange(N).repeat(n_loops)], dtype=edge_index.dtype)
+    loop_index = tlx.convert_to_tensor([np.arange(int(N)).repeat(n_loops),
+                                             np.arange(int(N)).repeat(n_loops)], dtype=edge_index.dtype)
 
     if edge_attr is not None:
         if fill_value is None:
