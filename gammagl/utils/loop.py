@@ -97,7 +97,7 @@ def add_self_loops(
         if fill_value is None:
             loop_attr = tlx.ones(shape, dtype=edge_attr.dtype)
         elif isinstance(fill_value, (int, float)):
-            loop_attr = tlx.constant(fill_value, shape, dtype=edge_attr.dtype)
+            loop_attr = tlx.constant(value=fill_value, shape=shape, dtype=edge_attr.dtype)
         elif tlx.is_tensor(fill_value):
             loop_attr = tlx.convert_to_numpy(fill_value)
             if edge_attr.ndim != loop_attr.size:
