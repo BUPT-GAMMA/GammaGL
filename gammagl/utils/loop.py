@@ -2,8 +2,39 @@ from typing import Optional, Tuple, Union
 import tensorlayerx as tlx
 import numpy as np
 from .num_nodes import maybe_num_nodes
+
+
+def contains_self_loops(edge_index) -> bool:
+    r"""Returns :obj:`True` if the graph given by :attr:`edge_index` contains
+    self-loops.
+    Args:
+        edge_index (LongTensor): The edge indices.
+    :rtype: bool
+    """
+    mask = edge_index[0] == edge_index[1]
+    return tlx.any(mask, axis=0)
+
+
+def remove_self_loops(edge_index, edge_attr=None):
+    r"""Removes every self-loop in the graph given by :attr:`edge_index`, so
+    that :math:`(i,i) \not\in \mathcal{E}` for every :math:`i \in \mathcal{V}`.
+    Args:
+        edge_index (LongTensor): The edge indices.
+        edge_attr (Tensor, optional): Edge weights or multi-dimensional
+            edge features. (default: :obj:`None`)
+    :rtype: (:class:`LongTensor`, :class:`Tensor`)
+    """
+    mask = edge_index[0] != edge_index[1]
+    if tlx.is_tensor(edge_index):
+        edge_index = tlx.convert_to_numpy(edge_index)
+    edge_index = tlx.convert_to_tensor(edge_index[:, mask], dtype=tlx.int64)
+    if edge_attr is None:
+        return edge_index, None
+    else:
+        return edge_index, edge_attr[mask]
+
 def add_self_loops(
-        edge_index, n_loops=1, edge_attr=None,
+        edge_index, edge_attr=None, n_loops=1,
         fill_value: Union[float, str] = None,
         num_nodes: Optional[int] = None):
     r"""Adds a self-loop :math:`(i,i) \in \mathcal{E}` to every node
@@ -54,25 +85,29 @@ def add_self_loops(
     N = maybe_num_nodes(edge_index, num_nodes)
 
     # loop_index = tlx.convert_to_tensor(np.arange(0, N), dtype=tlx.int64)
-    # edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int64) # 否则，torch 可能报错
-    loop_index = tlx.convert_to_tensor([np.arange(N).repeat(n_loops),
-                                             np.arange(N).repeat(n_loops)], dtype=edge_index.dtype)
+    # edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int64) # torch raise Error
+    loop_index = tlx.convert_to_tensor(np.arange(N).repeat(n_loops), dtype=edge_index.dtype)
+    loop_index = tlx.stack([loop_index, loop_index])
 
     if edge_attr is not None:
+        if tlx.BACKEND in ['paddle']:
+            shape = ([N] + edge_attr.shape[1:]) if edge_attr.ndim > 1 else (N,)
+        else:
+            shape = ([N] + tlx.get_tensor_shape(edge_attr)[1:]) if edge_attr.ndim > 1 else (N,)
         if fill_value is None:
-            loop_attr = tlx.ones((N, edge_attr.shape[1]), dtype=edge_attr.dtype)
+            loop_attr = tlx.ones(shape, dtype=edge_attr.dtype)
         elif isinstance(fill_value, (int, float)):
-            # loop_attr = edge_attr.new_full((N, ) + edge_attr.size()[1:],
-            #                                fill_value)
-            loop_attr = tlx.constant(fill_value, (N,) + edge_attr.shape[1], dtype=edge_attr.dtype)
-        # elif isinstance(fill_value, Tensor):
-        #     loop_attr = fill_value.to(edge_attr.device, edge_attr.dtype)
-        #     if edge_attr.dim() != loop_attr.dim():
-        #         loop_attr = loop_attr.unsqueeze(0)
-        #     sizes = [N] + [1] * (loop_attr.dim() - 1)
-        #     loop_attr = loop_attr.repeat(*sizes)
+            loop_attr = tlx.constant(fill_value, shape, dtype=edge_attr.dtype)
+        elif tlx.is_tensor(fill_value):
+            loop_attr = tlx.convert_to_numpy(fill_value)
+            if edge_attr.ndim != loop_attr.size:
+                loop_attr = np.expand_dims(loop_attr, axis=0)
+            #sizes = [N] + [1] * (loop_attr.size - 1)
+            loop_attr = tlx.convert_to_tensor(np.repeat(loop_attr, [N], axis=0), dtype=fill_value.dtype)
 
-        # elif isinstance(fill_value, str):
+        elif isinstance(fill_value, str):
+            # TODO
+            raise NotImplementedError
         #     loop_attr = scatter(edge_attr, edge_index[1], dim=0, dim_size=N,
         #                         reduce=fill_value)
         else:
@@ -83,20 +118,4 @@ def add_self_loops(
     edge_index = tlx.concat([edge_index, loop_index], axis=1)
     return edge_index, edge_attr
 
-def remove_self_loops(edge_index, edge_attr=None):
-    r"""Removes every self-loop in the graph given by :attr:`edge_index`, so
-    that :math:`(i,i) \not\in \mathcal{E}` for every :math:`i \in \mathcal{V}`.
-    
-    Args:
-        edge_index (LongTensor): The edge indices.
-        edge_attr (Tensor, optional): Edge weights or multi-dimensional
-            edge features. (default: :obj:`None`)
-
-    :rtype: (:class:`LongTensor`, :class:`Tensor`)
-    """
-    mask = edge_index[0] != edge_index[1]
-    edge_index = edge_index[:, mask]
-    if edge_attr is None:
-        return edge_index, None
-    else:
-        return edge_index, edge_attr[mask]
+#
