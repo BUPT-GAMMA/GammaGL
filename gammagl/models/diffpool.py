@@ -51,11 +51,23 @@ class GraphConv(tlx.nn.Module):
 
 
 class GcnEncoderGraph(tlx.nn.Module):
-    """
-    https: url
-    公式模型
-    参数（init里的
+    r"""
+    Graph Convolutional Network proposed in `Semi-Supervised Classification with Graph Convolutional Networks`_.
+    .. _Semi-Supervised Classification with Graph Convolutional Networks:
+        https://arxiv.org/pdf/1609.02907.pdf
 
+    Parameters
+    ----------
+        input_dim (int): input dimension
+        hidden_dim (int): hidden dimension
+        embedding_dim (int): embedding dimension
+        label_dim (int): label dimension
+        num_layers (int): number of layers
+        pred_hidden_dims (int[]): predict hidden dimension
+        concat (boolean): concat to get predict input dimension
+        bn (boolean): batch normalization
+        drop_rate (float): dropout rate
+        args (parser): parser
     """
 
     @property

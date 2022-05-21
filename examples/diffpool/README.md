@@ -1,4 +1,4 @@
-# Graph Convolutional Networks (GCN)
+# Differentiable Pooling
 
 - Paper link: [ https://arxiv.org/abs/1806.08804]( https://arxiv.org/abs/1806.08804)
 - Author's code repo: [https://github.com/RexYing/diffpool](https://github.com/RexYing/diffpool). Note that the original code is 
@@ -16,10 +16,7 @@ Results
 -------
 
 ```bash
-# available dataset: "DD", "ENZYMES"
 python diffpool_trainer.py --dataset syn1v2 --num_pool 1 --epochs 50
-#python diffpool_trainer.py --dataset ENZYMES --num_pool 1 --epochs 1000
-#python diffpool_trainer.py --dataset DD --num_pool 1  --batch-size 10
 ```
 
 | Dataset | Paper | Our(pytorch) | Our(tf) |

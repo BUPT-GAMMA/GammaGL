@@ -8,8 +8,8 @@
 
 import os
 os.environ['TL_BACKEND'] = 'torch' # set your backend here, default `tensorflow`
-os.environ["CUDA_VISIBLE_DEVICES"] = "8"
-os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "8"
+# os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 import sys
 sys.path.insert(0, os.path.abspath('../../'))
 
