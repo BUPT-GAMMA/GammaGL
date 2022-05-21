@@ -85,9 +85,8 @@ class MessagePassing(tlx.nn.Module):
         Args:
             x: input node feature
             edge_index: edges from src to dst
-            edge_weight:  weight of each edge
-            num_nodes: number of nodes of the graph
             aggr: aggregation type, default='sum', optional=['sum', 'mean', 'max']
+            kwargs: other parameters dict
 
         """
 
