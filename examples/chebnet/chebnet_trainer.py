@@ -8,7 +8,7 @@
 
 import os
 # os.environ['CUDA_VISIBLE_DEVICES']='0'
-os.environ['TL_BACKEND'] = 'paddle'
+# os.environ['TL_BACKEND'] = 'paddle'
 
 import sys
 
