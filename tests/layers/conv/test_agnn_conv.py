@@ -1,19 +1,19 @@
 # !/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
-# @Time    : 2022/05/12 21:14
+# @Time    : 2022/05/14 21:54
 # @Author  : clear
-# @FileName: test_gat_conv.py
+# @FileName: test_agnn_conv.py
 
 import tensorlayerx as tlx
-from gammagl.layers.conv import GATConv
+from gammagl.layers.conv import AGNNConv
 
-def test_gat_conv():
+def test_agnn_conv():
     x = tlx.random_normal(shape=(4, 64))
     edge_index = tlx.convert_to_tensor([[0, 0, 0, 1, 2, 3], [1, 2, 3, 0, 0, 0]])
 
-    conv = GATConv(in_channels=64, out_channels=16)
-    out = conv(x, edge_index)
+    conv = AGNNConv(in_channels=64, out_channels=16, edge_index=edge_index, num_nodes=4)
+    out = conv(x)
     assert out.shape == (4, 16)
 
-# test_gat_conv()
+test_agnn_conv()
