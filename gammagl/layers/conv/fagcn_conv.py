@@ -33,20 +33,14 @@ class FAGCNConv(MessagePassing):
 
     Parameters
     ----------
-    src_degree: 1-D tensor
-        Shape: (num_nodes, ). Normalized node degree from source node of edge
-    dst_degree: 1-D tensor
-        Shape: (num_nodes, ). Normalized node degree from destination node of edge
     hidden_dim: int
         Hidden dimension of layer
     drop_rate: float
         Dropout rate
     """
 
-    def __init__(self, src_degree, dst_degree, hidden_dim, drop_rate):
+    def __init__(self, hidden_dim, drop_rate):
         super(FAGCNConv, self).__init__()
-        self.src_degree = src_degree
-        self.dst_degree = dst_degree
         self.dropout = nn.Dropout(drop_rate)
         self.tanh = nn.Tanh()
 
@@ -64,12 +58,12 @@ class FAGCNConv(MessagePassing):
         weight_dst = tlx.ops.gather(tlx.ops.reduce_sum(x * self.att_dst + self.bias_dst, -1), node_dst)
         weight = self.tanh(weight_src + weight_dst)
 
-        weight = weight * self.src_degree * self.dst_degree
+        weight = weight * edge_weight
         alpha = self.dropout(weight)
 
         x = tlx.ops.gather(x, node_src) * tlx.ops.expand_dims(alpha, -1)
         return x
 
-    def forward(self, x, edge_index, num_nodes):
-        x = self.propagate(x, edge_index, num_nodes=num_nodes)
+    def forward(self, x, edge_index, edge_weight, num_nodes):
+        x = self.propagate(x, edge_index, edge_weight, num_nodes=num_nodes)
         return x

@@ -6,24 +6,16 @@
 @Author  :   Ma Zeyao
 """
 
-import os
-os.environ['TL_BACKEND'] = 'torch'
-# os.environ['TL_BACKEND'] = 'tensorflow'
-# os.environ['TL_BACKEND'] = 'paddle'
-# os.environ['TL_BACKEND'] = 'mindspore'
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-import numpy as np
 import tensorlayerx as tlx
 from gammagl.layers.conv import FAGCNConv
-
+from gammagl.utils import calc_gcn_norm
 
 def test_fagcn():
     x = tlx.random_uniform(shape=(4, 16))
     edge_index = tlx.convert_to_tensor([[0, 0, 0, 1, 2, 3], [1, 2, 3, 0, 0, 0]])
-    src_degree = tlx.convert_to_tensor(np.power([3, 3, 3, 1, 1, 1], -0.5), dtype='float32')
-    dst_degree = tlx.convert_to_tensor(np.power([1, 1, 1, 3, 3, 3], -0.5), dtype='float32')
+    edge_weight = tlx.convert_to_tensor(calc_gcn_norm(edge_index, x.shape[0]))
 
-    conv = FAGCNConv(src_degree=src_degree, dst_degree=dst_degree, hidden_dim=16, drop_rate=0.6)
-    out = conv(x, edge_index, x.shape[0])
+    conv = FAGCNConv(hidden_dim=16, drop_rate=0.6)
+    out = conv(x, edge_index, edge_weight, x.shape[0])
 
     assert out.shape == (4, 16)

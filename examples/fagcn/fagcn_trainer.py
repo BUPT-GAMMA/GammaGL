@@ -17,7 +17,7 @@ import tensorlayerx as tlx
 import numpy as np
 from gammagl.datasets import Planetoid
 from gammagl.models import FAGCNModel
-from gammagl.utils import mask_to_index
+from gammagl.utils import mask_to_index, calc_gcn_norm
 from tensorlayerx.model import TrainOneStep, WithLoss
 
 
@@ -26,7 +26,7 @@ class SemiSpvzLoss(WithLoss):
         super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
 
     def forward(self, data, label):
-        logits = self.backbone_network(data['x'], data['edge_index'], data['num_nodes'])
+        logits = self.backbone_network(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
         train_logits = tlx.gather(logits, data['train_idx'])
         train_y = tlx.gather(data['y'], data['train_idx'])
         loss = self._loss_fn(train_logits, train_y)
@@ -55,32 +55,14 @@ def main(args):
     dataset = Planetoid(args.dataset_path, args.dataset)
     graph = dataset[0]
     edge_index = graph.edge_index  # do not have self-loop
+    edge_weight = tlx.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
 
     # for mindspore, it should be passed into node indices
     train_idx = mask_to_index(graph.train_mask)
     test_idx = mask_to_index(graph.test_mask)
     val_idx = mask_to_index(graph.val_mask)
 
-    # calculate degree
-    degree = np.zeros(graph.x.shape[0])
-    src_degree = np.zeros(edge_index.shape[1])
-    dst_degree = np.zeros(edge_index.shape[1])
-    src_node = tlx.convert_to_numpy(edge_index[0, :])
-    dst_node = tlx.convert_to_numpy(edge_index[1, :])
-    for i in dst_node:
-        degree[i] += 1
-
-    # normalize degree
-    degree = np.power(degree, -0.5)
-    for i in range(0, len(src_node)):
-        src_degree[i] = degree[src_node[i]]
-        dst_degree[i] = degree[dst_node[i]]
-    src_degree = tlx.convert_to_tensor(src_degree, dtype='float32')
-    dst_degree = tlx.convert_to_tensor(dst_degree, dtype='float32')
-
-    net = FAGCNModel(src_degree=src_degree,
-                     dst_degree=dst_degree,
-                     feature_dim=dataset.num_node_features,
+    net = FAGCNModel(feature_dim=dataset.num_node_features,
                      hidden_dim=args.hidden_dim,
                      num_class=dataset.num_classes,
                      drop_rate=args.drop_rate,
@@ -100,6 +82,7 @@ def main(args):
         "x": graph.x,
         "y": graph.y,
         "edge_index": edge_index,
+        "edge_weight": edge_weight,
         "train_idx": train_idx,
         "test_idx": test_idx,
         "val_idx": val_idx,
@@ -111,7 +94,7 @@ def main(args):
         net.set_train()
         train_loss = train_one_step(data, graph.y)
         net.set_eval()
-        logits = net(data['x'], data['edge_index'], data['num_nodes'])
+        logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
         val_logits = tlx.gather(logits, data['val_idx'])
         val_y = tlx.gather(data['y'], data['val_idx'])
         val_acc = calculate_acc(val_logits, val_y, metrics)
@@ -130,7 +113,7 @@ def main(args):
     if tlx.BACKEND == 'torch':
         net.to(data['x'].device)
     net.set_eval()
-    logits = net(data['x'], data['edge_index'], data['num_nodes'])
+    logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
     test_logits = tlx.gather(logits, data['test_idx'])
     test_y = tlx.gather(data['y'], data['test_idx'])
     test_acc = calculate_acc(test_logits, test_y, metrics)
@@ -141,7 +124,7 @@ if __name__ == "__main__":
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.01, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
+    parser.add_argument("--n_epoch", type=int, default=500, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=16, help="dimention of hidden layers")
     parser.add_argument("--drop_rate", type=float, default=0.4, help="drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
