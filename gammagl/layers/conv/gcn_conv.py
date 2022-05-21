@@ -36,10 +36,6 @@ class GCNConv(MessagePassing):
         add_bias: bool
             If set to :obj:`False`, the layer will not learn
             an additive bias. (default: :obj:`True`)
-        aggr: str
-            way of aggregation(sum, mean, max, min), default=`sum`.
-
-    Examples:
 
     """
 

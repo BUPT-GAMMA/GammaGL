@@ -104,7 +104,7 @@ class GATConv(MessagePassing):
         return x * edge_weight if edge_weight else x
 
 
-    def forward(self, x, edge_index, num_nodes):
+    def forward(self, x, edge_index, num_nodes=None):
         x = tlx.reshape(self.linear(x), shape=(-1, self.heads, self.out_channels))
         x = self.propagate(x, edge_index, num_nodes=num_nodes)
 
