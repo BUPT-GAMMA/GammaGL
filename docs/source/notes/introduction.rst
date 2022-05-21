@@ -1,3 +1,88 @@
+Introduction by Example
+
+A graph is used to model pairwise relations (edges) between objects (nodes).
+A single graph in GammaGL is described by an instance of :class:`gammagl.data.Graph`, which holds the following attributes by default:
+
+- :obj:`Graph.x`: Node feature matrix with shape :obj:`[num_nodes, num_node_features]`
+- :obj:`Graph.edge_index`: Graph connectivity in COO format with shape :obj:`[2, num_edges]` and type :obj:`int64`
+- :obj:`Graph.edge_attr`: Edge feature matrix with shape :obj:`[num_edges, num_edge_features]`
+- :obj:`Graph.y`: Target to train against (may have arbitrary shape), *e.g.*, node-level targets of shape :obj:`[num_nodes, *]` or graph-level targets of shape :obj:`[1, *]`
+- :obj:`Graph.pos`: Node position matrix with shape :obj:`[num_nodes, num_dimensions]`
+
+None of these attributes are required.
+In fact, the :class:`~gammagl.data.Graph` object is not even restricted to these attributes.
+We can, *e.g.*, extend it by :obj:`Graph.face` to save the connectivity of triangles from a 3D mesh in a tensor with shape :obj:`[3, num_faces]` and type :obj:`int64`.
+
+.. Note::
+    PyTorch and :obj:`torchvision` define an example as a tuple of an image and a target.
+    We omit this notation in GammaGL to allow for various data structures in a clean and understandable way.
+
+We show a simple example of an unweighted and undirected graph with three nodes and four edges.
+Each node contains exactly one feature:
+
+.. code-block:: python
+
+    import tensorlayerx as tlx
+    from gammagl.data import Graph
+
+    edge_index = tlx.convert_to_tensor([[0, 1, 1, 2],
+                               [1, 0, 2, 1]], dtype=tlx.int64)
+    x = tlx.convert_to_tensor([[-1], [0], [1]], dtype=tlx.float32)
+
+    graph = Graph(x=x, edge_index=edge_index)
+    >>> Graph(edge_index=[2, 4], x=[3, 1])
+
+.. image:: ../_figures/graph.svg
+  :align: center
+  :width: 300px
+
+
+Although the graph has only two edges, we need to define four index tuples to account for both directions of a edge.
+
+.. Note::
+    You can print out your data object anytime and receive a short information about its attributes and their shapes.
+
+Besides holding a number of node-level, edge-level or graph-level attributes, :class:`~gammagl.data.Graph` provides a number of useful utility functions, *e.g.*:
+
+.. code-block:: python
+
+    print(graph.keys)
+    >>> ['x', 'edge_index']
+
+    print(graph['x'])
+    >>> tensor([[-1.0],
+                [0.0],
+                [1.0]])
+
+    for key, item in graph:
+        print(f'{key} found in data')
+    >>> KeyError: 0
+    #  Note that <class 'gammagl.data.graph.Graph'> can not be an iteratable object, or raise error in Paddle.save.
+
+    'edge_attr' in graph
+    >>> False
+
+    graph.num_nodes
+    >>> 3
+
+    graph.num_edges
+    >>> 4
+
+    graph.num_node_features
+    >>> 1
+
+    graph.has_isolated_nodes()
+    >>> False
+
+    graph.has_self_loops()
+    >>> False
+
+    graph.is_directed()
+    >>> False
+
+
+You can find a complete list of all methods at :class:`gammagl.data.Graph`.
+
 Common Benchmark Datasets
 -------------------------
 
