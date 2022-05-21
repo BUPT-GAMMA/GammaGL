@@ -38,14 +38,12 @@ class AGNNConv(MessagePassing):
 
     def __init__(self,
                 in_channels,
-                out_channels,
                 edge_index,
                 num_nodes,
                 require_grad = True):
         super().__init__()
 
         self.in_channels = in_channels
-        self.out_channels = out_channels
         self.edge_index = edge_index
         self.num_nodes = num_nodes
         if(require_grad == True):
@@ -68,7 +66,7 @@ class AGNNConv(MessagePassing):
         unsoftmax_weight = cos * self.beta
         softmax_weight = tlx.expand_dims(segment_softmax(unsoftmax_weight, node_dst, self.num_nodes), axis = -1)
         
-        return  softmax_weight * x_src
+        return softmax_weight * x_src
 
     def forward(self, x):
         return self.propagate(x, self.edge_index, num_nodes = self.num_nodes)
