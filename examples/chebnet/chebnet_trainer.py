@@ -1,22 +1,18 @@
 # !/usr/bin/env python
 # -*- encoding: utf-8 -*-
 """
-@File    :   chebnetgcn_trainer.py
+@File    :   chebnet_trainer.py
 @Time    :   2022/5/14 11:05:55
 @Author  :   Zhang Zhongjian
 """
 
 import os
-
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-# os.environ['TL_BACKEND'] = 'paddle'
-# os.environ['TL_BACKEND'] = 'torch'
-# os.environ['TL_BACKEND'] = 'tensorflow'
+# os.environ['CUDA_VISIBLE_DEVICES']='0'
+os.environ['TL_BACKEND'] = 'paddle'
 
 import sys
 
-sys.path.insert(0, os.path.abspath('../../'))
+sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
@@ -54,30 +50,12 @@ def calculate_acc(logits, y, metrics):
     return rst
 
 
-def evaluate(net, data, y, mask, metrics):
-    net.set_eval()
-    logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
-    if tlx.BACKEND == 'mindspore':
-        idx = tlx.convert_to_tensor([i for i, v in enumerate(mask) if v], dtype=tlx.int64)
-        _logits = tlx.gather(logits, idx)
-        _label = tlx.gather(y, idx)
-    else:
-        _logits = logits[mask]
-        _label = y[mask]
-    metrics.update(_logits, _label)
-    acc = metrics.result()
-    metrics.reset()
-    return acc
-
-
 def main(args):
     # 1. load dataset
     if str.lower(args.dataset) not in ['cora', 'pubmed', 'citeseer']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)
-    dataset.process()
     graph = dataset[0]
-    graph.tensor()
     edge_index = graph.edge_index
     edge_weight = tlx.ones((edge_index.shape[1],))
 
