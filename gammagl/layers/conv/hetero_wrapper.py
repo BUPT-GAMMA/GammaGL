@@ -24,16 +24,13 @@ class HeteroConv(tlx.nn.Module):
     the bipartite GNN layer given for a specific edge type.
     If multiple relations point to the same destination, their results will be
     aggregated according to :attr:`aggr`.
-    In comparison to :meth:`torch_geometric.nn.to_hetero`, this layer is
-    especially useful if you want to apply different message passing modules
-    for different edge types.
     
     .. code:: python
     
         >>> hetero_conv = HeteroConv({
-            ('paper', 'cites', 'paper'): GCNConv(-1, 64),
-            ('author', 'writes', 'paper'): SAGEConv((-1, -1), 64),
-            ('paper', 'written_by', 'author'): GATConv((-1, -1), 64),
+            ('paper', 'cites', 'paper'): GCNConv(64, 16),
+            ('author', 'writes', 'paper'): SAGEConv((128, 64), 64),
+            ('paper', 'written_by', 'author'): GATConv((64, 128), 64),
         }, aggr='sum')
         >>> out_dict = hetero_conv(x_dict, edge_index_dict)
         >>> print(list(out_dict.keys()))
