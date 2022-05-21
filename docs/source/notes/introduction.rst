@@ -1,4 +1,15 @@
 Introduction by Example
+=======================
+
+Following `PyG <https://pytorch-geometric.readthedocs.io/en/latest/notes/introduction.html>`_ ,
+we shortly introduce the fundamental concepts of GammaGL through self-contained examples.
+At its core, GammaGL provides the following main features:
+
+.. contents::
+    :local:
+
+Data Handling of Graphs
+-----------------------
 
 A graph is used to model pairwise relations (edges) between objects (nodes).
 A single graph in GammaGL is described by an instance of :class:`gammagl.data.Graph`, which holds the following attributes by default:
