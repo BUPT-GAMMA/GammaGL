@@ -90,7 +90,7 @@ class MessagePassing(tlx.nn.Module):
 
         """
 
-        if 'num_nodes' not in kwargs.keys():
+        if 'num_nodes' not in kwargs.keys() or kwargs['num_nodes'] is None:
             kwargs['num_nodes'] = x.shape[0]
 
         coll_dict = self.__collect__(x, edge_index, aggr, kwargs)
