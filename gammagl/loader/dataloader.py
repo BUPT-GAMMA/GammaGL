@@ -4,7 +4,7 @@ from typing import List, Optional, Union
 # import torch.utils.data
 # from torch.utils.data.dataloader import default_collate
 
-from gammagl.data import Batch, Graph, Dataset
+from gammagl.data import BatchGraph, Graph, Dataset
 import tensorlayerx as tlx
 
 
@@ -16,7 +16,7 @@ class Collater:
     def __call__(self, batch):
         elem = batch[0]
         if isinstance(elem, Graph):
-            return Batch.from_data_list(batch, self.follow_batch,
+            return BatchGraph.from_data_list(batch, self.follow_batch,
                                         self.exclude_keys)
         # elif isinstance(elem, torch.Tensor):
         #     return default_collate(batch)
