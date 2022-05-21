@@ -10,6 +10,7 @@ from .rgcn_conv import RGCNConv
 from .agnn_conv import AGNNConv
 from .JumpingKnowledge import JumpingKnowledge
 from .han_conv import HANConv
+from .cheb_conv import ChebConv
 
 __all__ = [
     'MessagePassing',
@@ -23,7 +24,8 @@ __all__ = [
     'RGCNConv',
     'AGNNConv',
     'JumpingKnowledge',
-    'HANConv'
+    'HANConv',
+    'ChebConv'
 ]
 
 classes = __all__
