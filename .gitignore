@@ -13,6 +13,7 @@ examples/cora/*
 examples/pubmed/*
 examples/citeseer/*
 *.npz
+data/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

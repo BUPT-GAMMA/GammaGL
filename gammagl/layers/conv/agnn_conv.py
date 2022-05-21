@@ -1,21 +1,6 @@
 import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
-
-
-
-def segment_softmax(weight, segment_ids, num_nodes):
-    #Subtract the maximum value to avoid overflow after exp()
-    max_values = tlx.unsorted_segment_max(weight, segment_ids, num_segments = num_nodes)
-    gathered_max_values = tlx.gather(max_values, segment_ids)
-    weight = weight - gathered_max_values
-    exp_weight = tlx.exp(weight)
-
-    #softmax operation
-    sum_weights = tlx.unsorted_segment_sum(exp_weight, segment_ids, num_segments = num_nodes)
-    sum_weights = tlx.gather(sum_weights, segment_ids)
-    softmax_weight = tlx.divide(exp_weight, sum_weights)
-
-    return softmax_weight
+from gammagl.utils import segment_softmax
 
 
 class AGNNConv(MessagePassing):
@@ -71,7 +56,7 @@ class AGNNConv(MessagePassing):
             self.beta = self._get_weights("beta", shape = [1], init = initor, trainable = False)
 
         
-    def message(self, x, edge_index, edge_weight = None, num_nodes = None):
+    def message(self, x, edge_index, edge_weight=None):
         node_src = edge_index[0, :]
         node_dst = edge_index[1, :]
 
@@ -81,11 +66,9 @@ class AGNNConv(MessagePassing):
         cos = tlx.reduce_sum(
             tlx.l2_normalize(x_src) * tlx.l2_normalize(x_dst), axis = -1)
         unsoftmax_weight = cos * self.beta
-
-        softmax_weight = tlx.expand_dims(segment_softmax(unsoftmax_weight, node_dst, num_nodes), axis = -1)
-    
-        return  softmax_weight * x_src  
-
+        softmax_weight = tlx.expand_dims(segment_softmax(unsoftmax_weight, node_dst, self.num_nodes), axis = -1)
+        
+        return  softmax_weight * x_src
 
     def forward(self, x):
         return self.propagate(x, self.edge_index, num_nodes = self.num_nodes)
