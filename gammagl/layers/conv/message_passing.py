@@ -1,5 +1,6 @@
 import tensorlayerx as tlx
 from gammagl.mpops import *
+from gammagl.utils import Inspector
 
 
 class MessagePassing(tlx.nn.Module):
@@ -16,17 +17,27 @@ class MessagePassing(tlx.nn.Module):
     MLPs.
     """
 
+    special_args = {
+        'edge_index', 'x', 'edge_weight'
+    }
+
+
     def __init__(self):
         super().__init__()
 
-    def message(self, x, edge_index, edge_weight=None, num_nodes=None):
+        self.inspector = Inspector(self)
+        self.inspector.inspect(self.message)
+        self.__user_args__ = self.inspector.keys(
+            ['message',]).difference(self.special_args)
+
+
+    def message(self, x, edge_index, edge_weight=None):
         """
         Function that construct message from source nodes to destination nodes.
         Args:
             x (Tensor): input node feature
             edge_index (Tensor): edges from src to dst
             edge_weight (Tensor): weight of each edge
-            num_nodes (int): number of nodes of the graph
         Returns:
 
         """
@@ -68,22 +79,34 @@ class MessagePassing(tlx.nn.Module):
         """
         return x
 
-    def propagate(self, x, edge_index, edge_weight=None, num_nodes=None, aggr='sum'):
+    def propagate(self, x, edge_index, aggr='sum', **kwargs):
         """
         Function that perform message passing. 
         Args:
             x: input node feature
             edge_index: edges from src to dst
-            edge_weight:  weight of each edge
-            num_nodes: number of nodes of the graph
             aggr: aggregation type, default='sum', optional=['sum', 'mean', 'max']
-
-        Returns:
+            kwargs: other parameters dict
 
         """
-        if num_nodes is None:
-            num_nodes = x.shape[0]
-        msg = self.message(x, edge_index, edge_weight=edge_weight, num_nodes=num_nodes)
-        x = self.aggregate(msg, edge_index, num_nodes=num_nodes, aggr=aggr)
+
+        if 'num_nodes' not in kwargs.keys():
+            kwargs['num_nodes'] = x.shape[0]
+
+        coll_dict = self.__collect__(x, edge_index, aggr, kwargs)
+        msg_kwargs = self.inspector.distribute('message', coll_dict)
+        msg = self.message(**msg_kwargs)
+        x = self.aggregate(msg, edge_index, num_nodes=kwargs['num_nodes'], aggr=aggr)
         x = self.update(x)
         return x
+
+    def __collect__(self, x, edge_index, aggr, kwargs):
+        out = {}
+
+        for k, v in kwargs.items():
+            out[k] = v
+        out['x'] = x
+        out['edge_index'] = edge_index
+        out['aggr'] = aggr
+
+        return out

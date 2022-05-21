@@ -2,20 +2,8 @@ import tensorlayerx as tlx
 from gammagl.layers.conv import AGNNConv
 
 
-def segment_log_softmax(weight, segment_ids, num_nodes):
-    max_values = tlx.unsorted_segment_max(weight, segment_ids, num_segments = num_nodes)
-    gathered_max_values = tlx.gather(max_values, segment_ids)
-    weight = weight - gathered_max_values
-    exp_weight = tlx.exp(weight)
-
-    sum_weights = tlx.unsorted_segment_sum(exp_weight, segment_ids, num_segments = num_nodes)
-    sum_weights = tlx.gather(sum_weights, segment_ids)
-    softmax_weight = tlx.divide(exp_weight, sum_weights)
-
-    return softmax_weight
-
 class AGNNModel(tlx.nn.Module):
-    r'''The graph attention operator from the `"Attention-based Graph Neural Network for Semi-supervised Learning"
+    r"""The graph attention operator from the `"Attention-based Graph Neural Network for Semi-supervised Learning"
     <http://arxiv.org/abs/1803.03735>`_ paper
 
 
@@ -38,7 +26,8 @@ class AGNNModel(tlx.nn.Module):
         Number of nodes on the graph.
     is_cora: bool,optional
         Whether the dateset is cora. There is a special operation on cora
-    '''
+    """
+
     def __init__(self,
                 feature_dim,
                 hidden_dim,
@@ -58,38 +47,31 @@ class AGNNModel(tlx.nn.Module):
 
         W_initor = tlx.initializers.XavierUniform()
         self.embedding_layer = tlx.nn.Linear(out_features = self.hidden_dim,
-                                                W_init = W_initor,
-                                                in_features = feature_dim)
+                                             W_init = W_initor,
+                                            in_features = feature_dim)
         
         self.relu = tlx.nn.activation.ReLU()
         
         self.att_layers_list = []
-        self.att_layers_list.append(AGNNConv(in_channels  = self.hidden_dim,
-                                            out_channels =  self.hidden_dim,
-                                            edge_index = edge_index,
-                                            num_nodes = num_nodes,
-                                            require_grad = not(self.n_att_layers == 2 and is_cora)))
+        self.att_layers_list.append(AGNNConv(in_channels = self.hidden_dim,
+                                             edge_index = edge_index,
+                                             num_nodes = num_nodes,
+                                             require_grad = not(self.n_att_layers == 2 and is_cora)))
         for i in range(1, self.n_att_layers):
-            self.att_layers_list.append(AGNNConv(in_channels  = self.hidden_dim,
-                                                out_channels =  self.hidden_dim,
-                                                edge_index = edge_index,
-                                                num_nodes = num_nodes))
+            self.att_layers_list.append(AGNNConv(in_channels = self.hidden_dim,
+                                                 edge_index = edge_index,
+                                                 num_nodes = num_nodes))
         self.att_layers = tlx.nn.Sequential(self.att_layers_list)
         
         self.output_layer = tlx.nn.Linear(out_features = self.num_class,
-                                             W_init = W_initor,
-                                             in_features = self.hidden_dim)
+                                          W_init = W_initor,
+                                          in_features = self.hidden_dim)
 
     def forward(self, x):
         x = self.relu(self.embedding_layer(x))
         x = self.dropout(x)
-
         x = self.att_layers(x)
-            
         x = self.output_layer(x)
         x = self.dropout(x)
         
         return x
-        
-
-        
