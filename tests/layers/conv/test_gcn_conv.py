@@ -19,7 +19,7 @@ def AXWb(A, X, W, b):
 
 def test_gcn_conv():
     x = tlx.random_normal(shape=(4, 16))
-    edge_index = tlx.convert_to_tensor([[0, 0, 0, 1, 2], [1, 2, 3, 0, 0]])
+    edge_index = tlx.convert_to_tensor([[0, 0, 0, 1, 2, 3], [1, 2, 3, 0, 0, 0]])
 
     conv = GCNConv(in_channels=16, out_channels=16)
     out_conv = conv(x, edge_index)
@@ -52,4 +52,4 @@ def test_gcn_conv():
     # elif tlx.BACKEND in ('paddle', 'tensorflow'):
     #     assert np.allclose(out_mm, out_conv, atol=1e-2)
 
-# test_gcn_conv()
+test_gcn_conv()
