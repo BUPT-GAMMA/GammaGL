@@ -24,7 +24,7 @@ We give a development tutorial in Chinese on [wiki](https://github.com/BUPT-GAMM
   pip install git+https://github.com/tensorlayer/tensorlayerx.git 
   ```
   
-  *Note*: You may need to install `cv2` with command `pip install opencv-python`.
+  *Note*: use `pip install git+https://gitee.com/clearhanhui/TensorLayerX` for network problem. But it may not be the latest. 
 
 * Download GammaGL
   
