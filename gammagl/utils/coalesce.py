@@ -45,7 +45,7 @@ def coalesce(edge_index, edge_attr=None, num_nodes=None, reduce="add", is_sorted
         edge_index = edge_index[:, perm]
         if edge_attr is not None and tlx.ops.is_tensor(edge_attr):
             edge_attr = tlx.gather(edge_attr, perm, axis=0)
-        if edge_attr is not None and check_is_numpy(edge_attr):
+        elif edge_attr is not None and check_is_numpy(edge_attr):
             edge_attr = edge_attr[perm]
         elif edge_attr is not None:  # edge_attr is List.
             edge_attr = [tlx.gather(e, perm, axis=0) for e in edge_attr]
