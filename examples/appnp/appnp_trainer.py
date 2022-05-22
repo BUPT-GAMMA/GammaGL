@@ -55,7 +55,10 @@ def main(args):
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)
     graph = dataset[0]
-    edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=args.self_loops)
+    if args.self_loops >= 1:
+        edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=args.self_loops)
+    else:
+        edge_index = graph.edge_index
     edge_weight = tlx.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
 
     # for mindspore, it should be passed into node indices
@@ -65,7 +68,7 @@ def main(args):
 
     net = APPNPModel(feature_dim=dataset.num_node_features,
                      num_class=dataset.num_classes,
-                     itera_K=args.itera_K,
+                     itera_K=args.iter_K,
                      alpha=args.alpha,
                      drop_rate=args.drop_rate,
                      name="APPNP")
@@ -126,7 +129,7 @@ if __name__ == '__main__':
     parser.add_argument("--hidden_dim", type=int, default=64, help="dimention of hidden layers")
     parser.add_argument("--drop_rate", type=float, default=0.5, help="dropout rate")
     parser.add_argument("--l2_coef", type=float, default=5e-5, help="l2 loss coeficient")
-    parser.add_argument("--itera_K", type=int, default=10, help="number K of iteration")
+    parser.add_argument("--iter_K", type=int, default=10, help="number K of iteration")
     parser.add_argument("--alpha", type=float, default=0.1, help="alpha")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
