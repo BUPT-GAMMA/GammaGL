@@ -4,8 +4,7 @@ import tensorlayerx as tlx
 
 from gammagl.layers.conv import MessagePassing
 from gammagl.utils.get_laplacian import get_laplacian
-from gammagl.utils.loop import add_self_loops
-from gammagl.utils.loop import remove_self_loops
+from gammagl.utils.loop import add_self_loops, remove_self_loops
 
 
 class ChebConv(MessagePassing):
