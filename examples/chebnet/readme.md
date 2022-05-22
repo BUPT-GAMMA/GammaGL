@@ -16,8 +16,8 @@ Results
 
 ```bash
 # available dataset: "cora", "citeseer", "pubmed"
-TL_BACKEND="paddle" python chebnet_trainer.py --k 2 --dataset cora --lr 0.01 --hidden_dim 55 --drop_rate 0.65 --l2_coef 0.005
-TL_BACKEND="tensorflow" python chebnet_trainer.py --k 2 --dataset cora --lr 0.01 --hidden_dim 55 --drop_rate 0.65 --l2_coef 0.005
+TL_BACKEND="paddle" python chebnet_trainer.py --k 2 --dataset cora --lr 0.01 --hidden_dim 64 --drop_rate 0.7 --l2_coef 0.0005
+TL_BACKEND="tensorflow" python chebnet_trainer.py --k 2 --dataset cora --lr 0.01 --hidden_dim 64 --drop_rate 0.7 --l2_coef 0.0005
 TL_BACKEND="paddle" python chebnet_trainer.py --k 2 --dataset citeseer --lr 0.01 --hidden_dim 55 --drop_rate 0.75 --l2_coef 0.005
 TL_BACKEND="tensorflow" python chebnet_trainer.py --k 2 --dataset citeseer --lr 0.01 --hidden_dim 55 --drop_rate 0.75 --l2_coef 0.005
 ```
