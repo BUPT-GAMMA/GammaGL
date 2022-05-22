@@ -73,7 +73,7 @@ class HGBDataset(InMemoryDataset):
 
     @property
     def processed_file_names(self) -> str:
-        return 'data.pt'
+        return tlx.BACKEND + '_data.pt'
 
     def download(self):
         url = self.url.format(self.names[self.name])
@@ -191,7 +191,15 @@ class HGBDataset(InMemoryDataset):
                 data[n_type].train_mask[n_id] = True
             for y in test_ys:
                 n_id, n_type = mapping_dict[int(y[0])], n_types[int(y[2])]
+                
+                if(len(data[n_type].y.shape) > 1):
+                #if data[n_type].y.dim() > 1:  # multi-label
+                    for v in y[3].split(','):
+                        data[n_type].y[n_id, int(v)] = 1
+                else:
+                    data[n_type].y[n_id] = int(y[3])
                 data[n_type].test_mask[n_id] = True
+
             data[n_type].y = tlx.ops.convert_to_tensor(data[n_type].y)
             data[n_type].train_mask = tlx.ops.convert_to_tensor(data[n_type].train_mask)
             data[n_type].test_mask = tlx.ops.convert_to_tensor(data[n_type].test_mask)
@@ -210,7 +218,7 @@ class HGBDataset(InMemoryDataset):
 
 dataset = HGBDataset("../../data/", 'dblp')
 data = dataset[0]
-print(data[('author','to','paper')])
+print(data['author'].y)
 '''
 data 格式介绍
 data['author'].x
