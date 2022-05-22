@@ -23,7 +23,7 @@ Results
 
 ```bash
 TL_BACKEND="paddle" python gat_trainer.py --dataset cora --lr 0.01 --l2_coef 0.01 --drop_rate 0.7
-TL_BACKEND="paddle" python gat_trainer.py --dataset citeseet --lr 0.006 --l2_coef 0.04 --drop_rate 0.6
+TL_BACKEND="paddle" python gat_trainer.py --dataset citeseer --lr 0.006 --l2_coef 0.04 --drop_rate 0.6
 ```
 
 | Dataset  | Paper      | Our(pd)      | Our(tf)      |
