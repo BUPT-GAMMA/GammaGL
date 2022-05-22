@@ -57,8 +57,11 @@ class SimpleHGN(MessagePassing):
         self.beta = beta
 
     
-    def forward(self, ):
+    def forward(self, x, edge_index, edge_feat, res_attn=None):
         TODO()
+        x = self.feat_drop(x)
+        
+
 
 
         
