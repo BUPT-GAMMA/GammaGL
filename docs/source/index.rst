@@ -12,10 +12,11 @@ Welcome to gammagl's documentation!
    :hidden:
    :glob:
 
+   notes/installation
+   notes/introduction
    notes/batching
    notes/create_dataset
    notes/create_gnn
-   notes/installation
 
 .. toctree::
    :maxdepth: 4

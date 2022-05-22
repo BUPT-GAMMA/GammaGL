@@ -1,5 +1,4 @@
 import tensorlayerx as tlx
-import gammagl.mpops as mpops
 from gammagl.layers.conv import GCNConv
 
 
