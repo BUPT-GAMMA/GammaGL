@@ -16,15 +16,6 @@ Dataset Statics
 | Pubmed   | 19,717  | 88,651  | 3         |
 | cora-ml  | 2810    | 7981    | 7         |
 
-How to run
-----------
-Run with following (available dataset: "cora", "citeseer", "pubmed")
-```bash
-python3 appnp_trainer.py
-```
-> For details settings, please refer to [here](https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/gcn#how-to-run).
-
-
 Results
 -------
 ```bash

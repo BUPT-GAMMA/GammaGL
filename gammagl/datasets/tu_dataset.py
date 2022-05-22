@@ -204,5 +204,3 @@ class TUDataset(InMemoryDataset):
 
     def __repr__(self) -> str:
         return f'{self.name}({len(self)})'
-
-TUDataset(root='/tmp/ENZYMES', name='ENZYMES')
