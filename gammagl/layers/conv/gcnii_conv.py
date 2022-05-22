@@ -65,7 +65,7 @@ class GCNIIConv(MessagePassing):
 
     def forward(self, x0, x, edge_index, edge_weight, num_nodes):
         if self.variant:
-            x = (1-self.alpha)*self.propagate(x, edge_index, edge_weight, num_nodes)
+            x = (1-self.alpha)*self.propagate(x, edge_index, edge_weight=edge_weight, num_nodes=num_nodes)
             x = (1-self.beta)*x + self.beta*self.linear(x)
             x0 = self.alpha*x0
             x0 = (1-self.beta)*x0 + self.beta * self.linear0(x0)
@@ -76,7 +76,7 @@ class GCNIIConv(MessagePassing):
             # x = x + x0
             # x = (1-self.beta)*x + self.beta*self.linear(x)
         else:
-            x = self.propagate(x, edge_index, edge_weight, num_nodes)
+            x = self.propagate(x, edge_index, edge_index=edge_weight, num_nodes=num_nodes)
             x = (1-self.alpha)*x + self.alpha*x0
             x = (1-self.beta)*x + self.beta*self.linear(x)
         return x
