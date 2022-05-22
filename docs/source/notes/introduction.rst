@@ -213,7 +213,7 @@ This composition allows differing number of nodes and edges over examples in one
 
     \mathbf{A} = \begin{bmatrix} \mathbf{A}_1 & & \\ & \ddots & \\ & & \mathbf{A}_n \end{bmatrix}, \qquad \mathbf{X} = \begin{bmatrix} \mathbf{X}_1 \\ \vdots \\ \mathbf{X}_n \end{bmatrix}, \qquad \mathbf{Y} = \begin{bmatrix} \mathbf{Y}_1 \\ \vdots \\ \mathbf{Y}_n \end{bmatrix}
 
-PyG contains its own :class:`gammagl.loader.DataLoader`, which already takes care of this concatenation process.
+GammaGL contains its own :class:`gammagl.loader.DataLoader`, which already takes care of this concatenation process.
 Let's learn about it in an example:
 
 .. code-block:: python
@@ -224,7 +224,7 @@ Let's learn about it in an example:
     dataset = TUDataset(root='/tmp/ENZYMES', name='ENZYMES', use_node_attr=True)
     loader = DataLoader(dataset, batch_size=32, shuffle=True)
 
-
+    for batch in loader:
         batch
         >>> GraphBatch(edge_index=[2, 3806], x=[1096, 21], y=[32], batch=[1096], ptr=[33])
 
@@ -240,3 +240,25 @@ Let's learn about it in an example:
     \mathrm{batch} = {\begin{bmatrix} 0 & \cdots & 0 & 1 & \cdots & n - 2 & n -1 & \cdots & n - 1 \end{bmatrix}}^{\top}
 
 You can use it to, *e.g.*, average node features in the node dimension for each graph individually:
+
+.. code-block:: python
+    from gammagl.mpops import unsorted_segment_mean
+    from gammagl.datasets import TUDataset
+    from gammagl.loader.dataloader import DataLoader
+
+    dataset = TUDataset(root='/tmp/ENZYMES', name='ENZYMES', use_node_attr=True)
+    loader = DataLoader(dataset, batch_size=32, shuffle=True)
+
+    for data in loader:
+        data
+        >>> DataBatch(batch=[1082], edge_index=[2, 4066], x=[1082, 21], y=[32])
+
+        data.num_graphs
+        >>> 32
+
+        x = unsorted_segment_mean(data.x, data.batch)
+        x.shape
+        >>> TensorShape([32, 21])
+
+You can learn more about the internal batching procedure of GammaGL, *e.g.*, how to modify its behaviour, `here <https://gammagl.readthedocs.io/en/latest/notes/batching.html>`_.
+
