@@ -164,8 +164,7 @@ def main(args):
             learning_rate=0.01,
             parameters=gnn_model.parameters(),
             weight_decay=0.0005)
-            
-        st1 = time.time()
+
 
         for epoch in tqdm.tqdm(range(200)):
             if epoch >= 3:
@@ -184,17 +183,12 @@ def main(args):
                                        graph, criterion)
             cal_test_acc.append(test_acc.numpy())
             cal_test_loss.append(test_loss.numpy())
-        times.append((time.time()-st, time.time()-st1))
+        times.append(time.time()-st)
 
-      #   log.info("Runs %s: Model: GCN Best Test Accuracy: %f" %
-        #          (run, cal_test_acc[np.argmin(cal_val_loss)]))
 
         best_test.append(cal_test_acc[np.argmin(cal_val_loss)])
-	
-    # log./info("Average Speed %s sec/ epoch" % (np.mean(dur)))
-    # log.info("Dataset: %s Best Test Accuracy: %f ( stddev: %f )" %
-        #      (args.dataset, np.mean(best_test), np.std(best_test)))
-    print(times)
+        # print(times)
+        print(time.time() - st, np.mean(dur), sep=',')
 
 if __name__ == '__main__':
     # 2 gcn layers
