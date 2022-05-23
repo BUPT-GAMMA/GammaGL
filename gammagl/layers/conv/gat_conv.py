@@ -25,28 +25,37 @@ class GATConv(MessagePassing):
         \exp\left(\mathrm{LeakyReLU}\left(\mathbf{a}^{\top}
         [\mathbf{\Theta}\mathbf{x}_i \, \Vert \, \mathbf{\Theta}\mathbf{x}_k]
         \right)\right)}.
-    
-    Args:
-        in_channels (int or tuple): Size of each input sample, or :obj:`-1` to
-            derive the size from the first input(s) to the forward method.
-            A tuple corresponds to the sizes of source and target
-            dimensionalities.
-        out_channels (int): Size of each output sample.
-        heads (int, optional): Number of multi-head-attentions.
-            (default: :obj:`1`)
-        concat (bool, optional): If set to :obj:`False`, the multi-head
-            attentions are averaged instead of concatenated.
-            (default: :obj:`True`)
-        negative_slope (float, optional): LeakyReLU angle of the negative
-            slope. (default: :obj:`0.2`)
-        dropout_rate (float, optional): Dropout probability of the normalized
-            attention coefficients which exposes each node to a stochastically
-            sampled neighborhood during training. (default: :obj:`0`)
-        add_self_loops (bool, optional): If set to :obj:`False`, will not add
-            self-loops to the input graph. (default: :obj:`True`)
-        add_bias (bool, optional): If set to :obj:`False`, the layer will not learn
-            an additive bias. (default: :obj:`True`)
-    
+
+    Parameters
+    ----------
+    in_channels: int or tuple
+        Size of each input sample, or :obj:`-1` to
+        derive the size from the first input(s) to the forward method.
+        A tuple corresponds to the sizes of source and target
+        dimensionalities.
+    out_channels: int
+        Size of each output sample.
+    heads: int, optional
+        Number of multi-head-attentions.
+        (default: :obj:`1`)
+    concat: bool, optional
+        If set to :obj:`False`, the multi-head
+        attentions are averaged instead of concatenated.
+        (default: :obj:`True`)
+    negative_slope: float, optional
+        LeakyReLU angle of the negative
+        slope. (default: :obj:`0.2`)
+    dropout_rate: float, optional
+        Dropout probability of the normalized
+        attention coefficients which exposes each node to a stochastically
+        sampled neighborhood during training. (default: :obj:`0`)
+    add_self_loops: bool, optional
+        If set to :obj:`False`, will not add
+        self-loops to the input graph. (default: :obj:`True`)
+    add_bias: bool, optional
+        If set to :obj:`False`, the layer will not learn
+        an additive bias. (default: :obj:`True`)
+
     """
     def __init__(self,
                  in_channels,
@@ -67,7 +76,7 @@ class GATConv(MessagePassing):
         # self.add_self_loops = add_self_loops
         self.add_bias = add_bias
 
-        self.linear_w = tlx.layers.Linear(out_features=self.out_channels * self.heads,
+        self.linear = tlx.layers.Linear(out_features=self.out_channels * self.heads,
                                         in_features=self.in_channels,
                                         b_init=None)
 
@@ -95,8 +104,8 @@ class GATConv(MessagePassing):
         return x * edge_weight if edge_weight else x
 
 
-    def forward(self, x, edge_index, num_nodes):
-        x = tlx.reshape(self.linear_w(x), shape=(-1, self.heads, self.out_channels))
+    def forward(self, x, edge_index, num_nodes=None):
+        x = tlx.reshape(self.linear(x), shape=(-1, self.heads, self.out_channels))
         x = self.propagate(x, edge_index, num_nodes=num_nodes)
 
         if self.concat:

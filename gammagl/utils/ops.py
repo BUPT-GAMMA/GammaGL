@@ -4,9 +4,13 @@ def get_index_from_counts(counts):
     """Return index generated from counts
     This function return the index from given counts.
     For example, when counts = [ 2, 3, 4], return [0, 2, 5, 9]
-    Args:
-        counts: numpy.ndarray of paddle.Tensor
-    Return:
+
+    Parameters
+    ----------
+    counts: numpy.ndarray of paddle.Tensor
+
+    Returns
+    -------
         Return idnex of the counts
     """
     if check_is_tensor(counts):

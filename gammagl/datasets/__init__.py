@@ -1,3 +1,5 @@
+from .amazon import Amazon
+from .coauthor import Coauthor
 from .tu_dataset import TUDataset
 from .planetoid import Planetoid
 from .reddit import Reddit
@@ -6,4 +8,18 @@ from .entities import Entities
 from .flickr import Flickr
 from .wikipedia_network import WikipediaNetwork
 from .webkb import WebKB
-from .amazon import Amazon
+
+__all__ = [
+    'Amazon',
+    'Coauthor',
+    'TUDataset',
+    'Planetoid',
+    'Reddit',
+    'IMDB',
+    'Entities',
+    'Flickr',
+    'WikipediaNetwork',
+    'WebKB'
+]
+
+classes = __all__

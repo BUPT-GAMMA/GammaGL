@@ -27,14 +27,15 @@ class GCNConv(MessagePassing):
     :math:`e_{j,i}` denotes the edge weight from source node :obj:`j` to target
     node :obj:`i` (default: :obj:`1.0`)
 
-    Parameters:
-        in_channels: Size of each input sample
-        out_channels: Size of each output sample.
-        add_bias: If set to :obj:`False`, the layer will not learn
+    Parameters
+    ----------
+        in_channels: int
+            Size of each input sample
+        out_channels: int
+            Size of each output sample.
+        add_bias: bool
+            If set to :obj:`False`, the layer will not learn
             an additive bias. (default: :obj:`True`)
-        aggr: way of aggregation(sum, mean, max, min), default=`sum`.
-
-    Examples:
 
     """
 
@@ -50,13 +51,12 @@ class GCNConv(MessagePassing):
 
         self.linear = tlx.layers.Linear(out_features=out_channels,
                                         in_features=in_channels,
+                                        W_init='xavier_uniform',
                                         b_init=None)
         if add_bias is True:
-            initor = tlx.initializers.truncated_normal()
+            initor = tlx.initializers.Zeros()
             self.bias = self._get_weights("bias", shape=(1,self.out_channels), init=initor)
 
-    # def message_aggregate(self, x, sparse_adj):
-    #     return sparse_adj @ x
 
     def forward(self, x, edge_index, edge_weight=None, num_nodes=None):
         x = self.linear(x)

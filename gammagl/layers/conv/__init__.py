@@ -10,4 +10,26 @@ from .rgcn_conv import RGCNConv
 from .agnn_conv import AGNNConv
 from .JumpingKnowledge import JumpingKnowledge
 from .han_conv import HANConv
+from .cheb_conv import ChebConv
+from .fagcn_conv import FAGCNConv
 from .gpr_conv import GPRConv
+
+__all__ = [
+    'MessagePassing',
+    'GCNConv',
+    'GATConv',
+    'SGConv',
+    'SAGEConv',
+    'GATV2Conv',
+    'GCNIIConv',
+    'APPNPConv',
+    'RGCNConv',
+    'AGNNConv',
+    'JumpingKnowledge',
+    'HANConv',
+    'ChebConv',
+    'FAGCNConv',
+    'GPRConv',
+]
+
+classes = __all__
