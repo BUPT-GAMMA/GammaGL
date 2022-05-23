@@ -4,15 +4,13 @@ import tensorlayerx as tlx
 from sklearn.svm import LinearSVC
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
-import networkx as nx
-from scipy.linalg import fractional_matrix_power, inv
-import scipy.sparse as sp
+
 "=========== loss cal fnc =================="
 
 
 def linearsvc(embeds, labels):
-    x = embeds.cpu().numpy()
-    y = labels.cpu().numpy()
+    x = embeds.numpy()
+    y = labels.numpy()
     params = {'C': [0.001, 0.01, 0.1, 1, 10, 100, 1000]}
     kf = StratifiedKFold(n_splits=10, shuffle=True, random_state=None)
     accuracies = []

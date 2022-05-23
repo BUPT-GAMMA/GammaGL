@@ -1,13 +1,10 @@
 import os
-from time import time
-
-# from tqdm import tqdm
 
 # os.environ['TL_BACKEND'] = 'paddle'
-# # set your backend here, default `tensorflow`
 # os.environ['CUDA_VISIBLE_DEVICES'] = ' '
+# # set your backend here, default `tensorflow`
 
-# os.environ["CUDA_VISIBLE_DEVICES"] = "5"
+
 import argparse
 import tensorlayerx as tlx
 import numpy as np
@@ -23,7 +20,7 @@ class Unsupervised_Loss(WithLoss):
 
     def forward(self, data, label):
         loss = self._backbone(data["edge_index"], data["diff_adj"], data["feat"], data["shuf_feat"])
-        # tensor.ref()是什么操作？？？
+
         return loss
 
 
@@ -38,9 +35,7 @@ def main(args):
     diff_adj, feat, label, train_idx, val_idx, test_idx = process_dataset(args.dataset, graph, args.epsilon)
 
 
-    lbl1 = tlx.ones((graph.num_nodes * 2,))
-    lbl2 = tlx.zeros_like(lbl1)
-    lbl = tlx.concat((lbl1, lbl2), axis=0)
+
     # create model
 
     net = MVGRL(dataset.num_features, args.hidden_dim)
@@ -53,7 +48,9 @@ def main(args):
     # Step 4: Training epochs ================================================================ #
     best = float('inf')
     cnt_wait = 0
-    # feat = tlx.convert_to_numpy(feat)
+
+    feat = tlx.convert_to_numpy(feat)
+
     for epoch in range(args.n_epoch):
         net.set_train()
         shuf_idx = np.random.permutation(graph.num_nodes)
@@ -63,19 +60,22 @@ def main(args):
                 "feat": tlx.convert_to_tensor(feat),
                 "shuf_feat": tlx.convert_to_tensor(shuf_feat)}
 
-        loss = train_one_step(data, lbl)
+
+        loss = train_one_step(data, tlx.convert_to_tensor([1]))
+
         print('Epoch: {:02d}, Loss: {:0.4f}'.format(epoch, loss.item()))
         if loss < best:
             best = loss
             cnt_wait = 0
-            net.save_weights(args.best_model_path + "MVGRL.npz")
+            net.save_weights(args.best_model_path + "MVGRL_" + args.dataset + ".npz")
         else:
             cnt_wait += 1
-
         if cnt_wait == args.patience:
             print('Early stopping')
             break
-    net.load_weights(args.best_model_path + "MVGRL.npz")
+
+    net.load_weights(args.best_model_path + "MVGRL_" + args.dataset + ".npz")
+
     net.set_eval()
 
     embed = net.get_embedding(graph.edge_index, tlx.convert_to_tensor(diff_adj), tlx.convert_to_tensor(feat))
@@ -86,7 +86,8 @@ def main(args):
     train_lbls = y[graph.train_mask]
 
     test_lbls = y[graph.test_mask]
-
+    if tlx.BACKEND != 'tensorflow':
+        train_embs = train_embs.detach()
     accs = 0.
     for e in range(5):
         clf = LogReg(args.hidden_dim, dataset.num_classes)
@@ -97,13 +98,13 @@ def main(args):
         # train classifier
         for a in range(300):
             clf.set_train()
-            if tlx.BACKEND != 'tensorflow':
-                clf_train_one_step(train_embs.detach(), train_lbls)
-            else:
-                clf_train_one_step(train_embs, train_lbls)
+            clf_train_one_step(train_embs, train_lbls)
+        if tlx.BACKEND == 'torch':
+            test_embs = test_embs.to(data['feat'].device)
         test_logits = clf(test_embs)
         preds = tlx.argmax(test_logits, axis=1)
-
+        if tlx.BACKEND == 'torch':
+            preds = preds.cpu()
         acc = np.sum(preds.numpy() == test_lbls.numpy()) / test_lbls.shape[0]
         accs += acc
         # print("e", e, "acc", acc)
@@ -113,14 +114,16 @@ def main(args):
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='citeseer', help='dataset')
+
+    parser.add_argument('--dataset', type=str, default='cora', help='dataset')
+
     parser.add_argument("--dataset_path", type=str, default=r'../../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--hidden_dim", type=int, default=512, help="dimention of hidden layers")
     parser.add_argument("--lr", type=float, default=0.0005, help="learnin rate")
     parser.add_argument("--l2_coef", type=float, default=0.01, help="l2 loss coeficient")
 
-    parser.add_argument("--n_epoch", type=int, default=500,  help="number of epoch")
+    parser.add_argument("--n_epoch", type=int, default=500, help="number of epoch")
     parser.add_argument("--clf_lr", type=float, default=1e-2, help="classifier learning rate")
     parser.add_argument("--clf_l2_coef", type=float, default=0.01)
     parser.add_argument("--patience", type=int, default=20)
