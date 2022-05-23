@@ -4,29 +4,26 @@ from gammagl.utils import add_self_loops, calc_gcn_norm
 
 
 class SAGEConv(MessagePassing):
-    r"""The GraphSAGE operator from the `"Inductive Representation Learning on Large Graphs"
-    <https://arxiv.org/abs/1706.02216>`_ paper
+    r"""The GraphSAGE operator from the `"Inductive Representation Learning on
+       Large Graphs" <https://arxiv.org/abs/1706.02216>`_ paper
 
        .. math::
            \mathbf{x}^{\prime}_i = \mathbf{W}_1 \mathbf{x}_i + \mathbf{W}_2 \cdot
            \mathrm{mean}_{j \in \mathcal{N(i)}} \mathbf{x}_j
 
-    Parameters
-    ----------
-    in_channels: int or tuple
-        Size of each input sample, or :obj:`-1` to
-        derive the size from the first input(s) to the forward method.
-        A tuple corresponds to the sizes of source and target
-        dimensionalities.
-    out_channels: int
-        Size of each output sample.
-    norm: callable activation function/layer or None, optional
+    Args:
+        in_channels (int or tuple): Size of each input sample, or :obj:`-1` to
+            derive the size from the first input(s) to the forward method.
+            A tuple corresponds to the sizes of source and target
+            dimensionalities.
+        out_channels (int): Size of each output sample.
+
+        norm : callable activation function/layer or None, optional
         If not None, applies normalization to the updated node features.
-    aggr: str
-        Aggregator type to use (``mean``).
-    add_bias: bool, optional
-        If set to :obj:`False`, the layer will not learn
-        an additive bias. (default: :obj:`True`)
+
+        aggr : Aggregator type to use (``mean``).
+        add_bias (bool, optional): If set to :obj:`False`, the layer will not learn
+            an additive bias. (default: :obj:`True`)
 
     """
 
@@ -55,19 +52,22 @@ class SAGEConv(MessagePassing):
 
     def forward(self, feat, edge):
         r"""
-        Compute GraphSAGE layer.
 
-        Parameters
-        ----------
-        feat : Pair of Tensor
-            The pair must contain two tensors of shape
-            :math:`(N_{in}, D_{in_{src}})` and :math:`(N_{out}, D_{in_{dst}})`.
-        Returns
-        -------
-        Tensor
-            The output feature of shape :math:`(N_{dst}, D_{out})`
-            where :math:`N_{dst}` is the number of destination nodes in the input graph,
-            math:`D_{out}` is size of output feature.
+                Description
+                -----------
+                Compute GraphSAGE layer.
+
+                Parameters
+                ----------
+                feat : Pair of Tensor
+                    The pair must contain two tensors of shape
+                    :math:`(N_{in}, D_{in_{src}})` and :math:`(N_{out}, D_{in_{dst}})`.
+                Returns
+                -------
+                Tensor
+                    The output feature of shape :math:`(N_{dst}, D_{out})`
+                    where :math:`N_{dst}` is the number of destination nodes in the input graph,
+                    math:`D_{out}` is size of output feature.
         """
         if isinstance(feat, tuple):
             src_feat = feat[0]
@@ -75,17 +75,16 @@ class SAGEConv(MessagePassing):
         else:
             src_feat = feat
             dst_feat = feat
-        num_nodes = dst_feat.shape[0]
+        num_nodes = int(dst_feat.shape[0])
         if self.aggr == 'mean':
             src_feat = self.fc_neigh(src_feat)
             out = self.propagate(src_feat, edge, edge_weight=None, num_nodes=num_nodes, aggr='mean')
         elif self.aggr == 'gcn':
             src_feat = self.fc_neigh(src_feat)
-            cur_nodes = 1 + tlx.reduce_max(edge[0])
-            edge_index, _ = add_self_loops(edge, num_nodes=cur_nodes, n_loops=1)
-            edge_weight = tlx.convert_to_tensor(calc_gcn_norm(edge_index, cur_nodes))
-
-            out = self.propagate(src_feat, edge_index, edge_weight, num_nodes=cur_nodes, aggr='sum')
+            edge, _ = add_self_loops(edge)
+            weight = calc_gcn_norm(edge, int(1 + tlx.reduce_max(edge[0])))
+            # col, row, weight = calc(edge,  1 + tlx.reduce_max(edge[0]))
+            out = self.propagate(src_feat, edge, edge_weight=weight, num_nodes=int(1 + tlx.reduce_max(edge[0])), aggr='sum')
             out = tlx.gather(out, tlx.arange(0, num_nodes))
         elif self.aggr == 'pool':
             src_feat = tlx.nn.ReLU()(self.pool(src_feat))
@@ -107,3 +106,5 @@ class SAGEConv(MessagePassing):
             out = self.act(out)
 
         return out
+
+
