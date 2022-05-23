@@ -33,6 +33,7 @@ def remove_self_loops(edge_index, edge_attr=None):
     else:
         return edge_index, edge_attr[mask]
 
+      
 def add_self_loops(
         edge_index, edge_attr=None, n_loops=1,
         fill_value: Union[float, str] = None,
@@ -42,6 +43,8 @@ def add_self_loops(
     In case the graph is weighted or has multi-dimensional edge features
     (:obj:`edge_attr != None`), edge features of self-loops will be added
     according to :obj:`fill_value`.
+
+    .. code:: python
     
     .. code:: python
 
@@ -55,7 +58,7 @@ def add_self_loops(
         array([[0, 0, 0, 0, 1, 2, 3],
                [1, 2, 3, 0, 1, 2, 3]])
 
-        
+
     Parameters
     ----------
     edge_index: LongTensor
@@ -102,7 +105,9 @@ def add_self_loops(
             loop_attr = tlx.convert_to_numpy(fill_value)
             if edge_attr.ndim != loop_attr.size:
                 loop_attr = np.expand_dims(loop_attr, axis=0)
-            #sizes = [N] + [1] * (loop_attr.size - 1)
+
+            # sizes = [N] + [1] * (loop_attr.size - 1)
+
             loop_attr = tlx.convert_to_tensor(np.repeat(loop_attr, [N], axis=0), dtype=fill_value.dtype)
 
         elif isinstance(fill_value, str):
@@ -117,5 +122,3 @@ def add_self_loops(
 
     edge_index = tlx.concat([edge_index, loop_index], axis=1)
     return edge_index, edge_attr
-
-#
