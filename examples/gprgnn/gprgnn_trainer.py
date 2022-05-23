@@ -98,7 +98,6 @@ def main(args):
         dataset = Planetoid(args.dataset_path, args.dataset, transform=T.NormalizeFeatures())
         dataset.process()
         graph = dataset[0]
-        graph.y = tlx.argmax(graph.y, axis=1)
     elif str.lower(args.dataset) in ['cornell','texas']:
         dataset = WebKB(args.dataset_path, args.dataset)
         dataset.process()
@@ -138,8 +137,7 @@ def main(args):
     edge_index, _ = add_self_loops(graph.edge_index, n_loops=args.self_loops)
     edge_weight = tlx.ops.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
     x = graph.x
-    y = tlx.argmax(graph.y, axis=1)
-
+    y = graph.y
 
     net = GPRGNNModel(feature_dim=x.shape[1],
                    hidden_dim=args.hidden_dim,

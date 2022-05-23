@@ -88,46 +88,6 @@ In file `models/gprgnn.py`
 
 
 
-#### Dataset class
-
-`WebKB`
-
-In file `datasets/webkb.py`
-
-+ Provides three datasets  `cornell`, `texas`, `wisconsin`
-+ Function `coalesce` is defined to remove the duplicated edges in graph
-
-
-
-`WikipediaNetwork`
-
-In file `datasets/wikipedia_network.py`
-
-+ Provides three datasets `chameleon`, `crocodile`, `squirrel`
-+ `chameleon` and `squirrel` have the geom_gcn preprocessed version
-+ Function `coalesce` is defined to remove the duplicated edges in graph
-
-
-
-`Amazon`
-
-In file `datasets/amazon.py`
-
-+ Provides two datasets `computers`, `photo`
-+ Function `read_npz` and `parse_npz` are defined to read data in a predefined way from a `*.npz` file
-+ Function `remove_self_loops` and `to_undirected` are defined to remove self loop and convert graph to undirected
-+ Function `coalesce` is defined to remove the duplicated edges in graph
-
-
-
-`Planetoid`
-
-In file `datasets/planetoid.py`
-
-+ Provides three datasets `cora`, `pubmed`, `citeseer`
-+ Col `217`, origin:  `y = np.concatenate([ally, ty])`, fixed:`y = np.concatenate([ally, ty]).argmax(axis=1)`. Ensure the representations of node labels are the same among different datasets.
-
-
 
 
 
