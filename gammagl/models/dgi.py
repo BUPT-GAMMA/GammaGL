@@ -1,12 +1,3 @@
-"""
-Deep Graph Infomax in DGL
-
-References
-----------
-Papers: https://arxiv.org/abs/1809.10341
-Author's code: https://github.com/PetarV-/DGI
-"""
-
 import tensorlayerx as tlx
 import math
 
@@ -37,6 +28,14 @@ class GCN(tlx.nn.Module):
 
 
 class DGIModel(tlx.nn.Module):
+    """
+    Deep Graph Infomax in DGL
+
+    References
+    ----------
+    Papers: https://arxiv.org/abs/1809.10341
+    Author's code: https://github.com/PetarV-/DGI
+    """
     def __init__(self, in_feat, hid_feat, act):
         super(DGIModel, self).__init__()
         self.gcn = GCN(in_feat, hid_feat, act)

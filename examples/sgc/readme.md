@@ -6,27 +6,14 @@ Simple Graph Convolution (SGC)
 
 Dataset Statics
 -------
-| Dataset  | # Nodes | # Edges | # Classes |
-|----------|---------|---------|-----------|
-| Cora     | 2,708   | 10,556  | 7         |
-| Citeseer | 3,327   | 9,228   | 6         |
-| Pubmed   | 19,717  | 88,651  | 3         |
-
-How to run
-----------
-Run with following (available dataset: "cora", "citeseer", "pubmed")
-```bash
-python sgc_trainer.py --dataset cora
-```
-> For details settings, please refer to [here](https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/gcn#how-to-run).
-
+Refer to [Planetoid](https://gammagl.readthedocs.io/en/latest/api/gammagl.datasets.html#gammagl.datasets.Planetoid).
 
 Results
 -------
 ```bash
-TL_BACKEND="paddle" python3 sgc_trainer.py --dataset cora --lr 0.2 --n_epoch 250 --itera_k 2 --l2_coef 0.005
-TL_BACKEND="paddle" python3 sgc_trainer.py --dataset citeseer --lr 0.2 --n_epoch 250 --itera_k 2 --l2_coef 0.005
-TL_BACKEND="paddle" python3 sgc_trainer.py --dataset pubmed --lr 0.2 --n_epoch 250 --itera_k 2 --l2_coef 0.005
+TL_BACKEND="paddle" python3 sgc_trainer.py --dataset cora --lr 0.2 --n_epoch 250 --iter_K 2 --l2_coef 0.005
+TL_BACKEND="paddle" python3 sgc_trainer.py --dataset citeseer --lr 0.2 --n_epoch 250 --iter_K 2 --l2_coef 0.005
+TL_BACKEND="paddle" python3 sgc_trainer.py --dataset pubmed --lr 0.2 --n_epoch 250 --iter_K 2 --l2_coef 0.005
 ```
 
 | dataset  | paper      | our(tf)      | our(pd)       |

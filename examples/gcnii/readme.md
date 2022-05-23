@@ -6,20 +6,8 @@
 
 Dataset Statics
 -------
-| Dataset  | # Nodes | # Edges | # Classes |
-| -------- | ------- | ------- | --------- |
-| Cora     | 2,708   | 10,556  | 7         |
-| Citeseer | 3,327   | 9,228   | 6         |
-| Pubmed   | 19,717  | 88,651  | 3         |
+Refer to [Planetoid](https://gammagl.readthedocs.io/en/latest/api/gammagl.datasets.html#gammagl.datasets.Planetoid).
 
-How to run
-----------
-
-Run with following (available dataset: "cora", "citeseer", "pubmed")
-```bash
-python gcnii_train.py --dataset cora
-```
-> For details settings, please refer to [here](https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/gcn#how-to-run).
 
 Results
 -------

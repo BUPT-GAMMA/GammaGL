@@ -3,7 +3,7 @@ import os.path as osp
 import numpy as np
 import scipy.sparse as sp
 from gammagl.data import extract_zip, download_url, InMemoryDataset, Graph
-from gammagl.utils import coalesce, is_undirected
+from gammagl.utils import coalesce
 
 
 class Reddit(InMemoryDataset):
@@ -11,16 +11,20 @@ class Reddit(InMemoryDataset):
     Large Graphs" <https://arxiv.org/abs/1706.02216>`_ paper, containing
     Reddit posts belonging to different communities.
 
-    Args:
-        root (string): Root directory where the dataset should be saved.
-        transform (callable, optional): A function/transform that takes in an
-            :obj:`torch_geometric.data.Data` object and returns a transformed
-            version. The data object will be transformed before every access.
-            (default: :obj:`None`)
-        pre_transform (callable, optional): A function/transform that takes in
-            an :obj:`torch_geometric.data.Data` object and returns a
-            transformed version. The data object will be transformed before
-            being saved to disk. (default: :obj:`None`)
+    Parameters
+    ----------
+    root: string
+        Root directory where the dataset should be saved.
+    transform: callable, optional
+        A function/transform that takes in an
+        :obj:`gammagl.data.Graph` object and returns a transformed
+        version. The data object will be transformed before every access.
+        (default: :obj:`None`)
+    pre_transform: callable, optional
+        A function/transform that takes in
+        an :obj:`gammagl.data.Graph` object and returns a
+        transformed version. The data object will be transformed before
+        being saved to disk. (default: :obj:`None`)
     """
 
     url = 'https://data.dgl.ai/dataset/reddit.zip'

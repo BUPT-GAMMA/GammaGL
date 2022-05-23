@@ -1,5 +1,4 @@
 import tensorlayerx as tlx
-import gammagl.mpops as mpops
 from gammagl.layers.conv import GCNConv
 
 
@@ -10,8 +9,13 @@ class GCNModel(tlx.nn.Module):
     .. _Semi-Supervised Classification with Graph Convolutional Networks:
         https://arxiv.org/pdf/1609.02907.pdf
     
-    Parameters:
-        cfg: configuration of GCN
+    Parameters
+    ----------
+        feature_dim (int): input feature dimension
+        hidden_dim (int): hidden dimension
+        num_class (int): number of classes
+        drop_rate (float): dropout rate
+        name (str): model name
     """
 
     def __init__(self, feature_dim,

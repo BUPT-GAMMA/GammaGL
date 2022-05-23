@@ -12,23 +12,22 @@ import tensorlayerx as tlx
 class InMemoryDataset(Dataset):
     r"""Dataset base class for creating graph datasets which easily fit
     into CPU memory.
-    Inherits from :class:`torch_geometric.data.Dataset`.
-    See `here <https://pytorch-geometric.readthedocs.io/en/latest/notes/
-    create_dataset.html#creating-in-memory-datasets>`__ for the accompanying
-    tutorial.
+    Inherits from :class:`gammagl.data.Dataset`.
+    See `here <https://gammagl.readthedocs.io/en/latest/notes/create_dataset.html#creating-in-memory-datasets>`__ for the accompanying tutorial.
+
     Args:
         root (string, optional): Root directory where the dataset should be
             saved. (default: :obj:`None`)
         transform (callable, optional): A function/transform that takes in an
-            :obj:`torch_geometric.data.Data` object and returns a transformed
+            :obj:`gammagl.data.Graph` object and returns a transformed
             version. The data object will be transformed before every access.
             (default: :obj:`None`)
         pre_transform (callable, optional): A function/transform that takes in
-            an :obj:`torch_geometric.data.Data` object and returns a
+            an :obj:`gammagl.data.Graph` object and returns a
             transformed version. The data object will be transformed before
             being saved to disk. (default: :obj:`None`)
         pre_filter (callable, optional): A function that takes in an
-            :obj:`torch_geometric.data.Data` object and returns a boolean
+            :obj:`gammagl.data.Graph` object and returns a boolean
             value, indicating whether the data object should be included in the
             final dataset. (default: :obj:`None`)
     """
@@ -64,7 +63,8 @@ class InMemoryDataset(Dataset):
         # elif y.numel() == y.size(0) and not torch.is_floating_point(y):
         #     return int(self.data.y.max()) + 1
         elif y.ndim == 1:
-            return int(tlx.reduce_max(y) + 1)
+            y = tlx.convert_to_numpy(y)
+            return int(y.max() + 1)
         else:
             return self.data.y.shape[-1]
 
@@ -99,9 +99,9 @@ class InMemoryDataset(Dataset):
     def collate(
             data_list: List[Graph]):
             #-> Tuple[Graph, Optional[Dict[str, Tensor]]]:
-        r"""Collates a Python list of :obj:`torch_geometric.data.Data` objects
+        r"""Collates a Python list of :obj:`gammagl.data.Data` objects
         to the internal storage format of
-        :class:`~torch_geometric.data.InMemoryDataset`."""
+        :class:`~gammagl.data.InMemoryDataset`."""
         if len(data_list) == 1:
             return data_list[0], None
 
@@ -118,7 +118,7 @@ class InMemoryDataset(Dataset):
         r"""Performs a deep-copy of the dataset. If :obj:`idx` is not given,
         will clone the full dataset. Otherwise, will only clone a subset of the
         dataset from indices :obj:`idx`.
-        Indices can be slices, lists, tuples, and a :obj:`torch.Tensor` or
+        Indices can be slices, lists, tuples, and a :obj:`Tensor` or
         :obj:`np.ndarray` of type long or bool.
         """
         if idx is None:

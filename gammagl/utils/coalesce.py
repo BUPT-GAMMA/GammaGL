@@ -2,6 +2,7 @@ import numpy as np
 import tensorlayerx as tlx
 import gammagl.mpops as mpops
 from .num_nodes import maybe_num_nodes
+from .check import check_is_numpy
 
 
 def coalesce(edge_index, edge_attr=None, num_nodes=None, reduce="add", is_sorted=False, sort_by_row=True):
@@ -44,6 +45,8 @@ def coalesce(edge_index, edge_attr=None, num_nodes=None, reduce="add", is_sorted
         edge_index = edge_index[:, perm]
         if edge_attr is not None and tlx.ops.is_tensor(edge_attr):
             edge_attr = tlx.gather(edge_attr, perm, axis=0)
+        elif edge_attr is not None and check_is_numpy(edge_attr):
+            edge_attr = edge_attr[perm]
         elif edge_attr is not None:  # edge_attr is List.
             edge_attr = [tlx.gather(e, perm, axis=0) for e in edge_attr]
 
