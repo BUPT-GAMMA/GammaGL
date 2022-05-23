@@ -204,8 +204,9 @@ def main(args):
         # log.info("Runs %s: Model: GAT Best Test Accuracy: %f" %
           #        (run, cal_test_acc[np.argmin(cal_val_loss)]))
         end2 = time.time()
-        times.append(end2-st, end2-st1)
+        times.append((end2-st, end2-st1))
         best_test.append(cal_test_acc[np.argmin(cal_val_loss)])
+    print(np.mean(dur))
     print(times)
     # log.info("Average Speed %s sec/ epoch" % (np.mean(dur)))
     # log.info("Dataset: %s Best Test Accuracy: %f ( stddev: %f )" %

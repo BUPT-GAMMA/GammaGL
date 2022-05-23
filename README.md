@@ -108,7 +108,7 @@ for epoch in range(200):
         step = step + 1
 ```
 
-<details>
+</details>
 
 More information about evaluating final model performance can be found in the corresponding [example](https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/gcn).
 
