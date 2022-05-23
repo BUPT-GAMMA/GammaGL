@@ -9,7 +9,7 @@ from typing import (Any, Callable, Dict, Iterable, List, NamedTuple, Optional,
 import numpy as np
 import tensorlayerx as tlx
 from gammagl.data.view import ItemsView, KeysView, ValuesView
-# from torch_geometric.utils import is_undirected
+from gammagl.utils import is_undirected
 
 # Node-types are denoted by a single string, e.g.: `data['paper']`:
 NodeType = str
@@ -414,19 +414,18 @@ class EdgeStorage(BaseStorage):
 		else:
 			return int((edge_index[0] == edge_index[1]).sum()) > 0
 	
-	# def is_undirected(self) -> bool:
-	#     if self.is_bipartite():  # TODO check for inverse storage.
-	#         return False
-	#
-	#     for value in self.values('adj', 'adj_t'):
-	#         return value.is_symmetric()
-	#
-	#     edge_index = self.edge_index
-	#     edge_attr = self.edge_attr if 'edge_attr' in self else None
-	#     return is_undirected(edge_index, edge_attr, num_nodes=self.size(0))
-	#
-	# def is_directed(self) -> bool:
-	#     return not self.is_undirected()
+	def is_undirected(self) -> bool:
+		if self.is_bipartite():  # TODO check for inverse storage.
+			return False
+		# for value in self.values('adj', 'adj_t'):
+		# 	return value.is_symmetric()
+
+		edge_index = self.edge_index
+		edge_attr = self.edge_attr if 'edge_attr' in self else None
+		return is_undirected(edge_index, edge_attr, num_nodes=self.size(0))
+
+	def is_directed(self) -> bool:
+		return not self.is_undirected()
 	
 	def is_bipartite(self) -> bool:
 		return self._key is not None and self._key[0] != self._key[-1]

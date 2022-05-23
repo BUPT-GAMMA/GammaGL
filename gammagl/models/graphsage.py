@@ -30,15 +30,21 @@ class GraphSAGE_Full_Model(tlx.nn.Module):
             if l < self.n_layers:
                 h = self.dropout(h)
         return h
-    
-class GraphSAGE_Sample_Model(tlx.nn.Module):
-    r""" 
-    The GraphSAGE operator from the `"Inductive Representation Learning on
-       Large Graphs" <https://arxiv.org/abs/1706.02216>`_ paper
-       Parameters:
-        cfg: configuration of GraphSAGE
-    """
 
+
+class GraphSAGE_Sample_Model(tlx.nn.Module):
+    r"""The GraphSAGE operator from the `"Inductive Representation Learning on Large Graphs"
+    <https://arxiv.org/abs/1706.02216>`_ paper
+
+    Parameters
+    ----------
+        in_feat: number of input feature
+        hid_feat: number of hidden feature
+        out_feat: number of output feature
+        drop_rate: dropout rate
+        num_layers: number of sage layers
+        name: model name
+    """
     def __init__(self, in_feat, hid_feat, out_feat, drop_rate, num_layers, name=None):
         super(GraphSAGE_Sample_Model, self).__init__()
         self.convs = tlx.nn.ModuleList()

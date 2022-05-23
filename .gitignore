@@ -13,6 +13,7 @@ examples/cora/*
 examples/pubmed/*
 examples/citeseer/*
 *.npz
+data/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -145,3 +146,23 @@ dmypy.json
 .pyre/
 examples/IMDB*
 examples/Entities/*
+examples/data/mnist.rar
+examples/data/t10k-images-idx3-ubyte.gz
+examples/data/t10k-labels-idx1-ubyte.gz
+examples/data/train-images-idx3-ubyte.gz
+examples/data/train-labels-idx1-ubyte.gz
+examples/data/mnist/t10k-images-idx3-ubyte.gz
+examples/data/mnist/t10k-labels-idx1-ubyte.gz
+examples/data/mnist/train-images-idx3-ubyte.gz
+examples/data/mnist/train-labels-idx1-ubyte.gz
+examples/mnist.py
+profiler/mpops/gpu.sh
+profiler/mpops/cora.py
+profiler/mpops/ms_oneslike.py
+profiler/mpops/sort_time.py
+profiler/mpops/ms.py
+gammagl/layers/conv/message_passing.py
+profiler/mpops/ogbn-arxiv.py
+tests/datasets/citeseer/*
+tests/datasets/cora/*
+gammagl/sample.cpp

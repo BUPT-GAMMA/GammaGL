@@ -1,3 +1,4 @@
+import numpy as np
 import tensorlayerx as tlx
 import os.path as osp
 from typing import Callable, List, Optional
@@ -18,11 +19,16 @@ class Planetoid(InMemoryDataset):
     <https://arxiv.org/abs/1603.08861>`_ paper.
     Nodes represent documents and edges represent citation links.
     Training, validation and test splits are given by binary masks.
-    Args:
-        root (str): Root directory where the dataset should be saved.
-        name (str): The name of the dataset (:obj:`"Cora"`,
+    
+    Parameters
+    ----------
+        root: str
+            Root directory where the dataset should be saved.
+        name: str
+            The name of the dataset (:obj:`"Cora"`,
             :obj:`"CiteSeer"`, :obj:`"PubMed"`).
-        split (string): The type of dataset split
+        split: string
+            The type of dataset split
             (:obj:`"public"`, :obj:`"full"`, :obj:`"random"`).
             If set to :obj:`"public"`, the split will be the public fixed split
             from the
@@ -35,24 +41,32 @@ class Planetoid(InMemoryDataset):
             If set to :obj:`"random"`, train, validation, and test sets will be
             randomly generated, according to :obj:`num_train_per_class`,
             :obj:`num_val` and :obj:`num_test`. (default: :obj:`"public"`)
-        num_train_per_class (int, optional): The number of training samples
+        num_train_per_class: int, optional
+            The number of training samples
             per class in case of :obj:`"random"` split. (default: :obj:`20`)
-        num_val (int, optional): The number of validation samples in case of
+        num_val: int, optional
+            The number of validation samples in case of
             :obj:`"random"` split. (default: :obj:`500`)
-        num_test (int, optional): The number of test samples in case of
+        num_test: int, optional
+            The number of test samples in case of
             :obj:`"random"` split. (default: :obj:`1000`)
-        transform (callable, optional): A function/transform that takes in an
-            :obj:`torch_geometric.data.Data` object and returns a transformed
+        transform: callable, optional
+            A function/transform that takes in an
+            :obj:`gammagl.data.Graph` object and returns a transformed
             version. The data object will be transformed before every access.
             (default: :obj:`None`)
-        pre_transform (callable, optional): A function/transform that takes in
-            an :obj:`torch_geometric.data.Data` object and returns a
+        pre_transform: callable, optional
+            A function/transform that takes in
+            an :obj:`gammagl.data.Graph` object and returns a
             transformed version. The data object will be transformed before
             being saved to disk. (default: :obj:`None`)
-    Stats:
+
+    Tip
+    ---
         .. list-table::
             :widths: 10 10 10 10 10
             :header-rows: 1
+            
             * - Name
               - #nodes
               - #edges
@@ -90,27 +104,31 @@ class Planetoid(InMemoryDataset):
 
         if split == 'full':
             data = self.get(0)
-            data.train_mask.fill_(True)
+            data.numpy()
+            data.train_mask.fill(True)
             data.train_mask[data.val_mask | data.test_mask] = False
+            data.tensor()
             self.data, self.slices = self.collate([data])
 
         elif split == 'random':
             data = self.get(0)
-            data.train_mask.fill_(False)
+            data.numpy()
+            data.train_mask.fill(False)
             for c in range(self.num_classes):
-                idx = (data.y == c).nonzero(as_tuple=False).view(-1)
-                idx = idx[torch.randperm(idx.size(0))[:num_train_per_class]]
+                idx = np.array((data.y == c).nonzero()).reshape((-1))
+                idx = idx[np.random.permutation(idx.shape[0])[:num_train_per_class]]
                 data.train_mask[idx] = True
 
-            remaining = (~data.train_mask).nonzero(as_tuple=False).view(-1)
-            remaining = remaining[torch.randperm(remaining.size(0))]
+            remaining = np.array((~data.train_mask).nonzero()).reshape((-1))
+            # remaining = (~data.train_mask).nonzero(as_tuple=False).view(-1)
+            remaining = remaining[np.random.permutation(remaining.shape[0])]
 
-            data.val_mask.fill_(False)
+            data.val_mask.fill(False)
             data.val_mask[remaining[:num_val]] = True
 
-            data.test_mask.fill_(False)
+            data.test_mask.fill(False)
             data.test_mask[remaining[num_val:num_val + num_test]] = True
-
+            data.tensor()
             self.data, self.slices = self.collate([data])
 
     @property
