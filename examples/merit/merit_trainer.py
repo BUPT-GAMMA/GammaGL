@@ -22,7 +22,7 @@ class Unsupervised_Loss(WithLoss):
     def __init__(self, net):
         super(Unsupervised_Loss, self).__init__(backbone=net, loss_fn=None)
 
-    def forward(self, data, label=None):
+    def forward(self, data, label):
         loss = self._backbone(data['feat1'], data['edge1'], data['weight1'],data['num_node1'],
                             data['feat2'], data['edge2'], data['weight2'],data['num_node2'])
         return loss
@@ -50,9 +50,7 @@ def main(args):
 
     weight = np.ones(edge_index.shape[1])
     sparse_adj = sp.coo_matrix((weight, (edge_index[0], edge_index[1])), shape=(num_node, num_node))
-    A = (sparse_adj + sp.eye(num_node)).tocoo()#原始图的邻接矩阵
-    diff_edge_index,diff_weight = compute_diff(A, alpha=args.alpha, eps=0.0001)
-
+    diff_edge_index,diff_weight = compute_diff(sparse_adj, alpha=args.alpha, eps=0.0001)
     #define model
     net = MERIT(
         feat_size=dataset.num_node_features,

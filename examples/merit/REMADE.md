@@ -52,9 +52,10 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python merit_trainer.py --dataset c
 ## 	Performance
 
 
-|    Dataset    | Cora | Citeseer | Pubmed |
-| :-----------: | :--: | :------: | :----: |
-| Author's Code | 83.1 |   74.0   |  80.2  |
-|    GammaGL    | 84.3 |   72.2   |  --.-  |
+|     Dataset     | Cora | Citeseer | Pubmed |
+| :-------------: | :--: | :------: | :----: |
+|  Author's Code  | 83.1 |   74.0   |  80.2  |
+|   GammaGL(tf)   | 84.3 |   72.2   |  --.-  |
+| GammaGL(paddle) | 83.1 |   --.-   |  --.-  |
 
  
