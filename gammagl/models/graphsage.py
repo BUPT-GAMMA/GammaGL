@@ -38,8 +38,12 @@ class GraphSAGE_Sample_Model(tlx.nn.Module):
 
     Parameters
     ----------
-    cfg: 
-        configuration of GraphSAGE
+        in_feat: number of input feature
+        hid_feat: number of hidden feature
+        out_feat: number of output feature
+        drop_rate: dropout rate
+        num_layers: number of sage layers
+        name: model name
     """
     def __init__(self, in_feat, hid_feat, out_feat, drop_rate, num_layers, name=None):
         super(GraphSAGE_Sample_Model, self).__init__()

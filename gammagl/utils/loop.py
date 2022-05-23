@@ -33,7 +33,7 @@ def remove_self_loops(edge_index, edge_attr=None):
     else:
         return edge_index, edge_attr[mask]
 
-
+      
 def add_self_loops(
         edge_index, edge_attr=None, n_loops=1,
         fill_value: Union[float, str] = None,
@@ -45,6 +45,9 @@ def add_self_loops(
     according to :obj:`fill_value`.
 
     .. code:: python
+    
+    .. code:: python
+
         >>> from gammagl.data import Graph
         >>> from gammagl.utils.loop import add_self_loops
         >>> import numpy
@@ -54,6 +57,7 @@ def add_self_loops(
         >>> edge_index, _ = add_self_loops(edge_index)
         array([[0, 0, 0, 0, 1, 2, 3],
                [1, 2, 3, 0, 1, 2, 3]])
+
 
     Parameters
     ----------
@@ -76,6 +80,7 @@ def add_self_loops(
     num_nodes: int, optional
         The number of nodes, *i.e.*
         :obj:`max_val + 1` of :attr:`edge_index`. (default: :obj:`None`)
+
     Returns
     -------
     :class:`LongTensor`, :class:`Tensor`
@@ -100,7 +105,9 @@ def add_self_loops(
             loop_attr = tlx.convert_to_numpy(fill_value)
             if edge_attr.ndim != loop_attr.size:
                 loop_attr = np.expand_dims(loop_attr, axis=0)
+
             # sizes = [N] + [1] * (loop_attr.size - 1)
+
             loop_attr = tlx.convert_to_tensor(np.repeat(loop_attr, [N], axis=0), dtype=fill_value.dtype)
 
         elif isinstance(fill_value, str):

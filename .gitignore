@@ -13,6 +13,7 @@ examples/cora/*
 examples/pubmed/*
 examples/citeseer/*
 *.npz
+data/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -164,3 +165,4 @@ gammagl/layers/conv/message_passing.py
 profiler/mpops/ogbn-arxiv.py
 tests/datasets/citeseer/*
 tests/datasets/cora/*
+gammagl/sample.cpp

@@ -5,6 +5,7 @@ import os.path as osp
 import numpy as np
 from gammagl.io import read_txt_array
 from gammagl.data import Graph
+from gammagl.utils import coalesce, remove_self_loops
 
 names = [
 	'A', 'graph_indicator', 'node_labels', 'node_attributes'
@@ -16,33 +17,37 @@ def read_tu_data(folder, prefix):
 	files = glob.glob(osp.join(folder, f'{prefix}_*.txt'))
 	names = [f.split(os.sep)[-1][len(prefix) + 1:-4] for f in files]
 	
-	edge_index = read_file(folder, prefix, 'A', np.int32).transpose() - 1
-	batch = read_file(folder, prefix, 'graph_indicator', np.int32) - 1
+	edge_index = read_file(folder, prefix, 'A', np.int64).transpose() - 1
+	batch = read_file(folder, prefix, 'graph_indicator', np.int64) - 1
 	
-	node_attributes = node_labels = None
+	node_attributes = np.empty((batch.shape[0], 0), dtype=np.float32)
 	if 'node_attributes' in names:
 		node_attributes = read_file(folder, prefix, 'node_attributes', dtype=np.float32)
+
+	node_labels = np.empty((batch.shape[0], 0), dtype=np.float32)
 	if 'node_labels' in names:
-		node_labels = read_file(folder, prefix, 'node_labels', np.int32)
-		if len(node_labels.shape) >= 1:
+		node_labels = read_file(folder, prefix, 'node_labels', np.int64)
+		if len(node_labels.shape) == 1:
 			# node_labels = np.expand_dims(node_labels, -1)
-			node_labels = node_labels.squeeze()
-		node_labels = node_labels - node_labels.min()
-		node_labels = np.eye(node_labels.max() + 1)[node_labels]
-	# node_labels = torch.cat(node_labels, dim=-1).to(torch.float)
-	x = cat([node_attributes, node_labels])
-	
-	edge_attributes, edge_labels = None, None
+			node_labels = np.expand_dims(node_labels, axis=-1)
+		node_labels = node_labels - node_labels.min(axis=0)[0]
+		node_labels = np.eye(node_labels.max() + 1)[node_labels].squeeze()
+
+	edge_attributes = np.empty((edge_index.shape[0], 0), dtype=np.float32)
 	if 'edge_attributes' in names:
 		edge_attributes = read_file(folder, prefix, 'edge_attributes')
+
+	edge_labels = np.empty((edge_index.shape[1], 0))
 	if 'edge_labels' in names:
-		edge_labels = read_file(folder, prefix, 'edge_labels', np.int32)
-		if len(edge_labels.shape) >= 1:
-			edge_labels = edge_labels.squeeze()
+		edge_labels = read_file(folder, prefix, 'edge_labels', np.int64)
+		if len(edge_labels.shape) == 1:
+			edge_labels = np.expand_dims(edge_labels, axis=-1)
 		edge_labels = edge_labels - edge_labels.min()
 		edge_labels = np.eye(edge_labels.max() + 1)[edge_labels]
+
+	x = cat([node_attributes, node_labels])
 	edge_attr = cat([edge_attributes, edge_labels])
-	
+
 	y = None
 	if 'graph_attributes' in names:  # Regression problem.
 		y = read_file(folder, prefix, 'graph_attributes')
@@ -52,37 +57,22 @@ def read_tu_data(folder, prefix):
 	
 	num_nodes = edge_index.max().item() + 1 if x is None else x.shape[0]
 	edge_index, edge_attr = remove_self_loops(edge_index, edge_attr)
-	# edge_index, edge_attr = coalesce(edge_index, edge_attr, num_nodes,
-	#                                  num_nodes)
+	if edge_attr is None:
+		edge_index = coalesce(edge_index, num_nodes=num_nodes)
+	else:
+		edge_index, edge_attr = coalesce(edge_index, edge_attr=edge_attr, num_nodes=num_nodes)
 	
 	# data = Graph(edge_index=edge_index, edge_feat=edge_attr, node_feat=x, node_label=y)
 	graph, slices = split(edge_index, batch, x, edge_attr, y)
-	
-	return graph, slices
 
+	sizes = {
+		'num_node_attributes': node_attributes.shape[-1],
+		'num_node_labels': node_labels.shape[-1],
+		'num_edge_attributes': edge_attributes.shape[-1],
+		'num_edge_labels': edge_labels.shape[-1],
+	}
 
-def remove_self_loops(edge_index, edge_attr=None):
-	r"""Removes every self-loop in the graph given by :attr:`edge_index`, so
-	that :math:`(i,i) \not\in \mathcal{E}` for every :math:`i \in \mathcal{V}`.
-
-	Parameters
-	----------
-	edge_index: LongTensor
-		The edge indices.
-	edge_attr: Tensor, optional
-		Edge weights or multi-dimensional
-		edge features. (default: :obj:`None`)
-
-	Returns
-	-------
-	LongTensor, Tensor
-	"""
-	mask = edge_index[0] != edge_index[1]
-	edge_index = edge_index[:, mask]
-	if edge_attr is None:
-		return edge_index, None
-	else:
-		return edge_index, edge_attr[mask]
+	return graph, slices, sizes
 
 
 def read_file(folder, prefix, name, dtype=None):
@@ -92,6 +82,7 @@ def read_file(folder, prefix, name, dtype=None):
 
 def cat(seq):
 	seq = [item for item in seq if item is not None]
+	seq = [item for item in seq if item.size > 0]
 	seq = [np.expand_dims(item, axis=-1) if len(item.shape) == 1 else item for item in seq]
 	return np.concatenate(seq, axis=-1) if len(seq) > 0 else None
 
