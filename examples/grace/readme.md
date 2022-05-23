@@ -78,6 +78,9 @@ Random split (Train/Test = 1:9)
 Due to tlx don't have diag operation, now GRACE only support Tensorflow.
 It will support other background soon.
 
+TODO: fix l2_normal on pd and th, run again.
+
+
 |      Dataset      | Cora | Citeseer | Pubmed |
 | :---------------: | :--: | :------: | :----: |
 |   Author's Code   | 83.1 |   71.0   |  86.3  |

@@ -1,6 +1,6 @@
 import os
 
-# os.environ['TL_BACKEND'] = 'mindspore'
+os.environ['TL_BACKEND'] = 'tensorflow'
 # os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
 
@@ -79,7 +79,7 @@ def main(args):
 
     pos_feat = graph.x
     perm = np.random.permutation(graph.num_nodes)
-    neg_feat = tlx.gather(pos_feat, tlx.convert_to_tensor(perm))
+    neg_feat = tlx.gather(pos_feat, tlx.convert_to_tensor(perm, dtype=tlx.int64))
     data = {
         "pos_feat": pos_feat,
         "neg_feat": neg_feat,
@@ -132,6 +132,7 @@ def main(args):
     test_embs = tlx.gather(embed, data['test_idx'])
 
     if tlx.BACKEND != 'tensorflow':
+        # todo: support ms
         train_embs = train_embs.detach()
 
     train_lbls = tlx.gather(data['y'], data['train_idx'])

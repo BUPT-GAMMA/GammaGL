@@ -1,6 +1,6 @@
 import os
 
-# os.environ['TL_BACKEND'] = 'paddle'
+os.environ['TL_BACKEND'] = 'torch'
 # os.environ['CUDA_VISIBLE_DEVICES']=' '
 
 
@@ -71,7 +71,7 @@ def main(args):
                 "num_node1": graph1.num_nodes,
                 "feat2": graph2.x, "edge2": graph2.edge_index, "weight2": graph2.edge_weight,
                 "num_node2": graph2.num_nodes}
-        loss = train_one_step(data, label=tlx.convert_to_tensor([0]))
+        loss = train_one_step(data, label=tlx.convert_to_tensor([1]))
         if loss < best:
             best = loss
             cnt_wait = 0
@@ -84,7 +84,7 @@ def main(args):
             break
         print("loss :{:4f}".format(loss.item()))
     print("=== Final ===")
-    net.load_weights(args.best_model_path + "Grace.npz")
+    net.load_weights(args.best_model_path + "GRACE_" + args.dataset + ".npz")
     net.set_eval()
 
     embeds = net.get_embeding(original_graph.x, original_graph.edge_index, original_graph.edge_weight, graph.num_nodes)
