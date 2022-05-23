@@ -8,6 +8,7 @@ import torch_geometric.transforms as T
 from torch_geometric.datasets import Planetoid
 # from torch_geometric.logging import init_wandb, log
 from torch_geometric.nn import GATConv
+import numpy as np
 import time
 
 parser = argparse.ArgumentParser()
@@ -75,11 +76,14 @@ def test():
 # 1 time backward
 # 200 epoch
 best_val_acc = final_test_acc = 0
+dur = []
 for epoch in range(1, args.epochs + 1):
+    start = time.time()
     loss = train()
+    dur.append(time.time()-start)
     train_acc, val_acc, tmp_test_acc = test()
     if val_acc > best_val_acc:
         best_val_acc = val_acc
         test_acc = tmp_test_acc
     # log(Epoch=epoch, Loss=loss, Train=train_acc, Val=val_acc, Test=test_acc)
-print(time.time()-st)
+print(time.time()-st, np.mean(dur), sep=',')

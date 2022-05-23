@@ -202,7 +202,7 @@ def main(args):
           #        (run, cal_test_acc[np.argmin(cal_val_loss)]))
 
         best_test.append(cal_test_acc[np.argmin(cal_val_loss)])
-    print(time.time()-st)
+    print(time.time() - st, np.mean(dur), sep=',')
     # log.info("Average Speed %s sec/ epoch" % (np.mean(dur)))
     # log.info("Dataset: %s Best Test Accuracy: %f ( stddev: %f )" %
       #        (args.dataset, np.mean(best_test), np.std(best_test)))
