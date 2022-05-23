@@ -5,6 +5,12 @@
 
 
 
+## Structure
+
+![GPR-GNN](https://picgo-1301748200.cos.ap-chengdu.myqcloud.com/mac/GPR-GNN.jpg)
+
+
+
 
 
 Results
@@ -25,21 +31,23 @@ sh Reproduce_GPRGNN.sh
 
 
 
+
+
+
+
+
+
+
+
 ## Details
 
 #### GPR-GNN
 
-$$
-\mathbf{H}^{(0)}=\mathbf{X}\mathbf{\Theta} \tag{1}
-$$
+![](https://latex.codecogs.com/svg.image?\mathbf{H}^{(0)}=\mathbf{X}\mathbf{\Theta}&space;)
 
-$$
-\mathbf{H}^{(k)} = \mathbf{\hat{D}}^{-1/2} \mathbf{\hat{A}}\mathbf{\hat{D}}^{-1/2} \mathbf{H}^{(k-1)} \tag{2}
-$$
+![](https://latex.codecogs.com/svg.image?\mathbf{H}^{(k)}&space;=&space;\mathbf{\hat{D}}^{-1/2}&space;\mathbf{\hat{A}}\mathbf{\hat{D}}^{-1/2}&space;\mathbf{H}^{(k-1)}&space;)
 
-$$
-\mathbf{Z} = \sum\limits_{k=0}^{k=K}\gamma_k\mathbf{H}^{(k)} \tag{3}
-$$
+![](https://latex.codecogs.com/svg.image?\mathbf{Z}&space;=&space;\sum\limits_{k=0}^{k=K}\gamma_k\mathbf{H}^{(k)}&space;)
 
 
 
@@ -61,9 +69,6 @@ The basic structure is similar to `gcn_conv.py`
     + $\textbf{WS}$: User defined initial value for $\gamma_k$
   + For $K$: recommended value is 10 (proposed by GPR-GNN origin paper)
 + In `reset_parameters` method: Use $\textbf{PPR}$ initializaiton method to reset parameters
-+ In `forward` propagation: performing $(2)$  and $(3)$ operation
-
-
 
 
 

@@ -1,12 +1,11 @@
 import os
 import os.path as osp
-from re import A
 # os.environ['TL_BACKEND'] = 'paddle' # set your backend here, default `tensorflow`
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import sys
 
 
-sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
+sys.path.insert(0, osp.abspath('../../')) # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid, WebKB, WikipediaNetwork, Amazon # , Actor
@@ -94,7 +93,7 @@ def random_planetoid_splits(data, num_classes, percls_trn=20, val_lb=500, Flag=0
 
 
 def main(args):
-    # load cora dataset
+    # load datasets
     if str.lower(args.dataset) in ['cora','pubmed','citeseer']:
         dataset = Planetoid(args.dataset_path, args.dataset, transform=T.NormalizeFeatures())
         dataset.process()
@@ -128,7 +127,6 @@ def main(args):
 
 ###########
 ####  split the datasets as defined in GPRGNN original paper
-####
 ###########
     train_rate = args.train_rate
     val_rate = args.val_rate
