@@ -19,12 +19,6 @@ from gammagl.datasets import Planetoid
 from gammagl.models import ChebNetModel
 from gammagl.utils import mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss
-# 设置tensorflow的显存为动态使用
-import tensorflow as tf
-
-gpus = tf.config.experimental.list_physical_devices(device_type='GPU')
-for gpu in gpus:
-    tf.config.experimental.set_memory_growth(gpu, True)
 
 
 class SemiSpvzLoss(WithLoss):
@@ -127,11 +121,11 @@ def main(args):
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument("--k", type=int, default=3, help="the k of every chebconv")
+    parser.add_argument("--k", type=int, default=2, help="the k of every chebconv")
     parser.add_argument("--lr", type=float, default=0.01, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=64, help="dimention of hidden layers")
-    parser.add_argument("--drop_rate", type=float, default=0.7, help="drop_rate")
+    parser.add_argument("--drop_rate", type=float, default=0.5, help="drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
