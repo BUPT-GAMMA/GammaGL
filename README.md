@@ -75,6 +75,41 @@ for epoch in range(200):
 
 </details>
 
+
+<details>
+<summary>We can now optimize the model in a training loop, similar to the <a href="https://www.mindspore.cn/tutorials/zh-CN/r1.7/advanced/train/train_eval.html#%E8%87%AA%E5%AE%9A%E4%B9%89%E8%AE%AD%E7%BB%83%E5%92%8C%E8%AF%84%E4%BC%B0">standard MindSpore training procedure</a>.</summary>
+
+
+```python
+# 1. Generate training dataset
+train_dataset = create_dataset(num_data=160, batch_size=16)
+
+# 2.Build a model and define the loss function
+net = LinearNet()
+loss = nn.MSELoss()
+
+# 3.Connect the network with loss function, and define the optimizer
+net_with_loss = nn.WithLossCell(net, loss)
+opt = nn.Momentum(net.trainable_params(), learning_rate=0.005, momentum=0.9)
+
+# 4.Define the training network
+train_net = nn.TrainOneStepCell(net_with_loss, opt)
+
+# 5.Set the model as training mode
+train_net.set_train()
+
+# 6.Training procedure
+for epoch in range(200):
+    for d in train_dataset.create_dict_iterator():
+        result = train_net(d['data'], d['label'])
+        print(f"Epoch: [{epoch} / {epochs}], "
+              f"step: [{step} / {steps}], "
+              f"loss: {result}")
+        step = step + 1
+```
+
+<details>
+
 More information about evaluating final model performance can be found in the corresponding [example](https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/gcn).
 
 ### Create your own GNN layer
@@ -161,9 +196,7 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [GPRGNN [ICLR 2021]](./examples/gprgnn)          |                    |                    |                    |                    |
 | [FAGCN [AAAI 2021]](./examples/fagcn)            |                    |                    |                    |                    |
 
-Contrastive Learning
-
-|                                                | TensorFlow         | PyTorch            | Paddle             | MindSpore |
+| Contrastive Learning                           | TensorFlow         | PyTorch            | Paddle             | MindSpore |
 | ---------------------------------------------- | ------------------ | ------------------ | ------------------ | --------- |
 | [DGI [ICLR 2019]](./examples/dgi)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [GRACE [ICML 2020 Workshop]](./examples/grace) | :heavy_check_mark: |                    |                    |           |
@@ -171,9 +204,7 @@ Contrastive Learning
 | [InfoGraph [ICLR 2020]](./examples/infograph)  |                    |                    |                    |           |
 | [MERIT [IJCAI 2021]](./examples/merit)         | :heavy_check_mark: |                    |                    |           |
 
-Heterogeneous Graph Learning
-
-|                                    | TensorFlow | PyTorch | Paddle | MindSpore |
+| Heterogeneous Graph Learning       | TensorFlow | PyTorch | Paddle | MindSpore |
 | ---------------------------------- | ---------- | ------- | ------ | --------- |
 | [RGCN [ESWC2019]](./examples/rgcn) |            |         |        |           |
 | [HAN [WWW 2019]](./examples/han)   |            |         |        |           |

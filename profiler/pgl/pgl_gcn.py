@@ -167,7 +167,7 @@ def main(args):
             
         st1 = time.time()
 
-        for epoch in tqdm.tqdm(range(200)):
+        for epoch in tqdm.tqdm(range(args.epoch)):
             if epoch >= 3:
                 start = time.time()
             train_loss, train_acc = train(train_index, train_label, gnn_model,
@@ -184,6 +184,7 @@ def main(args):
                                        graph, criterion)
             cal_test_acc.append(test_acc.numpy())
             cal_test_loss.append(test_loss.numpy())
+
         times.append((time.time()-st, time.time()-st1))
 
       #   log.info("Runs %s: Model: GCN Best Test Accuracy: %f" %
@@ -194,6 +195,7 @@ def main(args):
     # log./info("Average Speed %s sec/ epoch" % (np.mean(dur)))
     # log.info("Dataset: %s Best Test Accuracy: %f ( stddev: %f )" %
         #      (args.dataset, np.mean(best_test), np.std(best_test)))
+    print(np.mean(dur))
     print(times)
 
 if __name__ == '__main__':
