@@ -7,7 +7,7 @@
 """
 
 import os
-# os.environ['TL_BACKEND'] = 'paddle'
+# os.environ['TL_BACKEND'] = 'torch'
 # os.environ["CUDA_VISIBLE_DEVICES"] = "5"
 
 import sys
