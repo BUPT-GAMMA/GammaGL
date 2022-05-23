@@ -1,5 +1,4 @@
 import tensorlayerx as tlx
-import gammagl.mpops as mpops
 from gammagl.layers.conv import GCNConv
 
 
@@ -12,7 +11,11 @@ class GCNModel(tlx.nn.Module):
     
     Parameters
     ----------
-    cfg: configuration of GCN
+        feature_dim (int): input feature dimension
+        hidden_dim (int): hidden dimension
+        num_class (int): number of classes
+        drop_rate (float): dropout rate
+        name (str): model name
     """
 
     def __init__(self, feature_dim,

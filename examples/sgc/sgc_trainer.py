@@ -65,7 +65,7 @@ def main(args):
     # build model
     net = SGCModel(feature_dim=dataset.num_node_features,
                    num_class=dataset.num_classes,
-                   itera_K=args.itera_K,
+                   iter_K=args.iter_K,
                    name="SGC")
 
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
@@ -121,7 +121,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.2, help="learning rate")
     parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
-    parser.add_argument("--itera_K", type=int, default=2, help="number K of iteration")
+    parser.add_argument("--iter_K", type=int, default=2, help="number K of iteration")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")

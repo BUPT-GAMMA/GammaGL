@@ -1,6 +1,6 @@
 Creating Your Own Datasets
 ==========================
-We follow the `torch_geometric.data.Dataset <https://pytorch-geometric.readthedocs.io/en/latest/modules/datasets.html>_` module and create the :class:`gammagl.data.Dataset` with a few modifications.
+We follow the `torch_geometric.data.Dataset <https://pytorch-geometric.readthedocs.io/en/latest/modules/datasets.html>`_ module and create the :class:`gammagl.data.Dataset` with a few modifications.
 
 Although GammaGL already contains a lot of useful datasets, you may wish to create your own dataset with self-recorded or non-publicly available data.
 
