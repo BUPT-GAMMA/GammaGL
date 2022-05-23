@@ -75,11 +75,9 @@ for epoch in range(200):
 
 </details>
 
-More information about evaluating final model performance can be found in the corresponding [example]((https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/gcn).
+More information about evaluating final model performance can be found in the corresponding [example](https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/gcn).
 
 ### Create your own GNN layer
-
-
 
 ## Get Started
 
@@ -150,12 +148,33 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [GCN [ICLR 2017]](./examples/gcn)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [GAT [ICLR 2018]](./examples/gat)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [GraphSAGE [NeurIPS 2017]](./examples/graphsage) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [SGC [ICML 2019]](./examples/sgc)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [GATv2 [ICLR 2021]](./examples/gatv2)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [APPNP [ICLR 2019]](./examples/appnp)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [ChebNet [NeurIPS 2016]](./examples/chebnet)     |                    |                    |                    |                    |
 | [GCNII [ICLR 2017]](./examples/gcnii)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [JKNet [ICML 2018]](./examples/jknet)            |                    |                    |                    |                    |
+| [DiffPool [NeurIPS 2018]](./examples/diffpool)   |                    |                    |                    |                    |
+| [SGC [ICML 2019]](./examples/sgc)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [GIN [ICLR 2019]](./examples/gin)                |                    |                    |                    |                    |
+| [APPNP [ICLR 2019]](./examples/appnp)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [AGNN [arxiv]](./examples/agnn)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [DGI [ICLR 2019]](./examples/dgi)                | :heavy_check_mark: |                    |                    |                    |
 | [SIGN [ICML 2020 Workshop]](./examples/sign)     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
-| [GRACE [ICML 2020 Workshop]](./examples/grace)   | :heavy_check_mark: |                    |                    |                    |
-|                                                  |                    |                    |                    |                    |
+| [GATv2 [ICLR 2021]](./examples/gatv2)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [GPRGNN [ICLR 2021]](./examples/gprgnn)          |                    |                    |                    |                    |
+| [FAGCN [AAAI 2021]](./examples/fagcn)            |                    |                    |                    |                    |
+
+Contrastive Learning
+
+|                                                | TensorFlow         | PyTorch            | Paddle             | MindSpore |
+| ---------------------------------------------- | ------------------ | ------------------ | ------------------ | --------- |
+| [DGI [ICLR 2019]](./examples/dgi)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [GRACE [ICML 2020 Workshop]](./examples/grace) | :heavy_check_mark: |                    |                    |           |
+| [MVGRL [ICML 2020]](./examples/mvgrl)          | :heavy_check_mark: |                    |                    |           |
+| [InfoGraph [ICLR 2020]](./examples/infograph)  |                    |                    |                    |           |
+| [MERIT [IJCAI 2021]](./examples/merit)         | :heavy_check_mark: |                    |                    |           |
+
+Heterogeneous Graph Learning
+
+|                                    | TensorFlow | PyTorch | Paddle | MindSpore |
+| ---------------------------------- | ---------- | ------- | ------ | --------- |
+| [RGCN [ESWC2019]](./examples/rgcn) |            |         |        |           |
+| [HAN [WWW 2019]](./examples/han)   |            |         |        |           |
+| HGT [WWW 2020]                     |            |         |        |           |

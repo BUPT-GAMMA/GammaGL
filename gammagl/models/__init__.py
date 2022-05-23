@@ -12,6 +12,7 @@ from .jknet import JKNet
 from .han import HAN
 from .dgi import DGIModel
 from .grace import grace
+from .chebnet import ChebNetModel
 
 __all__ = [
     'GCNModel',
@@ -28,7 +29,8 @@ __all__ = [
     'JKNet',
     'HAN',
     'DGIModel',
-    'grace'
+    'grace',
+    'ChebNetModel'
 ]
 
 classes = __all__
