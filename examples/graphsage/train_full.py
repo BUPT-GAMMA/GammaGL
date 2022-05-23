@@ -1,6 +1,6 @@
 # import os
 # os.environ['TL_BACKEND'] = 'paddle'
-# os.environ['CUDA_VISIBLE_DEVICES'] = ' '
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 from gammagl.models.graphsage import GraphSAGE_Full_Model
 
 import argparse
@@ -34,11 +34,10 @@ def evaluate(net, data, y, mask, metrics):
 
 
 def main(args):
-    # load cora dataset
+    # load datasets
     if str.lower(args.dataset) not in ['cora', 'pubmed', 'citeseer']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)
-    # dataset.process() # suggest to execute explicitly so far
     graph = dataset[0]
 
     x = graph.x

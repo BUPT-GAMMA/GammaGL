@@ -4,7 +4,11 @@ from gammagl.layers.conv import GCNIIConv
 
 
 class GCNIIModel(tlx.nn.Module):
-    """GCN with Initial residual and Identity mapping"""
+    """
+    The graph convolutional operator with initial residual connections and
+    identity mapping (GCNII) from the `"Simple and Deep Graph Convolutional
+    Networks" <https://arxiv.org/abs/2007.02133>`_ paper
+    """
 
     def __init__(self, feature_dim, hidden_dim, num_class, num_layers,
                  alpha, beta, lambd, variant, drop_rate, name=None):

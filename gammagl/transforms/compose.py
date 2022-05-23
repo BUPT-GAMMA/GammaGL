@@ -1,22 +1,26 @@
 from typing import Callable, List, Union
 
-from gammagl.data import Graph
-
+from gammagl.data import Graph, HeteroGraph
 from gammagl.transforms import BaseTransform
 
 
 class Compose(BaseTransform):
     """Composes several transforms together.
 
-    Args:
-        transforms (List[Callable]): List of transforms to compose.
+    Parameters
+    ----------
+    transforms: List[Callable]
+        List of transforms to compose.
     """
     def __init__(self, transforms: List[Callable]):
         self.transforms = transforms
 
     def __call__(self, graph: Graph):
         for transform in self.transforms:
-             data = transform(graph)
+            if isinstance(graph, (list, tuple)):
+                graph = [transform(d) for d in graph]
+            else:
+                graph = transform(graph)
         return graph
 
     def __repr__(self) -> str:

@@ -35,9 +35,12 @@ def drop_edge(edge_index, drop_edge_rate=0.5):
         :obj:`(edge_index, edge_attr)` with probability :obj:`p` using samples from
         a Bernoulli distribution.
 
-        Args:
-        edge_index (Tensor): The edge indices.
-        p (float, optional): Dropout probability. (default: :obj:`0.5`)
+        Parameters
+        ----------
+        edge_index: Tensor
+            The edge indices.
+        p: float, optional
+            Dropout probability. (default: :obj:`0.5`)
         """
     if drop_edge_rate < 0. or drop_edge_rate > 1.:
         raise ValueError(f'Dropout probability has to be between 0 and 1 '

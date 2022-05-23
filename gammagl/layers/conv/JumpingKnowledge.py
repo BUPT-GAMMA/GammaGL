@@ -34,14 +34,18 @@ class JumpingKnowledge(tlx.nn.Module):
         with attention scores :math:`\alpha_v^{(t)}` obtained from a bi-directional
         LSTM (:obj:`"lstm"`).
 
-        Args:
-            mode (string): The aggregation scheme to use
-                (:obj:`"cat"`, :obj:`"max"` or :obj:`"lstm"`).
-            channels (int, optional): The number of channels per representation.
-                Needs to be only set for LSTM-style aggregation.
-                (default: :obj:`None`)
-            num_layers (int, optional): The number of layers to aggregate. Needs to
-                be only set for LSTM-style aggregation. (default: :obj:`None`)
+        Parameters
+        ----------
+        mode: string
+            The aggregation scheme to use
+            (:obj:`"cat"`, :obj:`"max"` or :obj:`"lstm"`).
+        channels: int, optional
+            The number of channels per representation.
+            Needs to be only set for LSTM-style aggregation.
+            (default: :obj:`None`)
+        num_layers: int, optional
+            The number of layers to aggregate. Needs to
+            be only set for LSTM-style aggregation. (default: :obj:`None`)
         """
 
     def __init__(self, mode, channels=None, num_layers=None):
@@ -54,13 +58,7 @@ class JumpingKnowledge(tlx.nn.Module):
             self.lstm = LSTM(input_size=channels,hidden_size= channels,
                              bidirectional=True, batch_first=True)
             self.att = Linear(in_features=2 * channels, out_features=1)
-        #self.reset_parameters()
 
-    # def reset_parameters(self):
-    #     if hasattr(self, 'lstm'):
-    #         self.lstm.reset_parameters()
-    #     if hasattr(self, 'att'):
-    #         self.att.reset_parameters()
 
     def forward(self, xs):
         r"""Aggregates representations across different layers.

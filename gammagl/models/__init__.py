@@ -11,6 +11,30 @@ from .agnn import AGNNModel
 from .jknet import JKNet
 from .han import HAN
 from .dgi import DGIModel
-from .agnn import AGNNModel
 from .grace import grace
+from .chebnet import ChebNetModel
+from .fagcn import FAGCNModel
 from .gprgnn import GPRGNNModel
+
+__all__ = [
+    'GCNModel',
+    'GATModel',
+    'SGCModel',
+    'GATV2Model',
+    'GraphSAGE_Full_Model',
+    'GraphSAGE_Sample_Model',
+    'GCNIIModel',
+    'APPNPModel',
+    'GINModel',
+    'RGCN',
+    'AGNNModel',
+    'JKNet',
+    'HAN',
+    'DGIModel',
+    'grace',
+    'ChebNetModel',
+    'FAGCNModel',
+    'GPRGNNModel'
+]
+
+classes = __all__
