@@ -29,8 +29,8 @@ class TUDataset(InMemoryDataset):
         You can then either make use of the argument :obj:`use_node_attr`
         to load additional continuous node attributes (if present) or provide
         synthetic node features using transforms such as
-        like :class:`torch_geometric.transforms.Constant` or
-        :class:`torch_geometric.transforms.OneHotDegree`.
+        like :class:`gammagl.transforms.Constant` or
+        :class:`gammagl.transforms.OneHotDegree`.
 
     Parameters
     ----------
@@ -42,17 +42,17 @@ class TUDataset(InMemoryDataset):
         dataset.
     transform: callable, optional
         A function/transform that takes in an
-        :obj:`torch_geometric.data.Data` object and returns a transformed
+        :obj:`gammagl.data.Graph` object and returns a transformed
         version. The data object will be transformed before every access.
         (default: :obj:`None`)
     pre_transform: callable, optional
         A function/transform that takes in
-        an :obj:`torch_geometric.data.Data` object and returns a
+        an :obj:`gammagl.data.Graph` object and returns a
         transformed version. The data object will be transformed before
         being saved to disk. (default: :obj:`None`)
     pre_filter: callable, optional
         A function that takes in an
-        :obj:`torch_geometric.data.Data` object and returns a boolean
+        :obj:`gammagl.data.Graph` object and returns a boolean
         value, indicating whether the data object should be included in the
         final dataset. (default: :obj:`None`)
     use_node_attr: bool, optional
@@ -136,7 +136,7 @@ class TUDataset(InMemoryDataset):
         self.name = name
         self.cleaned = cleaned
         super().__init__(root, transform, pre_transform, pre_filter)
-        self.data, self.slices = self.load_data(self.processed_paths[0])
+        self.data, self.slices, self.sizes = self.load_data(self.processed_paths[0])
         if self.data.x is not None and not use_node_attr:
             num_node_attributes = self.num_node_attributes
             self.data.x = self.data.x[:, num_node_attributes:]
@@ -156,34 +156,19 @@ class TUDataset(InMemoryDataset):
 
     @property
     def num_node_labels(self) -> int:
-        if self.data.x is None:
-            return 0
-        for i in range(self.data.x.shape[1]):
-            x = tlx.convert_to_numpy(self.data.x[:, i:])
-            if ((x == 0) | (x == 1)).sum() == x.shape[0] and (x.sum(axis=1) == 1).sum() == x.shape[0]:
-                return self.data.x.shape[1] - i
-        return 0
+        return self.sizes['num_node_labels']
 
     @property
     def num_node_attributes(self) -> int:
-        if self.data.x is None:
-            return 0
-        return self.data.x.shape[1] - self.num_node_labels
+        return self.sizes['num_node_attributes']
 
     @property
     def num_edge_labels(self) -> int:
-        if self.data.edge_attr is None:
-            return 0
-        for i in range(self.data.edge_attr.shape[1]):
-            if self.data.edge_attr[:, i:].sum() == self.data.edge_attr.shape[0]:
-                return self.data.edge_attr.shape[1] - i
-        return 0
+        return self.sizes['num_edge_labels']
 
     @property
     def num_edge_attributes(self) -> int:
-        if self.data.edge_feat is None:
-            return 0
-        return self.data.edge_feat.shape[1] - self.num_edge_labels
+        return self.sizes['num_edge_attributes']
 
     @property
     def raw_file_names(self) -> List[str]:
@@ -204,7 +189,7 @@ class TUDataset(InMemoryDataset):
         os.rename(osp.join(folder, self.name), self.raw_dir)
 
     def process(self):
-        self.data, self.slices = read_tu_data(self.raw_dir, self.name)
+        self.data, self.slices, sizes = read_tu_data(self.raw_dir, self.name)
 
         if self.pre_filter is not None:
             data_list = [self.get(idx) for idx in range(len(self))]
@@ -215,7 +200,7 @@ class TUDataset(InMemoryDataset):
             data_list = [self.get(idx) for idx in range(len(self))]
             data_list = [self.pre_transform(data) for data in data_list]
             self.data, self.slices = self.collate(data_list)
-        self.save_data((self.data, self.slices), self.processed_paths[0])
+        self.save_data((self.data, self.slices, sizes), self.processed_paths[0])
 
     def __repr__(self) -> str:
         return f'{self.name}({len(self)})'

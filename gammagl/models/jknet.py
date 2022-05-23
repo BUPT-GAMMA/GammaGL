@@ -1,13 +1,12 @@
 # -*- encoding: utf-8 -*-
 """
-@File   ： jknet.py
-@Time   ： 2022/4/10 11:16 上午
-@Author ： Jia Yiming
+@File   : jknet.py
+@Time   : 2022/4/10 11:16 上午
+@Author : Jia Yiming
 """
 
 import tensorlayerx as tlx
 from gammagl.layers.conv import SAGEConv, GCNConv, JumpingKnowledge
-
 
 
 class JKNet(tlx.nn.Module):
@@ -16,6 +15,7 @@ class JKNet(tlx.nn.Module):
         self.num_layers = num_layers
         self.mode = mode
         self.drop = drop
+
         self.conv0 = GCNConv(in_channels=dataset.num_node_features, out_channels=hidden)
         self.dropout0 = tlx.nn.Dropout(p=drop)
         for i in range(1, self.num_layers):
@@ -31,18 +31,13 @@ class JKNet(tlx.nn.Module):
 
 
     def forward(self, x, edge_index, edge_weight, num_nodes):
-
         layer_out = []
         for i in range(self.num_layers):
             conv = getattr(self, 'conv{}'.format(i))
             dropout = getattr(self, 'dropout{}'.format(i))
-            x = dropout(tlx.relu(conv(x, edge_index)))
+            x = dropout(tlx.relu(conv(x, edge_index, edge_weight=edge_weight)))
             layer_out.append(x)
         h = self.jk(layer_out)
-
         h = self.fc(h)
         h = tlx.softmax(h, axis=1)
         return h
-
-
-

@@ -8,7 +8,8 @@
 
 import os
 # os.environ['CUDA_VISIBLE_DEVICES']='1'
-os.environ['TL_BACKEND'] = 'paddle'
+# os.environ['TL_BACKEND'] = 'paddle'
+
 import sys
 sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 import argparse
@@ -65,6 +66,7 @@ def main(args):
                    heads=args.heads,
                    drop_rate=args.drop_rate,
                    name="GAT")
+
     loss = tlx.losses.softmax_cross_entropy_with_logits
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()

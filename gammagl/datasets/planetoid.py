@@ -52,12 +52,12 @@ class Planetoid(InMemoryDataset):
             :obj:`"random"` split. (default: :obj:`1000`)
         transform: callable, optional
             A function/transform that takes in an
-            :obj:`torch_geometric.data.Data` object and returns a transformed
+            :obj:`gammagl.data.Graph` object and returns a transformed
             version. The data object will be transformed before every access.
             (default: :obj:`None`)
         pre_transform: callable, optional
             A function/transform that takes in
-            an :obj:`torch_geometric.data.Data` object and returns a
+            an :obj:`gammagl.data.Graph` object and returns a
             transformed version. The data object will be transformed before
             being saved to disk. (default: :obj:`None`)
 

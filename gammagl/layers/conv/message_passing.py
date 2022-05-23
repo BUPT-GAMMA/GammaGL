@@ -1,5 +1,6 @@
 import tensorlayerx as tlx
 from gammagl.mpops import *
+from gammagl.utils import Inspector
 
 
 class MessagePassing(tlx.nn.Module):
@@ -16,10 +17,30 @@ class MessagePassing(tlx.nn.Module):
     MLPs.
     """
 
+    special_args = {
+        'edge_index', 'x', 'edge_weight'
+    }
+
+
     def __init__(self):
         super().__init__()
 
+        self.inspector = Inspector(self)
+        self.inspector.inspect(self.message)
+        self.__user_args__ = self.inspector.keys(
+            ['message',]).difference(self.special_args)
+
+
     def message(self, x, edge_index, edge_weight=None):
+        """
+        Function that construct message from source nodes to destination nodes.
+        Args:
+            x (Tensor): input node feature
+            edge_index (Tensor): edges from src to dst
+            edge_weight (Tensor): weight of each edge
+        Returns:
+
+        """
         msg = tlx.gather(x, edge_index[0, :])
         if edge_weight is not None:
             edge_weight = tlx.expand_dims(edge_weight, -1)
@@ -27,24 +48,65 @@ class MessagePassing(tlx.nn.Module):
         else:
             return msg
 
-    def aggregate(self, msg, edge_index, num_nodes=None, aggr_type='sum'):
+    def aggregate(self, msg, edge_index, num_nodes=None, aggr='sum'):
+        """
+        Function that aggregates message from edges to destination nodes.
+        Args:
+            msg (Tensor): message construct by message function
+            edge_index (Tensor): edges from src to dst
+            num_nodes (int): number of nodes of the graph
+            aggr (str): aggregation type, default = 'sum', optional=['sum', 'mean', 'max']
+ 
+        Returns:
+
+        """
         dst_index = edge_index[1, :]
-        if aggr_type == 'sum':
+        if aggr == 'sum':
             return unsorted_segment_sum(msg, dst_index, num_nodes)
-        elif aggr_type == 'mean':
+        elif aggr == 'mean':
             return unsorted_segment_mean(msg, dst_index, num_nodes)
-        elif aggr_type == 'max':
+        elif aggr == 'max':
             return unsorted_segment_max(msg, dst_index, num_nodes)
         else:
             raise NotImplementedError('Not support for this opearator')
 
     def update(self, x):
+        """
+        Function defines how to update node embeddings
+
+        Args:
+            x: aggregated message
+        """
         return x
 
-    def propagate(self, x, edge_index, edge_weight=None, num_nodes=None, aggr='sum'):
-        if num_nodes is None:
-            num_nodes = x.shape[0]
-        msg = self.message(x, edge_index, edge_weight=edge_weight)
-        x = self.aggregate(msg, edge_index, num_nodes=num_nodes, aggr_type=aggr)
+    def propagate(self, x, edge_index, aggr='sum', **kwargs):
+        """
+        Function that perform message passing. 
+        Args:
+            x: input node feature
+            edge_index: edges from src to dst
+            aggr: aggregation type, default='sum', optional=['sum', 'mean', 'max']
+            kwargs: other parameters dict
+
+        """
+
+        if 'num_nodes' not in kwargs.keys() or kwargs['num_nodes'] is None:
+            kwargs['num_nodes'] = x.shape[0]
+
+        coll_dict = self.__collect__(x, edge_index, aggr, kwargs)
+        msg_kwargs = self.inspector.distribute('message', coll_dict)
+        msg = self.message(**msg_kwargs)
+        x = self.aggregate(msg, edge_index, num_nodes=kwargs['num_nodes'], aggr=aggr)
         x = self.update(x)
         return x
+
+    def __collect__(self, x, edge_index, aggr, kwargs):
+        out = {}
+
+        for k, v in kwargs.items():
+            out[k] = v
+        out['x'] = x
+        out['edge_index'] = edge_index
+        out['aggr'] = aggr
+
+        return out
