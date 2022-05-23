@@ -44,11 +44,12 @@ class FAGCNConv(MessagePassing):
         self.dropout = nn.Dropout(drop_rate)
         self.tanh = nn.Tanh()
 
-        init = nn.initializers.XavierNormal(gain=1.414)
-        self.att_src = self._get_weights("att_src", shape=(1, hidden_dim), init=init)
-        self.att_dst = self._get_weights("att_dst", shape=(1, hidden_dim), init=init)
-        self.bias_src = self._get_weights("bias_src", shape=(hidden_dim,))
-        self.bias_dst = self._get_weights("bias_dst", shape=(hidden_dim,))
+        init_w = nn.initializers.XavierNormal(gain=1.414)
+        init_b = nn.initializers.random_uniform(-hidden_dim**-0.5, hidden_dim**-0.5)
+        self.att_src = self._get_weights("att_src", shape=(1, hidden_dim), init=init_w)
+        self.att_dst = self._get_weights("att_dst", shape=(1, hidden_dim), init=init_w)
+        self.bias_src = self._get_weights("bias_src", shape=(hidden_dim, ), init=init_b)
+        self.bias_dst = self._get_weights("bias_dst", shape=(hidden_dim, ), init=init_b)
 
     def message(self, x, edge_index, edge_weight=None, num_nodes=None):
         node_src = edge_index[0, :]
@@ -65,5 +66,5 @@ class FAGCNConv(MessagePassing):
         return x
 
     def forward(self, x, edge_index, edge_weight, num_nodes):
-        x = self.propagate(x, edge_index, edge_weight, num_nodes=num_nodes)
+        x = self.propagate(x, edge_index, edge_weight=edge_weight, num_nodes=num_nodes)
         return x
