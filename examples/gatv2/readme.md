@@ -13,20 +13,12 @@ Dataset Statics
 | Citeseer | 3,327   | 9,228   | 6         |
 | Pubmed   | 19,717  | 88,651  | 3         |
 
-Run with following:
-------------------
-```bash
-python3 gatv2_trainer.py
-```
-> For details settings, please refer to [here](https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/gcn#how-to-run).
-
-
 Results
 -------
 ```bash
 TL_BACKEND="paddle" python gatv2_trainer.py --dataset cora --lr 0.01 --l2_coef 0.01 --drop_rate 0.7
-TL_BACKEND="paddle" python gatv2_trainer.py --dataset citeseet --lr 0.0005 --l2_coef 0.01 --drop_rate 0.3
-TL_BACKEND="paddle" python gatv2_trainer.py --dataset citeseet --lr 0.01 --l2_coef 0.001 --drop_rate 0.4
+TL_BACKEND="paddle" python gatv2_trainer.py --dataset citeseer --lr 0.0005 --l2_coef 0.01 --drop_rate 0.3
+TL_BACKEND="paddle" python gatv2_trainer.py --dataset pubmed --lr 0.01 --l2_coef 0.001 --drop_rate 0.4
 ```
 | Dataset  | Our(pd)     | Our(tf)     |
 | -------- | ----------- | ----------- |

@@ -58,13 +58,7 @@ class JumpingKnowledge(tlx.nn.Module):
             self.lstm = LSTM(input_size=channels,hidden_size= channels,
                              bidirectional=True, batch_first=True)
             self.att = Linear(in_features=2 * channels, out_features=1)
-        #self.reset_parameters()
 
-    # def reset_parameters(self):
-    #     if hasattr(self, 'lstm'):
-    #         self.lstm.reset_parameters()
-    #     if hasattr(self, 'att'):
-    #         self.att.reset_parameters()
 
     def forward(self, xs):
         r"""Aggregates representations across different layers.
