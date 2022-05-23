@@ -2,9 +2,8 @@ import os.path as osp
 
 import numpy as np
 import tensorlayerx as tlx
-# from gammagl.sparse import coalesce
+from gammagl.utils import coalesce
 from gammagl.data import InMemoryDataset, download_url, Graph
-import sys
 
 
 
@@ -76,7 +75,7 @@ class WebKB(InMemoryDataset):
             data = f.read().split('\n')[1:-1]
             data = [[int(v) for v in r.split('\t')] for r in data]
             edge_index = np.ascontiguousarray(np.array(data, dtype=np.int64).T)
-            edge_index, _ = coalesce(edge_index, None, x.size, x.size)
+            edge_index = coalesce(edge_index)
         
 
         train_masks, val_masks, test_masks = [], [], []
@@ -96,45 +95,3 @@ class WebKB(InMemoryDataset):
     def __repr__(self) -> str:
         return f'{self.name}()'
 
-
-
-
-import numpy as np
-
-
-def coalesce(index, value, m, n, op="add"):
-    "A simplified version of coalesce: Row-wise sorts edge_index and removes its duplicated entries"
-
-    row=index[0]
-    col=index[1]
-    sparse_sizes=(m, n)
-
-########
-### First:Row-wise sorts
-########
-    idx = np.zeros(col.size + 1)
-    idx[1:] = row
-    idx[1:] *= sparse_sizes[1]
-    idx[1:] += col
-    if (idx[1:] < idx[:-1]).any():
-        perm = idx[1:].argsort()
-        row = row[perm]
-        col = col[perm]
-        if value is not None:
-            value = value[perm]
-        idx[1:] = idx[1:][perm]
-
-########
-### Second:check if there are repeat index and remove duplicated entries
-########
-    mask = idx[1:] > idx[:-1]
-
-    if not mask.all():  # Skip if indices are already coalesced.
-        row = row[mask]
-        col = col[mask]
-
-        # if value is not None:
-        #     ptr = mask.nonzero().flatten()
-        #     ptr = np.concatenate([ptr, np.full_like(ptr, value.size(0))])
-        #     value = segment_csr(value, ptr, reduce=reduce)
-    return  np.vstack((row, col)), value
