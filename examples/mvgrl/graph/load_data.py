@@ -159,7 +159,9 @@ def mvgrl_load(root, name):
         a = adj[i]
         edge_indexes = a.nonzero()
         edge_index = tlx.convert_to_tensor([edge_indexes[0], edge_indexes[1]], dtype=tlx.int64)
-        edge_index, _  = add_self_loops(edge_index, 1)
+
+        edge_index, _ = add_self_loops(edge_index)
+
         graph = Graph(edge_index=edge_index, x=tlx.convert_to_tensor(feat[i]))  # th.tensor(feat[i]).float()
 
         diff_adj = diff[i]
@@ -194,8 +196,4 @@ class MVGRLDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.graphs[idx], self.diff_graphs[idx], self.labels[idx]
-
-
-
-
 

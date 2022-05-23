@@ -1,7 +1,9 @@
 import argparse
+
 # import os
-# os.environ['TL_BACKEND'] = 'tensorflow'
+# os.environ['TL_BACKEND'] = 'paddle'
 # os.environ['CUDA_VISIBLE_DEVICES'] = ' '
+
 
 
 import tensorlayerx as tlx
@@ -11,7 +13,9 @@ import numpy as np
 from load_data import mvgrl_load
 from tqdm import tqdm
 
-from gammagl.data import Batch
+
+from gammagl.data import BatchGraph
+
 
 from gammagl.models.mvgrl import MVGRL_Graph
 from gammagl.utils.tu_utils import linearsvc
@@ -33,9 +37,11 @@ def collate(batch):
 
     # generate batched graphs and labels
 
-    batched_graph = Batch.from_data_list(graphs)
+
+    batched_graph = BatchGraph.from_data_list(graphs)
     batched_labels = tlx.convert_to_tensor(labels, dtype=tlx.int64)
-    batched_diff_graph = Batch.from_data_list(diff_graphs)
+    batched_diff_graph = BatchGraph.from_data_list(diff_graphs)
+
     ptr = batched_graph.ptr
     batch = np.zeros((batched_graph.x.shape[0],), dtype=np.int64)
 
@@ -48,8 +54,10 @@ def main(args):
     graphs, diff_graphs, labels = map(list, zip(*dataset))
     print('Name of graphs:', args.dataset)
     print('Number of graphs:', len(graphs))
-    whole_graph = Batch.from_data_list(graphs)
-    whole_diff = Batch.from_data_list(diff_graphs)
+
+    whole_graph = BatchGraph.from_data_list(graphs)
+    whole_diff = BatchGraph.from_data_list(diff_graphs)
+
 
     train_loader = DataLoader(dataset, collate_fn=collate, batch_size=args.batch_size, shuffle=True)
     model = MVGRL_Graph(in_feat=whole_graph.x.shape[1], out_feat=args.hidden_dim, num_layers=args.num_layers)
@@ -71,14 +79,16 @@ def main(args):
             data = {"edge_index": batched_graph.edge_index,
                     "diff_edge": batched_diff_graph.edge_index, "diff_weight": batched_diff_graph.edge_weight,
                     "feat": batched_graph.x, "ptr": batched_graph.ptr, "batch": batched_graph.batch}
-            loss = train_one_step(data=data, label=None).item()
+            loss = train_one_step(data=data, label=tlx.convert_to_tensor([1])).item()
             loss_all += loss
         print('Epoch {}, Loss {:.4f}'.format(epoch, loss_all))
         if loss < best:
             best = loss
             best_t = epoch
             cnt_wait = 0
-            model.save_weights(args.best_model_path + "MVGRL.npz", format='npz_dict')
+
+            model.save_weights(args.best_model_path + "MVGRL_"+args.dataset+".npz", format='npz_dict')
+
         else:
             cnt_wait += 1
 
@@ -86,7 +96,7 @@ def main(args):
             print('Early stopping')
             break
     print('Training End')
-    model.load_weights(args.best_model_path + "MVGRL.npz", format='npz_dict')
+
     model.set_eval()
     embs = embs = model.get_embedding(whole_graph.edge_index, whole_diff.edge_index, whole_diff.edge_weight,
                                       whole_graph.x,
@@ -100,7 +110,9 @@ if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
+
     parser.add_argument("--n_epoch", type=int, default=20, help="number of epoch")
+
     parser.add_argument("--hidden_dim", type=int, default=32, help="dimention of hidden layers")
     parser.add_argument("--l2_coef", type=float, default=0., help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='MUTAG',

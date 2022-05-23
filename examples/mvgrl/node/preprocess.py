@@ -2,14 +2,9 @@ import networkx as nx
 import numpy as np
 from scipy.linalg import fractional_matrix_power, inv
 
-
-from gammagl.data import Graph
-import scipy.sparse as sp
-
 from sklearn.preprocessing import MinMaxScaler
-
-from gammagl.data import Graph
 import scipy.sparse as sp
+
 def preprocess_features(features):
     """Row-normalize feature matrix and convert to tuple representation"""
     rowsum = np.array(features.sum(1))
