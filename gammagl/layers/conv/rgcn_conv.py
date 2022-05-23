@@ -62,10 +62,10 @@ class RGCNConv(MessagePassing):
         if num_bases is not None:
             self.weight = self._get_weights(var_name="weight",
                                             shape=(num_bases, in_channels[0], out_channels),
-                                            init=initor)
+                                            init=initor, order=True)
             self.base_att = self._get_weights(var_name="base_att",
                                               shape=(num_relations, num_bases),
-                                              init=initor)
+                                              init=initor, order=True)
         elif num_blocks is not None:
             assert (in_channels[0] % num_blocks == 0
                     and out_channels % num_blocks == 0)
@@ -74,11 +74,11 @@ class RGCNConv(MessagePassing):
                                                    num_blocks,
                                                    in_channels[0] // num_blocks,
                                                    out_channels // num_blocks),
-                                            init=initor)
+                                            init=initor, order=True)
         else:
             self.weight = self._get_weights(var_name="weight",
-                                            shape=(out_channels, in_channels[0], num_relations,),
-                                            init=initor)
+                                            shape=(num_relations, in_channels[0], out_channels),
+                                            init=initor, order=True)
 
         if root_weight:
             self.root = self._get_weights(var_name="root",
@@ -141,18 +141,14 @@ class RGCNConv(MessagePassing):
         else:  # No regularization/Basis-decomposition ========================
             for i in range(self.num_relations):
                 edges = masked_edge_index(edge_index, edge_type==i)
+                if edges.shape[1] == 0:
+                    """
+                    which means 0 edge of this relation,
+                    however, `tlx.gather` may cause error in paddle backend.
+                    """
+                    continue
 
                 if x_l.dtype == tlx.int64 or str(x_l.dtype) == 'paddle.int64': # paddle 报错
-                    # paddle 的做法
-                    # bucketed_msg = Message(msg, segment_ids)
-                    # output = reduce_func(bucketed_msg)
-                    # output_dim = output.shape[-1]
-                    # init_output = paddle.zeros(
-                    #     shape=[self._num_nodes, output_dim], dtype=output.dtype)
-                    # final_output = scatter(init_output, uniq_ind, output)
-                    #
-                    # return final_output
-
                     out += self.propagate(tlx.gather(weight[i], x_l), edges, num_nodes=size[1])
                 else:
                     h = self.propagate(x, edges, num_nodes=size[1])
@@ -160,7 +156,7 @@ class RGCNConv(MessagePassing):
 
         root = self.root
         if root is not None:
-            out += root[x_r] if x_r.dtype == tlx.int64 else x_r @ root
+            out += tlx.gather(root, x_r) if x_r.dtype == tlx.int64 else x_r @ root
 
         if self.add_bias:
             out += self.bias
