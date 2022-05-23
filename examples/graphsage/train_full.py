@@ -1,5 +1,5 @@
 import os
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'paddle'
 # os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 from gammagl.models.graphsage import GraphSAGE_Full_Model
 
@@ -114,7 +114,7 @@ if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.01, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=2, help="number of epoch")
+    parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=16, help="dimention of hidden layers")
     parser.add_argument("--drop_rate", type=float, default=0.5, help="drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
@@ -122,7 +122,7 @@ if __name__ == '__main__':
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--n_layers", type=int, default=1, help="number of hidden gcn layers")
-    parser.add_argument("--aggregator_type", type=str, default="mean", help="Aggregator type: mean/gcn/pool/lstm")
+    parser.add_argument("--aggregator_type", type=str, default="gcn", help="Aggregator type: mean/gcn/pool/lstm")
     args = parser.parse_args()
 
     main(args)

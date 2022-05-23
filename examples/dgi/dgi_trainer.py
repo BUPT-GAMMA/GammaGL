@@ -1,6 +1,6 @@
 import os
 
-os.environ['TL_BACKEND'] = 'mindspore'
+# os.environ['TL_BACKEND'] = 'mindspore'
 # os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
 
@@ -35,7 +35,9 @@ class Clf_Loss(WithLoss):
 class Classifier(tlx.nn.Module):
     def __init__(self, hid_feat, num_classes):
         super(Classifier, self).__init__()
-        self.fc = tlx.nn.Linear(out_features=num_classes, in_features=hid_feat)
+        # import math
+        # init = tlx.nn.initializers.HeNormal(a=math.sqrt(5))
+        self.fc = tlx.nn.Linear(out_features=num_classes, in_features=hid_feat) # , W_init=init)
 
     def forward(self, embed):
         return self.fc(embed)
@@ -59,27 +61,28 @@ def calculate_acc(logits, y, metrics):
 
 
 def main(args):
-    # load cora dataset
-
+    # load datasets
     if str.lower(args.dataset) not in ['cora', 'pubmed', 'citeseer']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)
     graph = dataset[0]
+
     # for mindspore, it should be passed into node indices
     train_idx = mask_to_index(graph.train_mask)
     test_idx = mask_to_index(graph.test_mask)
     val_idx = mask_to_index(graph.val_mask)
 
     # add self loop and calc Laplacian matrix
+
     edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=args.self_loops)
     edge_weight = tlx.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
 
-    pos_feat = tlx.convert_to_tensor(graph.x)
-    perm = tlx.convert_to_tensor(np.random.permutation(graph.num_nodes), dtype=tlx.int64)
-    neg_feat = tlx.gather(pos_feat, perm)
+    pos_feat = graph.x
+    perm = np.random.permutation(graph.num_nodes)
+    neg_feat = tlx.gather(pos_feat, tlx.convert_to_tensor(perm))
     data = {
-        "pos_feat": tlx.convert_to_tensor(pos_feat),
-        "neg_feat": tlx.convert_to_tensor(neg_feat),
+        "pos_feat": pos_feat,
+        "neg_feat": neg_feat,
         "edge_index": edge_index,
         "edge_weight": edge_weight,
         "num_node": graph.num_nodes,
@@ -88,12 +91,12 @@ def main(args):
         "val_idx": val_idx,
         "x": graph.x,
         "y": graph.y
-
     }
 
     # build model
-    net = DGIModel(in_feat=dataset.num_features, hid_feat=args.hidden_dim,
-                   act=tlx.nn.PRelu(args.hidden_dim))
+    net = DGIModel(in_feat=dataset.num_node_features, hid_feat=args.hidden_dim,
+                   # todo: tlx can't support cuda prelu, it will fix soon
+                   act=tlx.nn.ReLU())
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     train_weights = net.trainable_weights
     loss_func = Unsupervised_Loss(net)
@@ -103,20 +106,20 @@ def main(args):
     cnt_wait = 0
     for _ in tqdm(range(args.n_epoch)):
         net.set_train()
-        # label is None in unsupervised learning.
-        loss = train_one_step(data=data, label=None)
+        # label is None in unsupervised learning. graph.y will not be used
+        loss = train_one_step(data=data, label=graph.y)
         print("loss :{:4f}".format(loss.item()))
         if loss < best:
             best = loss
             cnt_wait = 0
-            net.save_weights(args.best_model_path + "DGI_" + args.dataset + ".npz", format='npz_dict')
+            net.save_weights(args.best_model_path + "DGI_" + args.dataset + ".npz")
         else:
             cnt_wait += 1
 
         if cnt_wait == args.patience:
             print('Early stopping!')
             break
-    net.load_weights(args.best_model_path + "DGI_" + args.dataset + ".npz", format='npz_dict')
+    net.load_weights(args.best_model_path + "DGI_" + args.dataset + ".npz")
     net.set_eval()
     if tlx.BACKEND == 'torch':
         net.to(data['x'].device)
@@ -127,37 +130,38 @@ def main(args):
 
     train_embs = tlx.gather(embed, data['train_idx'])
     test_embs = tlx.gather(embed, data['test_idx'])
-    train_embs = tlx.convert_to_tensor(tlx.convert_to_numpy(train_embs))
+
+    if tlx.BACKEND != 'tensorflow':
+        train_embs = train_embs.detach()
+
     train_lbls = tlx.gather(data['y'], data['train_idx'])
     test_lbls = tlx.gather(data['y'], data['test_idx'])
     accs = 0.
-    for e in range(args.classifier_epochs):
+    for e in range(args.num_evaluation):
         # build clf model
         clf = Classifier(args.hidden_dim, dataset.num_classes)
         clf_opt = tlx.optimizers.Adam(lr=args.classifier_lr, weight_decay=args.clf_l2_coef)
         clf_loss_func = WithLoss(clf, tlx.losses.softmax_cross_entropy_with_logits)
         clf_train_one_step = TrainOneStep(clf_loss_func, clf_opt, clf.trainable_weights)
         # train classifier
-        for a in range(100):
+        for a in range(args.classifier_epochs):
             clf.set_train()
-            if tlx.BACKEND != 'tensorflow':
-                clf_train_one_step(train_embs.detach(), train_lbls)
-            else:
-                clf_train_one_step(train_embs, train_lbls)
+            clf_train_one_step(train_embs, train_lbls)
         test_logits = clf(test_embs)
         acc = calculate_acc(test_logits, test_lbls, tlx.metrics.Accuracy())
+        print(acc)
         accs += acc
-    print("avg_acc :{:.4f}".format(accs / args.classifier_epochs))
+    print("avg_acc :{:.4f}".format(accs / args.num_evaluation))
 
 
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.0005, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=2, help="number of epoch")
+    parser.add_argument("--n_epoch", type=int, default=300, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=512, help="dimention of hidden layers")
     parser.add_argument("--classifier_lr", type=float, default=1e-2, help="classifier learning rate")
-    parser.add_argument("--classifier_epochs", type=int, default=100)
+    parser.add_argument("--classifier_epochs", type=int, default=100, help="the epoch to train classifier")
     parser.add_argument("--l2_coef", type=float, default=0., help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset, pubmed, cora, citeseer')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
@@ -165,6 +169,7 @@ if __name__ == '__main__':
     parser.add_argument("--patience", type=int, default=20)
     parser.add_argument("--clf_l2_coef", type=float, default=0.)
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
+    parser.add_argument("--num_evaluation", type=int, default=50, help="number of evaluate classifier")
 
     args = parser.parse_args()
     main(args)
