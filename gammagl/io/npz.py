@@ -22,10 +22,10 @@ def parse_npz(data):
                         data['adj_shape']).tocoo()
     edge_index = np.array([adj.row, adj.col])
     edge_index, _ = remove_self_loops(edge_index)
-    edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int32)
+    edge_index = tlx.convert_to_tensor(edge_index)
 
     edge_index = to_undirected(edge_index, num_nodes=x.shape[0])
 
-    y = tlx.convert_to_tensor(data['labels'], dtype=tlx.int32)
+    y = tlx.convert_to_tensor(data['labels'])
 
     return Graph(x=x, edge_index=edge_index, y=y)
