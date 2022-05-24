@@ -13,6 +13,7 @@ from .han_conv import HANConv
 from .cheb_conv import ChebConv
 from .fagcn_conv import FAGCNConv
 from .gpr_conv import GPRConv
+from .gin_conv import GINConv
 
 __all__ = [
     'MessagePassing',
