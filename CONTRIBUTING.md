@@ -9,7 +9,7 @@ Contribution is always welcomed. Please feel free to open an issue or email to t
   Core Developer
   
   - [Tianyu Zhao](https://github.com/Theheavens)
-  - Hui Han
+  - [Hui Han](https://github.com/clearhanhui)
   - [Siyuan Zhang](https://github.com/zsy0828)
   - Yaoqi Liu
   - Hongyi Zhang
