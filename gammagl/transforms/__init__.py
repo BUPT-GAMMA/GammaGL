@@ -12,3 +12,5 @@ __all__ = [
     'SIGN',
     'NormalizeFeatures'
 ]
+
+classes = __all__

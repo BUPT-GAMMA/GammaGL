@@ -1,6 +1,6 @@
 import argparse
 
-# import os
+import os
 # os.environ['TL_BACKEND'] = 'paddle'
 # os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 
@@ -97,8 +97,10 @@ def main(args):
             break
     print('Training End')
 
+    model.load_weights(args.best_model_path + "MVGRL_"+args.dataset+".npz", format='npz_dict')
     model.set_eval()
-    embs = embs = model.get_embedding(whole_graph.edge_index, whole_diff.edge_index, whole_diff.edge_weight,
+
+    embs = model.get_embedding(whole_graph.edge_index, whole_diff.edge_index, whole_diff.edge_weight,
                                       whole_graph.x,
                                       whole_graph.ptr)
 
