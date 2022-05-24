@@ -204,7 +204,6 @@ def main(args):
 
         end2 = time.time()
         times.append((end2-st, end2-st1))
-        best_test.append(cal_test_acc[np.argmin(cal_val_loss)])
     print(time.time() - st, time.time()-st1, np.mean(dur))
 
 
