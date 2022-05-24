@@ -75,10 +75,8 @@ for epoch in range(200):
 
 </details>
 
-
 <details>
 <summary>We can now optimize the model in a training loop, similar to the <a href="https://www.mindspore.cn/tutorials/zh-CN/r1.7/advanced/train/train_eval.html#%E8%87%AA%E5%AE%9A%E4%B9%89%E8%AE%AD%E7%BB%83%E5%92%8C%E8%AF%84%E4%BC%B0">standard MindSpore training procedure</a>.</summary>
-
 
 ```python
 # 1. Generate training dataset
@@ -183,9 +181,9 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [GCN [ICLR 2017]](./examples/gcn)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [GAT [ICLR 2018]](./examples/gat)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [GraphSAGE [NeurIPS 2017]](./examples/graphsage) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [ChebNet [NeurIPS 2016]](./examples/chebnet)     |                    |                    |                    |                    |
+| [ChebNet [NeurIPS 2016]](./examples/chebnet)     | :heavy_check_mark: | :heavy_check_mark: |                    |                    |
 | [GCNII [ICLR 2017]](./examples/gcnii)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [JKNet [ICML 2018]](./examples/jknet)            |                    |                    |                    |                    |
+| [JKNet [ICML 2018]](./examples/jknet)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [DiffPool [NeurIPS 2018]](./examples/diffpool)   |                    |                    |                    |                    |
 | [SGC [ICML 2019]](./examples/sgc)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [GIN [ICLR 2019]](./examples/gin)                |                    |                    |                    |                    |
@@ -193,19 +191,25 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [AGNN [arxiv]](./examples/agnn)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [SIGN [ICML 2020 Workshop]](./examples/sign)     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [GATv2 [ICLR 2021]](./examples/gatv2)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [GPRGNN [ICLR 2021]](./examples/gprgnn)          |                    |                    |                    |                    |
-| [FAGCN [AAAI 2021]](./examples/fagcn)            |                    |                    |                    |                    |
+| [GPRGNN [ICLR 2021]](./examples/gprgnn)          | :heavy_check_mark: |                    |                    |                    |
+| [FAGCN [AAAI 2021]](./examples/fagcn)            | :heavy_check_mark: | :heavy_check_mark: |                    |                    |
 
 | Contrastive Learning                           | TensorFlow         | PyTorch            | Paddle             | MindSpore |
 | ---------------------------------------------- | ------------------ | ------------------ | ------------------ | --------- |
 | [DGI [ICLR 2019]](./examples/dgi)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
-| [GRACE [ICML 2020 Workshop]](./examples/grace) | :heavy_check_mark: |                    |                    |           |
-| [MVGRL [ICML 2020]](./examples/mvgrl)          | :heavy_check_mark: |                    |                    |           |
-| [InfoGraph [ICLR 2020]](./examples/infograph)  |                    |                    |                    |           |
+| [GRACE [ICML 2020 Workshop]](./examples/grace) | :heavy_check_mark: | :heavy_check_mark: |                    |           |
+| [MVGRL [ICML 2020]](./examples/mvgrl)          | :heavy_check_mark: | :heavy_check_mark: |                    |           |
+| [InfoGraph [ICLR 2020]](./examples/infograph)  | :heavy_check_mark: | :heavy_check_mark: |                    |           |
 | [MERIT [IJCAI 2021]](./examples/merit)         | :heavy_check_mark: |                    |                    |           |
 
-| Heterogeneous Graph Learning       | TensorFlow | PyTorch | Paddle | MindSpore |
-| ---------------------------------- | ---------- | ------- | ------ | --------- |
-| [RGCN [ESWC2019]](./examples/rgcn) |            |         |        |           |
-| [HAN [WWW 2019]](./examples/han)   |            |         |        |           |
-| HGT [WWW 2020]                     |            |         |        |           |
+| Heterogeneous Graph Learning       | TensorFlow         | PyTorch            | Paddle             | MindSpore          |
+| ---------------------------------- | ------------------ | ------------------ | ------------------ | ------------------ |
+| [RGCN [ESWC2019]](./examples/rgcn) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [HAN [WWW 2019]](./examples/han)   | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| HGT [WWW 2020]                     |                    |                    |                    |                    |
+
+## Contributors
+
+OpenHGNN Team[GAMMA LAB] and Peng Cheng Laboratory.
+
+See more in [CONTRIBUTING](../CONTRIBUTING.md).
