@@ -12,13 +12,6 @@ How to run
 Run with following:
 
 ```bash
-# use paddle background
-TL_BACKEND="paddle" python infograph_trainer.py --dataset=MUTAG         --hidden_dim=32 --lr=0.01 --n_epoch=20 --n_layers=5
-TL_BACKEND="paddle" python infograph_trainer.py --dataset=IMDB-BINARY   --hidden_dim=32 --lr=0.01 --n_epoch=20 --n_layers=5
-TL_BACKEND="paddle" python infograph_trainer.py --dataset=REDDIT-BINARY --hidden_dim=32 --lr=0.01 --n_epoch=20 --n_layers=5
-```
-
-```bash
 # use tensorflow background
 TL_BACKEND="tensorflow" python infograph_trainer.py --dataset=MUTAG         --hidden_dim=32 --lr=0.01 --n_epoch=20 --n_layers=5
 TL_BACKEND="tensorflow" python infograph_trainer.py --dataset=IMDB-BINARY   --hidden_dim=32 --lr=0.01 --n_epoch=20 --n_layers=5
@@ -37,10 +30,11 @@ Results
 
 |      Dataset      | MUTAG | IMDB-B | REDDIT-B |  
 | :---------------: | :--:  | :----: |  :----:  |  
-|   Author's Code   | 89.0  |  73.0  |   82.5   |  
+|   Author's Code   | 89.0  |  73.0  |   82.5   | 
+|        DGL        | 89.88 |  72.7  |   88.5   | 
 |     GammaGL(tf)   | 88.5  |  72.0  |   82.4   |  
 |     GammaGL(th)   | --.-  |  --.-  |   --.-   |  
 |     GammaGL(pd)   | --.-  |  --.-  |   --.-   |  
 |     GammaGL(ms)   | --.-  |  --.-  |   --.-   |  
-|        DGL        | 89.88 |  72.7  |   88.5   |  
+  
 

@@ -9,7 +9,7 @@ Author's code: https://github.com/fanyun-sun/InfoGraph
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
 
-from examples.InfoGraph.infograph_util import local_global_loss_
+from gammagl.utils.tu_utils import local_global_loss_
 from gammagl.layers.conv import GINConv
 from gammagl.layers.pool.glob import global_sum_pool
 
@@ -89,7 +89,7 @@ class GINEncoder(nn.Module):
 
 class InfoGraph(nn.Module):
     r"""
-        InfoGraph model for unsupervised setting
+        infograph model for unsupervised setting
     Parameters
     -----------
     in_dim: int
