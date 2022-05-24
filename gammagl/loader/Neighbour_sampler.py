@@ -14,6 +14,8 @@ class subg(object):
         '''
         self.edge = tlx.convert_to_tensor(edge)
         self.size = size
+    def to(self, device):
+        self.edge = self.edge.to(device)
 
 
 from tensorlayerx.dataflow import DataLoader
@@ -23,7 +25,7 @@ import tensorlayerx as tlx
 class Neighbor_Sampler(DataLoader):
     def __init__(self, edge_index,
                  dst_nodes,
-                 sample_lists, indptr=None, replace=False,
+                 sample_lists, indptr=None, replace=False, is_sorted=False,
                  **kwargs):
         '''
         Parameters
@@ -40,16 +42,19 @@ class Neighbor_Sampler(DataLoader):
             sample with or without replacement default = False
         '''
         self.sample_list = sample_lists
-
-        self.edge_index = edge_index.T
-        self.dst_nodes = dst_nodes
-        self.replace = replace
         if indptr is None:
             self.rowptr = np.concatenate(([0], np.bincount(edge_index[1]).cumsum()))
         else:
             self.rowptr = indptr
+        if is_sorted == False:
+            ind = np.argsort(edge_index[1], axis=0)
+            edge_index = np.array(edge_index.T[ind]).T
+        self.edge_index = edge_index.T
+        self.dst_nodes = dst_nodes
+        self.replace = replace
+
         super(Neighbor_Sampler, self).__init__(
-            dst_nodes.numpy().tolist(), collate_fn=self.sample, **kwargs)
+            dst_nodes.tolist(), collate_fn=self.sample, **kwargs)
 
     def sample(self, batch):
         adjs = []

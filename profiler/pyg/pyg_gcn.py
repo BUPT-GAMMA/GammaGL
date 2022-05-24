@@ -3,11 +3,12 @@ import os.path as osp
 import time
 import torch
 import torch.nn.functional as F
-
+import numpy as np
 import torch_geometric.transforms as T
 from torch_geometric.datasets import Planetoid
 # from torch_geometric.logging import init_wandb, log
 from torch_geometric.nn import GCNConv
+import numpy as np
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', type=str, default='Cora')
@@ -55,6 +56,7 @@ class GCN(torch.nn.Module):
 
 st = time.time()
 model = GCN(dataset.num_features, args.hidden_channels, dataset.num_classes)
+st1 = time.time()
 model, data = model.to(device), data.to(device)
 optimizer = torch.optim.Adam([
     dict(params=model.conv1.parameters(), weight_decay=5e-4),
@@ -87,13 +89,17 @@ def test():
 # 2 times forward
 # 1 time backward
 # 200 epoch
+st1 = time.time()
+dur = []
 best_val_acc = final_test_acc = 0
+dur = []
 for epoch in range(1, args.epochs + 1):
+    start = time.time()
     loss = train()
+    dur.append(time.time() - start)
     train_acc, val_acc, tmp_test_acc = test()
     if val_acc > best_val_acc:
         best_val_acc = val_acc
         test_acc = tmp_test_acc
     # log(Epoch=epoch, Loss=loss, Train=train_acc, Val=val_acc, Test=test_acc)
-print(time.time() -st)
-
+print(time.time() - st, time.time()-st1, np.mean(dur))

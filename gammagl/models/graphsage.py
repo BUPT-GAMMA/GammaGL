@@ -4,7 +4,7 @@ from gammagl.layers.conv import SAGEConv
 
 
 class GraphSAGE_Full_Model(tlx.nn.Module):
-    def __init__(self,in_feats,
+    def __init__(self, in_feats,
                  n_hidden,
                  n_classes,
                  n_layers,
@@ -33,6 +33,7 @@ class GraphSAGE_Full_Model(tlx.nn.Module):
 
 
 class GraphSAGE_Sample_Model(tlx.nn.Module):
+
     r"""The GraphSAGE operator from the `"Inductive Representation Learning on Large Graphs"
     <https://arxiv.org/abs/1706.02216>`_ paper
 
@@ -45,6 +46,7 @@ class GraphSAGE_Sample_Model(tlx.nn.Module):
         num_layers: number of sage layers
         name: model name
     """
+
     def __init__(self, in_feat, hid_feat, out_feat, drop_rate, num_layers, name=None):
         super(GraphSAGE_Sample_Model, self).__init__()
         self.convs = tlx.nn.ModuleList()
@@ -67,24 +69,31 @@ class GraphSAGE_Sample_Model(tlx.nn.Module):
 
     def forward(self, feat, subg):
         h = feat
-        for l, (layer, sg )in enumerate(zip(self.convs, subg)):
-            # sg = subg[l]
+        for l, (layer, sg) in enumerate(zip(self.convs, subg)):
+            if tlx.BACKEND == 'torch':
+                sg.to(h.device)
             target_feat = tlx.gather(h, tlx.arange(0, sg.size[1]))  # Target nodes are always placed first.
             h = layer((h, target_feat), sg.edge)
             if l != len(self.convs) - 1:
                 h = self.dropout(h)
         return h
 
-    def inference(self, feat, dataloader):
+    def inference(self, feat, dataloader, cur_x):
+        if tlx.BACKEND == 'torch':
+            feat = feat.to(cur_x.device)
         for l, layer in enumerate(self.convs):
             y = tlx.zeros((feat.shape[0], self.num_class if l == len(self.convs) - 1 else self.hid_feat))
+            if tlx.BACKEND == 'torch':
+                y = y.to(feat.device)
             for dst_node, adjs, all_node in dataloader:
                 sg = adjs[0]
+                if tlx.BACKEND == 'torch':
+                    sg.to(y.device)
                 h = tlx.gather(feat, all_node)
                 target_feat = tlx.gather(h, tlx.arange(0, sg.size[1]))
                 h = layer((h, target_feat), sg.edge)
-                if l != len(self.convs) - 1:
-                    h = self.dropout(h)
+                # if l != len(self.convs) - 1:
+                #     h = self.dropout(h)
                 # soon will compile
                 y = tlx.tensor_scatter_nd_update(y, tlx.reshape(dst_node, shape=(-1, 1)), h)
             feat = y
