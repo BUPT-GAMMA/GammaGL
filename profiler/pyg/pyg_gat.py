@@ -3,7 +3,7 @@ import os.path as osp
 
 import torch
 import torch.nn.functional as F
-
+import numpy as np
 import torch_geometric.transforms as T
 from torch_geometric.datasets import Planetoid
 # from torch_geometric.logging import init_wandb, log
@@ -70,11 +70,13 @@ def test():
         accs.append(int((pred[mask] == data.y[mask]).sum()) / int(mask.sum()))
     return accs
 
-# 2 gcn layers
+# 2 gat layers
 # 8*8 hidden dimension in total
 # 2 times forward
 # 1 time backward
 # 200 epoch
+st1 = time.time()
+dur = []
 best_val_acc = final_test_acc = 0
 dur = []
 for epoch in range(1, args.epochs + 1):
