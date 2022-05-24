@@ -1,7 +1,7 @@
 import os
 
-os.environ['TL_BACKEND'] = 'tensorflow'
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+# os.environ['TL_BACKEND'] = 'paddle'
+# os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 # set your backend here, default `tensorflow`, you can choose 'paddle'、'tensorflow'、'torch'
 from gammagl.datasets import TUDataset
 from tqdm import tqdm
@@ -10,7 +10,7 @@ import argparse
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.models.infograph import InfoGraph
 from gammagl.loader import DataLoader
-from examples.InfoGraph.infograph_eval import evaluate_embedding
+from infograph_eval import evaluate_embedding
 
 
 
@@ -43,6 +43,7 @@ def main(args):
     for epoch in tqdm(range(args.epochs)):
         loss_all = 0
         for data in dataloader:
+            # TODO: pd backend will not work, we will fix soon
             loss = train_one_step(data, tlx.convert_to_tensor([1]))
             loss_all += loss.item() * data.num_graphs
             # print(data.batch)
@@ -54,7 +55,7 @@ def main(args):
             res = evaluate_embedding(x, y, args.name_eval)
             accuracies[args.name_eval].append(res)
             if loss < best:
-                net.save_weights(args.best_model_path + "InfoGraph.npz")
+                net.save_weights(args.best_model_path + "infograph.npz")
                 best = loss
             if acc < res:
                 acc = res
@@ -64,7 +65,7 @@ def main(args):
 
 if __name__ == '__main__':
     # parameters setting
-    parser = argparse.ArgumentParser(description='InfoGraph')
+    parser = argparse.ArgumentParser(description='infograph')
     # data source params
     parser.add_argument('--dataset', type=str, default='MUTAG',
                         help='Name of dataset.eg:MUTAG,IMDB-BINARY,REDDIT-BINARY')
