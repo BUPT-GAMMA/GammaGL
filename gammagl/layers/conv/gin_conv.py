@@ -74,8 +74,7 @@ class GINConv(MessagePassing):
             raise KeyError('Aggregator type {} not recognized.'.format(aggregator_type))
         
         # to specify whether eps is trainable or not.
-        self.eps = tlx.Variable(initial_value=[float(init_eps)], name='eps', trainable=learn_eps)
-
+        self.eps = tlx.Variable(initial_value=tlx.convert_to_tensor(init_eps), name='eps', trainable=learn_eps)
     def reset_parameters(self):
         pass
     
