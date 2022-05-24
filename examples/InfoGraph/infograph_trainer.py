@@ -13,7 +13,6 @@ from gammagl.loader import DataLoader
 from infograph_eval import evaluate_embedding
 
 
-
 class Unsupervised_Loss(WithLoss):
     def __init__(self, net):
         super(Unsupervised_Loss, self).__init__(backbone=net, loss_fn=None)
@@ -60,7 +59,6 @@ def main(args):
             if acc < res:
                 acc = res
             print(accuracies)
-
 
 
 if __name__ == '__main__':

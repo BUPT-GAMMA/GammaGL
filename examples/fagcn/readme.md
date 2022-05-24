@@ -10,19 +10,7 @@
 | Citeseer | 3,327   | 9,228   | 6         |
 | Pubmed   | 19,717  | 88,651  | 3         |
 
-# How to Run
-Run with following commands:
-(available dataset: "cora", "citeseer", "pubmed")  
-(backend is  `tensorflow` and gpu id is 0 by DEFAULT)  
-> Note: TensorFlow will take up all GPU left memory by default.
-```bash
-python fagcn_trainer.py --dataset cora --lr 0.01
-```
-If you want to use specific `backend` and `GPU`, just set environment variable like:
-```bash
-CUDA_VISIBLE_DEVICES="1" TL_BACKEND="tensorflow" python fagcn_trainer.py
-```
-> Note: Set `CUDA_VISIBLE_DEVICES=""` if you want to execute script in CPU.
+Refer to [Planetoid](https://gammagl.readthedocs.io/en/latest/api/gammagl.datasets.html#gammagl.datasets.Planetoid).
 
 Results
 -------

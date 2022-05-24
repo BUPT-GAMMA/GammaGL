@@ -13,15 +13,15 @@ Run with following:
 
 ```bash
 # use tensorflow background
-TL_BACKEND="tensorflow" python infograph_trainer.py --dataset=MUTAG         --hidden_dim=32 --lr=0.01 --n_epoch=20 --n_layers=5
-TL_BACKEND="tensorflow" python infograph_trainer.py --dataset=IMDB-BINARY   --hidden_dim=32 --lr=0.01 --n_epoch=20 --n_layers=5
-TL_BACKEND="tensorflow" python infograph_trainer.py --dataset=REDDIT-BINARY --hidden_dim=32 --lr=0.01 --n_epoch=20 --n_layers=5
+TL_BACKEND=tensorflow python infograph_trainer.py --dataset=MUTAG         --hidden_dim=32 --lr=0.01 --n_epoch=20 --n_layers=5
+TL_BACKEND=tensorflow python infograph_trainer.py --dataset=IMDB-BINARY   --hidden_dim=32 --lr=0.01 --n_epoch=20 --n_layers=5
+TL_BACKEND=tensorflow python infograph_trainer.py --dataset=REDDIT-BINARY --hidden_dim=32 --lr=0.01 --n_epoch=20 --n_layers=5
 ```
 ```bash
 # use pytorch background
-TL_BACKEND="torch" python infograph_trainer.py --dataset=MUTAG         --hidden_dim=32 --lr=0.01 --n_epoch=20 --n_layers=5
-TL_BACKEND="torch" python infograph_trainer.py --dataset=IMDB-BINARY   --hidden_dim=32 --lr=0.01 --n_epoch=20 --n_layers=5
-TL_BACKEND="torch" python infograph_trainer.py --dataset=REDDIT-BINARY --hidden_dim=32 --lr=0.01 --n_epoch=20 --n_layers=5
+TL_BACKEND=torch python infograph_trainer.py --dataset=MUTAG         --hidden_dim=32 --lr=0.01 --n_epoch=20 --n_layers=5
+TL_BACKEND=torch python infograph_trainer.py --dataset=IMDB-BINARY   --hidden_dim=32 --lr=0.01 --n_epoch=20 --n_layers=5
+TL_BACKEND=torch python infograph_trainer.py --dataset=REDDIT-BINARY --hidden_dim=32 --lr=0.01 --n_epoch=20 --n_layers=5
 ```
 
 Results
