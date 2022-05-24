@@ -6,6 +6,7 @@ from .reddit import Reddit
 from .imdb import IMDB
 from .entities import Entities
 from .flickr import Flickr
+from .dblp import HGBDataset
 
 __all__ = [
     'Amazon',
@@ -15,7 +16,8 @@ __all__ = [
     'Reddit',
     'IMDB',
     'Entities',
-    'Flickr'
+    'Flickr',
+    'HGBDataset'
 ]
 
 classes = __all__

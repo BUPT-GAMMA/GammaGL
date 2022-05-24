@@ -24,7 +24,8 @@ class SimpleHGNConv(MessagePassing):
         self.num_etypes = num_etypes
         self.edge_feats = edge_feats
         self.heads = heads
-
+        self.in_feats = in_feats
+        self.out_feats = out_feats
         self.edge_embedding = tlx.nn.Embedding(num_etypes, edge_feats)
         #TODO:初始化参数需要的gain，tlx框架下没有提供
         self.fc_node = tlx.nn.Linear(out_feats * heads, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414))
@@ -38,11 +39,12 @@ class SimpleHGNConv(MessagePassing):
         self.attn_drop = tlx.nn.Dropout(attn_drop)
         self.leaky_relu = tlx.nn.LeakyReLU(negative_slope)
 
-        
-        if(self.in_feats != out_feats):
+        self.fc_res = tlx.nn.Linear(num_heads * out_feats, b_init=None, W_init=tlx.initializers.XavierNormal()) if self.in_feats != self.out_feats else None
+        '''if(self.in_feats != out_feats):
             self.fc_res = tlx.nn.Linear(num_heads * out_feats, b_init=None, W_init=tlx.initializers.XavierNormal())
         else:
-            self.fc_res = tlx.convert_to_tensor(np.identity(in_feats))
+            #Note:这里有问题，fc_rec应该是一个层，可以让
+            self.fc_res = tlx.convert_to_tensor(np.identity(in_feats))'''
         
         self.activation = activation
         

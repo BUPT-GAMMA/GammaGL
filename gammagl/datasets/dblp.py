@@ -76,6 +76,7 @@ class HGBDataset(InMemoryDataset):
         return tlx.BACKEND + '_data.pt'
 
     def download(self):
+        #TODO:/data/download.py里有写死的，还未修改
         url = self.url.format(self.names[self.name])
         path = download_url(url, self.raw_dir)
         extract_zip(path, self.raw_dir)
@@ -84,8 +85,6 @@ class HGBDataset(InMemoryDataset):
     def process(self):
         data = HeteroGraph()
 
-        # node_types = {0: 'paper', 1, 'author', ...}
-        # edge_types = {0: ('paper', 'cite', 'paper'), ...}
         if self.name in ['acm', 'dblp', 'imdb']:
             with open(self.raw_paths[0], 'r') as f:  # `info.dat`
                 info = json.load(f)
@@ -136,17 +135,28 @@ class HGBDataset(InMemoryDataset):
                 data[n_type].num_nodes = num_nodes_dict[n_type]
             else:
                 data[n_type].x = tlx.ops.convert_to_tensor(x_dict[n_type])
-                
+                data[n_type].num_nodes = num_nodes_dict[n_type]
+        data['_num_nodes'] = 0
+        for value in num_nodes_dict.values():
+            data['_num_nodes'] += value
+        
+        #TODO:将各个type的node的x按顺序放进list
 
         edge_index_dict = defaultdict(list)
         edge_weight_dict = defaultdict(list)
+        _edge_index = []
+        _edge_weight = []
         with open(self.raw_paths[2], 'r') as f:  # `link.dat`
             edges = [v.split('\t') for v in f.read().split('\n')[:-1]]
         for src, dst, rel, weight in edges:
             e_type = e_types[int(rel)]
+            _edge_index.append([int(src),int(dst)])
+            _edge_weight.append(float(weight))
             src, dst = mapping_dict[int(src)], mapping_dict[int(dst)]
             edge_index_dict[e_type].append([src, dst])
             edge_weight_dict[e_type].append(float(weight))
+        data['_edge_index'] = tlx.convert_to_tensor(np.array(_edge_index).T)
+        data['_edge_weight'] = tlx.convert_to_tensor(_edge_weight)
         for e_type in e_types.values():
             #TODO:t() tlx.ops应该提供一下转置操作
             edge_index = tlx.ops.convert_to_tensor(np.array(edge_index_dict[e_type]).T)
@@ -171,19 +181,14 @@ class HGBDataset(InMemoryDataset):
                 if not hasattr(data[n_type], 'y'):
                     num_nodes = data[n_type].num_nodes
                     if self.name in ['imdb']:  # multi-label
-                        #data[n_type].y = tlx.ops.zeros((num_nodes, num_classes))
                         data[n_type].y = np.zeros((num_nodes, num_classes))
                     else:
-                        #TODO:tlx.ops.full() ->应该是有必要实现的
-                        #data[n_type].y = tlx.ops.convert_to_tensor(np.full((num_nodes, ), -1, dtype='int64'),dtype='int64')
                         data[n_type].y = np.full((num_nodes, ), -1, dtype='int64')
                     data[n_type].train_mask = np.full((num_nodes),False,dtype='bool')
                     data[n_type].test_mask = np.full((num_nodes),False,dtype='bool')
-                    #data[n_type].train_mask = tlx.ops.convert_to_tensor(np.zeros((num_nodes)),dtype='bool')
-                    #data[n_type].test_mask = tlx.ops.convert_to_tensor(np.zeros((num_nodes)),dtype='bool')
                     
                 if(len(data[n_type].y.shape) > 1):
-                #if data[n_type].y.dim() > 1:  # multi-label
+                # multi-label
                     for v in y[3].split(','):
                         data[n_type].y[n_id, int(v)] = 1
                 else:
@@ -192,8 +197,9 @@ class HGBDataset(InMemoryDataset):
             for y in test_ys:
                 n_id, n_type = mapping_dict[int(y[0])], n_types[int(y[2])]
                 
+                #Note:修复PyG的数据集Bug，没有将测试集的y标签加载
                 if(len(data[n_type].y.shape) > 1):
-                #if data[n_type].y.dim() > 1:  # multi-label
+                # multi-label
                     for v in y[3].split(','):
                         data[n_type].y[n_id, int(v)] = 1
                 else:
@@ -202,7 +208,12 @@ class HGBDataset(InMemoryDataset):
 
             data[n_type].y = tlx.ops.convert_to_tensor(data[n_type].y)
             data[n_type].train_mask = tlx.ops.convert_to_tensor(data[n_type].train_mask)
+            
             data[n_type].test_mask = tlx.ops.convert_to_tensor(data[n_type].test_mask)
+            data['_y'] = data[n_type].y
+            data['_train_mask'] = data[n_type].train_mask
+            data['_test_mask'] = data[n_type].test_mask
+
         else:  # Link prediction:
             raise NotImplementedError
 
@@ -218,7 +229,7 @@ class HGBDataset(InMemoryDataset):
 
 dataset = HGBDataset("../../data/", 'dblp')
 data = dataset[0]
-print(data['author'].y)
+print(data)
 '''
 data 格式介绍
 data['author'].x

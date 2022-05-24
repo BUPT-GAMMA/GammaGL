@@ -3,7 +3,7 @@ from gammagl.layers.conv import SimpleHGNConv
 def TODO():
     return
 
-class SimpleHGN(tlx.nn.Module):
+class SimpleHGNModel(tlx.nn.Module):
 
     def __init__(self,
                 feature_dims,
@@ -46,10 +46,11 @@ class SimpleHGN(tlx.nn.Module):
 
     def forward(self, x, edge_index):
         TODO()
+        #将不同节点的维度统一
         x = [ fc(feature) for fc, feature in zip(self.fc_list, x)]
         x = tlx.convert_to_tensor(x)
 
-        res_attn = None
+        alpha = None
         for l in range(self.num_layers):
             x, alpha = self.hgn_layers[l]()
 
