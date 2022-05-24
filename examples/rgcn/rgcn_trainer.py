@@ -5,11 +5,10 @@
 # @Author  : hanhui
 # @FileName: trainer.py.py
 import os
-
 os.environ['TL_BACKEND'] = 'torch'  # set your backend here, default `tensorflow`
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
-import sys
 
+import sys
 sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
