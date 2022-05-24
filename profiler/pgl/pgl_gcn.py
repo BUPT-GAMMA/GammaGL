@@ -179,22 +179,22 @@ def main(args):
                                      criterion)
             cal_val_acc.append(val_acc.numpy())
             cal_val_loss.append(val_loss.numpy())
-
-            test_loss, test_acc = eval(test_index, test_label, gnn_model,
-                                       graph, criterion)
-            cal_test_acc.append(test_acc.numpy())
-            cal_test_loss.append(test_loss.numpy())
+            #### remove test
+            # test_loss, test_acc = eval(test_index, test_label, gnn_model,
+            #                            graph, criterion)
+            # cal_test_acc.append(test_acc.numpy())
+            # cal_test_loss.append(test_loss.numpy())
         times.append(time.time()-st)
 
 
-        best_test.append(cal_test_acc[np.argmin(cal_val_loss)])
+        # best_test.append(cal_test_acc[np.argmin(cal_val_loss)])
         # print(times)
         print(time.time() - st, time.time()-st1, np.mean(dur))
 
 if __name__ == '__main__':
     # 2 gcn layers
     # 16 hidden dimension
-    # 3 times forward
+    # 2 times forward
     # 1 time backward
     # 200 epoch
     parser = argparse.ArgumentParser(
