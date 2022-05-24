@@ -166,3 +166,5 @@ profiler/mpops/ogbn-arxiv.py
 tests/datasets/citeseer/*
 tests/datasets/cora/*
 gammagl/sample.cpp
+profiler/cora/*
+profiler/pubmed/*
