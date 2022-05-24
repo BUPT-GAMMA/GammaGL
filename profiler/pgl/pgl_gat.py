@@ -176,13 +176,13 @@ def main(args):
                         attn_drop=0.6,
                         num_heads=8,
                         hidden_size=8)
-
+        st1 = time.time()
         optim = Adam(
             learning_rate=0.005,
             parameters=gnn_model.parameters(),
             weight_decay=0.0005)
 
-        st1 = time.time()
+
         for epoch in tqdm.tqdm(range(args.epoch)):
             if epoch >= 3:
                 start = time.time()
@@ -196,26 +196,23 @@ def main(args):
             cal_val_acc.append(val_acc.numpy())
             cal_val_loss.append(val_loss.numpy())
 
-            test_loss, test_acc = eval(test_index, test_label, gnn_model,
-                                       graph, criterion)
-            cal_test_acc.append(test_acc.numpy())
-            cal_test_loss.append(test_loss.numpy())
+            ### remove test
+            # test_loss, test_acc = eval(test_index, test_label, gnn_model,
+            #                            graph, criterion)
+            # cal_test_acc.append(test_acc.numpy())
+            # cal_test_loss.append(test_loss.numpy())
 
-        # log.info("Runs %s: Model: GAT Best Test Accuracy: %f" %
-          #        (run, cal_test_acc[np.argmin(cal_val_loss)]))
         end2 = time.time()
         times.append((end2-st, end2-st1))
         best_test.append(cal_test_acc[np.argmin(cal_val_loss)])
-    print(time.time() - st, np.mean(dur), sep=',')
-    # log.info("Average Speed %s sec/ epoch" % (np.mean(dur)))
-    # log.info("Dataset: %s Best Test Accuracy: %f ( stddev: %f )" %
-      #        (args.dataset, np.mean(best_test), np.std(best_test)))
+    print(time.time() - st, time.time()-st1, np.mean(dur))
+
 
 
 if __name__ == '__main__':
     # 2 gat layers
     # 8*8 hidden dimension in total
-    # 3 times forward
+    # 2 times forward
     # 1 time backward
     # 200 epoch
     parser = argparse.ArgumentParser(
@@ -223,7 +220,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "--dataset", type=str, default="cora", help="dataset (cora, pubmed)")
     parser.add_argument("--epoch", type=int, default=200, help="Epoch")
-    parser.add_argument("--runs", type=int, default=2, help="runs")
+    parser.add_argument("--runs", type=int, default=1, help="runs")
     parser.add_argument(
         "--feature_pre_normalize",
         type=bool,

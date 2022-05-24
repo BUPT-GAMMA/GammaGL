@@ -159,6 +159,7 @@ def main(args):
                         num_layers=1,
                         dropout=0.5,
                         hidden_size=16)
+        st1 = time.time()
 
         optim = Adam(
             learning_rate=0.01,
@@ -188,7 +189,7 @@ def main(args):
 
         best_test.append(cal_test_acc[np.argmin(cal_val_loss)])
         # print(times)
-        print(time.time() - st, np.mean(dur), sep=',')
+        print(time.time() - st, time.time()-st1, np.mean(dur))
 
 if __name__ == '__main__':
     # 2 gcn layers
@@ -201,7 +202,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "--dataset", type=str, default="cora", help="dataset (cora, pubmed)")
     parser.add_argument("--epoch", type=int, default=200, help="Epoch")
-    parser.add_argument("--runs", type=int, default=2, help="runs")
+    parser.add_argument("--runs", type=int, default=1, help="runs")
     parser.add_argument(
         "--feature_pre_normalize",
         type=bool,
