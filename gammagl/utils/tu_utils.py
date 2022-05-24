@@ -70,9 +70,15 @@ def local_global_loss_(l_enc, g_enc, batch):
 
     res = tlx.matmul(l_enc, tlx.transpose(g_enc))
 
-    E_pos = tlx.reduce_sum(get_positive_expectation(res * tlx.convert_to_tensor(pos_mask), average=False))
+    if tlx.BACKEND == 'torch':
+        pos_mask = tlx.convert_to_tensor(pos_mask).to(g_enc.device)
+        neg_mask = tlx.convert_to_tensor(neg_mask).to(g_enc.device)
+    else:
+        pos_mask = tlx.convert_to_tensor(pos_mask)
+        neg_mask = tlx.convert_to_tensor(neg_mask)
+    E_pos = tlx.reduce_sum(get_positive_expectation(res * pos_mask, average=False))
     E_pos = E_pos / num_nodes
-    E_neg = tlx.reduce_sum(get_negative_expectation(res * tlx.convert_to_tensor(neg_mask), average=False))
+    E_neg = tlx.reduce_sum(get_negative_expectation(res * neg_mask, average=False))
     E_neg = E_neg / (num_nodes * (num_graphs - 1))
 
     return E_neg - E_pos
