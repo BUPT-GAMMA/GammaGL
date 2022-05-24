@@ -7,6 +7,7 @@ from gammagl.utils import add_self_loops, calc_gcn_norm
 from gammagl.utils.tu_utils import local_global_loss_
 
 # ======================= Graph Model================================
+
 class MLP(tlx.nn.Module):
     def __init__(self, in_dim, out_dim):
         super(MLP, self).__init__()
@@ -17,7 +18,6 @@ class MLP(tlx.nn.Module):
             tlx.nn.PRelu(),
             tlx.nn.Linear(in_features=out_dim, out_features=out_dim),
             tlx.nn.PRelu(),
-
         )
         self.linear_shortcut = tlx.nn.Linear(in_features=in_dim, out_features=out_dim)
 
@@ -68,8 +68,13 @@ class MVGRL_Graph(tlx.nn.Module):
 
     def get_embedding(self, edge_index, diff_edge, diff_weight, feat, ptr):
         # calculate node embeddings and graph embeddings
+        if tlx.BACKEND == 'torch':
+            edge_index = edge_index.cpu()
         edge_index, _ = add_self_loops(edge_index)
         norm_weight = calc_gcn_norm(edge_index, feat.shape[0])
+        if tlx.BACKEND == 'torch':
+            edge_index = edge_index.to(feat.device)
+            norm_weight = norm_weight.to(feat.device)
         local_v1, global_v1 = self.encoder1(feat, edge_index, norm_weight, feat.shape[0], ptr)
         local_v2, global_v2 = self.encoder2(feat, diff_edge, diff_weight, feat.shape[0], ptr)
 
@@ -82,8 +87,13 @@ class MVGRL_Graph(tlx.nn.Module):
 
     def forward(self, edge_index, diff_edge, diff_weight, feat, ptr, batch):
         # calculate node embeddings and graph embeddings
+        if tlx.BACKEND == 'torch':
+            edge_index = edge_index.cpu()
         edge_index, _ = add_self_loops(edge_index)
         norm_weight = calc_gcn_norm(edge_index, feat.shape[0])
+        if tlx.BACKEND == 'torch':
+            edge_index = edge_index.to(feat.device)
+            norm_weight = norm_weight.to(feat.device)
         local_v1, global_v1 = self.encoder1(feat, edge_index, norm_weight, feat.shape[0], ptr)
         local_v2, global_v2 = self.encoder2(feat, diff_edge, diff_weight, feat.shape[0], ptr)
 
