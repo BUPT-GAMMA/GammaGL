@@ -210,6 +210,6 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 
 ## Contributors
 
-OpenHGNN Team[GAMMA LAB] and Peng Cheng Laboratory.
+GammaGL Team[GAMMA LAB] and Peng Cheng Laboratory.
 
 See more in [CONTRIBUTING](./CONTRIBUTING.md).
