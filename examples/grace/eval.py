@@ -54,7 +54,7 @@ def print_statistics(statistics, function_name):
 
 @repeat(3)
 def label_classification(embeddings, y, train_mask, test_mask, split='random', ratio=0.1):
-    X = embeddings.numpy()
+    X = embeddings
     Y = y.numpy()
     Y = Y.reshape(-1, 1)
     onehot_encoder = OneHotEncoder(categories='auto').fit(Y)
