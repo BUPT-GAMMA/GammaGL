@@ -71,6 +71,7 @@ def main(args):
                    num_class=dataset.num_classes,
                    drop_rate=args.drop_rate,
                    name="GCN")
+    st1 = time.time()
 
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
@@ -125,7 +126,7 @@ def main(args):
     test_y = tlx.gather(data['y'], data['test_idx'])
     test_acc = calculate_acc(test_logits, test_y, metrics)
     # print("Test acc:  {:.4f}".format(test_acc))
-    print(time.time()-st, np.mean(dur), sep=',')
+    print(time.time()-st, time.time()-st1, np.mean(dur))
 
 
 if __name__ == '__main__':

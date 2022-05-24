@@ -71,6 +71,7 @@ def main(args):
                    heads=args.heads,
                    drop_rate=args.drop_rate,
                    name="GAT")
+    st1 = time.time()
 
     loss = tlx.losses.softmax_cross_entropy_with_logits
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
@@ -123,7 +124,7 @@ def main(args):
     test_logits = tlx.gather(logits, data['test_idx'])
     test_y = tlx.gather(data['y'], data['test_idx'])
     test_acc = calculate_acc(test_logits, test_y, metrics)
-    print(time.time() - st, np.mean(dur), sep=',')
+    print(time.time() - st,time.time()-st1, np.mean(dur))
     # print("Test acc:  {:.4f}".format(test_acc))
 
 

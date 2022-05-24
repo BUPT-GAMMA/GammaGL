@@ -47,6 +47,7 @@ class GAT(torch.nn.Module):
 st = time.time()
 model = GAT(dataset.num_features, args.hidden_channels, dataset.num_classes,
             args.heads).to(device)
+st1 = time.time()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-4)
 
 
@@ -88,4 +89,4 @@ for epoch in range(1, args.epochs + 1):
         best_val_acc = val_acc
         test_acc = tmp_test_acc
     # log(Epoch=epoch, Loss=loss, Train=train_acc, Val=val_acc, Test=test_acc)
-print(time.time()-st, np.mean(dur), sep=',')
+print(time.time()-st, time.time()-st1, np.mean(dur))
