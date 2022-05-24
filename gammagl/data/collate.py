@@ -80,8 +80,8 @@ def collate(
             # Collate attributes into a unified representation:
             value, slices, incs = _collate(attr, values, data_list, stores,
                                            increment)
-
-            device = value.device if tlx.is_tensor(value) else device
+            if tlx.BACKEND == 'torch':
+                device = value.device if tlx.is_tensor(value) else device
 
             out_store[attr] = value
             if key is not None:
@@ -211,7 +211,7 @@ def repeat_interleave(
 def cumsum(value) :
     if not tlx.is_tensor(value):
         value = tlx.convert_to_tensor(value, dtype=tlx.int64)
-    out = tlx.concat([tlx.zeros(1, dtype=tlx.int64), tlx.cumsum(value, 0)], axis=0)
+    out = tlx.concat([tlx.zeros(shape=(1, ), dtype=tlx.int64), tlx.cumsum(value, 0)], axis=0)
     return out
 
 
