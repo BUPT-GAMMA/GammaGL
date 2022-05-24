@@ -3,7 +3,7 @@ import os.path as osp
 import time
 import torch
 import torch.nn.functional as F
-
+import numpy as np
 import torch_geometric.transforms as T
 from torch_geometric.datasets import Planetoid
 # from torch_geometric.logging import init_wandb, log
@@ -87,13 +87,21 @@ def test():
 # 2 times forward
 # 1 time backward
 # 200 epoch
+st1 = time.time()
+dur = []
 best_val_acc = final_test_acc = 0
 for epoch in range(1, args.epochs + 1):
+    if epoch >= 3:
+        start = time.time()
     loss = train()
+    if epoch >= 3:
+        dur.append(time.time()-start)
     train_acc, val_acc, tmp_test_acc = test()
     if val_acc > best_val_acc:
         best_val_acc = val_acc
         test_acc = tmp_test_acc
     # log(Epoch=epoch, Loss=loss, Train=train_acc, Val=val_acc, Test=test_acc)
-print(time.time() -st)
+print(np.mean(dur))
+print(time.time() - st1)
+print(time.time() - st)
 
