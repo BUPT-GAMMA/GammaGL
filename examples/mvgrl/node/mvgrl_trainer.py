@@ -1,6 +1,6 @@
 import os
 
-# os.environ['TL_BACKEND'] = 'paddle'
+# os.environ['TL_BACKEND'] = 'torch'
 # os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 # # set your backend here, default `tensorflow`
 
@@ -75,9 +75,7 @@ def main(args):
             break
 
     net.load_weights(args.best_model_path + "MVGRL_" + args.dataset + ".npz")
-
     net.set_eval()
-
     embed = net.get_embedding(graph.edge_index, tlx.convert_to_tensor(diff_adj), tlx.convert_to_tensor(feat))
 
     train_embs = embed[graph.train_mask]
