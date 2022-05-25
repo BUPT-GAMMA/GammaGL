@@ -132,6 +132,7 @@ class HGBDataset(InMemoryDataset):
                 x_dict[n_type].append([float(v) for v in x[3].split(',')])
         for n_type in n_types.values():
             if len(x_dict[n_type]) == 0:
+                data[n_type].x = tlx.ops.convert_to_tensor(np.identity(num_nodes_dict[n_type]))
                 data[n_type].num_nodes = num_nodes_dict[n_type]
             else:
                 data[n_type].x = tlx.ops.convert_to_tensor(x_dict[n_type])

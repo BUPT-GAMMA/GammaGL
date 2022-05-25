@@ -20,7 +20,6 @@ class SimpleHGNModel(tlx.nn.Module):
                 residual,
                 beta
                 ):
-        TODO()
         self.num_layers = num_layers
         self.hgn_layers = tlx.nn.ModuleList()
         self.activation = activation
@@ -28,21 +27,38 @@ class SimpleHGNModel(tlx.nn.Module):
 
         self.hgn_layers.append(SimpleHGNConv(in_feats=hidden_dim, 
                                             out_feats=hidden_dim, 
-                                            edge_types=num_etypes, 
+                                            num_etypes=num_etypes, 
                                             edge_feats=edge_dim, 
-                                            heads=heads_list[0]))
+                                            heads=heads_list[0],
+                                            feat_drop=feat_drop,
+                                            attn_drop=attn_drop,
+                                            negative_slope=negative_slope,
+                                            activation=activation,
+                                            residual=False,
+                                            beta=beta))
         for l in range(1,num_layers):
             self.hgn_layers.append(SimpleHGNConv(in_feats=hidden_dim * heads_list[l-1], 
                                                 out_feats=hidden_dim, 
                                                 edge_types=num_etypes, 
                                                 edge_feats=edge_dim, 
-                                                heads=heads_list[l]))
+                                                heads=heads_list[l],
+                                                feat_drop=feat_drop,
+                                                attn_drop=attn_drop,
+                                                negative_slope=negative_slope,
+                                                activation=activation,
+                                                residual=residual,
+                                                beta=beta))
 
         hgn_layers.append(SimpleHGNConv(in_feats=hidden_dim*heads_list[-2], 
-                                            out_feats=num_classes, 
-                                            edge_types=num_etypes, 
-                                            edge_feats=edge_dim, 
-                                            heads=heads_list[-1]))
+                                        out_feats=num_classes, 
+                                        edge_types=num_etypes, 
+                                        edge_feats=edge_dim, 
+                                        heads=heads_list[-1],
+                                        feat_drop=feat_drop,
+                                        attn_drop=attn_drop,
+                                        negative_slope=negative_slope,
+                                        residual=residual,
+                                        beta=beta))
 
     def forward(self, x, edge_index):
         TODO()
