@@ -1,6 +1,6 @@
 Creating Your Own Datasets
 ==========================
-We follow the `torch_geometric.data.Dataset <https://pytorch-geometric.readthedocs.io/en/latest/modules/datasets.html>_` module and create the :class:`gammagl.data.Dataset` with a few modifications.
+We follow the `torch_geometric.data.Dataset <https://pytorch-geometric.readthedocs.io/en/latest/modules/datasets.html>`_ module and create the :class:`gammagl.data.Dataset` with a few modifications.
 
 Although GammaGL already contains a lot of useful datasets, you may wish to create your own dataset with self-recorded or non-publicly available data.
 
@@ -27,7 +27,7 @@ In order to create a :class:`gammagl.data.InMemoryDataset`, you need to implemen
 * :func:`gammagl.data.InMemoryDataset.raw_file_names`: A list of files in the :obj:`raw_dir` which needs to be found in order to skip the download.
 
 * :func:`gammagl.data.InMemoryDataset.processed_file_names`: A list of files in the :obj:`processed_dir` which needs to be found in order to skip the processing.
-  GammaGL recommends setting it with `tlx.BACKEND + '_data.pt'` due to involving multi-backends.
+  GammaGL recommends setting it with :obj:`tlx.BACKEND + '_data.pt'` due to involving multi-backends.
 
 * :func:`gammagl.data.InMemoryDataset.download`: Downloads raw data into :obj:`raw_dir`.
 
@@ -36,8 +36,8 @@ In order to create a :class:`gammagl.data.InMemoryDataset`, you need to implemen
 You can find helpful methods to download and extract data in :mod:`gammagl.data`.
 
 The real magic happens in the body of :meth:`~gammagl.data.InMemoryDataset.process`.
-Here, we need to read and create a list of :class:`~gammagl.data.Data` objects and save it into the :obj:`processed_dir`.
-Because saving a huge python list is rather slow, we collate the list into one huge :class:`~gammagl.data.Data` object via :meth:`gammagl.data.InMemoryDataset.collate` before saving.
+Here, we need to read and create a list of :class:`~gammagl.data.Graph` objects and save it into the :obj:`processed_dir`.
+Because saving a huge python list is rather slow, we collate the list into one huge :class:`~gammagl.data.Graph` object via :meth:`gammagl.data.InMemoryDataset.collate` before saving.
 The collated data object has concatenated all examples into one big data object and, in addition, returns a :obj:`slices` dictionary to reconstruct single examples from this object.
 Finally, we need to load these two objects in the constructor into the properties :obj:`self.data` and :obj:`self.slices`.
 
@@ -168,6 +168,11 @@ Frequently Asked Questions
 
         data_list = [Data(...), ..., Data(...)]
         loader = DataLoader(data_list, batch_size=32)
+
+#. **How I build dataset and integrate it into GammaGL?**
+
+    Besides the above tutorials, note that GammaGL is a multi-backend library. The best way to be compatible with different backend,
+    we should process dataset using Numpy or something, which is framework-agnostic. At last, the :obj:`Graph` constructor will get data with :obj:`numpy.array` and modify them into Tensor.
 
 Exercises
 ---------

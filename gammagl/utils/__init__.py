@@ -7,6 +7,7 @@ from .undirected import to_undirected, is_undirected
 from .degree import degree
 from .loop import add_self_loops, remove_self_loops, contains_self_loops
 from .mask import mask_to_index, index_to_mask
+from .inspector import Inspector
 
 __all__ = [
     'calc_A_norm_hat',
