@@ -76,6 +76,47 @@ for epoch in range(200):
 </details>
 
 <details>
+<summary>We can now optimize the model in a training loop, similar to the <a href="https://tensorflow.google.cn/tutorials/quickstart/advanced">standard TensorFlow training procedure</a>.</summary>
+
+```python
+import tensorflow as tf
+
+optimizer = tf.keras.optimizers.Adam()
+loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+for epoch in range(200):
+    with tf.GradientTape() as tape:
+        predictions = model(images, training=True)
+        loss = loss_fn(labels, predictions)
+    gradients = tape.gradient(loss, model.trainable_variables)
+    optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+```
+
+</details>
+
+<details>
+<summary>We can now optimize the model in a training loop, similar to the <a href="https://www.paddlepaddle.org.cn/documentation/docs/zh/guides/beginner/train_eval_predict_cn.html#api">standard PaddlePaddle training procedure</a>.</summary>
+
+```python
+import paddle
+
+data = dataset[0]
+optim = paddle.optimizer.Adam(parameters=model.parameters())
+loss_fn = paddle.nn.CrossEntropyLoss()
+
+model.train()
+for epoch in range(200):
+    predicts = model(data.x, data.edge_index)
+    loss = loss_fn(predicts, y_data)
+
+    # Backpropagation
+    loss.backward()
+    optim.step()
+    optim.clear_grad()
+```
+
+</details>
+
+<details>
 <summary>We can now optimize the model in a training loop, similar to the <a href="https://www.mindspore.cn/tutorials/zh-CN/r1.7/advanced/train/train_eval.html#%E8%87%AA%E5%AE%9A%E4%B9%89%E8%AE%AD%E7%BB%83%E5%92%8C%E8%AF%84%E4%BC%B0">standard MindSpore training procedure</a>.</summary>
 
 ```python
