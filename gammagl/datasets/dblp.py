@@ -14,16 +14,6 @@ import shutil
 from gammagl.data import (HeteroGraph, InMemoryDataset, download_url,
                                   extract_zip)
 
-def mv(srcfile, dstpath):
-    if not os.path.isfile(srcfile):
-        print ("%s not exist!"%(srcfile))
-    else:
-        fpath,fname=os.path.split(srcfile)             # 分离文件名和路径
-        if not os.path.exists(dstpath):
-            os.makedirs(dstpath)                       # 创建路径
-        shutil.move(srcfile, dstpath + fname)          # 移动文件
-        print ("move %s -> %s"%(srcfile, dstpath + fname))
-
 
 #TODO:现在有些属性,e.g. num_classes, num_etypes不应该存储，而是HeteroGraph()提供属性方法
 # 数据集处理对于HeteroGraph()的使用仅限于__setaddr__
