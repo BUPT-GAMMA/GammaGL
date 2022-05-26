@@ -107,7 +107,7 @@ def main(args):
 
 
 
-if __name == '__main__':
+if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--feats-type', type=int, default=3,
                     help='Type of the node features used. ' +
@@ -127,10 +127,10 @@ if __name == '__main__':
     parser.add_argument('--drop_rate', type=float, default=0.5)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--slope', type=float, default=0.05)
-    parser.add_argument('--dataset', type=str)
+    parser.add_argument('--dataset', type=str, default="dblp")
     parser.add_argument('--edge_dim', type=int, default=64)
     parser.add_argument('--run', type=int, default=1)
-    parser.add_argument('--dataset_path", type = str, default = r"../')
+    parser.add_argument('--dataset_path', type = str, default = r"../")
 
     args = parser.parse_args()
-    main()
+    main(args)

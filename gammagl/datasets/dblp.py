@@ -239,9 +239,9 @@ class HGBDataset(InMemoryDataset):
 
 
 
-dataset = HGBDataset("../../data/", 'dblp')
+"""dataset = HGBDataset("../../data/", 'dblp')
 data = dataset[0]
-print(data)
+print(data)"""
 '''
 data 格式介绍
 data['author'].x
