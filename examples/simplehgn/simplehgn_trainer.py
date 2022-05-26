@@ -46,9 +46,11 @@ def main(args):
     feature_dims = [graph[node_type].shape[0] for node_type in Unknownname[str.lower(args.dataset)]]
     heads_list = [args.heads] * arg.num_layers + [1]
     #TODO：数据集中添加num_etypes
-    num_etypes = graph.num_etypes
-    num_classes = graph.num_classes
+    num_etypes = graph._num_etypes
+    #TODO:数据集中添加num_classes
+    num_classes = graph._num_classes
     activation = tlx.nn.activation.ELU()
+
     data = {
         'x': x,
         'y': y,
@@ -73,6 +75,10 @@ def main(args):
                           negative_slope=args.slope, 
                           residual=True, 
                           beta=0.05)
+
+        test = model()
+        model(data['x'],data['edge_index'])
+        return 
         loss = tlx.losses.softmax_cross_entropy_with_logits
         optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.weight_decay)
         #metrics暂时不支持

@@ -1,18 +1,32 @@
 import json
 import sys
 import os
-os.environ['TL_BACKEND'] = 'torch'
+os.environ['TL_BACKEND'] = 'paddle'
 import os.path as osp
 sys.path.insert(0, osp.abspath('../../'))
 from collections import defaultdict
 from typing import Callable, List, Optional
 import numpy as np
 import tensorlayerx as tlx
+import shutil
+
 
 from gammagl.data import (HeteroGraph, InMemoryDataset, download_url,
                                   extract_zip)
 
+def mv(srcfile, dstpath):
+    if not os.path.isfile(srcfile):
+        print ("%s not exist!"%(srcfile))
+    else:
+        fpath,fname=os.path.split(srcfile)             # 分离文件名和路径
+        if not os.path.exists(dstpath):
+            os.makedirs(dstpath)                       # 创建路径
+        shutil.move(srcfile, dstpath + fname)          # 移动文件
+        print ("move %s -> %s"%(srcfile, dstpath + fname))
 
+
+#TODO:现在有些属性,e.g. num_classes, num_etypes不应该存储，而是HeteroGraph()提供属性方法
+# 数据集处理对于HeteroGraph()的使用仅限于__setaddr__
 
 class HGBDataset(InMemoryDataset):
     r"""A variety of heterogeneous graph benchmark datasets from the
@@ -59,15 +73,15 @@ class HGBDataset(InMemoryDataset):
 
     @property
     def raw_dir(self) -> str:
-        return osp.join(self.root, self.name, tlx.BACKEND, 'raw')
+        return osp.join(self.root, self.name, 'raw')
 
     @property
     def processed_dir(self) -> str:
-        return osp.join(self.root, self.name, tlx.BACKEND, 'processed')
+        return osp.join(self.root, self.name, 'processed')
 
     @property
     def raw_file_names(self) -> List[str]:
-        x = ['info.dat', 'node.dat', 'link.dat', 'label.dat', 'label.dat.test']
+        x = ['info.dat', 'node.dat', 'link.dat', 'label.dat', 'label.dat.test', 'label.dat.test_full', 'meta.dat']
         return x
 
 
@@ -80,6 +94,11 @@ class HGBDataset(InMemoryDataset):
         url = self.url.format(self.names[self.name])
         path = download_url(url, self.raw_dir)
         extract_zip(path, self.raw_dir)
+        shutil.rmtree(osp.join(self.raw_dir,"__MACOSX"))
+        for filename in self.raw_file_names:
+            filePath = osp.join(self.raw_dir,self.names[self.name],filename)
+            shutil.move(filePath, self.raw_dir)
+        shutil.rmtree(osp.join(self.raw_dir,self.names[self.name]))
         os.unlink(path)
 
     def process(self):
@@ -98,6 +117,8 @@ class HGBDataset(InMemoryDataset):
                 rel = rel if rel != dst and rel[1:] != dst else 'to'
                 e_types[key] = (src, rel, dst)
             num_classes = len(info['label.dat']['node type']['0'])
+            data['_num_classes'] = num_classes
+            data['_num_etypes'] = len(e_types.keys())
         elif self.name in ['freebase']:
             with open(self.raw_paths[0], 'r') as f:  # `info.dat`
                 info = f.read().split('\n')
