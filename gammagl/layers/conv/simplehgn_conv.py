@@ -11,7 +11,7 @@ class SimpleHGNConv(MessagePassing):
                 edge_feats,             #边的嵌入表示维度
                 heads=1,                #GAT头个数
                 concat=True,            #concat需要处理，源码是在隐藏层处理完后，再计算了一次平均
-                negetive_slop=0.2,      #leaky_relu的斜率
+                negative_slope=0.2,      #leaky_relu的斜率
                 feat_drop=0.,           #节点特征的drop_rate
                 attn_drop=0.,           #attention的drop_rate
                 residual=False,         #是否残差
@@ -38,7 +38,7 @@ class SimpleHGNConv(MessagePassing):
         self.attn_drop = tlx.nn.Dropout(attn_drop)
         self.leaky_relu = tlx.nn.LeakyReLU(negative_slope)
         if residual:
-            self.fc_res = tlx.nn.Linear(num_heads * out_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414)) if self.in_feats != self.out_feats else None#TODO:应该是identity()
+            self.fc_res = tlx.nn.Linear(heads * out_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414)) if self.in_feats != self.out_feats else None#TODO:应该是identity()
         '''if(self.in_feats != out_feats):
             self.fc_res = tlx.nn.Linear(num_heads * out_feats, b_init=None, W_init=tlx.initializers.XavierNormal())
         else:
@@ -85,7 +85,6 @@ class SimpleHGNConv(MessagePassing):
         
         if self.activation is not None:
             rst = self.activation(rst)
-        #TODO:message函数只负责把信息放到边上，一会儿其他函数聚合
         return rst, alpha
 
 

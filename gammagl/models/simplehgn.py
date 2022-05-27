@@ -20,10 +20,13 @@ class SimpleHGNModel(tlx.nn.Module):
                 residual,
                 beta
                 ):
+        super().__init__()
         self.num_layers = num_layers
         self.hgn_layers = tlx.nn.ModuleList()
         self.activation = activation
-        self.fc_list = tlx.nn.ModuleList([tlx.nn.Linear(hidden_dim, W_init=tlx.initializers.XavierNormal(gain=1.414))] for _ in feature_dims)
+        self.fc_list = tlx.nn.ModuleList([tlx.nn.Linear(hidden_dim, W_init=tlx.initializers.XavierNormal(gain=1.414)) for _ in feature_dims ])
+        #for _ in feature_dims:
+        #    self.fc_list.append()
 
         self.hgn_layers.append(SimpleHGNConv(in_feats=hidden_dim, 
                                             out_feats=hidden_dim, 
@@ -39,7 +42,7 @@ class SimpleHGNModel(tlx.nn.Module):
         for l in range(1,num_layers):
             self.hgn_layers.append(SimpleHGNConv(in_feats=hidden_dim * heads_list[l-1], 
                                                 out_feats=hidden_dim, 
-                                                edge_types=num_etypes, 
+                                                num_etypes=num_etypes, 
                                                 edge_feats=edge_dim, 
                                                 heads=heads_list[l],
                                                 feat_drop=feat_drop,
@@ -49,9 +52,9 @@ class SimpleHGNModel(tlx.nn.Module):
                                                 residual=residual,
                                                 beta=beta))
 
-        hgn_layers.append(SimpleHGNConv(in_feats=hidden_dim*heads_list[-2], 
+        self.hgn_layers.append(SimpleHGNConv(in_feats=hidden_dim*heads_list[-2], 
                                         out_feats=num_classes, 
-                                        edge_types=num_etypes, 
+                                        num_etypes=num_etypes, 
                                         edge_feats=edge_dim, 
                                         heads=heads_list[-1],
                                         feat_drop=feat_drop,
@@ -64,11 +67,11 @@ class SimpleHGNModel(tlx.nn.Module):
         TODO()
         #将不同节点的维度统一
         x = [ fc(feature) for fc, feature in zip(self.fc_list, x)]
-        x = tlx.convert_to_tensor(x)
+        x = tlx.ops.concat(x, axis=0)
 
         alpha = None
         for l in range(self.num_layers):
-            x, alpha = self.hgn_layers[l]()
+            x, alpha = self.hgn_layers[l](x, edge_index, )
 
         x, _ = self.hgn_layers[-1]()
 
