@@ -166,12 +166,21 @@ More information about evaluating final model performance can be found in the co
 2. **Install Backend**
    
    ```bash
-   # tensorflow
+   # For tensorflow
    pip install tensorflow-gpu # GPU version
    pip install tensorflow # CPU version
-   # torch
-   # paddle
-   # mindspore
+   
+   # For torch, any latest stable version
+   # https://pytorch.org/get-started/locally/
+   pip3 install torch
+   
+   # For paddle, any latest stable version
+   # https://www.paddlepaddle.org.cn/
+   python -m pip install paddlepaddle-gpu
+   
+   # For mindspore, GammaGL only supports version1.6.1, GPU-CUDA 11.1 and python 3.8.5
+   # https://www.mindspore.cn/install
+   pip install https://ms-release.obs.cn-north-4.myhuaweicloud.com/1.6.1/MindSpore/gpu/x86_64/cuda-11.1/mindspore_gpu-1.6.1-cp37-cp37m-linux_x86_64.whl --trusted-host ms-release.obs.cn-north-4.myhuaweicloud.com -i https://pypi.tuna.tsinghua.edu.cn/simple
    ```
    
    For other backend with specific version, [please check whether TLX supports](https://tensorlayerx.readthedocs.io/en/latest/user/installation.html#install-backend).
