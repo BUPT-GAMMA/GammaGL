@@ -116,7 +116,7 @@ def main(args):
     if tlx.BACKEND == 'torch':
         model.to(data["x"].device)
     model.set_eval()
-    logits = model(data['x'])
+    logits = model(data["x"], data["edge_index"], data["num_nodes"])
     test_logits = tlx.gather(logits, data['test_idx'])
     test_y = tlx.gather(data['y'], data['test_idx'])
     test_acc = calculate_acc(test_logits, test_y, metrics)
