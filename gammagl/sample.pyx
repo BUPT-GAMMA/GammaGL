@@ -70,12 +70,12 @@ def sample_subset(long long k, np.ndarray[np.int64_t, ndim=1] dst_nodes, np.ndar
                     for j in xrange(ed - st - k, ed-st):
                         cur = st + (rand() % j)
                         cur_eid.insert(cur)
-            else:
-                for j in xrange(st, ed):
-                    e_id.push_back(j)
-                    if all_nodes.count(edge[j][0]) == 0:
-                        all_nodes[edge[j][0]] = n_ids.size()
-                        n_ids.push_back(edge[j][0])
+                else:
+                    for j in xrange(st, ed):
+                        e_id.push_back(j)
+                        if all_nodes.count(edge[j][0]) == 0:
+                            all_nodes[edge[j][0]] = n_ids.size()
+                            n_ids.push_back(edge[j][0])
     '''
     while replace == false, Cython use function nesting will cost too much time, due to Cython can't 
     define a variable in for loop, so we can put all sample e_id in unordered_set, and process in the end of sample.
