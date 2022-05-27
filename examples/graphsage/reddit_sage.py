@@ -8,7 +8,6 @@ from gammagl.utils import mask_to_index
 
 from tensorlayerx.model import WithLoss, TrainOneStep
 from tqdm import tqdm
-import numpy as np
 from gammagl.datasets import Reddit
 import tensorlayerx as tlx
 import argparse
@@ -113,10 +112,10 @@ def main(args):
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=20, help="number of epoch")
-    parser.add_argument("--hidden_dim", type=int, default=16, help="dimention of hidden layers")
-    parser.add_argument("--drop_rate", type=float, default=0.5, help="drop_rate")
+    parser.add_argument("--lr", type=float, default=0.0005, help="learnin rate")
+    parser.add_argument("--n_epoch", type=int, default=50, help="number of epoch")
+    parser.add_argument("--hidden_dim", type=int, default=256, help="dimention of hidden layers")
+    parser.add_argument("--drop_rate", type=float, default=0.8, help="drop_rate")
     parser.add_argument("--num_layers", type=int, default=2)
     parser.add_argument("--l2_coef", type=float, default=0., help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='reddit', help='dataset')
