@@ -38,14 +38,10 @@ class AGNNConv(MessagePassing):
 
     def __init__(self,
                 in_channels,
-                edge_index,
-                num_nodes,
                 require_grad = True):
         super().__init__()
 
         self.in_channels = in_channels
-        self.edge_index = edge_index
-        self.num_nodes = num_nodes
         if(require_grad == True):
             initor = tlx.initializers.RandomUniform(0,1)
             self.beta = self._get_weights("beta", shape = [1], init = initor)
@@ -54,7 +50,7 @@ class AGNNConv(MessagePassing):
             self.beta = self._get_weights("beta", shape = [1], init = initor, trainable = False)
 
         
-    def message(self, x, edge_index, edge_weight=None):
+    def message(self, x, edge_index, num_nodes, edge_weight=None):
         node_src = edge_index[0, :]
         node_dst = edge_index[1, :]
 
@@ -64,9 +60,9 @@ class AGNNConv(MessagePassing):
         cos = tlx.reduce_sum(
             tlx.l2_normalize(x_src, axis = -1) * tlx.l2_normalize(x_dst, axis = -1), axis = -1)
         unsoftmax_weight = cos * self.beta
-        softmax_weight = tlx.expand_dims(segment_softmax(unsoftmax_weight, node_dst, self.num_nodes), axis = -1)
+        softmax_weight = tlx.expand_dims(segment_softmax(unsoftmax_weight, node_dst, num_nodes), axis = -1)
         
         return softmax_weight * x_src
 
-    def forward(self, x):
-        return self.propagate(x, self.edge_index, num_nodes = self.num_nodes)
+    def forward(self, x, edge_index, num_nodes):
+        return self.propagate(x, edge_index, num_nodes=num_nodes)
