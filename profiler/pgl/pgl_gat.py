@@ -161,12 +161,14 @@ def main(args):
     dur = []
 
     best_test = []
-    st = time.time()
+    times = []
+
     for run in range(args.runs):
         cal_val_acc = []
         cal_test_acc = []
         cal_val_loss = []
         cal_test_loss = []
+        st = time.time()
         gnn_model = GAT(input_size=graph.node_feat["words"].shape[1],
                         num_class=dataset.num_classes,
                         num_layers=2,
@@ -174,13 +176,14 @@ def main(args):
                         attn_drop=0.6,
                         num_heads=8,
                         hidden_size=8)
-
+        st1 = time.time()
         optim = Adam(
             learning_rate=0.005,
             parameters=gnn_model.parameters(),
             weight_decay=0.0005)
 
-        for epoch in tqdm.tqdm(range(200)):
+
+        for epoch in tqdm.tqdm(range(args.epoch)):
             if epoch >= 3:
                 start = time.time()
             train_loss, train_acc = train(train_index, train_label, gnn_model,
@@ -193,25 +196,22 @@ def main(args):
             cal_val_acc.append(val_acc.numpy())
             cal_val_loss.append(val_loss.numpy())
 
-            test_loss, test_acc = eval(test_index, test_label, gnn_model,
-                                       graph, criterion)
-            cal_test_acc.append(test_acc.numpy())
-            cal_test_loss.append(test_loss.numpy())
+            ### remove test
+            # test_loss, test_acc = eval(test_index, test_label, gnn_model,
+            #                            graph, criterion)
+            # cal_test_acc.append(test_acc.numpy())
+            # cal_test_loss.append(test_loss.numpy())
 
-        # log.info("Runs %s: Model: GAT Best Test Accuracy: %f" %
-          #        (run, cal_test_acc[np.argmin(cal_val_loss)]))
+        end2 = time.time()
+        times.append((end2-st, end2-st1))
+    print(time.time() - st, time.time()-st1, np.mean(dur))
 
-        best_test.append(cal_test_acc[np.argmin(cal_val_loss)])
-    print(time.time()-st)
-    # log.info("Average Speed %s sec/ epoch" % (np.mean(dur)))
-    # log.info("Dataset: %s Best Test Accuracy: %f ( stddev: %f )" %
-      #        (args.dataset, np.mean(best_test), np.std(best_test)))
 
 
 if __name__ == '__main__':
     # 2 gat layers
     # 8*8 hidden dimension in total
-    # 3 times forward
+    # 2 times forward
     # 1 time backward
     # 200 epoch
     parser = argparse.ArgumentParser(
