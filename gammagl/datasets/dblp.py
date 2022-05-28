@@ -156,18 +156,23 @@ class HGBDataset(InMemoryDataset):
         edge_weight_dict = defaultdict(list)
         _edge_index = []
         _edge_weight = []
+        _edge2feat = {}
         with open(self.raw_paths[2], 'r') as f:  # `link.dat`
             edges = [v.split('\t') for v in f.read().split('\n')[:-1]]
         for src, dst, rel, weight in edges:
-            #TODO:在这里把e_feat生成好
+            #TODO:在这里把edge2feat生成好
             e_type = e_types[int(rel)]
+            #Note:_edge_index数据集保证已经是无向图
             _edge_index.append([int(src),int(dst)])
             _edge_weight.append(float(weight))
+            _edge2feat[(int(src),int(dst))] = int(rel)
             src, dst = mapping_dict[int(src)], mapping_dict[int(dst)]
             edge_index_dict[e_type].append([src, dst])
             edge_weight_dict[e_type].append(float(weight))
+
         data['_edge_index'] = tlx.convert_to_tensor(np.array(_edge_index).T)
         data['_edge_weight'] = tlx.convert_to_tensor(_edge_weight)
+        data['_edge2feat'] = _edge2feat
         for e_type in e_types.values():
             #TODO:t() tlx.ops应该提供一下转置操作
             edge_index = tlx.ops.convert_to_tensor(np.array(edge_index_dict[e_type]).T)

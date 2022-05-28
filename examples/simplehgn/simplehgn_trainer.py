@@ -53,7 +53,18 @@ def main(args):
     num_etypes = graph._num_etypes
     num_classes = graph._num_classes
     #e_feat还需要根据边的类型生成
-    e_feat = tlx.ops.ones(shape=[edge_index.shape[1]], dtype='int64')
+    edge2feat = graph._edge2feat
+    
+    e_feat = []
+    edge_index_numpy = tlx.ops.convert_to_numpy(edge_index)
+    for i in range(edge_index_numpy.shape[1]):
+        if(edge_index_numpy[0,i] == edge_index_numpy[1,i]):
+            e_feat.append(num_etypes)
+        else:
+            e_feat.append(edge2feat[(edge_index_numpy[0,i], edge_index_numpy[1,i])])
+
+    e_feat = tlx.ops.convert_to_tensor(e_feat)
+
     activation = tlx.nn.activation.ELU()
 
     data = {
@@ -71,7 +82,7 @@ def main(args):
                           hidden_dim=args.hidden_dim, 
                           edge_dim=args.edge_dim, 
                           heads_list=heads_list, 
-                          num_etypes=num_etypes*2 + 1, 
+                          num_etypes=num_etypes + 1, 
                           num_classes=num_classes, 
                           num_layers=args.num_layers, 
                           activation=activation, 
