@@ -68,7 +68,7 @@ def main(args):
 
     net = APPNPModel(feature_dim=dataset.num_node_features,
                      num_class=dataset.num_classes,
-                     itera_K=args.iter_K,
+                     iter_K=args.iter_K,
                      alpha=args.alpha,
                      drop_rate=args.drop_rate,
                      name="APPNP")

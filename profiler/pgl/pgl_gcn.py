@@ -159,15 +159,15 @@ def main(args):
                         num_layers=1,
                         dropout=0.5,
                         hidden_size=16)
+        st1 = time.time()
 
         optim = Adam(
             learning_rate=0.01,
             parameters=gnn_model.parameters(),
             weight_decay=0.0005)
-            
-        st1 = time.time()
 
-        for epoch in tqdm.tqdm(range(200)):
+
+        for epoch in tqdm.tqdm(range(args.epoch)):
             if epoch >= 3:
                 start = time.time()
             train_loss, train_acc = train(train_index, train_label, gnn_model,
@@ -179,27 +179,22 @@ def main(args):
                                      criterion)
             cal_val_acc.append(val_acc.numpy())
             cal_val_loss.append(val_loss.numpy())
+            #### remove test
+            # test_loss, test_acc = eval(test_index, test_label, gnn_model,
+            #                            graph, criterion)
+            # cal_test_acc.append(test_acc.numpy())
+            # cal_test_loss.append(test_loss.numpy())
+        times.append(time.time()-st)
 
-            test_loss, test_acc = eval(test_index, test_label, gnn_model,
-                                       graph, criterion)
-            cal_test_acc.append(test_acc.numpy())
-            cal_test_loss.append(test_loss.numpy())
-        times.append((time.time()-st, time.time()-st1))
 
-      #   log.info("Runs %s: Model: GCN Best Test Accuracy: %f" %
-        #          (run, cal_test_acc[np.argmin(cal_val_loss)]))
-
-        best_test.append(cal_test_acc[np.argmin(cal_val_loss)])
-	
-    # log./info("Average Speed %s sec/ epoch" % (np.mean(dur)))
-    # log.info("Dataset: %s Best Test Accuracy: %f ( stddev: %f )" %
-        #      (args.dataset, np.mean(best_test), np.std(best_test)))
-    print(times)
+        # best_test.append(cal_test_acc[np.argmin(cal_val_loss)])
+        # print(times)
+        print(time.time() - st, time.time()-st1, np.mean(dur))
 
 if __name__ == '__main__':
     # 2 gcn layers
     # 16 hidden dimension
-    # 3 times forward
+    # 2 times forward
     # 1 time backward
     # 200 epoch
     parser = argparse.ArgumentParser(
@@ -207,7 +202,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "--dataset", type=str, default="cora", help="dataset (cora, pubmed)")
     parser.add_argument("--epoch", type=int, default=200, help="Epoch")
-    parser.add_argument("--runs", type=int, default=2, help="runs")
+    parser.add_argument("--runs", type=int, default=1, help="runs")
     parser.add_argument(
         "--feature_pre_normalize",
         type=bool,

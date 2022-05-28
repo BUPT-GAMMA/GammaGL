@@ -42,13 +42,15 @@ class ChebNetModel(Module):
         self.relu = tlx.ReLU()
         self.dropout = tlx.layers.Dropout(drop_rate)
         self.name = name
+        self.lambda_max = None
 
     def forward(self, x, edge_index, edge_weight, num_nodes):
-        lambda_max = self.__get_max_lambda__(edge_index, edge_weight)
-        x = self.conv1(x, edge_index, num_nodes, edge_weight, lambda_max=lambda_max)
+        if self.lambda_max is None:
+            self.lambda_max = self.__get_max_lambda__(edge_index, edge_weight)
+        x = self.conv1(x, edge_index, num_nodes, edge_weight, lambda_max=self.lambda_max)
         x = self.relu(x)
         x = self.dropout(x)
-        x = self.conv2(x, edge_index, num_nodes, edge_weight, lambda_max=lambda_max)
+        x = self.conv2(x, edge_index, num_nodes, edge_weight, lambda_max=self.lambda_max)
         return x
 
     def __get_max_lambda__(self, edge_index, edge_weight):
