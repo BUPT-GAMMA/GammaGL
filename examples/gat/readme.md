@@ -16,7 +16,7 @@ Dataset Statics
 | Citeseer | 3,327   | 9,228   | 6         |
 | Pubmed   | 19,717  | 88,651  | 3         |
 
-
+Refer to [Planetoid](https://gammagl.readthedocs.io/en/latest/api/gammagl.datasets.html#gammagl.datasets.Planetoid).
 
 Results
 -------

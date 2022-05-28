@@ -1,0 +1,108 @@
+tensorflow cora 77.43
+tensorflow cora 79.34
+tensorflow cora 80.47
+tensorflow cora 78.48
+tensorflow cora 78.25
+tensorflow cora 80.12
+tensorflow cora 79.53
+tensorflow cora 77.04
+tensorflow cora 80.93
+tensorflow cora 77.55
+tensorflow cora 79.08 1.26
+
+tensorflow citeseer 64.72
+tensorflow citeseer 64.81
+tensorflow citeseer 66.90
+tensorflow citeseer 64.46
+tensorflow citeseer 66.65
+tensorflow citeseer 65.82
+tensorflow citeseer 69.94
+tensorflow citeseer 64.78
+tensorflow citeseer 66.74
+tensorflow citeseer 64.81
+tensorflow citeseer 65.96 1.60
+
+tensorflow pubmed 83.61
+tensorflow pubmed 84.28
+tensorflow pubmed 83.17
+tensorflow pubmed 83.38
+tensorflow pubmed 83.51
+tensorflow pubmed 83.58
+tensorflow pubmed 83.19
+tensorflow pubmed 84.69
+tensorflow pubmed 83.76
+tensorflow pubmed 84.09
+tensorflow pubmed 83.74 0.49
+
+tensorflow computers 83.39
+tensorflow computers 82.69
+tensorflow computers 81.32
+tensorflow computers 81.76
+tensorflow computers 84.14
+tensorflow computers 85.28
+tensorflow computers 84.87
+tensorflow computers 83.83
+tensorflow computers 84.86
+tensorflow computers 82.24
+tensorflow computers 83.44 1.39
+
+tensorflow photo 92.62
+tensorflow photo 92.73
+tensorflow photo 93.16
+tensorflow photo 92.54
+tensorflow photo 92.17
+tensorflow photo 93.44
+tensorflow photo 91.25
+tensorflow photo 92.50
+tensorflow photo 92.89
+tensorflow photo 87.86
+tensorflow photo 92.06 1.60
+
+tensorflow chameleon 71.33
+tensorflow chameleon 68.93
+tensorflow chameleon 68.27
+tensorflow chameleon 66.96
+tensorflow chameleon 70.02
+tensorflow chameleon 66.30
+tensorflow chameleon 66.08
+tensorflow chameleon 68.93
+tensorflow chameleon 64.11
+tensorflow chameleon 68.93
+tensorflow chameleon 67.61 1.77
+
+tensorflow squirrel 51.01
+tensorflow squirrel 53.60
+tensorflow squirrel 50.53
+tensorflow squirrel 50.34
+tensorflow squirrel 51.78
+tensorflow squirrel 52.35
+tensorflow squirrel 51.59
+tensorflow squirrel 51.97
+tensorflow squirrel 50.91
+tensorflow squirrel 53.31
+tensorflow squirrel 51.82 1.08
+
+tensorflow texas 85.25
+tensorflow texas 85.25
+tensorflow texas 86.89
+tensorflow texas 93.44
+tensorflow texas 88.85
+tensorflow texas 93.44
+tensorflow texas 86.89
+tensorflow texas 83.61
+tensorflow texas 90.16
+tensorflow texas 83.61
+tensorflow texas 88.02 3.55
+
+tensorflow cornell 83.61
+tensorflow cornell 91.80
+tensorflow cornell 80.33
+tensorflow cornell 85.25
+tensorflow cornell 90.16
+tensorflow cornell 85.25
+tensorflow cornell 78.69
+tensorflow cornell 90.16
+tensorflow cornell 86.89
+tensorflow cornell 78.69
+tensorflow cornell 85.25 4.76
+

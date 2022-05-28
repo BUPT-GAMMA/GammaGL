@@ -68,7 +68,7 @@ def _separate(
         # NOTE: We need to take care of decrementing elements appropriately.
         cat_dim = batch.__cat_dim__(key, value, store)
         start, end = int(slices[idx]), int(slices[idx + 1])
-        value = tlx.gather(value, range(start, end), axis=cat_dim)
+        value = tlx.gather(value, tlx.convert_to_tensor(list(range(start, end))), axis=cat_dim)
         value = value.squeeze(0) if cat_dim is None else value
         if decrement and (incs.dim() > 1 or int(incs[idx]) != 0):
             value = value - incs[idx].to(value.device)
