@@ -7,6 +7,9 @@ from .imdb import IMDB
 from .entities import Entities
 from .flickr import Flickr
 from .dblp import HGBDataset
+from .wikipedia_network import WikipediaNetwork
+from .webkb import WebKB
+
 
 __all__ = [
     'Amazon',
@@ -18,6 +21,9 @@ __all__ = [
     'Entities',
     'Flickr',
     'HGBDataset'
+    'WikipediaNetwork',
+    'WebKB'
+
 ]
 
 classes = __all__

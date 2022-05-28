@@ -14,6 +14,8 @@ from .dgi import DGIModel
 from .grace import grace
 from .chebnet import ChebNetModel
 from .simplehgn import SimpleHGNModel
+from .fagcn import FAGCNModel
+from .gprgnn import GPRGNNModel
 
 __all__ = [
     'GCNModel',
@@ -33,6 +35,8 @@ __all__ = [
     'grace',
     'ChebNetModel',
     'SimpleHGNModel'
+    'FAGCNModel',
+    'GPRGNNModel'
 ]
 
 classes = __all__
