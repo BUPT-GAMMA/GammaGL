@@ -2,6 +2,7 @@ import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
 from gammagl.utils import segment_softmax
 import numpy as np
+from gammagl.mpops import *
 
 class SimpleHGNConv(MessagePassing):
     def __init__(self,
@@ -37,54 +38,60 @@ class SimpleHGNConv(MessagePassing):
         self.feat_drop = tlx.nn.Dropout(feat_drop)
         self.attn_drop = tlx.nn.Dropout(attn_drop)
         self.leaky_relu = tlx.nn.LeakyReLU(negative_slope)
-        if residual:
-            self.fc_res = tlx.nn.Linear(heads * out_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414)) if self.in_feats != self.out_feats else None#TODO:应该是identity()
-        '''if(self.in_feats != out_feats):
-            self.fc_res = tlx.nn.Linear(num_heads * out_feats, b_init=None, W_init=tlx.initializers.XavierNormal())
-        else:
+        #if residual:
+        self.fc_res = tlx.nn.Linear(heads * out_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414)) if self.in_feats != self.out_feats else None#TODO:应该是identity()
+        #if(self.in_feats != out_feats):
+        #self.fc_res = tlx.nn.Linear(heads * out_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414))
+        #else:
             #Note:这里有问题，fc_rec应该是一个层，可以让
-            self.fc_res = tlx.convert_to_tensor(np.identity(in_feats))'''
+            #self.fc_res = tlx.convert_to_tensor(np.identity(in_feats))
         
         self.activation = activation
         
-        if bias:
-            self.bias = self._get_weights("bias", (1, heads, out_feats))
+        
+        self.bias = self._get_weights("bias", (1, heads, out_feats)) if bias else None
         self.beta = beta
 
-    def message(self, x, edge_index, edge_feat, res_alpha=None):
+    def message(self, x, edge_index, edge_feat, num_nodes, res_alpha=None):
         node_src = edge_index[0, :]
         node_dst = edge_index[1, :]
 
-        x = self.fc_node(x)
-        x_src = tlx.ops.gather(x, node_src)
-        x_dst = tlx.ops.gather(x, node_dst)
-        x_src = self.feat_drop(x_src)
-        x_dst = self.feat_drop(x_dst)
+        x_new = self.fc_node(x)
+        x_new = tlx.ops.reshape(x_new, shape=[-1, self.heads, self.out_feats])
+ 
+        #x_src = tlx.ops.gather(x_new, node_src)
+        #x_dst = tlx.ops.gather(x_new, node_dst)
+        #x_src = self.feat_drop(x_src)
+        #x_dst = self.feat_drop(x_dst)
+        x_new = self.feat_drop(x_new)
         edge_feat = self.edge_embedding(edge_feat)
-        edge_feat = self.fc_edge(edge_feat).reshape(-1, self.heads, self.edge_feats)
-
+        edge_feat = self.fc_edge(edge_feat)
+        edge_feat = tlx.ops.reshape(edge_feat, [-1, self.heads, self.edge_feats])
         #计算权重alpha
-        weight_src = tlx.reduce_sum(x_src * self.attn_src, -1)
-        weight_dst = tlx.reduce_sum(x_dst * self.attn_dst, -1)
+        weight_src = tlx.ops.gather(tlx.reduce_sum(x_new * self.attn_src, -1), node_src)
+        weight_dst = tlx.ops.gather(tlx.reduce_sum(x_new * self.attn_dst, -1), node_dst)
         weight_edge = tlx.reduce_sum(edge_feat * self.attn_edge, -1)
         weight = self.leaky_relu(weight_src + weight_dst + weight_edge)
-        alpha = self.dropout(segment_softmax(weight, node_dst, num_nodes))
+        alpha = self.attn_drop(segment_softmax(weight, node_dst, num_nodes))
 
         #注意力残差
-        if res_attn is not None:
+        if res_alpha is not None:
             alpha = alpha * (1 - self.beta) + res_attn * self.beta
 
         #节点级别残差
-        rst = x_src * alpha
+        rst = tlx.ops.gather(x_new, node_src) * tlx.ops.expand_dims(alpha, axis=-1)
+        rst = unsorted_segment_sum(rst, node_dst, num_nodes)
         if self.fc_res is not None:
-            res_val = self.fc_res(x_dst)
+            res_val = self.fc_res(x)
+            res_val = tlx.ops.reshape(res_val, shape=[x.shape[0], -1, self.out_feats])
             rst  = rst + res_val
 
-        if self.bias:
+        if self.bias is not None:
             rst = rst + self.bias
         
         if self.activation is not None:
             rst = self.activation(rst)
+        print(rst.shape)
         return rst, alpha
 
 
@@ -105,7 +112,7 @@ class SimpleHGNConv(MessagePassing):
         coll_dict = self.__collect__(x, edge_index, aggr, kwargs)
         msg_kwargs = self.inspector.distribute('message', coll_dict)
         msg, alpha = self.message(**msg_kwargs)
-        x = self.aggregate(msg, edge_index, num_nodes=kwargs['num_nodes'], aggr=aggr)
+        #x = self.aggregate(msg, edge_index, num_nodes=kwargs['num_nodes'], aggr=aggr)
         x = self.update(x)
         return x, alpha
 

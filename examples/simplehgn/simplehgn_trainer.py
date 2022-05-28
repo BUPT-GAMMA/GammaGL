@@ -52,7 +52,8 @@ def main(args):
     heads_list = [args.heads] * args.num_layers + [1]
     num_etypes = graph._num_etypes
     num_classes = graph._num_classes
-    e_feat = tlx.ops.random_normal(shape=[edge_index.shape[1]])
+    #e_feat还需要根据边的类型生成
+    e_feat = tlx.ops.ones(shape=[edge_index.shape[1]], dtype='int64')
     activation = tlx.nn.activation.ELU()
 
     data = {
@@ -70,7 +71,7 @@ def main(args):
                           hidden_dim=args.hidden_dim, 
                           edge_dim=args.edge_dim, 
                           heads_list=heads_list, 
-                          num_etypes=num_etypes, 
+                          num_etypes=num_etypes*2 + 1, 
                           num_classes=num_classes, 
                           num_layers=args.num_layers, 
                           activation=activation, 

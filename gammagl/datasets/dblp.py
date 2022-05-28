@@ -151,8 +151,6 @@ class HGBDataset(InMemoryDataset):
         data['_num_nodes'] = 0
         for value in num_nodes_dict.values():
             data['_num_nodes'] += value
-        
-        #TODO:将各个type的node的x按顺序放进list
 
         edge_index_dict = defaultdict(list)
         edge_weight_dict = defaultdict(list)
@@ -161,6 +159,7 @@ class HGBDataset(InMemoryDataset):
         with open(self.raw_paths[2], 'r') as f:  # `link.dat`
             edges = [v.split('\t') for v in f.read().split('\n')[:-1]]
         for src, dst, rel, weight in edges:
+            #TODO:在这里把e_feat生成好
             e_type = e_types[int(rel)]
             _edge_index.append([int(src),int(dst)])
             _edge_weight.append(float(weight))

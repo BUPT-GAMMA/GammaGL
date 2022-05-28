@@ -71,6 +71,7 @@ class SimpleHGNModel(tlx.nn.Module):
 
         alpha = None
         for l in range(self.num_layers):
+            print("layers",l)
             x, alpha = self.hgn_layers[l](x, edge_index, e_feat)
 
         x, _ = self.hgn_layers[-1](x, edge_index, e_feat)
