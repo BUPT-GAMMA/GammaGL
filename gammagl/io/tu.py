@@ -3,6 +3,7 @@ import os
 import os.path as osp
 
 import numpy as np
+import tensorlayerx as tlx
 from gammagl.io import read_txt_array
 from gammagl.data import Graph
 from gammagl.utils import coalesce, remove_self_loops
@@ -61,7 +62,9 @@ def read_tu_data(folder, prefix):
 		edge_index = coalesce(edge_index, num_nodes=num_nodes)
 	else:
 		edge_index, edge_attr = coalesce(edge_index, edge_attr=edge_attr, num_nodes=num_nodes)
-	
+
+	edge_index = tlx.convert_to_numpy(edge_index)
+
 	# data = Graph(edge_index=edge_index, edge_feat=edge_attr, node_feat=x, node_label=y)
 	graph, slices = split(edge_index, batch, x, edge_attr, y)
 

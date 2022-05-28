@@ -20,18 +20,18 @@ class SGConv(MessagePassing):
         in_channels (int): Size of each input sample, or :obj:`-1` to derive
             the size from the first input(s) to the forward method.
         out_channels (int): Size of each output sample.
-        itera_K (int, optional): Number of hops :math:`K`. (default: :obj:`1`)
+        iter_K (int, optional): Number of hops :math:`K`. (default: :obj:`1`)
     """
 
     def __init__(self,
                  in_channels,
                  out_channels,
-                 itera_K=2):
+                 iter_K=2):
         super().__init__()
 
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.itera_K = itera_K
+        self.iter_K = iter_K
 
         self.linear = tlx.layers.Linear(out_features=self.out_channels,
                                       in_features=self.in_channels,
@@ -39,7 +39,7 @@ class SGConv(MessagePassing):
 
     def forward(self, x, edge_index, edge_weight=None, num_nodes=None):
         x = self.linear(x)
-        for _ in range(self.itera_K):
+        for _ in range(self.iter_K):
             x = self.propagate(x, edge_index, edge_weight=edge_weight, num_nodes=num_nodes)
 
         return x

@@ -75,11 +75,83 @@ for epoch in range(200):
 
 </details>
 
+<details>
+<summary>We can now optimize the model in a training loop, similar to the <a href="https://tensorflow.google.cn/tutorials/quickstart/advanced">standard TensorFlow training procedure</a>.</summary>
+
+```python
+import tensorflow as tf
+
+optimizer = tf.keras.optimizers.Adam()
+loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+for epoch in range(200):
+    with tf.GradientTape() as tape:
+        predictions = model(images, training=True)
+        loss = loss_fn(labels, predictions)
+    gradients = tape.gradient(loss, model.trainable_variables)
+    optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+```
+
+</details>
+
+<details>
+<summary>We can now optimize the model in a training loop, similar to the <a href="https://www.paddlepaddle.org.cn/documentation/docs/zh/guides/beginner/train_eval_predict_cn.html#api">standard PaddlePaddle training procedure</a>.</summary>
+
+```python
+import paddle
+
+data = dataset[0]
+optim = paddle.optimizer.Adam(parameters=model.parameters())
+loss_fn = paddle.nn.CrossEntropyLoss()
+
+model.train()
+for epoch in range(200):
+    predicts = model(data.x, data.edge_index)
+    loss = loss_fn(predicts, y_data)
+
+    # Backpropagation
+    loss.backward()
+    optim.step()
+    optim.clear_grad()
+```
+
+</details>
+
+<details>
+<summary>We can now optimize the model in a training loop, similar to the <a href="https://www.mindspore.cn/tutorials/zh-CN/r1.7/advanced/train/train_eval.html#%E8%87%AA%E5%AE%9A%E4%B9%89%E8%AE%AD%E7%BB%83%E5%92%8C%E8%AF%84%E4%BC%B0">standard MindSpore training procedure</a>.</summary>
+
+```python
+# 1. Generate training dataset
+train_dataset = create_dataset(num_data=160, batch_size=16)
+
+# 2.Build a model and define the loss function
+net = LinearNet()
+loss = nn.MSELoss()
+
+# 3.Connect the network with loss function, and define the optimizer
+net_with_loss = nn.WithLossCell(net, loss)
+opt = nn.Momentum(net.trainable_params(), learning_rate=0.005, momentum=0.9)
+
+# 4.Define the training network
+train_net = nn.TrainOneStepCell(net_with_loss, opt)
+
+# 5.Set the model as training mode
+train_net.set_train()
+
+# 6.Training procedure
+for epoch in range(200):
+    for d in train_dataset.create_dict_iterator():
+        result = train_net(d['data'], d['label'])
+        print(f"Epoch: [{epoch} / {epochs}], "
+              f"step: [{step} / {steps}], "
+              f"loss: {result}")
+        step = step + 1
+```
+
+</details>
+
 More information about evaluating final model performance can be found in the corresponding [example](https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/gcn).
 
 ### Create your own GNN layer
-
-
 
 ## Get Started
 
@@ -94,12 +166,21 @@ More information about evaluating final model performance can be found in the co
 2. **Install Backend**
    
    ```bash
-   # tensorflow
+   # For tensorflow
    pip install tensorflow-gpu # GPU version
    pip install tensorflow # CPU version
-   # torch
-   # paddle
-   # mindspore
+   
+   # For torch, any latest stable version
+   # https://pytorch.org/get-started/locally/
+   pip3 install torch
+   
+   # For paddle, any latest stable version
+   # https://www.paddlepaddle.org.cn/
+   python -m pip install paddlepaddle-gpu
+   
+   # For mindspore, GammaGL only supports version1.6.1, GPU-CUDA 11.1 and python 3.8.5
+   # https://www.mindspore.cn/install
+   pip install https://ms-release.obs.cn-north-4.myhuaweicloud.com/1.6.1/MindSpore/gpu/x86_64/cuda-11.1/mindspore_gpu-1.6.1-cp37-cp37m-linux_x86_64.whl --trusted-host ms-release.obs.cn-north-4.myhuaweicloud.com -i https://pypi.tuna.tsinghua.edu.cn/simple
    ```
    
    For other backend with specific version, [please check whether TLX supports](https://tensorlayerx.readthedocs.io/en/latest/user/installation.html#install-backend).
@@ -150,12 +231,35 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [GCN [ICLR 2017]](./examples/gcn)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [GAT [ICLR 2018]](./examples/gat)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [GraphSAGE [NeurIPS 2017]](./examples/graphsage) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [SGC [ICML 2019]](./examples/sgc)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [GATv2 [ICLR 2021]](./examples/gatv2)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [APPNP [ICLR 2019]](./examples/appnp)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [ChebNet [NeurIPS 2016]](./examples/chebnet)     | :heavy_check_mark: | :heavy_check_mark: |                    |                    |
 | [GCNII [ICLR 2017]](./examples/gcnii)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [JKNet [ICML 2018]](./examples/jknet)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [DiffPool [NeurIPS 2018]](./examples/diffpool)   |                    |                    |                    |                    |
+| [SGC [ICML 2019]](./examples/sgc)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [GIN [ICLR 2019]](./examples/gin)                |                    |                    |                    |                    |
+| [APPNP [ICLR 2019]](./examples/appnp)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [AGNN [arxiv]](./examples/agnn)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [DGI [ICLR 2019]](./examples/dgi)                | :heavy_check_mark: |                    |                    |                    |
 | [SIGN [ICML 2020 Workshop]](./examples/sign)     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
-| [GRACE [ICML 2020 Workshop]](./examples/grace)   | :heavy_check_mark: |                    |                    |                    |
-|                                                  |                    |                    |                    |                    |
+| [GATv2 [ICLR 2021]](./examples/gatv2)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [GPRGNN [ICLR 2021]](./examples/gprgnn)          | :heavy_check_mark: |                    |                    |                    |
+| [FAGCN [AAAI 2021]](./examples/fagcn)            | :heavy_check_mark: | :heavy_check_mark: |                    |                    |
+
+| Contrastive Learning                           | TensorFlow         | PyTorch            | Paddle             | MindSpore |
+| ---------------------------------------------- | ------------------ | ------------------ | ------------------ | --------- |
+| [DGI [ICLR 2019]](./examples/dgi)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [GRACE [ICML 2020 Workshop]](./examples/grace) | :heavy_check_mark: | :heavy_check_mark: |                    |           |
+| [MVGRL [ICML 2020]](./examples/mvgrl)          | :heavy_check_mark: | :heavy_check_mark: |                    |           |
+| [InfoGraph [ICLR 2020]](./examples/infograph)  | :heavy_check_mark: | :heavy_check_mark: |                    |           |
+| [MERIT [IJCAI 2021]](./examples/merit)         | :heavy_check_mark: |                    |                    |           |
+
+| Heterogeneous Graph Learning       | TensorFlow         | PyTorch            | Paddle             | MindSpore          |
+| ---------------------------------- | ------------------ | ------------------ | ------------------ | ------------------ |
+| [RGCN [ESWC2019]](./examples/rgcn) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [HAN [WWW 2019]](./examples/han)   | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| HGT [WWW 2020]                     |                    |                    |                    |                    |
+
+## Contributors
+
+GammaGL Team[GAMMA LAB] and Peng Cheng Laboratory.
+
+See more in [CONTRIBUTING](./CONTRIBUTING.md).
