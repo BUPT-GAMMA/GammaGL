@@ -63,7 +63,7 @@ class SimpleHGNModel(tlx.nn.Module):
                                         residual=residual,
                                         beta=beta))
 
-    def forward(self, x, edge_index):
+    def forward(self, x, edge_index, e_feat):
         TODO()
         #将不同节点的维度统一
         x = [ fc(feature) for fc, feature in zip(self.fc_list, x)]
@@ -71,9 +71,9 @@ class SimpleHGNModel(tlx.nn.Module):
 
         alpha = None
         for l in range(self.num_layers):
-            x, alpha = self.hgn_layers[l](x, edge_index, )
+            x, alpha = self.hgn_layers[l](x, edge_index, e_feat)
 
-        x, _ = self.hgn_layers[-1]()
+        x, _ = self.hgn_layers[-1](x, edge_index, e_feat)
 
         x = tlx.ops.l2_normalize(x, axis=-1)
         return x

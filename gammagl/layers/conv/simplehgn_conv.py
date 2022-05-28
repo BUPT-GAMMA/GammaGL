@@ -51,7 +51,7 @@ class SimpleHGNConv(MessagePassing):
             self.bias = self._get_weights("bias", (1, heads, out_feats))
         self.beta = beta
 
-    def message(self, x, edge_index, edge_x, res_alpha=None):
+    def message(self, x, edge_index, edge_feat, res_alpha=None):
         node_src = edge_index[0, :]
         node_dst = edge_index[1, :]
 
@@ -60,8 +60,8 @@ class SimpleHGNConv(MessagePassing):
         x_dst = tlx.ops.gather(x, node_dst)
         x_src = self.feat_drop(x_src)
         x_dst = self.feat_drop(x_dst)
-        edge_x = self.edge_embedding(edge_x)
-        edge_x = self.fc_edge(edge_x).reshape(-1, self.heads, self.edge_feats)
+        edge_feat = self.edge_embedding(edge_feat)
+        edge_feat = self.fc_edge(edge_feat).reshape(-1, self.heads, self.edge_feats)
 
         #计算权重alpha
         weight_src = tlx.reduce_sum(x_src * self.attn_src, -1)
@@ -110,7 +110,7 @@ class SimpleHGNConv(MessagePassing):
         return x, alpha
 
     def forward(self, x, edge_index, edge_feat, res_attn=None):
-        return self.propagate(x, edge_index)
+        return self.propagate(x, edge_index, edge_feat=edge_feat)
         
         
 

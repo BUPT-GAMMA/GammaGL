@@ -4,13 +4,18 @@ import sys
 sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 sys.path.insert(0, os.path.abspath('./')) # adds path2gammagl to execute in command line.
 import tensorlayerx as tlx
+from sklearn.metrics import f1_score
 from gammagl.datasets import HGBDataset
 from gammagl.models import SimpleHGNModel
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.utils import add_self_loops, mask_to_index
 
 def TODO():
-    return 
+    return
+
+
+def calculate_f1_score(val_logits, val_y):
+    return f1_score(val_y, val_logits, average='micro'), f1_score(val_y, val_logits, average='macro')
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, model, loss_fn):
@@ -45,10 +50,9 @@ def main(args):
     x = [ graph[node_type].x for node_type in Unknownname[str.lower(args.dataset)]]
     feature_dims = [graph[node_type].x.shape[0] for node_type in Unknownname[str.lower(args.dataset)]]
     heads_list = [args.heads] * args.num_layers + [1]
-    #TODO：数据集中添加num_etypes
     num_etypes = graph._num_etypes
-    #TODO:数据集中添加num_classes
     num_classes = graph._num_classes
+    e_feat = tlx.ops.random_normal(shape=[edge_index.shape[1]])
     activation = tlx.nn.activation.ELU()
 
     data = {
@@ -77,12 +81,11 @@ def main(args):
                           beta=0.05)
 
         
-        model(data['x'],data['edge_index'])
+        model(data['x'], data['edge_index'], e_feat)
         return 
         loss = tlx.losses.softmax_cross_entropy_with_logits
         optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.weight_decay)
-        #metrics暂时不支持
-        #metrics = tlx.metrics.
+
         train_weights = model.trainable_weights
 
         loss_func = SemiSpvzLoss(model, loss)
