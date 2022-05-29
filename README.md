@@ -178,7 +178,7 @@ More information about evaluating final model performance can be found in the co
    # https://www.paddlepaddle.org.cn/
    python -m pip install paddlepaddle-gpu
    
-   # For mindspore, GammaGL only supports version1.6.1, GPU-CUDA 11.1 and python 3.8.5
+   # For mindspore, GammaGL only supports version1.6.1, GPU-CUDA 11.1 and python 3.7.5
    # https://www.mindspore.cn/install
    pip install https://ms-release.obs.cn-north-4.myhuaweicloud.com/1.6.1/MindSpore/gpu/x86_64/cuda-11.1/mindspore_gpu-1.6.1-cp37-cp37m-linux_x86_64.whl --trusted-host ms-release.obs.cn-north-4.myhuaweicloud.com -i https://pypi.tuna.tsinghua.edu.cn/simple
    ```
