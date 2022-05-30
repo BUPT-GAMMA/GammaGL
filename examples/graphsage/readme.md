@@ -46,5 +46,5 @@ TL_BACKEND="torch" python reddit_sage.py
 |       Paper       |        83.3       | 95.0   |
 |     GammaGL(tf)   |    82.3 ± 0.203   |  95.0  |
 |     GammaGL(th)   | --.-              | --.-   |
-|     GammaGL(pd)   |    81.91 ± 0.004  | 94.8   |
+|     GammaGL(pd)   |    81.91 ± 0.401  | 94.8   |
 |     GammaGL(ms)   |      --.-         |  --.-  |
