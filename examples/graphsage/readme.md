@@ -40,11 +40,11 @@ TL_BACKEND="torch" python reddit_sage.py
 ```
 
 
-|      Dataset      | Cora | Citeseer | Pubmed | Reddit |
-| :---------------: | :--: | :------: | :----: | :----: |
-|        DGL        | 83.3 |   71.1   |  78.3  |  94.95 |
-|       Paper       | 83.3 |   --.-   |  --.-  |  95.0  |
-|     GammaGL(tf)   | 81.7 |   70.4   |  --.-  |  95.0  |
-|     GammaGL(th)   | --.- |   --.-   |  --.-  |  --.-  |
-|     GammaGL(pd)   | 81.7 |   69.7   |  --.-  |  94.8  |
-|     GammaGL(ms)   | --.- |   --.-   |  --.-  |  --.-  |
+|      Dataset      |        Cora       | Reddit |
+| :---------------: |:----------------: | :----: |
+|        DGL        |        83.3       | 94.95  |
+|       Paper       |        83.3       | 95.0   |
+|     GammaGL(tf)   |    82.3 ± 0.203   |  95.0  |
+|     GammaGL(th)   | --.-              | --.-   |
+|     GammaGL(pd)   |    81.91 ± 0.004  | 94.8   |
+|     GammaGL(ms)   |      --.-         |  --.-  |
