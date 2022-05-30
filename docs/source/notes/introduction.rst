@@ -242,6 +242,7 @@ Let's learn about it in an example:
 You can use it to, *e.g.*, average node features in the node dimension for each graph individually:
 
 .. code-block:: python
+
     from gammagl.mpops import unsorted_segment_mean
     from gammagl.datasets import TUDataset
     from gammagl.loader.dataloader import DataLoader
