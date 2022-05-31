@@ -27,7 +27,7 @@ class SAGEConv(MessagePassing):
 
     """
 
-    def __init__(self, in_channels, out_channels, activation=None, aggr="mean", add_bias=False):
+    def __init__(self, in_channels, out_channels, activation=None, aggr="mean", add_bias=True):
         super(SAGEConv, self).__init__()
         #
         self.aggr = aggr
@@ -36,15 +36,15 @@ class SAGEConv(MessagePassing):
         # relu use he_normal
         initor = tlx.initializers.he_normal()
         # self and neighbor
-        self.fc_neigh = tlx.nn.Linear(in_features=in_channels, out_features=out_channels, W_init=initor)
+        self.fc_neigh = tlx.nn.Linear(in_features=in_channels, out_features=out_channels, W_init=initor, b_init=None)
         if aggr != 'gcn':
-            self.fc_self = tlx.nn.Linear(in_features=in_channels, out_features=out_channels, W_init=initor)
+            self.fc_self = tlx.nn.Linear(in_features=in_channels, out_features=out_channels, W_init=initor, b_init=None)
 
         if aggr == "lstm":
             self.lstm = tlx.nn.LSTM(input_size=in_channels, hidden_size=in_channels, batch_first=True)
 
         if aggr == "pool":
-            self.pool = tlx.nn.Linear(in_features=in_channels, out_features=in_channels, W_init=initor)
+            self.pool = tlx.nn.Linear(in_features=in_channels, out_features=in_channels, W_init=initor, b_init=None)
         self.add_bias = add_bias
         if add_bias:
             init = tlx.initializers.zeros()
