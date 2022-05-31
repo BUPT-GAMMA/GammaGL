@@ -32,9 +32,7 @@ TL_BACKEND="torch" python dgi_trainer.py --dataset=pubmed --hidden_dim=256 --lr=
 ```
 
 Results
--------
-TODO1: Relu->PRelu
-TODO2: detach to support MS
+
 
 
 |      Dataset      | Cora | Citeseer | Pubmed |
