@@ -1,6 +1,8 @@
 # Gamma Graph Library(GammaGL)
 
 [![Documentation Status](https://readthedocs.org/projects/gammagl/badge/?version=latest)](https://gammagl.readthedocs.io/en/latest/?badge=latest)
+[![visitors](https://visitor-badge.glitch.me/badge?page_id=BUPT-GAMMA.GammaGL)](https://github.com/BUPT-GAMMA/GammaGL)
+[![Total lines](https://img.shields.io/tokei/lines/github/BUPT-GAMMA/GammaGL?color=red)](https://github.com/BUPT-GAMMA/GammaGL)
 
 **[Documentation](https://gammagl.readthedocs.io/en/latest/)** |
 
