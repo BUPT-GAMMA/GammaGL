@@ -1,18 +1,17 @@
+import math
 import os
 
 # os.environ['TL_BACKEND'] = 'torch'
-#
 # os.environ['CUDA_VISIBLE_DEVICES'] = ' '
-# from gammagl.models import DGIModel
-
 from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index, remove_self_loops
-from gammagl.models import DGIModel
 
 import argparse
 from tqdm import tqdm
+
 from gammagl.datasets import Planetoid
 import tensorlayerx as tlx
 from tensorlayerx.model import TrainOneStep, WithLoss
+from gammagl.models.dgi import DGIModel
 
 
 class Unsupervised_Loss(WithLoss):
@@ -20,7 +19,8 @@ class Unsupervised_Loss(WithLoss):
         super(Unsupervised_Loss, self).__init__(backbone=net, loss_fn=None)
 
     def forward(self, data, label):
-        loss = self._backbone(data["x"], data["edge_index"], data["edge_weight"], data["num_node"])
+        loss = self._backbone(data["x"], data["edge_index"], data["edge_weight"],
+                              data["num_node"])
         return loss
 
 
@@ -36,7 +36,7 @@ class Clf_Loss(WithLoss):
 class Classifier(tlx.nn.Module):
     def __init__(self, hid_feat, num_classes):
         super(Classifier, self).__init__()
-        import math
+        # import math
         init = tlx.nn.initializers.HeNormal(a=math.sqrt(5))
         self.fc = tlx.nn.Linear(out_features=num_classes, in_features=hid_feat, W_init=init)
 
@@ -76,7 +76,7 @@ def main(args):
     # add self loop and calc Laplacian matrix
     edge_index = graph.edge_index
     edge_index, _ = remove_self_loops(edge_index)
-    edge_index, _ = add_self_loops(edge_index, num_nodes=graph.num_nodes, n_loops=args.self_loops)
+    edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=args.self_loops)
     edge_weight = tlx.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
 
     data = {
@@ -91,7 +91,9 @@ def main(args):
     }
 
     # build model
-    net = DGIModel(dataset.num_node_features, args.hidden_dim, tlx.nn.PRelu(args.hidden_dim))
+    net = DGIModel(in_feat=dataset.num_node_features, hid_feat=args.hidden_dim,
+                   # todo: tlx can't support cuda prelu, it will fix soon
+                   act=tlx.nn.PRelu(args.hidden_dim))
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     train_weights = net.trainable_weights
     loss_func = Unsupervised_Loss(net)
@@ -110,24 +112,26 @@ def main(args):
             net.save_weights(args.best_model_path + "DGI_" + args.dataset + ".npz")
         else:
             cnt_wait += 1
+
         if cnt_wait == args.patience:
             print('Early stopping!')
             break
-
     net.load_weights(args.best_model_path + "DGI_" + args.dataset + ".npz")
     net.set_eval()
-
     if tlx.BACKEND == 'torch':
         net.to(data['x'].device)
-    embed = net.encoder(data['x'],
-                        data['edge_index'],
-                        data['edge_weight'],
-                        graph.num_nodes)
+    embed = net.gcn(data['x'],
+                    data['edge_index'],
+                    data['edge_weight'],
+                    graph.num_nodes)
+
     train_embs = tlx.gather(embed, data['train_idx'])
     test_embs = tlx.gather(embed, data['test_idx'])
+
     if tlx.BACKEND != 'tensorflow':
         # todo: support ms
         train_embs = train_embs.detach()
+
     train_lbls = tlx.gather(data['y'], data['train_idx'])
     test_lbls = tlx.gather(data['y'], data['test_idx'])
     accs = 0.
@@ -155,12 +159,12 @@ if __name__ == '__main__':
     parser.add_argument("--n_epoch", type=int, default=1000, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=512, help="dimention of hidden layers")
     parser.add_argument("--classifier_lr", type=float, default=1e-2, help="classifier learning rate")
-    parser.add_argument("--classifier_epochs", type=int, default=50, help="the epoch to train classifier")
+    parser.add_argument("--classifier_epochs", type=int, default=100, help="the epoch to train classifier")
     parser.add_argument("--l2_coef", type=float, default=0., help="l2 loss coeficient")
-    parser.add_argument('--dataset', type=str, default='pubmed', help='dataset, pubmed, cora, citeseer')
+    parser.add_argument('--dataset', type=str, default='citeseer', help='dataset, pubmed, cora, citeseer')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
-    parser.add_argument("--patience", type=int, default=20)
+    parser.add_argument("--patience", type=int, default=50)
     parser.add_argument("--clf_l2_coef", type=float, default=0.)
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     parser.add_argument("--num_evaluation", type=int, default=50, help="number of evaluate classifier")
