@@ -1,6 +1,6 @@
 import os
-os.environ['TL_BACKEND'] = 'mindspore'
-os.environ['CUDA_VISIBLE_DEVICES'] = ' '
+# os.environ['TL_BACKEND'] = 'paddle'
+# os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 # set your backend here, default `tensorflow`
 
 from gammagl.utils import mask_to_index
@@ -8,7 +8,6 @@ from gammagl.utils import mask_to_index
 
 from tensorlayerx.model import WithLoss, TrainOneStep
 from tqdm import tqdm
-import numpy as np
 from gammagl.datasets import Reddit
 import tensorlayerx as tlx
 import argparse
@@ -56,14 +55,14 @@ def main(args):
 
     train_loader = Neighbor_Sampler(edge_index=graph.edge_index.numpy(),
                                     dst_nodes=tlx.convert_to_numpy(train_idx),
-                                    sample_lists=[25, 10], batch_size=1024, shuffle=False, num_workers=0)
+                                    sample_lists=[25, 10], batch_size=2048, shuffle=True, num_workers=0)
 
     val_loader = Neighbor_Sampler(edge_index=graph.edge_index.numpy(),
                                   dst_nodes=tlx.convert_to_numpy(val_idx),
-                                  sample_lists=[-1], batch_size=1024, shuffle=False, num_workers=0)
+                                  sample_lists=[-1], batch_size=2048 * 2, shuffle=False, num_workers=0)
     test_loader = Neighbor_Sampler(edge_index=graph.edge_index.numpy(),
                                    dst_nodes=tlx.convert_to_numpy(test_idx),
-                                   sample_lists=[-1], batch_size=1024, shuffle=False, num_workers=0)
+                                   sample_lists=[-1], batch_size=2048 * 2, shuffle=False, num_workers=0)
 
     x = tlx.convert_to_tensor(graph.x)
     y = tlx.convert_to_tensor(graph.y, dtype=tlx.int64)
@@ -115,7 +114,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.0005, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=50, help="number of epoch")
-    parser.add_argument("--hidden_dim", type=int, default=128, help="dimention of hidden layers")
+    parser.add_argument("--hidden_dim", type=int, default=256, help="dimention of hidden layers")
     parser.add_argument("--drop_rate", type=float, default=0.8, help="drop_rate")
     parser.add_argument("--num_layers", type=int, default=2)
     parser.add_argument("--l2_coef", type=float, default=0., help="l2 loss coeficient")

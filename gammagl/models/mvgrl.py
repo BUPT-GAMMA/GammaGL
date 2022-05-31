@@ -110,14 +110,17 @@ class MVGRL_Graph(tlx.nn.Module):
         loss = loss1 + loss2
 
         return loss
+
 # ========================= Node Model==============================
+
 class GCNConv_Dense(tlx.nn.Module):
     def __init__(self, in_dim, out_dim, add_bias=True):
         super(GCNConv_Dense, self).__init__()
-        self.fc = tlx.nn.Linear(in_features=in_dim, out_features=out_dim)
+        init = tlx.nn.initializers.XavierUniform()
+        self.fc = tlx.nn.Linear(in_features=in_dim, out_features=out_dim, W_init=init, b_init=None)
 
         if add_bias is True:
-            initor = tlx.initializers.truncated_normal()
+            initor = tlx.initializers.zeros()
             self.bias = self._get_weights("bias", shape=(1, out_dim), init=initor)
 
     def forward(self, adj, feat):
@@ -153,19 +156,15 @@ class Discriminator(tlx.nn.Module):
 
     def forward(self, h1, h2, h3, h4, c1, c2):
         # positive
-        # sc1 = tlx.reduce_sum(tlx.matmul(h2, self.fn.W) * c1, axis=1)
-        # sc2 = tlx.reduce_sum(tlx.matmul(h1, self.fn.W) * c2, axis=1)
         sc1 = tlx.reduce_sum(self.fn(h2) * c1, axis=1)
         sc2 = tlx.reduce_sum(self.fn(h1) * c2, axis=1)
 
         # negative
-        # sc3 = tlx.reduce_sum(tlx.matmul(h4, self.fn.W) * c1, axis=1)
-        # sc4 = tlx.reduce_sum(tlx.matmul(h3, self.fn.W) * c2, axis=1)
         sc3 = tlx.reduce_sum(self.fn(h4) * c1, axis=1)
         sc4 = tlx.reduce_sum(self.fn(h3) * c2, axis=1)
-        logits = tlx.concat((sc1, sc2, sc3, sc4), axis=0)
 
-        return logits
+        return tlx.concat((sc1, sc2, sc3, sc4), axis=0)
+
 
 
 class MVGRL(tlx.nn.Module):
@@ -202,6 +201,7 @@ class MVGRL(tlx.nn.Module):
         if tlx.BACKEND == 'torch':
             edge_index = edge_index.to(feat.device)
             edge_weight = edge_weight.to(feat.device)
+
         h1 = self.act(self.encoder1(feat, edge_index, edge_weight, feat.shape[0]))
         h2 = self.act(self.encoder2(diff_adj, feat))
 

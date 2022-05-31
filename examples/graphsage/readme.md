@@ -19,32 +19,28 @@ python train_full.py --dataset cora     # full graph
 Run with following (available dataset: "cora", "citeseer", "pubmed")
 ```bash
 # use fensorflow background
-TL_BACKEND="tensorflow" python train_full.py --dataset cora --n_epoch 100 --lr 0.001 --hidden_dim 512
-TL_BACKEND="tensorflow" python train_full.py --dataset citeseer --n_epoch 100 --lr 0.001 --hidden_dim 512 
-TL_BACKEND="tensorflow" python train_full.py --dataset pubmed --n_epoch 200 --lr 0.01 --hidden_dim 16
+TL_BACKEND="tensorflow" python train_full.py --dataset cora --lr 0.01 --hidden_dim 128--drop_rate 0.7 --n_epoch 500
 TL_BACKEND="tensorflow" python reddit_sage.py 
 ```
 ```bash
-# use paddle
-TL_BACKEND="paddle" python train_full.py --dataset cora --n_epoch 100 --lr 0.001 --hidden_dim 512
-TL_BACKEND="paddle" python train_full.py --dataset citeseer --n_epoch 100 --lr 0.001 --hidden_dim 512 
-TL_BACKEND="paddle" python train_full.py --dataset pubmed --n_epoch 200 --lr 0.01 --hidden_dim 16
+TL_BACKEND="paddle" python train_full.py --dataset cora --n_epoch 500 --lr 0.005 --hidden_dim 512 --drop_rate 0.7 --n_epoch 500
 TL_BACKEND="paddle" python reddit_sage.py 
 ```
 ```bash
 # use pytorch
 TL_BACKEND="torch" python train_full.py --dataset cora --n_epoch 100 --lr 0.001 --hidden_dim 512
-TL_BACKEND="torch" python train_full.py --dataset citeseer --n_epoch 100 --lr 0.001 --hidden_dim 512 
-TL_BACKEND="torch" python train_full.py --dataset pubmed --n_epoch 200 --lr 0.01 --hidden_dim 16
 TL_BACKEND="torch" python reddit_sage.py 
 ```
 
 
-|      Dataset      |        Cora       | Reddit |
-| :---------------: |:----------------: | :----: |
-|        DGL        |        83.3       | 94.95  |
-|       Paper       |        83.3       | 95.0   |
-|     GammaGL(tf)   |    82.3 ± 0.203   |  95.0  |
-|     GammaGL(th)   | --.-              | --.-   |
-|     GammaGL(pd)   |    81.91 ± 0.401  | 94.8   |
-|     GammaGL(ms)   |      --.-         |  --.-  |
+|      Dataset      |      Cora         | Reddit |
+| :---------------: | :---------------: | :----: |
+|        DGL        |       83.3        | 94.95 |
+|       Paper       |       83.3        | 95.0  |
+|     GammaGL(tf)   |    82.44 ± 0.88   | 95.0  |
+|     GammaGL(th)   |        --.-       | --.-  |
+|     GammaGL(pd)   |    82.04 ± 0.33   | --.-  |
+|     GammaGL(ms)   |        --.-       | --.-  |
+
+* We fail to reproduce the reported accuracy on 'Cora', even with the DGL's code.
+

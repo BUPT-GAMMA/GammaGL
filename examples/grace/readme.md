@@ -47,9 +47,9 @@ In the paper(as well as authors' repo), the training set and testing set are spl
 # use paddle background
 
 # Cora with random split
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python grace_trainer.py --dataset cora
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python grace_trainer.py --dataset cora --n_epoch 100
 # Citeseer with random split
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python grace_trainer.py --dataset citeseer
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python grace_trainer.py --dataset citeseer --n_epoch 20
 ```
 ```bash
 # use tensorflow background
@@ -58,14 +58,17 @@ CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python grace_trainer.py --dataset c
 CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python grace_trainer.py --dataset cora
 # Citeseer with random split
 CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python grace_trainer.py --dataset citeseer
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python grace_trainer.py --dataset citeseer --lr 2e-3 --n_epoch 75 --hid_dim 256
+
 ```
 ```bash 
 # use pytorch background
 
 # Cora with random split
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="torch" python grace_trainer.py --dataset cora
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="torch" python grace_trainer.py --dataset cora --n_epoch 500
 # Citeseer with random split
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="torch" python grace_trainer.py --dataset citeseer
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="torch" python grace_trainer.py --dataset citeseer --n_epoch 200 --lr 1e-3 --l2 1e-5 --hid_dim 256 --drop_edge_rate_1 0.2 --drop_edge_rate_2 0.0 --drop_feature_rate_1 0.3 --drop_feature_rate_2 0.2 --temp 0.9
+
 
 ```
 
@@ -85,7 +88,10 @@ TODO: fix l2_normal on pd and th, run again.
 | :---------------: | :--: | :------: | :----: |
 |   Author's Code   | 83.1 |   71.0   |  86.3  |
 |        DGL        | 83.3 |   72.1   |  86.7  |
-|     GammaGL(tf)   | 82.9 |   69.1   |  >1day |
-|     GammaGL(th)   | --.- |   --.-   |  >1day |
-|     GammaGL(pd)   | --.- |   --.-   |  >1day |
+|     GammaGL(tf)   | 82.9 |   71.2   |  >1day |
+|     GammaGL(th)   | 83.2 |   69.9   |  >1day |
+|     GammaGL(pd)   | 83.2 |   70.1   |  >1day |
 |     GammaGL(ms)   | --.- |   --.-   |  >1day |
+
+* We fail to reproduce the reported accuracy on 'Citeseer' in torch backend, even with the DGL's code.
+* DGL' code can't achieve reported acc
