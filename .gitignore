@@ -14,6 +14,7 @@ examples/pubmed/*
 examples/citeseer/*
 *.npz
 data/*
+examples/dblp/*
 profiler/tlx_mp_op_speed_test/dataset/*
 
 # Byte-compiled / optimized / DLL files
