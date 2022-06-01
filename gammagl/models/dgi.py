@@ -2,16 +2,13 @@ import tensorlayerx as tlx
 import math
 
 from gammagl.layers.conv import GCNConv
-
+import numpy as np
 
 class Discriminator(tlx.nn.Module):
     def __init__(self, n_hid):
         super(Discriminator, self).__init__()
 
         init = tlx.nn.initializers.RandomUniform(-1.0 / math.sqrt(n_hid), 1.0 / math.sqrt(n_hid))
-        # tlx dont support Variable in paddle backend
-        # self.ww = tlx.Variable(init(shape=(n_hid, n_hid), dtype=tlx.float32), name="ww", trainable=True)
-
         self.fc = tlx.nn.Linear(in_features=n_hid, out_features=n_hid, W_init=init)
 
     def forward(self, feat, summary):
@@ -27,8 +24,13 @@ class GCN(tlx.nn.Module):
         self.act = act
 
 
-    def forward(self, feat, edge_index, edge_weight, num_nodes):
-        x = self.conv(feat, edge_index, edge_weight, num_nodes)
+    def forward(self, feat, edge_index, edge_weight, num_nodes, cor=False):
+        if cor == False:
+            x = self.conv(feat, edge_index, edge_weight, num_nodes)
+        else:
+            perm = np.random.permutation(num_nodes)
+            feat = tlx.gather(feat, tlx.convert_to_tensor(perm, dtype=tlx.int64))
+            x = self.conv(feat, edge_index, edge_weight, num_nodes)
         return self.act(x)
 
 
@@ -48,9 +50,9 @@ class DGIModel(tlx.nn.Module):
         self.disc = Discriminator(hid_feat)
         self.loss = tlx.losses.sigmoid_cross_entropy
 
-    def forward(self, feat1, feat2, edge_index, edge_weight, num_nodes):
-        pos = self.gcn(feat1, edge_index, edge_weight, num_nodes)
-        neg = self.gcn(feat2, edge_index, edge_weight, num_nodes)
+    def forward(self, feat, edge_index, edge_weight, num_nodes):
+        pos = self.gcn(feat, edge_index, edge_weight, num_nodes)
+        neg = self.gcn(feat, edge_index, edge_weight, num_nodes, True)
 
         summary = tlx.sigmoid(tlx.reduce_mean(pos, axis=0))
 
