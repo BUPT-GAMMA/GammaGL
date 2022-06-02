@@ -1,7 +1,6 @@
 import json
 import sys
 import os
-os.environ['TL_BACKEND'] = 'paddle'
 import os.path as osp
 sys.path.insert(0, osp.abspath('../../'))
 from collections import defaultdict
@@ -143,10 +142,10 @@ class HGBDataset(InMemoryDataset):
                 x_dict[n_type].append([float(v) for v in x[3].split(',')])
         for n_type in n_types.values():
             if len(x_dict[n_type]) == 0:
-                data[n_type].x = tlx.ops.convert_to_tensor(np.identity(num_nodes_dict[n_type]))
+                data[n_type].x = tlx.ops.convert_to_tensor(np.identity(num_nodes_dict[n_type]), dtype='float64')
                 data[n_type].num_nodes = num_nodes_dict[n_type]
             else:
-                data[n_type].x = tlx.ops.convert_to_tensor(x_dict[n_type])
+                data[n_type].x = tlx.ops.convert_to_tensor(x_dict[n_type], dtype='float64')
                 data[n_type].num_nodes = num_nodes_dict[n_type]
         data['_num_nodes'] = 0
         for value in num_nodes_dict.values():
@@ -170,9 +169,13 @@ class HGBDataset(InMemoryDataset):
             edge_index_dict[e_type].append([src, dst])
             edge_weight_dict[e_type].append(float(weight))
 
+        #??('generated_tensor_4', array([[    0,     0,     1, ..., 26127, 26127, 26127],
+        #[ 6421, 10514,  6422, ..., 18382, 18383, 18384]]))
         data['_edge_index'] = tlx.convert_to_tensor(np.array(_edge_index).T)
+        #print(type(data['_edge_index'])) -> <class 'paddle.Tensor'>
         data['_edge_weight'] = tlx.convert_to_tensor(_edge_weight)
         data['_edge2feat'] = _edge2feat
+
         for e_type in e_types.values():
             #TODO:t() tlx.ops应该提供一下转置操作
             edge_index = tlx.ops.convert_to_tensor(np.array(edge_index_dict[e_type]).T)
@@ -226,6 +229,7 @@ class HGBDataset(InMemoryDataset):
             data[n_type].train_mask = tlx.ops.convert_to_tensor(data[n_type].train_mask)
             
             data[n_type].test_mask = tlx.ops.convert_to_tensor(data[n_type].test_mask)
+            #paddle后端，将tensor赋值给另一个对象时，会变成tuple
             data['_y'] = data[n_type].y
             data['_train_mask'] = data[n_type].train_mask
             data['_test_mask'] = data[n_type].test_mask

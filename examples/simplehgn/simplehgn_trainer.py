@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+os.environ['TL_BACKEND'] = 'tensorflow'
 sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 sys.path.insert(0, os.path.abspath('./')) # adds path2gammagl to execute in command line.
 import tensorlayerx as tlx
@@ -10,8 +11,6 @@ from gammagl.models import SimpleHGNModel
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.utils import add_self_loops, mask_to_index
 
-def TODO():
-    return
 
 
 def calculate_f1_score(val_logits, val_y):
@@ -22,14 +21,13 @@ class SemiSpvzLoss(WithLoss):
         super(SemiSpvzLoss,self).__init__(backbone = model, loss_fn = loss_fn)
 
     def forward(self, data, label):
-        logits = self.backbone_network(data['x'])
+        logits = self.backbone_network(data['x'], data['edge_index'], data['e_feat'])
         train_logits = tlx.gather(logits, data["train_idx"])
         train_y = tlx.gather(data["y"], data["train_idx"])
         loss = self._loss_fn(train_logits, train_y)
         return loss
 
 def main(args):
-    TODO()
     if(str.lower(args.dataset) not in ['dblp',]):
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     Unknownname = {
@@ -38,6 +36,7 @@ def main(args):
 
     dataset = HGBDataset(args.dataset_path, args.dataset)
     graph = dataset[0]
+    
     edge_index, _ = add_self_loops(graph._edge_index, n_loops=1, num_nodes=graph._num_nodes)
     val_ratio = 0.2 
     train_idx = mask_to_index(graph._train_mask)
@@ -48,11 +47,14 @@ def main(args):
     y = graph._y
     num_nodes = graph._num_nodes
     x = [ graph[node_type].x for node_type in Unknownname[str.lower(args.dataset)]]
-    feature_dims = [graph[node_type].x.shape[0] for node_type in Unknownname[str.lower(args.dataset)]]
+    feature_dims = [graph[node_type].x.shape[1] for node_type in Unknownname[str.lower(args.dataset)]]
+
+    tensor_list = [ tlx.ops.ones(shape=(feature_dim, args.hidden_dim)) for feature_dim in feature_dims]
+    x = [ tlx.ops.matmul(a,b)  for a,b in zip(x,tensor_list)]
+    x = tlx.ops.concat(x, axis=0)
     heads_list = [args.heads] * args.num_layers + [1]
     num_etypes = graph._num_etypes
     num_classes = graph._num_classes
-    #e_feat还需要根据边的类型生成
     edge2feat = graph._edge2feat
     
     e_feat = []
@@ -65,17 +67,17 @@ def main(args):
 
     e_feat = tlx.ops.convert_to_tensor(e_feat)
 
-    activation = tlx.nn.activation.ELU()
+    #activation = tlx.nn.activation.ELU()
 
     data = {
         'x': x,
+        'e_feat':e_feat,
         'y': y,
         'edge_index': edge_index,
         'train_idx': train_idx,
         'val_idx': val_idx,
         'test_idx': test_idx
     }
-
 
     for _ in range(args.repeat):
         model = SimpleHGNModel(feature_dims=feature_dims, 
@@ -85,40 +87,54 @@ def main(args):
                           num_etypes=num_etypes + 1, 
                           num_classes=num_classes, 
                           num_layers=args.num_layers, 
-                          activation=activation, 
+                          #activation=activation, 
+                          activation=None,
                           feat_drop=args.drop_rate, 
                           attn_drop=args.drop_rate, 
                           negative_slope=args.slope, 
                           residual=True, 
                           beta=0.05)
 
-        
-        model(data['x'], data['edge_index'], e_feat)
-        return 
         loss = tlx.losses.softmax_cross_entropy_with_logits
         optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.weight_decay)
 
         train_weights = model.trainable_weights
-
         loss_func = SemiSpvzLoss(model, loss)
         train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
-        best_val_acc = 0
+        best_val_loss = float('inf')
+        early_stop_count = 0
         for epoch in range(args.n_epoch):
-            TODO()
+            model.set_train()
+            train_loss = train_one_step(data, y)
+            model.set_eval()
+            logits = model(data['x'], data['edge_index'], data['e_feat'])
+            val_logits = tlx.gather(logits, data['val_idx'])
+            val_y = tlx.gather(data['y'], data['val_idx'])
+            val_loss = loss(val_logits, val_y)
+            val_micro_f1, val_macrp_f1 = calculate_f1_score(val_logits, val_y)
+            print("Epoch [{:0>3d}]  ".format(epoch + 1),
+               "   train loss: {:.4f}".format(train_loss.item()),
+               "   val micro: {:.4f}".format(val_micro_f1),
+               "   val macro: {:.4f}".format(val_macrp_f1),)
+            if(val_loss < best_val_loss):
+                best_val_loss = val_loss
+                count = 0
+                model.save_weights(args.best_model_path+model.name+'.npz', format='npz.dict')
+            else:
+                count += 1
+            if(count >= args.patience):
+                break
 
-
-
-
-
-
-
-
-
-
-
-
-
+        model.load_weights(args.best_model_path+model.name+".npz", format='npz_dict')
+        if tlx.BACKEND == 'torch':
+            model.to(data["x"].device)
+        model.set_eval()
+        logits = model(data['x'], data['edge_index'], data['e_feat'])
+        test_logits = tlx.gather(logits, data['test_idx'])
+        test_y = tlx.gather(data['y'], data['test_idx'])
+        test_micro_f1, test_macro_f1 = calculate_f1_score(test_logits, test_y)
+        print("Test micro:  {:.4f}, Test macro: {:.4f}".format(test_micro_f1, test_macro_f1))
 
 
 
