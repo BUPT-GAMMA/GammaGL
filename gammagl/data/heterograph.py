@@ -212,6 +212,14 @@ class HeteroGraph(BaseGraph):
         r"""Returns a list of all edge storages of the graph."""
         return list(self._edge_store_dict.values())
 
+    def node_items(self) -> List[Tuple[NodeType, NodeStorage]]:
+        r"""Returns a list of node type and node storage pairs."""
+        return list(self._node_store_dict.items())
+
+    def edge_items(self) -> List[Tuple[EdgeType, EdgeStorage]]:
+        r"""Returns a list of edge type and edge storage pairs."""
+        return list(self._edge_store_dict.items())
+
     def to_dict(self) -> Dict[str, Any]:
         out = self._global_store.to_dict()
         for key, store in chain(self._node_store_dict.items(),
@@ -257,7 +265,29 @@ class HeteroGraph(BaseGraph):
     def num_nodes(self) -> Optional[int]:
         r"""Returns the number of nodes in the graph."""
         return super().num_nodes
-    
+
+    @property
+    def num_node_features(self) -> Dict[NodeType, int]:
+        r"""Returns the number of features per node type in the graph."""
+        return {
+            key: store.num_node_features
+            for key, store in self._node_store_dict.items()
+        }
+
+    @property
+    def num_features(self) -> Dict[NodeType, int]:
+        r"""Returns the number of features per node type in the graph.
+        Alias for :py:attr:`~num_node_features`."""
+        return self.num_node_features
+
+    @property
+    def num_edge_features(self) -> Dict[EdgeType, int]:
+        r"""Returns the number of features per edge type in the graph."""
+        return {
+            key: store.num_edge_features
+            for key, store in self._edge_store_dict.items()
+        }
+
     def adj(self, scipy_fmt='coo', etype=None):
         row, col = self[etype].edge_index
         row = tlx.convert_to_numpy(row)
@@ -422,127 +452,147 @@ class HeteroGraph(BaseGraph):
             out = EdgeStorage(_parent=self, _key=key)
             self._edge_store_dict[key] = out
         return out
-    #
-    # def to_homogeneous(self, node_attrs: Optional[List[str]] = None,
-    #                    edge_attrs: Optional[List[str]] = None,
-    #                    add_node_type: bool = True,
-    #                    add_edge_type: bool = True) -> Graph:
-    #     """Converts a :class:`~torch_geometric.data.HeteroGraph` object to a
-    #     homogeneous :class:`~torch_geometric.data.Data` object.
-    #     By default, all features with same feature dimensionality across
-    #     different types will be merged into a single representation, unless
-    #     otherwise specified via the :obj:`node_attrs` and :obj:`edge_attrs`
-    #     arguments.
-    #     Furthermore, attributes named :obj:`node_type` and :obj:`edge_type`
-    #     will be added to the returned :class:`~torch_geometric.data.Data`
-    #     object, denoting node-level and edge-level vectors holding the
-    #     node and edge type as integers, respectively.
-    #     Args:
-    #         node_attrs (List[str], optional): The node features to combine
-    #             across all node types. These node features need to be of the
-    #             same feature dimensionality. If set to :obj:`None`, will
-    #             automatically determine which node features to combine.
-    #             (default: :obj:`None`)
-    #         edge_attrs (List[str], optional): The edge features to combine
-    #             across all edge types. These edge features need to be of the
-    #             same feature dimensionality. If set to :obj:`None`, will
-    #             automatically determine which edge features to combine.
-    #             (default: :obj:`None`)
-    #         add_node_type (bool, optional): If set to :obj:`False`, will not
-    #             add the node-level vector :obj:`node_type` to the returned
-    #             :class:`~torch_geometric.data.Data` object.
-    #             (default: :obj:`True`)
-    #         add_edge_type (bool, optional): If set to :obj:`False`, will not
-    #             add the edge-level vector :obj:`edge_type` to the returned
-    #             :class:`~torch_geometric.data.Data` object.
-    #             (default: :obj:`True`)
-    #     """
-    #     def _consistent_size(stores: List[BaseStorage]) -> List[str]:
-    #         sizes_dict = defaultdict(list)
-    #         for store in stores:
-    #             for key, value in store.items():
-    #                 if key in ['edge_index', 'adj_t']:
-    #                     continue
-    #                 if isinstance(value, Tensor):
-    #                     dim = self.__cat_dim__(key, value, store)
-    #                     size = value.size()[:dim] + value.size()[dim + 1:]
-    #                     sizes_dict[key].append(tuple(size))
-    #         return [
-    #             k for k, sizes in sizes_dict.items()
-    #             if len(sizes) == len(stores) and len(set(sizes)) == 1
-    #         ]
-    #
-    #     data = Data(**self._global_store.to_dict())
-    #
-    #     # Iterate over all node stores and record the slice information:
-    #     node_slices, cumsum = {}, 0
-    #     node_type_names, node_types = [], []
-    #     for i, (node_type, store) in enumerate(self._node_store_dict.items()):
-    #         num_nodes = store.num_nodes
-    #         node_slices[node_type] = (cumsum, cumsum + num_nodes)
-    #         node_type_names.append(node_type)
-    #         cumsum += num_nodes
-    #
-    #         if add_node_type:
-    #             kwargs = {'dtype': torch.long}
-    #             node_types.append(torch.full((num_nodes, ), i, **kwargs))
-    #     data._node_type_names = node_type_names
-    #
-    #     if len(node_types) > 1:
-    #         data.node_type = torch.cat(node_types, dim=0)
-    #     elif len(node_types) == 1:
-    #         data.node_type = node_types[0]
-    #
-    #     # Combine node attributes into a single tensor:
-    #     if node_attrs is None:
-    #         node_attrs = _consistent_size(self.node_stores)
-    #     for key in node_attrs:
-    #         values = [store[key] for store in self.node_stores]
-    #         dim = self.__cat_dim__(key, values[0], self.node_stores[0])
-    #         value = torch.cat(values, dim) if len(values) > 1 else values[0]
-    #         data[key] = value
-    #
-    #     if len([
-    #             key for key in node_attrs
-    #             if (key in {'x', 'pos', 'batch'} or 'node' in key)
-    #     ]) == 0 and not add_node_type:
-    #         data.num_nodes = cumsum
-    #
-    #     # Iterate over all edge stores and record the slice information:
-    #     edge_slices, cumsum = {}, 0
-    #     edge_indices, edge_type_names, edge_types = [], [], []
-    #     for i, (edge_type, store) in enumerate(self._edge_store_dict.items()):
-    #         src, _, dst = edge_type
-    #         num_edges = store.num_edges
-    #         edge_slices[edge_type] = (cumsum, cumsum + num_edges)
-    #         edge_type_names.append(edge_type)
-    #         cumsum += num_edges
-    #
-    #         kwargs = {'dtype': torch.long, 'device': store.edge_index.device}
-    #         offset = [[node_slices[src][0]], [node_slices[dst][0]]]
-    #         offset = torch.tensor(offset, **kwargs)
-    #         edge_indices.append(store.edge_index + offset)
-    #         if add_edge_type:
-    #             edge_types.append(torch.full((num_edges, ), i, **kwargs))
-    #     data._edge_type_names = edge_type_names
-    #
-    #     if len(edge_indices) > 1:
-    #         data.edge_index = torch.cat(edge_indices, dim=-1)
-    #     elif len(edge_indices) == 1:
-    #         data.edge_index = edge_indices[0]
-    #
-    #     if len(edge_types) > 1:
-    #         data.edge_type = torch.cat(edge_types, dim=0)
-    #     elif len(edge_types) == 1:
-    #         data.edge_type = edge_types[0]
-    #
-    #     # Combine edge attributes into a single tensor:
-    #     if edge_attrs is None:
-    #         edge_attrs = _consistent_size(self.edge_stores)
-    #     for key in edge_attrs:
-    #         values = [store[key] for store in self.edge_stores]
-    #         dim = self.__cat_dim__(key, values[0], self.edge_stores[0])
-    #         value = torch.cat(values, dim) if len(values) > 1 else values[0]
-    #         data[key] = value
-    #
-    #     return data
+
+    def rename(self, name: NodeType, new_name: NodeType) -> 'HeteroGraph':
+        r"""Renames the node type :obj:`name` to :obj:`new_name` in-place."""
+        node_store = self._node_store_dict.pop(name)
+        node_store._key = new_name
+        self._node_store_dict[new_name] = node_store
+
+        for edge_type in self.edge_types:
+            src, rel, dst = edge_type
+            if src == name or dst == name:
+                edge_store = self._edge_store_dict.pop(edge_type)
+                src = new_name if src == name else src
+                dst = new_name if dst == name else dst
+                edge_type = (src, rel, dst)
+                edge_store._key = edge_type
+                self._edge_store_dict[edge_type] = edge_store
+
+        return self
+
+    def to_homogeneous(self, node_attrs: Optional[List[str]] = None,
+                       edge_attrs: Optional[List[str]] = None,
+                       add_node_type: bool = True,
+                       add_edge_type: bool = True) -> Graph:
+        """Converts a :class:`~gammagl.data.HeteroGraph` object to a
+        homogeneous :class:`~gammagl.data.Graph` object.
+        By default, all features with same feature dimensionality across
+        different types will be merged into a single representation, unless
+        otherwise specified via the :obj:`node_attrs` and :obj:`edge_attrs`
+        arguments.
+        Furthermore, attributes named :obj:`node_type` and :obj:`edge_type`
+        will be added to the returned :class:`~gammagl.data.Graph`
+        object, denoting node-level and edge-level vectors holding the
+        node and edge type as integers, respectively.
+        Args:
+            node_attrs (List[str], optional): The node features to combine
+                across all node types. These node features need to be of the
+                same feature dimensionality. If set to :obj:`None`, will
+                automatically determine which node features to combine.
+                (default: :obj:`None`)
+            edge_attrs (List[str], optional): The edge features to combine
+                across all edge types. These edge features need to be of the
+                same feature dimensionality. If set to :obj:`None`, will
+                automatically determine which edge features to combine.
+                (default: :obj:`None`)
+            add_node_type (bool, optional): If set to :obj:`False`, will not
+                add the node-level vector :obj:`node_type` to the returned
+                :class:`~torch_geometric.data.Data` object.
+                (default: :obj:`True`)
+            add_edge_type (bool, optional): If set to :obj:`False`, will not
+                add the edge-level vector :obj:`edge_type` to the returned
+                :class:`~torch_geometric.data.Data` object.
+                (default: :obj:`True`)
+        """
+        import torch
+        def _consistent_size(stores: List[BaseStorage]) -> List[str]:
+            sizes_dict = defaultdict(list)
+            for store in stores:
+                for key, value in store.items():
+                    if key in ['edge_index', 'adj_t']:
+                        continue
+                    if tlx.is_tensor(value):
+                        dim = self.__cat_dim__(key, value, store)
+                        size = tlx.get_tensor_shape(value)[:dim] + tlx.get_tensor_shape(value)[dim + 1:]
+                        sizes_dict[key].append(tuple(size))
+            return [
+                k for k, sizes in sizes_dict.items()
+                if len(sizes) == len(stores) and len(set(sizes)) == 1
+            ]
+
+        data = Graph(**self._global_store.to_dict())
+
+        # Iterate over all node stores and record the slice information:
+        node_slices, cumsum = {}, 0
+        node_type_names, node_types = [], []
+        for i, (node_type, store) in enumerate(self._node_store_dict.items()):
+            num_nodes = store.num_nodes
+            node_slices[node_type] = (cumsum, cumsum + num_nodes)
+            node_type_names.append(node_type)
+            cumsum += num_nodes
+
+            if add_node_type:
+                kwargs = {'dtype': tlx.int64}
+                node_types.append(tlx.constant(shape=(num_nodes, ), value=i, **kwargs))
+        data._node_type_names = node_type_names
+
+        if len(node_types) > 1:
+            data.node_type = tlx.concat(node_types, axis=0)
+        elif len(node_types) == 1:
+            data.node_type = node_types[0]
+
+        # Combine node attributes into a single tensor:
+        if node_attrs is None:
+            node_attrs = _consistent_size(self.node_stores)
+        for key in node_attrs:
+            values = [store[key] for store in self.node_stores]
+            dim = self.__cat_dim__(key, values[0], self.node_stores[0])
+            value = tlx.concat(values, axis=dim) if len(values) > 1 else values[0]
+            data[key] = value
+
+        if len([
+                key for key in node_attrs
+                if (key in {'x', 'pos', 'batch'} or 'node' in key)
+        ]) == 0 and not add_node_type:
+            data.num_nodes = cumsum
+
+        # Iterate over all edge stores and record the slice information:
+        edge_slices, cumsum = {}, 0
+        edge_indices, edge_type_names, edge_types = [], [], []
+        for i, (edge_type, store) in enumerate(self._edge_store_dict.items()):
+            src, _, dst = edge_type
+            num_edges = store.num_edges
+            edge_slices[edge_type] = (cumsum, cumsum + num_edges)
+            edge_type_names.append(edge_type)
+            cumsum += num_edges
+
+            # kwargs = {'dtype': tlx.int64, 'device': store.edge_index.device}
+            kwargs = {'dtype': tlx.int64}
+            offset = [[node_slices[src][0]], [node_slices[dst][0]]]
+            offset = tlx.convert_to_tensor(offset, **kwargs)
+            edge_indices.append(store.edge_index + offset)
+            if add_edge_type:
+                edge_types.append(tlx.constant(shape=(num_edges, ), value=i, **kwargs))
+        data._edge_type_names = edge_type_names
+
+        if len(edge_indices) > 1:
+            data.edge_index = tlx.concat(edge_indices, axis=-1)
+        elif len(edge_indices) == 1:
+            data.edge_index = edge_indices[0]
+
+        if len(edge_types) > 1:
+            data.edge_type = tlx.concat(edge_types, axis=0)
+        elif len(edge_types) == 1:
+            data.edge_type = edge_types[0]
+
+        # Combine edge attributes into a single tensor:
+        if edge_attrs is None:
+            edge_attrs = _consistent_size(self.edge_stores)
+        for key in edge_attrs:
+            values = [store[key] for store in self.edge_stores]
+            dim = self.__cat_dim__(key, values[0], self.edge_stores[0])
+            value = tlx.concat(values, axis=dim) if len(values) > 1 else values[0]
+            data[key] = value
+
+        return data

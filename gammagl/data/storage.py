@@ -9,7 +9,7 @@ from typing import (Any, Callable, Dict, Iterable, List, NamedTuple, Optional,
 import numpy as np
 import tensorlayerx as tlx
 from gammagl.data.view import ItemsView, KeysView, ValuesView
-from gammagl.utils import is_undirected
+from gammagl.utils import is_undirected, coalesce
 
 # Node-types are denoted by a single string, e.g.: `data['paper']`:
 NodeType = str
@@ -333,7 +333,7 @@ class EdgeStorage(BaseStorage):
 		# We sequentially access attributes that reveal the number of edges.
 		for key, value in self.items():
 			if tlx.is_tensor(value) and 'edge' in key:
-				return value.size(self._parent().__cat_dim__(key, value, self))
+				return tlx.get_tensor_shape(value)[self._parent().__cat_dim__(key, value, self)]
 		# for value in self.values('adj', 'adj_t'):
 		#     if isinstance(value, SparseTensor):
 		#         return value.nnz()
@@ -374,27 +374,27 @@ class EdgeStorage(BaseStorage):
 	#         return False
 	#     return True
 	#
-	# def is_coalesced(self) -> bool:
-	#     for value in self.values('adj', 'adj_t'):
-	#         return value.is_coalesced()
-	#
-	#     edge_index = self.edge_index
-	#     new_edge_index, _ = coalesce(edge_index, None, self.size(0),
-	#                                  self.size(1))
-	#     return (edge_index.numel() == new_edge_index.numel() and bool(
-	#         (edge_index == new_edge_index).all()))
-	#
-	# def coalesce(self, reduce: str = 'sum'):
-	#     for key, value in self.items('adj', 'adj_t'):
-	#         self[key] = value.coalesce(reduce)
-	#
-	#     if 'edge_index' in self:
-	#         edge_index = self.edge_index
-	#         edge_attr = self.edge_attr if 'edge_attr' in self else None
-	#         self.edge_index, self.edge_attr = coalesce(edge_index, edge_attr,
-	#                                                    *self.size(), op=reduce)
-	#
-	#     return self
+	def is_coalesced(self) -> bool:
+		for value in self.values('adj', 'adj_t'):
+			return value.is_coalesced()
+
+		edge_index = self.edge_index
+		new_edge_index = coalesce(edge_index)
+		return tlx.convert_to_numpy(edge_index).size == tlx.convert_to_numpy(new_edge_index).size
+
+	def coalesce(self, reduce: str = 'sum'):
+		for key, value in self.items('adj', 'adj_t'):
+			self[key] = value.coalesce(reduce)
+
+		if 'edge_index' in self:
+			edge_index = self.edge_index
+			if 'edge_attr' in self:
+				edge_attr = self.edge_attr
+				self.edge_index, self.edge_attr = coalesce(edge_index, edge_attr, reduce=reduce)
+			else:
+				self.edge_index = coalesce(edge_index, reduce=reduce)
+
+		return self
 	
 	def has_isolated_nodes(self) -> bool:
 		edge_index, num_nodes = self.edge_index, self.size(1)
