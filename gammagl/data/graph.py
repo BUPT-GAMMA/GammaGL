@@ -540,7 +540,6 @@ class Graph(BaseGraph):
 	# 	return data
 
 	@property
-	@property
 	def in_degree(self):
 		r"""
 		Graph property, return the node in-degree of the graph.
