@@ -149,8 +149,8 @@ class HGBDataset(InMemoryDataset):
                 data[n_type].num_nodes = num_nodes_dict[n_type]
         #Note:to_homo()会提供num_nodes
         #data['_num_nodes'] = 0
-        #for value in num_nodes_dict.values():
-        #    data['_num_nodes'] += value
+        for value in num_nodes_dict.values():
+            data['_num_nodes'] += value
 
         edge_index_dict = defaultdict(list)
         edge_weight_dict = defaultdict(list)
@@ -173,14 +173,14 @@ class HGBDataset(InMemoryDataset):
         #??('generated_tensor_4', array([[    0,     0,     1, ..., 26127, 26127, 26127],
         #[ 6421, 10514,  6422, ..., 18382, 18383, 18384]]))
         #Note:to_homo会提供edge_index()
-        #data['_edge_index'] = tlx.convert_to_tensor(np.array(_edge_index).T)
+        data['_edge_index'] = tlx.convert_to_tensor(np.array(_edge_index).T)
         #print(type(data['_edge_index'])) -> <class 'paddle.Tensor'>
 
         #Note:edge_weight没用，全是1
-        #data['_edge_weight'] = tlx.convert_to_tensor(_edge_weight)
+        data['_edge_weight'] = tlx.convert_to_tensor(_edge_weight)
 
         #Note:edge2feat需要根据to_homo得到的同质图配合异质图上的信息得到
-        #data['_edge2feat'] = _edge2feat
+        data['_edge2feat'] = _edge2feat
 
         for e_type in e_types.values():
             edge_index = tlx.ops.convert_to_tensor(np.array(edge_index_dict[e_type]).T)

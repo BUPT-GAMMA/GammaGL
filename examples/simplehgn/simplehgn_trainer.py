@@ -49,9 +49,9 @@ def main(args):
     x = [ graph[node_type].x for node_type in Unknownname[str.lower(args.dataset)]]
     feature_dims = [graph[node_type].x.shape[1] for node_type in Unknownname[str.lower(args.dataset)]]
 
-    tensor_list = [ tlx.ops.ones(shape=(feature_dim, args.hidden_dim)) for feature_dim in feature_dims]
-    x = [ tlx.ops.matmul(a,b)  for a,b in zip(x,tensor_list)]
-    x = tlx.ops.concat(x, axis=0)
+    #tensor_list = [ tlx.ops.ones(shape=(feature_dim, args.hidden_dim)) for feature_dim in feature_dims]
+    #x = [ tlx.ops.matmul(a,b)  for a,b in zip(x,tensor_list)]
+    #x = tlx.ops.concat(x, axis=0)
     heads_list = [args.heads] * args.num_layers + [1]
     num_etypes = graph._num_etypes
     num_classes = graph._num_classes
@@ -100,6 +100,7 @@ def main(args):
 
         train_weights = model.trainable_weights
         loss_func = SemiSpvzLoss(model, loss)
+        
         train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
         best_val_loss = float('inf')
@@ -112,18 +113,20 @@ def main(args):
             val_logits = tlx.gather(logits, data['val_idx'])
             val_y = tlx.gather(data['y'], data['val_idx'])
             val_loss = loss(val_logits, val_y)
-            val_micro_f1, val_macrp_f1 = calculate_f1_score(val_logits, val_y)
+            #val_micro_f1, val_macro_f1 = calculate_f1_score(val_logits, val_y)
             print("Epoch [{:0>3d}]  ".format(epoch + 1),
                "   train loss: {:.4f}".format(train_loss.item()),
-               "   val micro: {:.4f}".format(val_micro_f1),
-               "   val macro: {:.4f}".format(val_macrp_f1),)
+               "   val loss: {:.4f}".format(val_loss),
+            #   "   val micro: {:.4f}".format(val_micro_f1),
+            #   "   val macro: {:.4f}".format(val_macrp_f1),)
+            )
             if(val_loss < best_val_loss):
                 best_val_loss = val_loss
-                count = 0
+                early_stop_count = 0
                 model.save_weights(args.best_model_path+model.name+'.npz', format='npz.dict')
             else:
-                count += 1
-            if(count >= args.patience):
+                early_stop_count += 1
+            if(early_stop_count >= args.patience):
                 break
 
         model.load_weights(args.best_model_path+model.name+".npz", format='npz_dict')
@@ -162,6 +165,7 @@ if __name__ == '__main__':
     parser.add_argument('--edge_dim', type=int, default=64)
     parser.add_argument('--run', type=int, default=1)
     parser.add_argument('--dataset_path', type = str, default = r"../")
+    parser.add_argument("--best_model_path", type = str, default = r"./")
 
     args = parser.parse_args()
     main(args)
