@@ -1,5 +1,5 @@
-# DGL Implementation of MVGRL
-This DGL example implements the model proposed in the paper [Contrastive Multi-View Representation Learning on Graphs](https://arxiv.org/abs/2006.05582).
+# GammaGL Implementation of MVGRL
+This GammaGL example implements the model proposed in the paper [Contrastive Multi-View Representation Learning on Graphs](https://arxiv.org/abs/2006.05582).
 
 Author's code: https://github.com/kavehhassani/mvgrl
 
@@ -50,7 +50,7 @@ Author's code: https://github.com/kavehhassani/mvgrl
 --n_epochs          int     Number of training periods.            Default is 500.
 --patience         int     Early stopping steps.                  Default is 20.
 --lr             float   Learning rate of main model.           Default is 0.001.
--- clf_lr             float   Learning rate of linear classifer.     Default is 0.01.
+--clf_lr             float   Learning rate of linear classifer.     Default is 0.01.
 --l2_coef              float   Weight decay of main model.            Default is 0.0.
 --clf_l2_coef              float   Weight decay of linear classifier.     Default is 0.0.
 --epsilon          float   Edge mask threshold.                   Default is 0.01.
@@ -67,16 +67,25 @@ Author's code: https://github.com/kavehhassani/mvgrl
 cd graph
 
 # MUTAG:
-python main.py --dataset MUTAG --n_epoch 20
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python mvgrl_trainer.py --dataset MUTAG --n_epoch 20
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python mvgrl_trainer.py --dataset MUTAG --n_epoch 20
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="torch" python mvgrl_trainer.py --dataset MUTAG --n_epoch 20
 
 # PTC_MR:
-python main.py --dataset PTC_MR --epochs 32 --hid_dim 128
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python mvgrl_trainer.py --dataset PTC_MR --epochs 32 --hid_dim 128
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python mvgrl_trainer.py --dataset PTC_MR --epochs 32 --hid_dim 128
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="torch" python mvgrl_trainer.py --dataset PTC_MR --epochs 32 --hid_dim 128
 
 # IMDB-BINARY
-python main.py --dataset IMDB-BINARY --epochs 20 --hid_dim 512 --n_layers 2
 
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle"  python mvgrl_trainer.py --dataset IMDB-BINARY --epochs 20 --hid_dim 512 --n_layers 2
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python mvgrl_trainer.py --dataset IMDB-BINARY --epochs 20 --hid_dim 512 --n_layers 2
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="torch" python mvgrl_trainer.py --dataset IMDB-BINARY --epochs 20 --hid_dim 512 --n_layers 2
 # IMDB-MULTI
-python main.py --dataset IMDB-MULTI --epochs 20 --hid_dim 512 --n_layers 2
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python mvgrl_trainer.py --dataset IMDB-MULTI --epochs 20 --hid_dim 512 --n_layers 2
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python mvgrl_trainer.py --dataset IMDB-MULTI --epochs 20 --hid_dim 512 --n_layers 2
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="torch" python mvgrl_trainer.py --dataset IMDB-MULTI --epochs 20 --hid_dim 512 --n_layers 2
+
 ```
 ###### Node Classification
 
@@ -89,10 +98,14 @@ full-graph training, see 'mvgrl_trainer.py', where we contrast the local and glo
 cd node
 
 # Cora with full graph
-python mvgrl_trainer.py --dataset cora 
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python mvgrl_trainer.py --dataset cora 
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python mvgrl_trainer.py --dataset cora 
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="torch" python mvgrl_trainer.py --dataset cora 
 
 # Citeseer 
-python mvgrl_trainer.py --dataset citeseer
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python mvgrl_trainer.py --dataset citeseer
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python mvgrl_trainer.py --dataset citeseer
+CUDA_VISIBLE_DEVICES="0" TL_BACKEND="torch" python mvgrl_trainer.py --dataset citeseer
 ```
 
 ## 	Performance
@@ -110,11 +123,10 @@ We use the same  hyper-parameter settings as stated in the original paper.
 |    GammaGL(pd)    | --.-  |  --.-  |   --.-   |  --.-  |  --.-  |
 |    GammaGL(ms)    | --.-  |  --.-  |   --.-   |  --.-  |  --.-  |
 
-* The datasets that the authors used are slightly different from standard TUDataset (see dgl.data.GINDataset) in the nodes' features(e.g. The node features of 'MUTAG' dataset are of dimensionality 11 rather than 7")
+* The datasets that the authors used are slightly different from standard TUDataset (see gammagl.data.TUDataset) in the nodes' features(e.g. The node features of 'MUTAG' dataset are of dimensionality 11 rather than 7")
 
 ##### Node classification:
 
-TODO: tlx prelu
 
 
 |      Dataset      | Cora | Citeseer | Pubmed |
@@ -122,7 +134,7 @@ TODO: tlx prelu
 | Accuracy Reported | 86.8 |   73.3   |  80.1  |
 |    DGL-sample     | 83.2 |   72.6   |  79.8  |
 |     DGL-full      | 83.5 |   73.7   |  OOM   |
-|     GammaGL(tf)   | 82.8 |   73.3   |  OOM   |
+|     GammaGL(tf)   | 81.64 ± 0.50 |   73.3   |  OOM   |
 |     GammaGL(th)   | 82.8 |   73.9   |  OOM   |
 |     GammaGL(pd)   | 82.5 |   --.-   |  OOM   |
 |     GammaGL(ms)   | --.- |   --.-   |  OOM   |
@@ -130,3 +142,4 @@ TODO: tlx prelu
 
 * We fail to reproduce the reported accuracy on 'Cora', even with the authors' code.
 * The accuracy reported by the original paper is based on fixed-sized subgraph-training.
+* The model performance is the average of 3 tests

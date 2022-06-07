@@ -44,7 +44,7 @@ This example was implemented by Siyuan Zhang
 In the paper(as well as authors' repo), the training set and testing set are split randomly with 1:9 ratio. In order to fairly compare it with other methods with the public split (20 training nodes each class), in this repo we also provide its results using the public split (with fine-tuned hyper-parameters). To run the examples, follow the following instructions.
 
 ```bash
-# use paddle background
+# use paddle backend
 
 # Cora with random split
 CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python grace_trainer.py --dataset cora --n_epoch 100
@@ -52,7 +52,7 @@ CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python grace_trainer.py --dataset c
 CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python grace_trainer.py --dataset citeseer --n_epoch 20
 ```
 ```bash
-# use tensorflow background
+# use tensorflow backend
 
 # Cora with random split
 CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python grace_trainer.py --dataset cora
@@ -62,7 +62,7 @@ CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python grace_trainer.py --datas
 
 ```
 ```bash 
-# use pytorch background
+# use pytorch backend
 
 # Cora with random split
 CUDA_VISIBLE_DEVICES="0" TL_BACKEND="torch" python grace_trainer.py --dataset cora --n_epoch 500
@@ -81,17 +81,17 @@ Random split (Train/Test = 1:9)
 Due to tlx don't have diag operation, now GRACE only support Tensorflow.
 It will support other background soon.
 
-TODO: fix l2_normal on pd and th, run again.
 
 
-|      Dataset      | Cora | Citeseer | Pubmed |
-| :---------------: | :--: | :------: | :----: |
-|   Author's Code   | 83.1 |   71.0   |  86.3  |
-|        DGL        | 83.3 |   72.1   |  86.7  |
-|     GammaGL(tf)   | 82.9 |   71.2   |  >1day |
-|     GammaGL(th)   | 83.2 |   69.9   |  >1day |
-|     GammaGL(pd)   | 83.2 |   70.1   |  >1day |
+|      Dataset      |     Cora     |   Citeseer   | Pubmed |
+| :---------------: | :----------: | :----------: | :----: |
+|   Author's Code   | 83.1         |   71.0       |  86.3  |
+|        DGL        | 83.3         |   72.1       |  86.7  |
+|     GammaGL(tf)   | 81.45 ± 0.51 | 70.81 ± 0.46 |  >1day |
+|     GammaGL(th)   | 83.28 ± 0.05 | 69.54 ± 0.49 |  >1day |
+|     GammaGL(pd)   | 83.74 ± 0.37 | 68.71 ± 1.64 |  >1day |
 |     GammaGL(ms)   | --.- |   --.-   |  >1day |
 
 * We fail to reproduce the reported accuracy on 'Citeseer' in torch backend, even with the DGL's code.
 * DGL' code can't achieve reported acc
+* The model performance is the average of 3 tests
