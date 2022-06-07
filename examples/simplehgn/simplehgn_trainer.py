@@ -1,7 +1,7 @@
 import argparse
 import os
 import sys
-os.environ['TL_BACKEND'] = 'tensorflow'
+os.environ['TL_BACKEND'] = 'torch'
 sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 sys.path.insert(0, os.path.abspath('./')) # adds path2gammagl to execute in command line.
 import tensorlayerx as tlx
@@ -14,6 +14,7 @@ from gammagl.utils import add_self_loops, mask_to_index
 
 
 def calculate_f1_score(val_logits, val_y):
+    val_logits = tlx.ops.argmax(val_logits,axis=-1)
     return f1_score(val_y, val_logits, average='micro'), f1_score(val_y, val_logits, average='macro')
 
 class SemiSpvzLoss(WithLoss):
@@ -67,7 +68,7 @@ def main(args):
 
     e_feat = tlx.ops.convert_to_tensor(e_feat)
 
-    #activation = tlx.nn.activation.ELU()
+    activation = tlx.nn.activation.ELU()
 
     data = {
         'x': x,
@@ -87,8 +88,7 @@ def main(args):
                           num_etypes=num_etypes + 1, 
                           num_classes=num_classes, 
                           num_layers=args.num_layers, 
-                          #activation=activation, 
-                          activation=None,
+                          activation=activation, 
                           feat_drop=args.drop_rate, 
                           attn_drop=args.drop_rate, 
                           negative_slope=args.slope, 
@@ -113,17 +113,16 @@ def main(args):
             val_logits = tlx.gather(logits, data['val_idx'])
             val_y = tlx.gather(data['y'], data['val_idx'])
             val_loss = loss(val_logits, val_y)
-            #val_micro_f1, val_macro_f1 = calculate_f1_score(val_logits, val_y)
+            val_micro_f1, val_macro_f1 = calculate_f1_score(val_logits, val_y)
             print("Epoch [{:0>3d}]  ".format(epoch + 1),
                "   train loss: {:.4f}".format(train_loss.item()),
                "   val loss: {:.4f}".format(val_loss),
-            #   "   val micro: {:.4f}".format(val_micro_f1),
-            #   "   val macro: {:.4f}".format(val_macrp_f1),)
-            )
+               "   val micro: {:.4f}".format(val_micro_f1),
+               "   val macro: {:.4f}".format(val_macro_f1),)
             if(val_loss < best_val_loss):
                 best_val_loss = val_loss
                 early_stop_count = 0
-                model.save_weights(args.best_model_path+model.name+'.npz', format='npz.dict')
+                model.save_weights(args.best_model_path+model.name+'.npz', format='npz_dict')
             else:
                 early_stop_count += 1
             if(early_stop_count >= args.patience):
