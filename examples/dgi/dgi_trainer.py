@@ -1,8 +1,8 @@
 import math
 import os
 
-# os.environ['TL_BACKEND'] = 'torch'
-# os.environ['CUDA_VISIBLE_DEVICES'] = ' '
+os.environ['TL_BACKEND'] = 'torch'
+os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index, remove_self_loops
 
 import argparse
@@ -92,7 +92,6 @@ def main(args):
 
     # build model
     net = DGIModel(in_feat=dataset.num_node_features, hid_feat=args.hidden_dim,
-                   # todo: tlx can't support cuda prelu, it will fix soon
                    act=tlx.nn.PRelu(args.hidden_dim))
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     train_weights = net.trainable_weights
@@ -155,8 +154,8 @@ def main(args):
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=1000, help="number of epoch")
+    parser.add_argument("--lr", type=float, default=0.002, help="learnin rate")
+    parser.add_argument("--n_epoch", type=int, default=1, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=512, help="dimention of hidden layers")
     parser.add_argument("--classifier_lr", type=float, default=1e-2, help="classifier learning rate")
     parser.add_argument("--classifier_epochs", type=int, default=100, help="the epoch to train classifier")
@@ -167,7 +166,7 @@ if __name__ == '__main__':
     parser.add_argument("--patience", type=int, default=50)
     parser.add_argument("--clf_l2_coef", type=float, default=0.)
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
-    parser.add_argument("--num_evaluation", type=int, default=50, help="number of evaluate classifier")
+    parser.add_argument("--num_evaluation", type=int, default=20, help="number of evaluate classifier")
 
     args = parser.parse_args()
     main(args)
