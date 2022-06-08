@@ -46,8 +46,8 @@ class DynamicInheritanceGetter(object):
 class BatchGraph(metaclass=DynamicInheritance):
     r"""A data object describing a batch of graphs as one big (disconnected)
     graph.
-    Inherits from :class:`torch_geometric.data.Data` or
-    :class:`torch_geometric.data.HeteroData`.
+    Inherits from :class:`gammagl.data.Graph` or
+    :class:`gammagl.data.HeteroGraph`.
     In addition, single graphs can be identified via the assignment vector
     :obj:`batch`, which maps each node to its respective graph identifier.
     """
@@ -56,9 +56,9 @@ class BatchGraph(metaclass=DynamicInheritance):
                        follow_batch: Optional[List[str]] = None,
                        exclude_keys: Optional[List[str]] = None):
         # https://github.com/pyg-team/pytorch_geometric/issues/3332
-        r"""Constructs a :class:`~torch_geometric.data.Batch` object from a
-        Python list of :class:`~torch_geometric.data.Data` or
-        :class:`~torch_geometric.data.HeteroData` objects.
+        r"""Constructs a :class:`~gammagl.data.BatchGraph` object from a
+        Python list of :class:`~gammagl.data.Graph` or
+        :class:`~gammagl.data.HeteroGraph` objects.
         The assignment vector :obj:`batch` is created on the fly.
         In addition, creates assignment vectors for each key in
         :obj:`follow_batch`.
@@ -120,7 +120,7 @@ class BatchGraph(metaclass=DynamicInheritance):
             idx = tlx.convert_to_numpy(idx).flatten().tolist()
 
         elif tlx.is_tensor(idx) and idx.dtype == tlx.bool:
-            idx = tlx.convert_to_numpy(idx).flatten().nonzero(as_tuple=False).flatten().tolist()
+            idx = tlx.convert_to_numpy(idx).flatten().nonzero()[0].flatten().tolist()
 
         elif isinstance(idx, np.ndarray) and idx.dtype == np.int64:
             idx = idx.flatten().tolist()
