@@ -1,7 +1,7 @@
 import os
 
-# os.environ['TL_BACKEND'] = 'paddle'
-# os.environ['CUDA_VISIBLE_DEVICES'] = ' '
+os.environ['TL_BACKEND'] = 'torch'
+os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 # set your backend here, default `tensorflow`, you can choose 'paddle'、'tensorflow'、'torch'
 from gammagl.datasets import TUDataset
 from tqdm import tqdm
@@ -19,7 +19,7 @@ class Unsupervised_Loss(WithLoss):
         self.net = net
 
     def forward(self, data, label):
-        loss = self._backbone(data.x, data.edge_index, data.batch)
+        loss = self._backbone(data['x'], data['edge_index'], data['batch'])
         return loss
 
 
@@ -39,12 +39,13 @@ def main(args):
     accuracies = {args.name_eval: []}
     log_interval = 1
     accuracies[args.name_eval]
+
     for epoch in tqdm(range(args.epochs)):
         loss_all = 0
-        for data in dataloader:
-            # TODO: pd backend will not work, we will fix soon
+        for batch in dataloader:
+            data = {'x': batch.x, 'edge_index': batch.edge_index, 'batch': batch.batch}
             loss = train_one_step(data, tlx.convert_to_tensor([1]))
-            loss_all += loss.item() * data.num_graphs
+            loss_all += loss.item() * batch.num_graphs
             # print(data.batch)
             net.set_train()
         print('===== Epoch {}, Loss {} ====='.format(epoch + 1, loss_all / len(dataloader)))
@@ -54,7 +55,7 @@ def main(args):
             res = evaluate_embedding(x, y, args.name_eval)
             accuracies[args.name_eval].append(res)
             if loss < best:
-                net.save_weights(args.best_model_path + "infograph.npz")
+                net.save_weights(args.best_model_path + "info_graph.npz")
                 best = loss
             if acc < res:
                 acc = res
@@ -63,7 +64,7 @@ def main(args):
 
 if __name__ == '__main__':
     # parameters setting
-    parser = argparse.ArgumentParser(description='infograph')
+    parser = argparse.ArgumentParser(description='info_graph')
     # data source params
     parser.add_argument('--dataset', type=str, default='MUTAG',
                         help='Name of dataset.eg:MUTAG,IMDB-BINARY,REDDIT-BINARY')
