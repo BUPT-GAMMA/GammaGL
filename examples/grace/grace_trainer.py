@@ -2,12 +2,11 @@ import os
 
 # os.environ['TL_BACKEND'] = 'paddle'
 # os.environ['CUDA_VISIBLE_DEVICES']=' '
-#
+# set your backend here, default 'tensorflow', you can choose 'paddle'、'tensorflow'、'torch'
 
 from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
 
-# note, now can only support tensorflow, due to tlx dont support update operation
-# set your backend here, default 'tensorflow', you can choose 'paddle'、'tensorflow'、'torch'
+
 
 import argparse
 from tqdm import tqdm
