@@ -1,8 +1,8 @@
 import math
 import os
 
-os.environ['TL_BACKEND'] = 'torch'
-os.environ['CUDA_VISIBLE_DEVICES'] = ' '
+# os.environ['TL_BACKEND'] = 'torch'
+# os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index, remove_self_loops
 
 import argparse

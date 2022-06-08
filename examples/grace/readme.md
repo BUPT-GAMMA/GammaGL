@@ -47,27 +47,26 @@ In the paper(as well as authors' repo), the training set and testing set are spl
 # use paddle backend
 
 # Cora with random split
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python grace_trainer.py --dataset cora --n_epoch 100
+TL_BACKEND=paddle python grace_trainer.py --dataset cora --n_epoch 100
 # Citeseer with random split
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python grace_trainer.py --dataset citeseer --n_epoch 20
+TL_BACKEND=paddle python grace_trainer.py --dataset citeseer --n_epoch 20
 ```
 ```bash
 # use tensorflow backend
 
 # Cora with random split
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python grace_trainer.py --dataset cora
+TL_BACKEND=tensorflow python grace_trainer.py --dataset cora
 # Citeseer with random split
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python grace_trainer.py --dataset citeseer
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python grace_trainer.py --dataset citeseer --lr 2e-3 --n_epoch 75 --hid_dim 256
+TL_BACKEND=tensorflow python grace_trainer.py --dataset citeseer --lr 2e-3 --n_epoch 75 --hid_dim 256
 
 ```
 ```bash 
 # use pytorch backend
 
 # Cora with random split
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="torch" python grace_trainer.py --dataset cora --n_epoch 500
+TL_BACKEND=torch python grace_trainer.py --dataset cora --n_epoch 500
 # Citeseer with random split
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="torch" python grace_trainer.py --dataset citeseer --n_epoch 200 --lr 1e-3 --l2 1e-5 --hid_dim 256 --drop_edge_rate_1 0.2 --drop_edge_rate_2 0.0 --drop_feature_rate_1 0.3 --drop_feature_rate_2 0.2 --temp 0.9
+TL_BACKEND=torch python grace_trainer.py --dataset citeseer --n_epoch 200 --lr 1e-3 --l2 1e-5 --hid_dim 256 --drop_edge_rate_1 0.2 --drop_edge_rate_2 0.0 --drop_feature_rate_1 0.3 --drop_feature_rate_2 0.2 --temp 0.9
 
 
 ```
@@ -78,8 +77,7 @@ For random split, we use the hyper-parameters as stated in the paper. For public
 
 Random split (Train/Test = 1:9)
 
-Due to tlx don't have diag operation, now GRACE only support Tensorflow.
-It will support other background soon.
+
 
 
 
