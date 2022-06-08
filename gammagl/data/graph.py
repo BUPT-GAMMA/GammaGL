@@ -488,7 +488,7 @@ class Graph(BaseGraph):
 
 	def __inc__(self, key: str, value: Any, *args, **kwargs) -> Any:
 		if 'batch' in key:
-			return int(value.max()) + 1
+			return int(tlx.reduce_max(value)) + 1
 		elif 'index' in key or key == 'face':
 			return self.num_nodes
 		else:
@@ -546,8 +546,7 @@ class Graph(BaseGraph):
 		"""
 		if hasattr(self, 'csc_adj'):
 			return self.csc_adj.degree
-		return tlx.unsorted_segment_sum(tlx.ones(shape=(self.edge_index.shape[1],), dtype=tlx.int64),
-		                                self.edge_index[1], self.num_nodes)
+		return tlx.unsorted_segment_sum(tlx.ones(shape=(self.edge_index.shape[1],), dtype=tlx.int64), self.edge_index[1], self.num_nodes)
 
 	@property
 	def out_degree(self):
@@ -556,8 +555,7 @@ class Graph(BaseGraph):
 		"""
 		if hasattr(self, 'csr_adj'):
 			return self.csr_adj.degree
-		return tlx.unsorted_segment_sum(tlx.ones(shape=(self.edge_index.shape[1],), dtype=tlx.int64),
-		                                self.edge_index[0], self.num_nodes)
+		return tlx.unsorted_segment_sum(tlx.ones(shape=(self.edge_index.shape[1],), dtype=tlx.int64), self.edge_index[0], self.num_nodes)
 
 	def add_self_loop(self, n_loops=1):
 		"""
@@ -568,9 +566,9 @@ class Graph(BaseGraph):
 		Returns
 		-------
 		edge_index: Tensor
-  			original edges with self loop edges.
+			original edges with self loop edges.
 		edge_attr: FloatTensor
-  			attributes of edges.
+			attributes of edges.
 		"""
 		return add_self_loops(self.edge_index, n_loops, self.edge_attr, num_nodes=self.num_nodes)
 
@@ -699,18 +697,18 @@ class Graph(BaseGraph):
 		if node_type is None:
 			node_type = self._store.get('node_type', None)
 		if node_type is None:
-			node_type = tlx.zeros(self.num_nodes, dtype=tlx.int64)
+			node_type = tlx.zeros(shape=(self.num_nodes,) , dtype=tlx.int64)
 
 		if node_type_names is None:
 			store = self._store
 			node_type_names = store.__dict__.get('_node_type_names', None)
 		if node_type_names is None:
-			node_type_names = [str(i) for i in node_type.unique().tolist()]
+			node_type_names = [str(i) for i in np.unique(tlx.convert_to_numpy(node_type)).tolist()]
 
 		if edge_type is None:
 			edge_type = self._store.get('edge_type', None)
 		if edge_type is None:
-			edge_type = tlx.zeros(self.num_edges, dtype=tlx.int64)
+			edge_type = tlx.zeros(shape=(self.num_edges,), dtype=tlx.int64)
 
 		if edge_type_names is None:
 			store = self._store
@@ -718,7 +716,7 @@ class Graph(BaseGraph):
 		if edge_type_names is None:
 			edge_type_names = []
 			edge_index = self.edge_index
-			for i in edge_type.unique().tolist():
+			for i in np.unique(tlx.convert_to_numpy(edge_type)).tolist():
 				src, dst = edge_index[:, edge_type == i]
 				src_types = node_type[src].unique().tolist()
 				dst_types = node_type[dst].unique().tolist()
@@ -740,8 +738,8 @@ class Graph(BaseGraph):
 			node_ids[i] = tlx.convert_to_tensor(idx)
 			# node_ids[i] = (node_type == i).nonzero(as_tuple=False).view(-1)
 			index_map[node_ids[i]] = tlx.arange(start=0, limit=len(node_ids[i]))
-			index_map = tlx.tensor_scatter_nd_update(index_map, node_ids[i],
-			                                         tlx.arange(start=0, limit=len(node_ids[i]), dtype=tlx.int64))
+			# index_map = tlx.tensor_scatter_nd_update(index_map, node_ids[i],
+			#                                          tlx.arange(start=0, limit=len(node_ids[i]), dtype=tlx.int64))
 
 		# We iterate over edge types to find the local edge indices:
 		edge_ids = {}
