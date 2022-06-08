@@ -59,7 +59,8 @@ def main(args):
                 best = loss
             if acc < res:
                 acc = res
-            print(accuracies)
+
+    print(args.name_eval + "'s best acc : ""{:.4f}".format(max(accuracies[args.name_eval])))
 
 
 if __name__ == '__main__':
@@ -85,7 +86,7 @@ if __name__ == '__main__':
 
     # evaluate embedding
     parser.add_argument('--name_eval', type=str, default='svc',
-                        help='The name of classify to evaluate accuracy,supporting method:log,svc,linsvc,rf')
+                        help='The name of classify to evaluate accuracy,supporting method:log, svc, linsvc, rf')
     args = parser.parse_args()
 
     main(args)
