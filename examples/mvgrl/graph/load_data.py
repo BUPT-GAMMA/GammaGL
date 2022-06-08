@@ -34,12 +34,12 @@ def download(root, name):
         path = download_url(f'{url}/{name}.zip', folder)
         extract_zip(path, folder)
         os.unlink(path)
-        os.rename(osp.join(folder, name), folder + "\\raw")
+        os.rename(osp.join(folder, name), folder + "/raw")
 
 
 def process(root, name):
     graph_node_dict = {}
-    path = root + '\\' + name + '\\' + 'raw' + '\\'
+    path = root + name + '/' + 'raw' + '/'
     path = os.path.join(path, name)
     with open('{0}_graph_indicator.txt'.format(path), 'r') as f:
         for idx, line in enumerate(f):
