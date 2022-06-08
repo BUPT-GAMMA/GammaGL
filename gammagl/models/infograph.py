@@ -89,7 +89,7 @@ class GINEncoder(nn.Module):
 
 class InfoGraph(nn.Module):
     r"""
-        info_graph model for unsupervised setting
+        infograph model for unsupervised setting
     Parameters
     -----------
     in_dim: int

@@ -55,7 +55,7 @@ def main(args):
             res = evaluate_embedding(x, y, args.name_eval)
             accuracies[args.name_eval].append(res)
             if loss < best:
-                net.save_weights(args.best_model_path + "info_graph.npz")
+                net.save_weights(args.best_model_path + "infograph.npz")
                 best = loss
             if acc < res:
                 acc = res
@@ -64,7 +64,7 @@ def main(args):
 
 if __name__ == '__main__':
     # parameters setting
-    parser = argparse.ArgumentParser(description='info_graph')
+    parser = argparse.ArgumentParser(description='infograph')
     # data source params
     parser.add_argument('--dataset', type=str, default='MUTAG',
                         help='Name of dataset.eg:MUTAG,IMDB-BINARY,REDDIT-BINARY')
