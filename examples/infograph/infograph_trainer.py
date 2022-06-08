@@ -1,7 +1,7 @@
 import os
 
-os.environ['TL_BACKEND'] = 'torch'
-os.environ['CUDA_VISIBLE_DEVICES'] = ' '
+# os.environ['TL_BACKEND'] = 'torch'
+# os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 # set your backend here, default `tensorflow`, you can choose 'paddle'、'tensorflow'、'torch'
 from gammagl.datasets import TUDataset
 from tqdm import tqdm
