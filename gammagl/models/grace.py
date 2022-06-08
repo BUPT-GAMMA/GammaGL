@@ -35,9 +35,9 @@ class MLP(tlx.nn.Module):
         return self.fc2(x)
 
 
-class grace(tlx.nn.Module):
+class GraceModel(tlx.nn.Module):
     def __init__(self, in_feat, hid_feat, out_feat, num_layers, activation, temp):
-        super(grace, self).__init__()
+        super(GraceModel, self).__init__()
         self.encoder = GCN(in_feat, hid_feat, num_layers, activation)
         self.temp = temp
         self.proj = MLP(hid_feat, out_feat)
@@ -50,13 +50,14 @@ class grace(tlx.nn.Module):
         between_sim = f(self.sim(z1, z2))  # inter-view pairs
 
         # between_sim.diag(): positive pairs
-        x1 = tlx.reduce_sum(refl_sim, axis=1) + tlx.reduce_sum(between_sim, axis=1) - tlx.convert_to_tensor(tlx.diag(refl_sim, 0))
-        loss = -tlx.log(tlx.convert_to_tensor(tlx.diag(between_sim, 0)) / x1)
+        x1 = tlx.reduce_sum(refl_sim, axis=1) + tlx.reduce_sum(between_sim, axis=1) - tlx.diag(refl_sim, 0)
+        loss = -tlx.log(tlx.diag(between_sim, 0) / x1)
 
         return loss
 
     def sim(self, z1, z2):
         # normalize embeddings across feature dimension
+
         z1 = tlx.l2_normalize(z1, axis=1)
         z2 = tlx.l2_normalize(z2, axis=1)
 

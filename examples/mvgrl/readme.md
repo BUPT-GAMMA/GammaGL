@@ -122,9 +122,9 @@ TODO: tlx prelu
 | Accuracy Reported | 86.8 |   73.3   |  80.1  |
 |    DGL-sample     | 83.2 |   72.6   |  79.8  |
 |     DGL-full      | 83.5 |   73.7   |  OOM   |
-|     GammaGL(tf)   | 82.8 |   70.1   |  OOM   |
-|     GammaGL(th)   | --.- |   --.-   |  OOM   |
-|     GammaGL(pd)   | --.- |   --.-   |  OOM   |
+|     GammaGL(tf)   | 82.8 |   73.3   |  OOM   |
+|     GammaGL(th)   | 82.8 |   73.9   |  OOM   |
+|     GammaGL(pd)   | 82.5 |   --.-   |  OOM   |
 |     GammaGL(ms)   | --.- |   --.-   |  OOM   |
 
 
