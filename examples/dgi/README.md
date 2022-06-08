@@ -13,22 +13,22 @@ Run with following:
 
 ```bash
 # use tensorflow backend
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python dgi_trainer.py --dataset cora --lr 0.002 --patience 50
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python dgi_trainer.py --dataset citeseer --lr 0.0005 --patience 20 --n_epoch 300
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python dgi_trainer.py --dataset pubmed --lr 0.001 --hidden_dim 256 --patience 20 
+TL_BACKEND=paddle python dgi_trainer.py --dataset cora --lr 0.002 --patience 50
+TL_BACKEND=paddle python dgi_trainer.py --dataset citeseer --lr 0.0005 --patience 20 --n_epoch 300
+TL_BACKEND=paddle python dgi_trainer.py --dataset pubmed --lr 0.001 --hidden_dim 256 --patience 20 
 ```
 
 ```bash
 # use paddle backend
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python dgi_trainer.py --dataset cora --lr 0.003 --patience 50
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python dgi_trainer.py --dataset citeseer --lr 0.001 --patience 20 --n_epoch 100
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python dgi_trainer.py --dataset pubmed --hidden_dim 256 --lr 0.001
+TL_BACKEND=tensorflow python dgi_trainer.py --dataset cora --lr 0.003 --patience 50
+TL_BACKEND=tensorflow python dgi_trainer.py --dataset citeseer --lr 0.001 --patience 20 --n_epoch 100
+TL_BACKEND=tensorflow python dgi_trainer.py --dataset pubmed --hidden_dim 256 --lr 0.001
 ```
 ```bash
 # use pytorch backend
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="torch" python dgi_trainer.py --dataset cora 
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="torch" python dgi_trainer.py --dataset citeseer
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="torch" python dgi_trainer.py --dataset pubmed
+TL_BACKEND=torch python dgi_trainer.py --dataset cora 
+TL_BACKEND=torch python dgi_trainer.py --dataset citeseer
+TL_BACKEND=torch python dgi_trainer.py --dataset pubmed
 ```
 
 Results
