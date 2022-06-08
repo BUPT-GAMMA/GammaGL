@@ -67,24 +67,24 @@ Author's code: https://github.com/kavehhassani/mvgrl
 cd graph
 
 # MUTAG:
-TL_BACKEND=paddle python mvgrl_trainer.py --dataset MUTAG --n_epoch 20 --hid_dim 32
-TL_BACKEND=tensorflow python mvgrl_trainer.py --dataset MUTAG --n_epoch 20 --hid_dim 32
-TL_BACKEND=torch python mvgrl_trainer.py --dataset MUTAG --n_epoch 20 --hid_dim 32
+TL_BACKEND=paddle python mvgrl_trainer.py --dataset MUTAG --n_epoch 20 --hidden_dim 32
+TL_BACKEND=tensorflow python mvgrl_trainer.py --dataset MUTAG --n_epoch 20 --hidden_dim 32
+TL_BACKEND=torch python mvgrl_trainer.py --dataset MUTAG --n_epoch 20 --hidden_dim 32
 
 # PTC_MR:
-TL_BACKEND=paddle python mvgrl_trainer.py --dataset PTC_MR --epochs 32 --hid_dim 128
-TL_BACKEND=tensorflow python mvgrl_trainer.py --dataset PTC_MR --epochs 32 --hid_dim 128
-TL_BACKEND=torch python mvgrl_trainer.py --dataset PTC_MR --epochs 32 --hid_dim 128
+TL_BACKEND=paddle python mvgrl_trainer.py --dataset PTC_MR --epochs 32 --hidden_dim 128
+TL_BACKEND=tensorflow python mvgrl_trainer.py --dataset PTC_MR --epochs 32 --hidden_dim 128
+TL_BACKEND=torch python mvgrl_trainer.py --dataset PTC_MR --epochs 32 --hidden_dim 128
 
 # IMDB-BINARY
 
-TL_BACKEND=paddle  python mvgrl_trainer.py --dataset IMDB-BINARY --epochs 20 --hid_dim 512 --n_layers 2
-TL_BACKEND=tensorflow python mvgrl_trainer.py --dataset IMDB-BINARY --epochs 20 --hid_dim 512 --n_layers 2
-TL_BACKEND=torch python mvgrl_trainer.py --dataset IMDB-BINARY --epochs 20 --hid_dim 512 --n_layers 2
+TL_BACKEND=paddle  python mvgrl_trainer.py --dataset IMDB-BINARY --epochs 20 --hidden_dim 512 --n_layers 2
+TL_BACKEND=tensorflow python mvgrl_trainer.py --dataset IMDB-BINARY --epochs 20 --hidden_dim 512 --n_layers 2
+TL_BACKEND=torch python mvgrl_trainer.py --dataset IMDB-BINARY --epochs 20 --hidden_dim 512 --n_layers 2
 # IMDB-MULTI
-TL_BACKEND=paddle python mvgrl_trainer.py --dataset IMDB-MULTI --epochs 20 --hid_dim 512 --n_layers 2
-TL_BACKEND=tensorflow python mvgrl_trainer.py --dataset IMDB-MULTI --epochs 20 --hid_dim 512 --n_layers 2
-TL_BACKEND=torch python mvgrl_trainer.py --dataset IMDB-MULTI --epochs 20 --hid_dim 512 --n_layers 2
+TL_BACKEND=paddle python mvgrl_trainer.py --dataset IMDB-MULTI --epochs 20 --hidden_dim 512 --n_layers 2
+TL_BACKEND=tensorflow python mvgrl_trainer.py --dataset IMDB-MULTI --epochs 20 --hidden_dim 512 --n_layers 2
+TL_BACKEND=torch python mvgrl_trainer.py --dataset IMDB-MULTI --epochs 20 --hidden_dim 512 --n_layers 2
 
 ```
 ###### Node Classification
