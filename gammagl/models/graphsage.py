@@ -14,7 +14,6 @@ class GraphSAGE_Full_Model(tlx.nn.Module):
         super(GraphSAGE_Full_Model, self).__init__()
         self.convs = tlx.nn.ModuleList()
         self.dropout = tlx.nn.Dropout(dropout)
-        self.n_layers = n_layers
         # input layer
         self.convs.append(SAGEConv(in_feats, n_hidden, activation, aggregator_type))
         # hidden layers
@@ -27,7 +26,7 @@ class GraphSAGE_Full_Model(tlx.nn.Module):
         h = self.dropout(feat)
         for l, layer in enumerate(self.convs):
             h = layer(h, edge)
-            if l < self.n_layers:
+            if l != len(self.convs) - 1:
                 h = self.dropout(h)
         return h
 

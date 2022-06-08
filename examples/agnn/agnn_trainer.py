@@ -26,7 +26,7 @@ class SemiSpvzLoss(WithLoss):
         super(SemiSpvzLoss,self).__init__(backbone = model, loss_fn = loss_fn)
 
     def forward(self, data, label):
-        logits = self.backbone_network(data['x'])
+        logits = self.backbone_network(data['x'], data["edge_index"], data["num_nodes"])
         train_logits = tlx.gather(logits, data["train_idx"])
         train_y = tlx.gather(data["y"], data["train_idx"])
         loss = self._loss_fn(train_logits, train_y)
@@ -72,8 +72,6 @@ def main(args):
                       num_class = dataset.num_classes,
                       n_att_layers = args.n_att_layers,
                       dropout_rate = args.drop_rate,
-                      edge_index = edge_index,
-                      num_nodes = num_nodes,
                       is_cora = (args.dataset == 'cora'),
                       name = "AGNN")
     
@@ -92,6 +90,7 @@ def main(args):
         "train_idx": train_idx,
         "test_idx": test_idx,
         "val_idx": val_idx,
+        "num_nodes":num_nodes
     }
 
     best_val_acc = 0
@@ -99,7 +98,7 @@ def main(args):
         model.set_train()
         train_loss = train_one_step(data, y)
         model.set_eval()
-        logits = model(data["x"])
+        logits = model(data["x"], data["edge_index"], data["num_nodes"])
         val_logits = tlx.gather(logits, data['val_idx'])
         val_y = tlx.gather(data['y'], data['val_idx'])
         val_acc = calculate_acc(val_logits, val_y, metrics)
@@ -117,7 +116,7 @@ def main(args):
     if tlx.BACKEND == 'torch':
         model.to(data["x"].device)
     model.set_eval()
-    logits = model(data['x'])
+    logits = model(data["x"], data["edge_index"], data["num_nodes"])
     test_logits = tlx.gather(logits, data['test_idx'])
     test_y = tlx.gather(data['y'], data['test_idx'])
     test_acc = calculate_acc(test_logits, test_y, metrics)

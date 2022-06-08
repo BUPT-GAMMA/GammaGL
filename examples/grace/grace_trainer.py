@@ -1,8 +1,8 @@
 import os
 
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'paddle'
 # os.environ['CUDA_VISIBLE_DEVICES']=' '
-
+#
 
 from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
 
@@ -14,11 +14,10 @@ from tqdm import tqdm
 from gammagl.data import Graph
 from gammagl.datasets import Planetoid
 import tensorlayerx as tlx
-from gammagl.models.grace import grace
+from gammagl.models.grace import GraceModel
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.utils.corrupt_graph import dfde_norm_g
 from eval import label_classification
-
 
 class Unsupervised_Loss(WithLoss):
     def __init__(self, net):
@@ -46,7 +45,7 @@ def main(args):
     original_graph.edge_weight = tlx.convert_to_tensor(edge_weight)
 
     # build model
-    net = grace(in_feat=dataset.num_node_features,
+    net = GraceModel(in_feat=dataset.num_node_features,
                 hid_feat=args.hid_dim,
                 out_feat=args.hid_dim,
                 num_layers=args.num_layers,
@@ -57,9 +56,6 @@ def main(args):
     train_weights = net.trainable_weights
     loss_func = Unsupervised_Loss(net)
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
-    best = 1e9
-    cnt_wait = 0
-
     for epoch in tqdm(range(args.n_epoch)):
         net.set_train()
         graph1 = dfde_norm_g(graph.edge_index, graph.x, args.drop_feature_rate_1,
@@ -72,21 +68,13 @@ def main(args):
                 "feat2": graph2.x, "edge2": graph2.edge_index, "weight2": graph2.edge_weight,
                 "num_node2": graph2.num_nodes}
         loss = train_one_step(data, label=tlx.convert_to_tensor([1]))
-        if loss < best:
-            best = loss
-            cnt_wait = 0
-            net.save_weights(args.best_model_path + "GRACE_" + args.dataset + ".npz")
-        else:
-            cnt_wait += 1
 
-        if cnt_wait == args.patience:
-            print('Early stopping!')
-            break
         print("loss :{:4f}".format(loss.item()))
     print("=== Final ===")
-    net.load_weights(args.best_model_path + "GRACE_" + args.dataset + ".npz")
-    net.set_eval()
 
+    net.set_eval()
+    if tlx.BACKEND == 'torch':
+        net.to('cpu')
     embeds = net.get_embeding(original_graph.x, original_graph.edge_index, original_graph.edge_weight, graph.num_nodes)
 
     '''Evaluation Embeddings  '''
@@ -98,18 +86,16 @@ if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=500, help="number of epoch")
-
-    parser.add_argument("--hid_dim", type=int, default=512, help="dimention of hidden layers")
+    parser.add_argument("--n_epoch", type=int, default=20, help="number of epoch")
+    parser.add_argument("--hid_dim", type=int, default=256, help="dimention of hidden layers")
     parser.add_argument("--drop_edge_rate_1", type=float, default=0.2)
     parser.add_argument("--drop_edge_rate_2", type=float, default=0.2)
     parser.add_argument("--drop_feature_rate_1", type=float, default=0.2)
     parser.add_argument("--drop_feature_rate_2", type=float, default=0.2)
     parser.add_argument("--temp", type=float, default=1)
     parser.add_argument("--num_layers", type=int, default=2)
-    parser.add_argument("--patience", type=int, default=200)
     parser.add_argument("--l2", type=float, default=1e-5, help="l2 loss coeficient")
-    parser.add_argument('--dataset', type=str, default='cora', help='dataset,cora/pubmed/citeseer')
+    parser.add_argument('--dataset', type=str, default='citeseer', help='dataset,cora/pubmed/citeseer')
     parser.add_argument('--split', type=str, default='random', help='random or public')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")

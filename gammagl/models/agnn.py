@@ -34,8 +34,6 @@ class AGNNModel(tlx.nn.Module):
                 num_class,
                 n_att_layers,
                 dropout_rate,
-                edge_index,
-                num_nodes,
                 is_cora = False,
                 name = None):
         super().__init__(name = name)
@@ -54,23 +52,20 @@ class AGNNModel(tlx.nn.Module):
         
         self.att_layers_list = []
         self.att_layers_list.append(AGNNConv(in_channels = self.hidden_dim,
-                                             edge_index = edge_index,
-                                             num_nodes = num_nodes,
                                              require_grad = not(self.n_att_layers == 2 and is_cora)))
         for i in range(1, self.n_att_layers):
-            self.att_layers_list.append(AGNNConv(in_channels = self.hidden_dim,
-                                                 edge_index = edge_index,
-                                                 num_nodes = num_nodes))
-        self.att_layers = tlx.nn.Sequential(self.att_layers_list)
+            self.att_layers_list.append(AGNNConv(in_channels = self.hidden_dim,))
+        self.att_layers = tlx.nn.ModuleList(self.att_layers_list)
         
         self.output_layer = tlx.nn.Linear(out_features = self.num_class,
                                           W_init = W_initor,
                                           in_features = self.hidden_dim)
 
-    def forward(self, x):
+    def forward(self, x, edge_index, num_nodes):
         x = self.relu(self.embedding_layer(x))
         x = self.dropout(x)
-        x = self.att_layers(x)
+        for i in range(len(self.att_layers)):
+            x = self.att_layers[i](x, edge_index, num_nodes)
         x = self.output_layer(x)
         x = self.dropout(x)
         
