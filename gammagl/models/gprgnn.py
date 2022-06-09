@@ -34,9 +34,9 @@ class GPRGNNModel(tlx.nn.Module):
                                         in_features=hidden_dim,
                                         b_init=None)
         # if args.ppnp == 'PPNP':
-        #     self.prop1 = APPNPConv(args.K, args.alpha)
+        #     self.conv = APPNPConv(args.K, args.alpha)
         # elif args.ppnp == 'GPR_prop':
-        self.prop1 = GPRConv(K, alpha, Init, Gamma)
+        self.conv = GPRConv(K, alpha, Init, Gamma)
         self.relu = tlx.ReLU()
         self.drop1 = tlx.layers.Dropout(drop_rate)
         self.drop2 = tlx.layers.Dropout(dprate)
@@ -45,7 +45,7 @@ class GPRGNNModel(tlx.nn.Module):
         self.dprate = dprate
 
     def reset_parameters(self):
-        self.prop1.reset_parameters()
+        self.conv.reset_parameters()
 
     def forward(self,  x, edge_index, edge_weight, num_nodes):
         x = self.drop1(x)
@@ -54,9 +54,9 @@ class GPRGNNModel(tlx.nn.Module):
         x = self.lin2(x)
 
         if self.dprate == 0.0:
-            x = self.prop1(x, edge_index, edge_weight=edge_weight, num_nodes=num_nodes)
+            x = self.conv(x, edge_index, edge_weight=edge_weight, num_nodes=num_nodes)
             return x
         else:
             x = self.drop2(x)
-            x = self.prop1(x, edge_index, edge_weight=edge_weight, num_nodes=num_nodes)
+            x = self.conv(x, edge_index, edge_weight=edge_weight, num_nodes=num_nodes)
             return x
