@@ -1,10 +1,11 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any, List, Optional, Tuple, Union
-
+import numpy as np
 import tensorlayerx as tlx
 from gammagl.data import BaseGraph
 from gammagl.data.storage import BaseStorage, NodeStorage
+from gammagl.utils.check import check_is_numpy
 
 
 def collate(
@@ -93,19 +94,23 @@ def collate(
 
             # Add an additional batch vector for the given attribute:
             if (attr in follow_batch and tlx.is_tensor(slices)
-                    and slices.dim() == 1):
+                    and slices.ndim == 1):
                 repeats = slices[1:] - slices[:-1]
-                batch = repeat_interleave(repeats.tolist(), device=device)
+                batch = repeat_interleave(tlx.convert_to_numpy(repeats).tolist())
                 out_store[f'{attr}_batch'] = batch
+                out_store[f'{attr}_ptr'] = cumsum(repeats)
 
         # In case the storage holds node, we add a top-level batch vector it:
         if (add_batch and isinstance(stores[0], NodeStorage)
                 and stores[0].can_infer_num_nodes):
-            # repeats = [store.num_nodes for store in stores]
+            repeats = [store.num_nodes for store in stores]
+            out_store.batch = repeat_interleave(repeats,)
+            out_store.ptr = cumsum(repeats)
+
             # Sometimes stores can't get num nodes
-            repeats = [store.num_nodes for store in data_list]
-            out_store.batch = repeat_interleave(repeats, device=device)
-            out_store.ptr = cumsum(tlx.convert_to_tensor(repeats, dtype=tlx.int64))
+            # repeats = [store.num_nodes for store in data_list]
+            # out_store.batch = repeat_interleave(repeats, device=device)
+            # out_store.ptr = cumsum(tlx.convert_to_tensor(repeats, dtype=tlx.int64))
 
     return out, slice_dict, inc_dict
 
@@ -121,12 +126,12 @@ def _collate(
     elem = values[0]
 
     if tlx.is_tensor(elem):
-        # Concatenate a list of `torch.Tensor` along the `cat_dim`.
+        # Concatenate a list of `Tensor` along the `cat_dim`.
         # NOTE: We need to take care of incrementing elements appropriately.
         cat_dim = data_list[0].__cat_dim__(key, elem, stores[0])
         if cat_dim is None or elem.ndim == 0:
-            values = [value.unsqueeze(0) for value in values]
-        slices = cumsum([value.shape[cat_dim or 0] for value in values])
+            values = [tlx.expand_dims(value, axis=0) for value in values]
+        slices = cumsum([tlx.get_tensor_shape(value)[cat_dim or 0] for value in values])
         if increment:
             incs = get_incs(key, values, data_list, stores)
             if incs.ndim > 1 or int(incs[-1]) != 0:
@@ -168,7 +173,7 @@ def _collate(
                 value.add_(incs)
         else:
             incs = None
-        slices = tlx.arange(len(values) + 1)
+        slices = tlx.arange(start=0, limit=(len(values) + 1))
         return value, slices, incs
 
     elif isinstance(elem, Mapping):
@@ -179,21 +184,21 @@ def _collate(
                 key, [v[key] for v in values], data_list, stores, increment)
         return value_dict, slice_dict, inc_dict
 
-    # elif (isinstance(elem, Sequence) and not isinstance(elem, str)
-    #       and isinstance(elem[0], (Tensor, SparseTensor))):
-    #     # Recursively collate elements of lists.
-    #     value_list, slice_list, inc_list = [], [], []
-    #     for i in range(len(elem)):
-    #         value, slices, incs = _collate(key, [v[i] for v in values],
-    #                                        data_list, stores, increment)
-    #         value_list.append(value)
-    #         slice_list.append(slices)
-    #         inc_list.append(incs)
-    #     return value_list, slice_list, inc_list
+    elif (isinstance(elem, Sequence) and not isinstance(elem, str) and len(elem) > 0
+          and tlx.is_tensor(elem[0])):
+        # Recursively collate elements of lists.
+        value_list, slice_list, inc_list = [], [], []
+        for i in range(len(elem)):
+            value, slices, incs = _collate(key, [v[i] for v in values],
+                                           data_list, stores, increment)
+            value_list.append(value)
+            slice_list.append(slices)
+            inc_list.append(incs)
+        return value_list, slice_list, inc_list
 
     else:
         # Other-wise, just return the list of values as it is.
-        slices = tlx.arange(len(values) + 1)
+        slices = tlx.arange(start=0, limit=len(values) + 1)
         return values, slices, None
 
 
@@ -202,17 +207,29 @@ def _collate(
 
 def repeat_interleave(
     repeats: List[int],
-    device = None,
+    device=None,
 ):
     outs = [tlx.constant(value=i, shape=(n, ), dtype=tlx.int64) for i, n in enumerate(repeats)]
     return tlx.concat(outs, axis=0)
 
 
-def cumsum(value) :
-    if not tlx.is_tensor(value):
-        value = tlx.convert_to_tensor(value, dtype=tlx.int64)
-    out = tlx.concat([tlx.zeros(shape=(1, ), dtype=tlx.int64), tlx.cumsum(value, 0)], axis=0)
-    return out
+def cumsum(value):
+    # if not tlx.is_tensor(value):
+    #     value = tlx.convert_to_tensor(value, dtype=tlx.int64)
+    # out = tlx.concat([tlx.zeros(shape=(tlx.get_tensor_shape(value)[0], ), dtype=tlx.int64), tlx.cumsum(value, 0)], axis=0)
+    # out = tlx.zeros([tlx.get_tensor_shape(value)[0] + 1, ] + tlx.get_tensor_shape(value)[1:])
+    # out[0] = 0
+    # out[1:] = tlx.cumsum(value, axis=0)
+    # TODO  if assign value is ok
+    if not check_is_numpy(value):
+        if tlx.is_tensor(value):
+            value = tlx.convert_to_numpy(value)
+        else:
+            value = np.array(value)
+    out = np.empty((value.shape[0] + 1, ) + value.shape[1:])
+    out[0] = 0
+    out[1:] = np.cumsum(value, 0)
+    return tlx.convert_to_tensor(out, dtype=tlx.int64)
 
 
 def get_incs(key, values: List[Any], data_list: List[BaseGraph],

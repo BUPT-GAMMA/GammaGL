@@ -1,7 +1,7 @@
 import networkx as nx
 import numpy as np
 from scipy.linalg import fractional_matrix_power, inv
-
+import tensorlayerx as tlx
 from sklearn.preprocessing import MinMaxScaler
 import scipy.sparse as sp
 
@@ -12,7 +12,7 @@ def preprocess_features(features):
     r_inv[np.isinf(r_inv)] = 0.
     r_mat_inv = sp.diags(r_inv)
     features = r_mat_inv.dot(features)
-    return features
+    return tlx.convert_to_tensor(features)
 
 
 def compute_ppr(graph: nx.Graph, alpha=0.2, self_loop=True):
@@ -48,7 +48,7 @@ def process_dataset(name, graph, epsilon):
     print('computing end')
     if name == 'citeseer':
         print('additional processing')
-        feat = preprocess_features(feat.numpy())
+        feat = preprocess_features(tlx.convert_to_numpy(feat))
         diff_adj[diff_adj < epsilon] = 0
         scaler = MinMaxScaler()
         scaler.fit(diff_adj)

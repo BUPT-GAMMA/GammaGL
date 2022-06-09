@@ -1,7 +1,7 @@
-import copy
-
 import os
 os.environ['TL_BACKEND'] = 'tensorflow' # set your backend here, default `tensorflow`
+
+import numpy as np
 import tensorlayerx as tlx
 from gammagl.data import Graph
 
@@ -50,22 +50,22 @@ def test_data():
 	# assert clone.x.tolist() == data.x.tolist()
 	# assert clone.edge_index.data_ptr() != data.edge_index.data_ptr()
 	# assert clone.edge_index.tolist() == data.edge_index.tolist()
-	#
-	# # Test `data.to_heterogenous()`:
-	# out = data.to_heterogeneous()
-	# assert torch.allclose(data.x, out['0'].x)
-	# assert torch.allclose(data.edge_index, out['0', '0'].edge_index)
-	#
-	# data.edge_type = torch.tensor([0, 0, 1, 0])
-	# out = data.to_heterogeneous()
-	# assert torch.allclose(data.x, out['0'].x)
-	# assert [store.num_edges for store in out.edge_stores] == [3, 1]
-	# data.edge_type = None
-	#
-	# data['x'] = x + 1
-	# assert tlx.convert_to_numpy(data.x).tolist() == tlx.convert_to_numpy(x + 1).tolist()
-	#
-	# assert str(data) == 'Graph(x=[3, 2], edge_index=[2, 4])'
+
+	# Test `data.to_heterogenous()`:
+	out = data.to_heterogeneous()
+	assert np.allclose(tlx.convert_to_numpy(data.x), tlx.convert_to_numpy(out['0'].x))
+	assert np.allclose(tlx.convert_to_numpy(data.edge_index), tlx.convert_to_numpy(out['0', '0'].edge_index))
+
+	data.edge_type = tlx.convert_to_tensor([0, 0, 1, 0])
+	out = data.to_heterogeneous()
+	assert np.allclose(tlx.convert_to_numpy(data.x), tlx.convert_to_numpy(out['0'].x))
+	assert [store.num_edges for store in out.edge_stores] == [3, 1]
+	data.edge_type = None
+
+	data['x'] = x + 1
+	assert tlx.convert_to_numpy(data.x).tolist() == tlx.convert_to_numpy(x + 1).tolist()
+
+	assert str(data) == 'Graph(edge_index=[2, 4], x=[3, 2])'
 
 	dictionary = {'x': data.x, 'edge_index': data.edge_index}
 	data = Graph.from_dict(dictionary)

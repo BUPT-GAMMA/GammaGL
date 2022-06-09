@@ -257,7 +257,7 @@ class HeteroGraph(BaseGraph):
         if 'batch' in key:
             return int(value.max()) + 1
         elif isinstance(store, EdgeStorage) and 'index' in key:
-            return tlx.tensor(store.size()).view(2, 1)
+            return tlx.reshape(tlx.convert_to_tensor(store.size()), [2, 1])
         else:
             return 0
 
@@ -505,7 +505,7 @@ class HeteroGraph(BaseGraph):
                 :class:`~torch_geometric.data.Data` object.
                 (default: :obj:`True`)
         """
-        import torch
+
         def _consistent_size(stores: List[BaseStorage]) -> List[str]:
             sizes_dict = defaultdict(list)
             for store in stores:
