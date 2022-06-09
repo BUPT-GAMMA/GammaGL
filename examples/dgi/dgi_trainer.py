@@ -2,7 +2,7 @@ import math
 import os
 
 # os.environ['TL_BACKEND'] = 'torch'
-# os.environ['CUDA_VISIBLE_DEVICES'] = ' '
+# os.environ['CUDA_VISIBLE_DEVICES'] = '5'
 from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index, remove_self_loops
 
 import argparse
@@ -149,24 +149,30 @@ def main(args):
         print(acc)
         accs += acc
     print("avg_acc :{:.4f}".format(accs / args.num_evaluation))
-
+    return accs / args.num_evaluation
 
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.002, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=1, help="number of epoch")
+    parser.add_argument("--n_epoch", type=int, default=1000, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=512, help="dimention of hidden layers")
     parser.add_argument("--classifier_lr", type=float, default=1e-2, help="classifier learning rate")
     parser.add_argument("--classifier_epochs", type=int, default=100, help="the epoch to train classifier")
     parser.add_argument("--l2_coef", type=float, default=0., help="l2 loss coeficient")
-    parser.add_argument('--dataset', type=str, default='citeseer', help='dataset, pubmed, cora, citeseer')
+    parser.add_argument('--dataset', type=str, default='cora', help='dataset, pubmed, cora, citeseer')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
-    parser.add_argument("--patience", type=int, default=50)
     parser.add_argument("--clf_l2_coef", type=float, default=0.)
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
-    parser.add_argument("--num_evaluation", type=int, default=20, help="number of evaluate classifier")
-
+    parser.add_argument("--num_evaluation", type=int, default=50, help="number of evaluate classifier")
+    parser.add_argument("--patience", type=int, default=20)
     args = parser.parse_args()
-    main(args)
+    # main(args)
+    accs = []
+    print(args)
+    for i in range(5):
+        accs.append(main(args))
+    import numpy as np
+    print("mean: {:.4f} \u00b1 {:4f}".format(np.mean(accs), np.std(accs)))
+
