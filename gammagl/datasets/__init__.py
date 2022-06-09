@@ -8,6 +8,7 @@ from .entities import Entities
 from .flickr import Flickr
 from .wikipedia_network import WikipediaNetwork
 from .webkb import WebKB
+from .ppi import PPI
 
 __all__ = [
     'Amazon',
@@ -19,7 +20,8 @@ __all__ = [
     'Entities',
     'Flickr',
     'WikipediaNetwork',
-    'WebKB'
+    'WebKB',
+    'PPI'
 ]
 
 classes = __all__
