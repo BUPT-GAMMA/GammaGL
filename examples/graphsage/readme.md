@@ -19,7 +19,7 @@ python train_full.py --dataset cora     # full graph
 Run with following (available dataset: "cora", "citeseer", "pubmed")
 ```bash
 # use fensorflow background
-TL_BACKEND=tensorflow python train_full.py --dataset cora --lr 0.01 --hidden_dim 128--drop_rate 0.7 --n_epoch 500
+TL_BACKEND=tensorflow python train_full.py --dataset cora --lr 0.01 --hidden_dim 128 --drop_rate 0.7 --n_epoch 500
 TL_BACKEND=tensorflow python reddit_sage.py 
 ```
 ```bash
