@@ -15,10 +15,8 @@ def download_url(url: str, folder: str, log: bool = True):
             console. (default: :obj:`True`)
     """
 
-    #filename = url.rpartition('/')[2]
-    #filename = filename if filename[0] == '?' else filename.split('?')[0]
-    #TODO:提出filename作为download_url函数的参数，因为各个数据集的url的格式并不完全一种方式能够处理
-    filename = 'DBLP.zip'
+    filename = url.rpartition('/')[2]
+    filename = filename if filename[0] == '?' else filename.split('?')[0]
     path = osp.join(folder, filename)
 
     if osp.exists(path):  # pragma: no cover
