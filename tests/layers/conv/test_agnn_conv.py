@@ -12,8 +12,8 @@ def test_agnn_conv():
     x = tlx.random_normal(shape=(4, 64))
     edge_index = tlx.convert_to_tensor([[0, 0, 0, 1, 2, 3], [1, 2, 3, 0, 0, 0]])
 
-    conv = AGNNConv(in_channels=64, edge_index=edge_index, num_nodes=4)
-    out = conv(x)
+    conv = AGNNConv(in_channels=64)
+    out = conv(x, edge_index=edge_index, num_nodes=4)
     assert out.shape == (4, 64)
 
 test_agnn_conv()
