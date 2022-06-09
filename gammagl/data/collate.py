@@ -93,9 +93,9 @@ def collate(
 
             # Add an additional batch vector for the given attribute:
             if (attr in follow_batch and tlx.is_tensor(slices)
-                    and slices.dim() == 1):
+                    and slices.ndim == 1):
                 repeats = slices[1:] - slices[:-1]
-                batch = repeat_interleave(repeats.tolist(), device=device)
+                batch = repeat_interleave(tlx.convert_to_numpy(repeats).tolist(), device=device)
                 out_store[f'{attr}_batch'] = batch
 
         # In case the storage holds node, we add a top-level batch vector it:
@@ -168,7 +168,7 @@ def _collate(
                 value.add_(incs)
         else:
             incs = None
-        slices = tlx.arange(len(values) + 1)
+        slices = tlx.arange(0, len(values) + 1)
         return value, slices, incs
 
     elif isinstance(elem, Mapping):
@@ -193,7 +193,7 @@ def _collate(
 
     else:
         # Other-wise, just return the list of values as it is.
-        slices = tlx.arange(len(values) + 1)
+        slices = tlx.arange(0, len(values) + 1)
         return values, slices, None
 
 
