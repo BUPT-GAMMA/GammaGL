@@ -12,17 +12,14 @@ from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.utils import add_self_loops, mask_to_index
 
 
-
 def calculate_f1_score(val_logits, val_y):
-    val_logits = tlx.ops.argmax(val_logits,axis=-1)
+    val_logits = tlx.ops.argmax(val_logits, axis=-1)
     return f1_score(val_y, val_logits, average='micro'), f1_score(val_y, val_logits, average='macro')
-
-
 
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, model, loss_fn):
-        super(SemiSpvzLoss,self).__init__(backbone = model, loss_fn = loss_fn)
+        super(SemiSpvzLoss,self).__init__(backbone=model, loss_fn = loss_fn)
 
     def forward(self, data, label):
         logits = self.backbone_network(data['x'], data['edge_index'], data['e_feat'])
@@ -30,7 +27,6 @@ class SemiSpvzLoss(WithLoss):
         train_y = tlx.gather(data["y"], data["train_idx"])
         loss = self._loss_fn(train_logits, train_y)
         return loss
-
 
 
 def main(args):
@@ -42,27 +38,26 @@ def main(args):
 
     dataset = HGBDataset(args.dataset_path, args.dataset)
     heterograph = dataset[0]
-    homograph =  heterograph.to_homogeneous()
+    homograph = heterograph.to_homogeneous()
 
     edge2feat = {}
     edge_index_numpy = tlx.ops.convert_to_numpy(homograph.edge_index)
-    for i in range (edge_index_numpy.shape[-1]):
-        edge2feat[(edge_index_numpy[0,i], edge_index_numpy[1,i])] = homograph.edge_type[i]
-
+    for i in range(edge_index_numpy.shape[-1]):
+        edge2feat[(edge_index_numpy[0, i], edge_index_numpy[1, i])] = homograph.edge_type[i]
 
     edge_index, _ = add_self_loops(homograph.edge_index, n_loops=1, num_nodes=homograph.num_nodes)
     y = heterograph[targetType[str.lower(args.dataset)]].y
     num_nodes = heterograph.num_nodes
-    x = [ heterograph[node_type].x for node_type in heterograph.node_types ]
+    x = [heterograph[node_type].x for node_type in heterograph.node_types ]
     feature_dims = [heterograph.num_node_features[node_type] for node_type in heterograph.node_types]
     heads_list = [args.heads] * args.num_layers + [1]
     num_etypes = tlx.ops.argmax(homograph.edge_type) + 1
     num_classes = tlx.ops.argmax(y) + 1
-    
+
     e_feat = []
     edge_index_numpy = tlx.ops.convert_to_numpy(edge_index)
     for i in range(edge_index_numpy.shape[-1]):
-        if(edge_index_numpy[0,i] == edge_index_numpy[1,i]):
+        if edge_index_numpy[0, i] == edge_index_numpy[1, i]:
             e_feat.append(num_etypes)
         else:
             e_feat.append(edge2feat[(edge_index_numpy[0,i], edge_index_numpy[1,i])])
@@ -70,16 +65,16 @@ def main(args):
 
     activation = tlx.nn.activation.ELU()
 
-    val_ratio = 0.2 
+    val_ratio = 0.2
     train_idx = mask_to_index(heterograph[targetType[str.lower(args.dataset)]].train_mask)
     split = int(train_idx.shape[0]*val_ratio)
-    train_idx = train_idx[split: ]
+    train_idx = train_idx[split:]
     val_idx = train_idx[ :split]
     test_idx = mask_to_index(heterograph[targetType[str.lower(args.dataset)]].test_mask)
 
     data = {
         'x': x,
-        'e_feat':e_feat,
+        'e_feat': e_feat,
         'y': y,
         'edge_index': edge_index,
         'train_idx': train_idx,
@@ -88,18 +83,18 @@ def main(args):
     }
 
     for _ in range(args.repeat):
-        model = SimpleHGNModel(feature_dims=feature_dims, 
-                          hidden_dim=args.hidden_dim, 
-                          edge_dim=args.edge_dim, 
-                          heads_list=heads_list, 
-                          num_etypes=num_etypes + 1, 
-                          num_classes=num_classes, 
-                          num_layers=args.num_layers, 
-                          activation=activation, 
-                          feat_drop=args.drop_rate, 
-                          attn_drop=args.drop_rate, 
-                          negative_slope=args.slope, 
-                          residual=True, 
+        model = SimpleHGNModel(feature_dims=feature_dims,
+                          hidden_dim=args.hidden_dim,
+                          edge_dim=args.edge_dim,
+                          heads_list=heads_list,
+                          num_etypes=num_etypes + 1,
+                          num_classes=num_classes,
+                          num_layers=args.num_layers,
+                          activation=activation,
+                          feat_drop=args.drop_rate,
+                          attn_drop=args.drop_rate,
+                          negative_slope=args.slope,
+                          residual=True,
                           beta=0.05)
 
         loss = tlx.losses.softmax_cross_entropy_with_logits
@@ -107,7 +102,7 @@ def main(args):
 
         train_weights = model.trainable_weights
         loss_func = SemiSpvzLoss(model, loss)
-        
+
         train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
         best_val_loss = float('inf')
@@ -126,13 +121,13 @@ def main(args):
                "   val loss: {:.4f}".format(val_loss),
                "   val micro: {:.4f}".format(val_micro_f1),
                "   val macro: {:.4f}".format(val_macro_f1),)
-            if(val_loss < best_val_loss):
+            if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 early_stop_count = 0
                 model.save_weights(args.best_model_path+model.name+'.npz', format='npz_dict')
             else:
                 early_stop_count += 1
-            if(early_stop_count >= args.patience):
+            if early_stop_count >= args.patience:
                 break
 
         model.load_weights(args.best_model_path+model.name+".npz", format='npz_dict')
@@ -146,7 +141,6 @@ def main(args):
         print("Test micro:  {:.4f}, Test macro: {:.4f}".format(test_micro_f1, test_macro_f1))
 
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--feats-type', type=int, default=3,
@@ -155,7 +149,7 @@ if __name__ == '__main__':
                          '1 - only target node features (zero vec for others); ' +
                          '2 - only target node features (id vec for others); ' +
                          '3 - all id vec. Default is 2;' +
-                         '4 - only term features (id vec for others);' + 
+                         '4 - only term features (id vec for others);' +
                          '5 - only term features (zero vec for others).')
     parser.add_argument('--hidden_dim', type=int, default=64, help='Dimension of the node hidden state. Default is 64.')
     parser.add_argument('--heads', type=int, default=8, help='Number of the attention heads. Default is 8.')

@@ -13,5 +13,3 @@ def test_normalize_scale():
     data = NormalizeFeatures()(data)
     assert len(data) == 1
     assert tlx.convert_to_numpy(data.x).tolist() == [[0.5, 0, 0.5], [0, 1, 0], [0, 0, 0]]
-
-test_normalize_scale()
