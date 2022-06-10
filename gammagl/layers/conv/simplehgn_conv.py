@@ -5,20 +5,77 @@ import numpy as np
 from gammagl.mpops import *
 
 class SimpleHGNConv(MessagePassing):
+    r'''The SimpleHGN layer from the `"Are we really making much progress? Revisiting, benchmarking, and refining heterogeneous graph neural networks"
+    <https://dl.acm.org/doi/pdf/10.1145/3447548.3467350>`_ paper
+
+    The model extend the original graph attention mechanism in GAT by including edge type information into attention calculation.
+
+    Calculating the coefficient:
+        
+    ..math::
+        \alpha_{ij} = \frac{exp(LeakyReLU(a^T[Wh_i||Wh_j||W_r r_{\psi(<i,j>)}]))}{\Sigma_{k\in\mathcal{E}}{exp(LeakyReLU(a^T[Wh_i||Wh_k||W_r r_{\psi(<i,k>)}]))}}  (1)
+    
+    Residual connection including Node residual:
+    
+    ..math::
+        h_i^{(l)} = \sigma(\Sigma_{j\in \mathcal{N}_i} {\alpha_{ij}^{(l)}W^{(l)}h_j^{(l-1)}} + h_i^{(l-1)})  (2)
+    
+    and Edge residual:
+        
+    ..math::
+        \alpha_{ij}^{(l)} = (1-\beta)\alpha_{ij}^{(l)}+\beta\alpha_{ij}^{(l-1)}  (3)
+        
+    Multi-heads:
+    
+    ..math::
+        h^{(l+1)}_j = \parallel^M_{m = 1}h^{(l + 1, m)}_j  (4)
+    
+    Residual:
+    
+    ..math::
+        h^{(l+1)}_j = h^{(l)}_j + \parallel^M_{m = 1}h^{(l + 1, m)}_j  (5)
+
+    Parameters
+    ----------
+    in_feats: int
+        the input dimension
+    out_feats: int
+        the output dimension
+    num_etypes: int
+        the number of the edge type
+    edge_feats: int
+        the edge dimension
+    heads: int
+        the number of heads in this layer
+    negative_slope: float
+        the negative slope used in the LeakyReLU
+    feat_drop: float
+        the feature drop rate
+    attn_drop: float
+        the attention score drop rate
+    residual: boolean
+        whether we need the residual operation
+    activation:
+        the activation function
+    bias:
+        whether we need the bias
+    beta: float
+        the hyperparameter used in edge residual
+    
+    '''
     def __init__(self,
-                in_feats,               #输入维度
-                out_feats,              #输出维度
-                num_etypes,             #边类型数
-                edge_feats,             #边的嵌入表示维度
-                heads=1,                #GAT头个数
-                concat=True,            #concat需要处理，源码是在隐藏层处理完后，再计算了一次平均
-                negative_slope=0.2,     #leaky_relu的斜率
-                feat_drop=0.,           #节点特征的drop_rate
-                attn_drop=0.,           #attention的drop_rate
-                residual=False,         #是否残差
-                activation=None,        #激活函数
-                bias=None,              #是否偏置
-                beta=0.,):              #超参数，beta
+                in_feats,
+                out_feats,
+                num_etypes,
+                edge_feats,
+                heads=1,
+                negative_slope=0.2,
+                feat_drop=0.,
+                attn_drop=0.,
+                residual=False,
+                activation=None,
+                bias=False,
+                beta=0.,):
         super().__init__()
 
         self.in_feats = in_feats
@@ -28,7 +85,6 @@ class SimpleHGNConv(MessagePassing):
         self.out_feats = out_feats
         self.edge_embedding = tlx.nn.Embedding(num_etypes, edge_feats)
 
-        #Note:需要指明in_features，否则不会被放入trainable_weights
         self.fc_node = tlx.nn.Linear(out_feats * heads, in_features=in_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414), name='fc_node')
         self.fc_edge = tlx.nn.Linear(edge_feats * heads, in_features=edge_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414), name='fc_edge')
 
@@ -39,11 +95,10 @@ class SimpleHGNConv(MessagePassing):
         self.feat_drop = tlx.nn.Dropout(feat_drop)
         self.attn_drop = tlx.nn.Dropout(attn_drop)
         self.leaky_relu = tlx.nn.LeakyReLU(negative_slope)
-        #if residual:
-        self.fc_res = tlx.nn.Linear(heads * out_feats, in_features=in_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414), name='fc_res') if self.in_feats != self.out_feats else None#TODO:应该是identity()
+
+        self.fc_res = tlx.nn.Linear(heads * out_feats, in_features=in_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414), name='fc_res') if residual else None
         
         self.activation = activation
-        
         
         self.bias = self._get_weights("bias", (1, heads, out_feats)) if bias else None
         self.beta = beta
@@ -57,7 +112,7 @@ class SimpleHGNConv(MessagePassing):
         edge_feat = self.fc_edge(edge_feat)
         edge_feat = tlx.ops.reshape(edge_feat, [-1, self.heads, self.edge_feats])
 
-        #计算权重alpha
+        #calculate the alpha
         node_src = edge_index[0, :]
         node_dst = edge_index[1, :]
         weight_src = tlx.ops.gather(tlx.reduce_sum(x_new * self.attn_src, -1), node_src)
@@ -66,13 +121,13 @@ class SimpleHGNConv(MessagePassing):
         weight = self.leaky_relu(weight_src + weight_dst + weight_edge)
         alpha = self.attn_drop(segment_softmax(weight, node_dst, num_nodes))
 
-        #注意力残差
+        #edge residual
         if res_alpha is not None:
             alpha = alpha * (1 - self.beta) + res_attn * self.beta
 
-        #节点级别残差
         rst = tlx.ops.gather(x_new, node_src) * tlx.ops.expand_dims(alpha, axis=-1)
         rst = unsorted_segment_sum(rst, node_dst, num_nodes)
+        #node residual
         if self.fc_res is not None:
             res_val = self.fc_res(x)
             res_val = tlx.ops.reshape(res_val, shape=[x.shape[0], -1, self.out_feats])
@@ -108,7 +163,6 @@ class SimpleHGNConv(MessagePassing):
         return x, alpha
 
     def forward(self, x, edge_index, edge_feat, res_attn=None):
-        #x_new = self.fc_node(x)
         return self.propagate(x, edge_index, edge_feat=edge_feat)
         
         

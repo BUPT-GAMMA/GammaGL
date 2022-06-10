@@ -6,7 +6,7 @@ from .reddit import Reddit
 from .imdb import IMDB
 from .entities import Entities
 from .flickr import Flickr
-from .dblp import HGBDataset
+from .hgb import HGBDataset
 from .wikipedia_network import WikipediaNetwork
 from .webkb import WebKB
 

@@ -1,7 +1,7 @@
 import argparse
 import os
 import sys
-os.environ['TL_BACKEND'] = 'torch'
+os.environ['TL_BACKEND'] = 'tensorflow'
 sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 sys.path.insert(0, os.path.abspath('./')) # adds path2gammagl to execute in command line.
 import tensorlayerx as tlx
@@ -17,6 +17,9 @@ def calculate_f1_score(val_logits, val_y):
     val_logits = tlx.ops.argmax(val_logits,axis=-1)
     return f1_score(val_y, val_logits, average='micro'), f1_score(val_y, val_logits, average='macro')
 
+
+
+
 class SemiSpvzLoss(WithLoss):
     def __init__(self, model, loss_fn):
         super(SemiSpvzLoss,self).__init__(backbone = model, loss_fn = loss_fn)
@@ -28,47 +31,51 @@ class SemiSpvzLoss(WithLoss):
         loss = self._loss_fn(train_logits, train_y)
         return loss
 
+
+
 def main(args):
     if(str.lower(args.dataset) not in ['dblp',]):
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
-    Unknownname = {
-        'dblp':['author', 'paper', 'term', 'venue'],
+    targetType = {
+        'dblp': 'author',
     }
 
     dataset = HGBDataset(args.dataset_path, args.dataset)
-    graph = dataset[0]
-    
-    edge_index, _ = add_self_loops(graph._edge_index, n_loops=1, num_nodes=graph._num_nodes)
-    val_ratio = 0.2 
-    train_idx = mask_to_index(graph._train_mask)
-    split = int(train_idx.shape[0]*val_ratio)
-    train_idx = train_idx[split: ]
-    val_idx = train_idx[ :split]
-    test_idx = mask_to_index(graph._test_mask)
-    y = graph._y
-    num_nodes = graph._num_nodes
-    x = [ graph[node_type].x for node_type in Unknownname[str.lower(args.dataset)]]
-    feature_dims = [graph[node_type].x.shape[1] for node_type in Unknownname[str.lower(args.dataset)]]
+    heterograph = dataset[0]
+    homograph =  heterograph.to_homogeneous()
 
-    #tensor_list = [ tlx.ops.ones(shape=(feature_dim, args.hidden_dim)) for feature_dim in feature_dims]
-    #x = [ tlx.ops.matmul(a,b)  for a,b in zip(x,tensor_list)]
-    #x = tlx.ops.concat(x, axis=0)
+    edge2feat = {}
+    edge_index_numpy = tlx.ops.convert_to_numpy(homograph.edge_index)
+    for i in range (edge_index_numpy.shape[-1]):
+        edge2feat[(edge_index_numpy[0,i], edge_index_numpy[1,i])] = homograph.edge_type[i]
+
+
+    edge_index, _ = add_self_loops(homograph.edge_index, n_loops=1, num_nodes=homograph.num_nodes)
+    y = heterograph[targetType[str.lower(args.dataset)]].y
+    num_nodes = heterograph.num_nodes
+    x = [ heterograph[node_type].x for node_type in heterograph.node_types ]
+    feature_dims = [heterograph.num_node_features[node_type] for node_type in heterograph.node_types]
     heads_list = [args.heads] * args.num_layers + [1]
-    num_etypes = graph._num_etypes
-    num_classes = graph._num_classes
-    edge2feat = graph._edge2feat
+    num_etypes = tlx.ops.argmax(homograph.edge_type) + 1
+    num_classes = tlx.ops.argmax(y) + 1
     
     e_feat = []
     edge_index_numpy = tlx.ops.convert_to_numpy(edge_index)
-    for i in range(edge_index_numpy.shape[1]):
+    for i in range(edge_index_numpy.shape[-1]):
         if(edge_index_numpy[0,i] == edge_index_numpy[1,i]):
             e_feat.append(num_etypes)
         else:
             e_feat.append(edge2feat[(edge_index_numpy[0,i], edge_index_numpy[1,i])])
-
     e_feat = tlx.ops.convert_to_tensor(e_feat)
 
     activation = tlx.nn.activation.ELU()
+
+    val_ratio = 0.2 
+    train_idx = mask_to_index(heterograph[targetType[str.lower(args.dataset)]].train_mask)
+    split = int(train_idx.shape[0]*val_ratio)
+    train_idx = train_idx[split: ]
+    val_idx = train_idx[ :split]
+    test_idx = mask_to_index(heterograph[targetType[str.lower(args.dataset)]].test_mask)
 
     data = {
         'x': x,
