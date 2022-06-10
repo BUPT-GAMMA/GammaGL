@@ -13,6 +13,7 @@ from .han import HAN
 from .dgi import DGIModel
 from .grace import GraceModel
 from .chebnet import ChebNetModel
+from .simplehgn import SimpleHGNModel
 from .fagcn import FAGCNModel
 from .gprgnn import GPRGNNModel
 
@@ -33,6 +34,7 @@ __all__ = [
     'DGIModel',
     'GraceModel',
     'ChebNetModel',
+    'SimpleHGNModel'
     'FAGCNModel',
     'GPRGNNModel'
 ]
