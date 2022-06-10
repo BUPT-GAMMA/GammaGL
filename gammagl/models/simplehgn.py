@@ -2,8 +2,6 @@ import tensorlayerx as tlx
 from gammagl.layers.conv import SimpleHGNConv
 
 
-
-
 class SimpleHGNModel(tlx.nn.Module):
     r'''This is a model SimpleHGN from `Are we really making much progress? Revisiting, benchmarking, and refining heterogeneous graph neural networks
     <https://dl.acm.org/doi/pdf/10.1145/3447548.3467350>`__
@@ -97,7 +95,7 @@ class SimpleHGNModel(tlx.nn.Module):
                                         beta=beta))
 
     def forward(self, x, edge_index, e_feat):
-        x = [ fc(feature) for fc, feature in zip(self.fc_list, x)]
+        x = [fc(feature) for fc, feature in zip(self.fc_list, x)]
         x = tlx.ops.concat(x, axis=0)
 
         alpha = None

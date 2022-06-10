@@ -151,6 +151,7 @@ def main(args):
     print("avg_acc :{:.4f}".format(accs / args.num_evaluation))
     return accs / args.num_evaluation
 
+
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()

@@ -100,7 +100,6 @@ class HGBDataset(InMemoryDataset):
         x = ['info.dat', 'node.dat', 'link.dat', 'label.dat', 'label.dat.test', 'label.dat.test_full', 'meta.dat']
         return x
 
-
     @property
     def processed_file_names(self) -> str:
         return tlx.BACKEND + '_data.pt'
@@ -166,7 +165,7 @@ class HGBDataset(InMemoryDataset):
                 x_dict[n_type].append([float(v) for v in x[3].split(',')])
         for n_type in n_types.values():
             if len(x_dict[n_type]) == 0:
-                data[n_type].x = tlx.ops.eye(num_nodes_dict[n_type])
+                data[n_type].x = tlx.ops.eye(num_nodes_dict[n_type], num_nodes_dict[n_type])
                 data[n_type].num_nodes = num_nodes_dict[n_type]
             else:
                 data[n_type].x = tlx.ops.convert_to_tensor(x_dict[n_type])
@@ -192,7 +191,6 @@ class HGBDataset(InMemoryDataset):
             if not np.allclose(edge_weight, np.ones_like(edge_weight)):
                 edge_weight = tlx.ops.convert_to_tensor(edge_weight)
                 data[e_type].edge_weight = edge_weight
-                    
 
         # Node classification:
         if self.name in ['acm', 'dblp', 'freebase', 'imdb']:
@@ -240,7 +238,6 @@ class HGBDataset(InMemoryDataset):
         if self.pre_transform is not None:
             data = self.pre_transform(data)
         self.save_data(self.collate([data]), self.processed_paths[0])
-        
 
     def __repr__(self) -> str:
         return f'{self.names[self.name]}()'
