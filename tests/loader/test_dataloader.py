@@ -4,7 +4,7 @@ from gammagl.loader import DataLoader
 from gammagl.data import Graph
 
 
-def test_dataloader(num_workers):
+def test_dataloader():
     x = tlx.convert_to_tensor([[1], [1], [1]])
     edge_index = tlx.convert_to_tensor([[0, 1, 1, 2], [1, 0, 2, 1]], dtype=tlx.int64)
     face = tlx.convert_to_tensor([[0], [1], [2]], dtype=tlx.int64)
@@ -17,7 +17,7 @@ def test_dataloader(num_workers):
     data.face = face
 
     loader = DataLoader([data, data, data, data], batch_size=2, shuffle=False,
-                        num_workers=num_workers)
+                        num_workers=0)
     assert len(loader) == 2
     for batch in loader:
         assert len(batch) == 8
@@ -35,11 +35,9 @@ def test_dataloader(num_workers):
             assert id(batch) == id(store._parent())
 
     loader = DataLoader([data, data, data, data], batch_size=2, shuffle=False,
-                        follow_batch=['edge_index'], num_workers=num_workers)
+                        follow_batch=['edge_index'], num_workers=0)
     assert len(loader) == 2
 
     for batch in loader:
         assert len(batch) == 9
         assert tlx.convert_to_numpy(batch.edge_index_batch).tolist() == [0, 0, 0, 0, 1, 1, 1, 1]
-
-test_dataloader(0)

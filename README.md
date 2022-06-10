@@ -172,7 +172,7 @@ More information about evaluating final model performance can be found in the co
    pip install tensorflow-gpu # GPU version
    pip install tensorflow # CPU version
    
-   # For torch, any latest stable version
+   # For torch, version 1.10
    # https://pytorch.org/get-started/locally/
    pip3 install torch
    
@@ -229,7 +229,7 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 ## Supported Models
 
 |                                                  | TensorFlow         | PyTorch            | Paddle             | MindSpore |
-|--------------------------------------------------|--------------------|--------------------|--------------------|-----------|
+| ------------------------------------------------ | ------------------ | ------------------ | ------------------ | --------- |
 | [GCN [ICLR 2017]](./examples/gcn)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [GAT [ICLR 2018]](./examples/gat)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [GraphSAGE [NeurIPS 2017]](./examples/graphsage) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
@@ -247,15 +247,15 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [FAGCN [AAAI 2021]](./examples/fagcn)            | :heavy_check_mark: | :heavy_check_mark: |                    |           |
 
 | Contrastive Learning                           | TensorFlow         | PyTorch            | Paddle             | MindSpore |
-|------------------------------------------------|--------------------|--------------------|--------------------|-----------|
+| ---------------------------------------------- | ------------------ | ------------------ | ------------------ | --------- |
 | [DGI [ICLR 2019]](./examples/dgi)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
-| [GRACE [ICML 2020 Workshop]](./examples/grace) | :heavy_check_mark: | :heavy_check_mark: |                    |           |
-| [MVGRL [ICML 2020]](./examples/mvgrl)          | :heavy_check_mark: | :heavy_check_mark: |                    |           |
+| [GRACE [ICML 2020 Workshop]](./examples/grace) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [MVGRL [ICML 2020]](./examples/mvgrl)          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [InfoGraph [ICLR 2020]](./examples/infograph)  | :heavy_check_mark: | :heavy_check_mark: |                    |           |
 | [MERIT [IJCAI 2021]](./examples/merit)         | :heavy_check_mark: |                    |                    |           |
 
 | Heterogeneous Graph Learning       | TensorFlow         | PyTorch            | Paddle             | MindSpore |
-|------------------------------------|--------------------|--------------------|--------------------|-----------|
+| ---------------------------------- | ------------------ | ------------------ | ------------------ | --------- |
 | [RGCN [ESWC2018]](./examples/rgcn) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [HAN [WWW 2019]](./examples/han)   | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | HGT [WWW 2020]                     |                    |                    |                    |           |

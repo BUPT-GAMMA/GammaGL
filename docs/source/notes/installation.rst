@@ -15,7 +15,7 @@ Backend
 -------
 
 - `tensorflow <https://www.tensorflow.org/api_docs/>`_ : Any latest stable version
-- `pytorch <https://pytorch.org/get-started/locally/>`_ : Any latest stable version
+- `pytorch <https://pytorch.org/get-started/locally/>`_ : Support version 1.10
 - `paddlepaddle <https://www.paddlepaddle.org.cn/>`_ : Any latest stable version
 - `mindspore <https://www.mindspore.cn/install>`_ : Only support version 1.6.1, GPU-CUDA 11.1 and python 3.7.5
 
@@ -40,7 +40,7 @@ Install
     pip install tensorflow-gpu # GPU version
     pip install tensorflow # CPU version
     # pytorch
-    pip3 install torch 
+    pip3 install torch=1.10.2
     # paddlepaddle
     python -m pip install paddlepaddle-gpu
     # mindspore
@@ -48,7 +48,7 @@ Install
 
 .. note::
    * For tensorflow, any latest stable version is supported.
-   * For pytorch, any latest stable version is supported.
+   * For pytorch, version 1.10 is supported.
    * For paddlepaddle, any latest stable version is supported.
    * For mindspore, GammaGL only support version 1.6.1, GPU-CUDA 11.1 and python 3.7.5.
 

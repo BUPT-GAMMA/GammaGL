@@ -717,9 +717,9 @@ class Graph(BaseGraph):
 			edge_type_names = []
 			edge_index = self.edge_index
 			for i in np.unique(tlx.convert_to_numpy(edge_type)).tolist():
-				src, dst = edge_index[:, edge_type == i]
-				src_types = node_type[src].unique().tolist()
-				dst_types = node_type[dst].unique().tolist()
+				src, dst = tlx.mask_select(edge_index, edge_type == i, axis=1)
+				src_types = np.unique(tlx.convert_to_numpy(tlx.gather(node_type, src))).tolist()
+				dst_types = np.unique(tlx.convert_to_numpy(tlx.gather(node_type, dst))).tolist()
 				if len(src_types) != 1 and len(dst_types) != 1:
 					raise ValueError(
 						"Could not construct a 'HeteroData' object from the "
@@ -766,7 +766,7 @@ class Graph(BaseGraph):
 				if attr == 'node_type' or attr == 'edge_type':
 					continue
 				elif attr == 'edge_index':
-					edge_index = value[:, edge_ids[i]]
+					edge_index = tlx.gather(value, edge_ids[i], axis=1)
 					edge_index[0] = index_map[edge_index[0]]
 					edge_index[1] = index_map[edge_index[1]]
 					data[key].edge_index = edge_index
