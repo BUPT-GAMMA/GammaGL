@@ -1,17 +1,19 @@
 import os
 os.environ['TL_BACKEND'] = 'tensorflow'
+import pytest
 import copy
 import tensorlayerx as tlx
 import numpy as np
 from gammagl.data import HeteroGraph
+from gammagl.data.storage import EdgeStorage
 
-x_paper = tlx.ops.convert_to_tensor(np.random.randn(10, 16))
-x_author = tlx.ops.convert_to_tensor(np.random.randn(5, 32))
-x_conference = tlx.ops.convert_to_tensor(np.random.randn(5, 8))
+x_paper = tlx.convert_to_tensor(np.random.randn(10, 16))
+x_author = tlx.convert_to_tensor(np.random.randn(5, 32))
+x_conference = tlx.convert_to_tensor(np.random.randn(5, 8))
 
-idx_paper = tlx.ops.convert_to_tensor(np.random.randint(tlx.get_tensor_shape(x_paper)[0], size=(100, ), dtype=np.int64))
-idx_author = tlx.ops.convert_to_tensor(np.random.randint(tlx.get_tensor_shape(x_author)[0], size=(100, ), dtype=np.int64))
-idx_conference = tlx.ops.convert_to_tensor(np.random.randint(tlx.get_tensor_shape(x_conference)[0], size=(100, ), dtype=np.int64))
+idx_paper = tlx.convert_to_tensor(np.random.randint(tlx.get_tensor_shape(x_paper)[0], size=(100, ), dtype=np.int64))
+idx_author = tlx.convert_to_tensor(np.random.randint(tlx.get_tensor_shape(x_author)[0], size=(100, ), dtype=np.int64))
+idx_conference = tlx.convert_to_tensor(np.random.randint(tlx.get_tensor_shape(x_conference)[0], size=(100, ), dtype=np.int64))
 
 edge_index_paper_paper = tlx.stack([idx_paper[:50], idx_paper[:50]], axis=0)
 edge_index_paper_author = tlx.stack([idx_paper[:30], idx_author[:30]], axis=0)
@@ -19,8 +21,8 @@ edge_index_author_paper = tlx.stack([idx_author[:30], idx_paper[:30]], axis=0)
 edge_index_paper_conference = tlx.stack(
     [idx_paper[:25], idx_conference[:25]], axis=0)
 
-edge_attr_paper_paper = tlx.ops.convert_to_tensor(np.random.randn(tlx.get_tensor_shape(edge_index_paper_paper)[1], 8))
-edge_attr_author_paper = tlx.ops.convert_to_tensor(np.random.randn(tlx.get_tensor_shape(edge_index_author_paper)[1], 8))
+edge_attr_paper_paper = tlx.convert_to_tensor(np.random.randn(tlx.get_tensor_shape(edge_index_paper_paper)[1], 8))
+edge_attr_author_paper = tlx.convert_to_tensor(np.random.randn(tlx.get_tensor_shape(edge_index_author_paper)[1], 8))
 
 
 def get_edge_index(num_src_nodes, num_dst_nodes, num_edges):
@@ -164,4 +166,53 @@ def test_hetero_data_rename():
     edge_index = data['article', 'article'].edge_index
     assert tlx.convert_to_numpy(edge_index).tolist() == tlx.convert_to_numpy(edge_index_paper_paper).tolist()
 
+
+
+
+def test_copy_hetero_data():
+    data = HeteroGraph()
+    data['paper'].x = x_paper
+    data['paper', 'to', 'paper'].edge_index = edge_index_paper_paper
+
+    out = copy.copy(data)
+    assert id(data) != id(out)
+    assert len(data.stores) == len(out.stores)
+    for store1, store2 in zip(data.stores, out.stores):
+        assert id(store1) != id(store2)
+        assert id(data) == id(store1._parent())
+        assert id(out) == id(store2._parent())
+    assert out['paper']._key == 'paper'
+    # assert data['paper'].x.data_ptr() == out['paper'].x.data_ptr()
+    assert out['to']._key == ('paper', 'to', 'paper')
+    # assert data['to'].edge_index.data_ptr() == out['to'].edge_index.data_ptr()
+
+    out = copy.deepcopy(data)
+    assert id(data) != id(out)
+    assert len(data.stores) == len(out.stores)
+    for store1, store2 in zip(data.stores, out.stores):
+        assert id(store1) != id(store2)
+    assert id(out) == id(out['paper']._parent())
+    assert out['paper']._key == 'paper'
+    # assert data['paper'].x.data_ptr() != out['paper'].x.data_ptr()
+    assert tlx.convert_to_numpy(data['paper'].x).tolist() == tlx.convert_to_numpy(out['paper'].x).tolist()
+    assert id(out) == id(out['to']._parent())
+    assert out['to']._key == ('paper', 'to', 'paper')
+    # assert data['to'].edge_index.data_ptr() != out['to'].edge_index.data_ptr()
+    assert tlx.convert_to_numpy(data['to'].edge_index).tolist() == tlx.convert_to_numpy(out['to'].edge_index).tolist()
+
+
+def test_hetero_data_to_canonical():
+    data = HeteroGraph()
+    assert isinstance(data['user', 'product'], EdgeStorage)
+    assert len(data.edge_types) == 1
+    assert isinstance(data['user', 'to', 'product'], EdgeStorage)
+    assert len(data.edge_types) == 1
+
+    data = HeteroGraph()
+    assert isinstance(data['user', 'buys', 'product'], EdgeStorage)
+    assert isinstance(data['user', 'clicks', 'product'], EdgeStorage)
+    assert len(data.edge_types) == 2
+
+    with pytest.raises(TypeError, match="missing 1 required"):
+        data['user', 'product']
 
