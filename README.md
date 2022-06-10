@@ -161,8 +161,8 @@ More information about evaluating final model performance can be found in the co
    
    ```bash
    # python=3.7.5 or 3.9.0 is suitable for mindspore.
-   conda create -n openhgnn python=3.7.5
-   source activate openhgnn
+   conda create -n ggl python=3.7.5
+   source activate ggl
    ```
 
 2. **Install Backend**
