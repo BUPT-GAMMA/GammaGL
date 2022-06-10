@@ -28,7 +28,7 @@ TL_BACKEND=tensorflow python dgi_trainer.py --dataset pubmed --hidden_dim 256 --
 # use pytorch backend
 TL_BACKEND=torch python dgi_trainer.py --dataset cora 
 TL_BACKEND=torch python dgi_trainer.py --dataset citeseer
-TL_BACKEND=torch python dgi_trainer.py --dataset pubmed
+TL_BACKEND=torch python dgi_trainer.py --dataset pubmed --lr 0.001 --patience 20
 ```
 
 Results
@@ -40,7 +40,7 @@ Results
 |   Author's Code   | 82.3         |   71.8         |  76.8         |
 |        DGL        | 81.6         |   69.4         |  76.1         |
 |     GammaGL(tf)   | 81.51 ± 0.55 |  69.01 ± 0.91 | 78.37 ± 0.37 |
-|     GammaGL(th)   | --.-         |   --.-         |  --.-  |
+|     GammaGL(th)   | --.-         |   --.-         | 79.58 ± 0.52 |
 |     GammaGL(pd)   | 81.19 ± 0.64 | 69.06 ± 0.50 | 78.58 ± 0.65 |
 |     GammaGL(ms)   | --.-         |   --.-         |  --.-  |
 

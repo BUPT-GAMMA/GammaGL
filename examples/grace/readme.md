@@ -55,7 +55,7 @@ TL_BACKEND=paddle python grace_trainer.py --dataset citeseer --n_epoch 20
 # use tensorflow backend
 
 # Cora with random split
-TL_BACKEND=tensorflow python grace_trainer.py --dataset cora
+TL_BACKEND=tensorflow python grace_trainer.py --dataset cora --n_epoch 150
 # Citeseer with random split
 TL_BACKEND=tensorflow python grace_trainer.py --dataset citeseer --lr 2e-3 --n_epoch 75 --hid_dim 256
 
@@ -85,7 +85,7 @@ Random split (Train/Test = 1:9)
 | :---------------: | :----------: | :----------: | :----: |
 |   Author's Code   | 83.1         |   71.0       |  86.3  |
 |        DGL        | 83.3         |   72.1       |  86.7  |
-|     GammaGL(tf)   | 81.45 ± 0.51 | 70.81 ± 0.46 |  >1day |
+|     GammaGL(tf)   | 83.05 ± 0.38 | 70.81 ± 0.46 |  >1day |
 |     GammaGL(th)   | 83.28 ± 0.05 | 69.54 ± 0.49 |  >1day |
 |     GammaGL(pd)   | 83.74 ± 0.37 | 68.71 ± 1.64 |  >1day |
 |     GammaGL(ms)   | --.- |   --.-   |  >1day |
