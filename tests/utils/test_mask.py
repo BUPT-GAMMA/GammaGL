@@ -19,10 +19,8 @@ def test_index_to_mask():
     mask = index_to_mask(index, size=7)
     assert tlx.convert_to_numpy(mask).tolist() == [False, True, False, True, False, True, False]
 
+
 def test_mask_to_index():
     mask = tlx.convert_to_tensor([False, True, False, True, False, True], dtype=tlx.bool)
     index = mask_to_index(mask)
     assert tlx.convert_to_numpy(index).tolist() == [1, 3, 5]
-
-# test_mask_to_index()
-# test_index_to_mask()

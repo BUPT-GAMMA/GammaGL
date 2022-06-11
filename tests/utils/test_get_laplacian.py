@@ -4,13 +4,6 @@
 # @Time    : 2022/05/00 16:47
 # @Author  : clear
 # @FileName: test_get_laplacian.py
-import os
-os.environ['TL_BACKEND'] = 'torch'
-# os.environ['TL_BACKEND'] = 'tensorflow'
-# os.environ['TL_BACKEND'] = 'paddle'
-# os.environ['TL_BACKEND'] = 'mindspore'
-os.environ["CUDA_VISIBLE_DEVICES"] = "6"
-
 import tensorlayerx as tlx
 from gammagl.utils.get_laplacian import get_laplacian
 
@@ -30,5 +23,3 @@ def test_get_laplacian():
     lap_rw = get_laplacian(edge_index, 3, edge_weight, normalization='rw')
     assert tlx.convert_to_numpy(lap_rw[0]).tolist() == tlx.convert_to_numpy(lap[0]).tolist()
     assert tlx.convert_to_numpy(lap_rw[1]).tolist() == [-1, -0.5, -0.5, -1, 1, 1, 1]
-
-test_get_laplacian()

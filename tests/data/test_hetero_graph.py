@@ -1,5 +1,3 @@
-import os
-os.environ['TL_BACKEND'] = 'tensorflow'
 import pytest
 import copy
 import tensorlayerx as tlx
