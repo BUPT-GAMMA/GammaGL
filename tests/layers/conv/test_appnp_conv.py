@@ -9,6 +9,7 @@ import tensorlayerx as tlx
 from gammagl.layers.conv import APPNPConv
 from gammagl.utils import calc_gcn_norm
 
+
 def test_appnp():
     x = tlx.random_uniform(shape=(4, 16))
     edge_index = tlx.convert_to_tensor([[0, 0, 0, 1, 2, 3], [1, 2, 3, 0, 0, 0]])

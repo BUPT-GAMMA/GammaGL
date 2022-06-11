@@ -1,6 +1,3 @@
-import os
-os.environ['TL_BACKEND'] = 'tensorflow' # set your backend here, default `tensorflow`
-
 import numpy as np
 import tensorlayerx as tlx
 from gammagl.data import Graph
