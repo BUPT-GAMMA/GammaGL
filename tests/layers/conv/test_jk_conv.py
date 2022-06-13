@@ -9,7 +9,7 @@ import tensorlayerx as tlx
 from gammagl.layers.conv import JumpingKnowledge
 
 def test_jk_conv():
-    xs = tlx.random_normal(shape=(4, 4, 16))
+    xs = [tlx.random_normal(shape=(4, 16)) for _ in range(4)]
     # edge_index = tlx.convert_to_tensor([[0, 0, 0, 1, 2, 3], [1, 2, 3, 0, 0, 0]])
 
     conv_cat = JumpingKnowledge(mode='cat', channels=16, num_layers=4)
