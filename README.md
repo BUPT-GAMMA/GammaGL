@@ -57,6 +57,23 @@ model = GCN(dataset.num_features, 16, dataset.num_classes)
 ```
 
 <details>
+<summary>
+We can now optimize the model in a training loop, similar to the <a href="https://tensorlayerx.readthedocs.io/en/latest/modules/model.html#trainonestep">standard TensorLayerX training procedure</a>.</summary>
+
+```python
+import tensorlayerx as tlx
+data = dataset[0]
+loss_fn = tlx.losses.softmax_cross_entropy_with_logits
+optimizer = tlx.optimizers.Adam(learning_rate=1e-3)
+net_with_loss = tlx.model.WithLoss(model, loss_fn)
+train_one_step = tlx.model.TrainOneStep(net_with_loss, optimizer, train_weights)
+
+for epoch in range(200):
+    loss = train_one_step(data.x, data.y)
+```
+</details>
+
+<details>
 <summary>We can now optimize the model in a training loop, similar to the <a href="https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html#full-implementation">standard PyTorch training procedure</a>.</summary>
 
 ```python
