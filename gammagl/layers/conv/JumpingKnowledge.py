@@ -6,7 +6,6 @@
 """
 import tensorlayerx as tlx
 from tensorlayerx.nn.layers import LSTM, Linear
-import tensorflow as tf
 
 
 class JumpingKnowledge(tlx.nn.Module):

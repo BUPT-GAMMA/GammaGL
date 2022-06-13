@@ -26,8 +26,8 @@ class SemiSpvzLoss(WithLoss):
     def forward(self, data, y):
         logits = self._backbone(data['edge_index'], data['edge_type'])
         train_logits = tlx.gather(logits, data['train_idx'])
-        train_y = y # tlx.gather(y, data['train_idx'])
-        loss = self._loss_fn(train_logits, train_y)
+        # train_y = y # tlx.gather(y, data['train_idx'])
+        loss = self._loss_fn(train_logits, data['train_y'])
         return loss
 
 
@@ -40,6 +40,22 @@ def evaluate(net, data, y, metrics):
     acc = metrics.result()
     metrics.reset()
     return acc
+
+def calculate_acc(logits, y, metrics):
+    """
+    Args:
+        logits: node logits
+        y: node labels
+        metrics: tensorlayerx.metrics
+
+    Returns:
+        rst
+    """
+
+    metrics.update(logits, y)
+    rst = metrics.result()
+    metrics.reset()
+    return rst
 
 # not use , perform on full graph
 def k_hop_subgraph(node_idx, num_hops, edge_index, num_nodes, relabel_nodes=False, flow='source_to_target'):
@@ -126,14 +142,20 @@ def main(args):
         'edge_index': edge_index,
         'edge_type': edge_type,
         'train_idx': graph.train_idx,
-        'test_idx': graph.test_idx
+        'test_idx': graph.test_idx,
+        'train_y': graph.train_y,
+        'test_y': graph.test_y,
     }
 
     best_val_acc = 0
     for epoch in range(args.n_epoch):
         net.set_train()
         train_loss = train_one_step(data, train_y)
-        val_acc = evaluate(net, data, test_y, metrics)
+        net.set_eval()
+        logits = net(data['edge_index'], data['edge_type'])
+        val_logits = tlx.gather(logits, data['test_idx'])
+        val_acc = calculate_acc(val_logits, data['test_y'], metrics)
+        # val_acc = evaluate(net, data, test_y, metrics)
 
         print("Epoch [{:0>3d}] ".format(epoch + 1)\
               + "  train loss: {:.4f}".format(train_loss.item())\
@@ -145,7 +167,12 @@ def main(args):
             net.save_weights(args.best_model_path + net.name + ".npz", format='npz_dict')
 
     net.load_weights(args.best_model_path + net.name + ".npz", format='npz_dict')
-    test_acc = evaluate(net, data, test_y, metrics)
+    if tlx.BACKEND == 'torch':
+        net.to(data['edge_index'].device)
+    net.set_eval()
+    logits = net(data['edge_index'], data['edge_type'])
+    test_logits = tlx.gather(logits, data['test_idx'])
+    test_acc = calculate_acc(test_logits, data['test_y'], metrics)
     print("Test acc:  {:.4f}".format(test_acc))
 
 
