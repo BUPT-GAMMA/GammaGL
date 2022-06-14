@@ -41,11 +41,18 @@ This example was implemented by Ziyu Zheng
 In the paper(as well as authors' repo), the training set are full graph training
 
 ```python
+# use paddle backend
 # Cora by GammaGL
-CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python merit_trainer.py --dataset cora --epochs 500 --drop_edge_rate_1 0.2 --drop_edge_rate_2 0.2 --drop_feature_rate_1 0.5 --drop_feature_rate_2 0.5 --lr 3e-4 --beta 0.5
-
+TL_BACKEND=paddle python merit_trainer.py --dataset cora --epochs 500 --drop_edge_rate_1 0.2 --drop_edge_rate_2 0.2 --drop_feature_rate_1 0.5 --drop_feature_rate_2 0.5 --lr 3e-4 --beta 0.5
 #Citeseer by GammaGL
-CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python merit_trainer.py --dataset cora --epochs 500 --drop_edge_rate_1 0.4 --drop_edge_rate_2 0.4 --drop_feature_rate_1 0.5 --drop_feature_rate_2 0.5 --lr 3e-4 --beta 0.6
+TL_BACKEND=paddle python merit_trainer.py --dataset cora --epochs 500 --drop_edge_rate_1 0.4 --drop_edge_rate_2 0.4 --drop_feature_rate_1 0.5 --drop_feature_rate_2 0.5 --lr 3e-4 --beta 0.6
+
+# use tensorflow backend
+# Cora by GammaGL
+TL_BACKEND=tensorflow python merit_trainer.py --dataset cora --epochs 500 --drop_edge_rate_1 0.2 --drop_edge_rate_2 0.2 --drop_feature_rate_1 0.5 --drop_feature_rate_2 0.5 --lr 3e-4 --beta 0.5
+#Citeseer by GammaGL
+TL_BACKEND=tensorflow python merit_trainer.py --dataset cora --epochs 500 --drop_edge_rate_1 0.4 --drop_edge_rate_2 0.4 --drop_feature_rate_1 0.5 --drop_feature_rate_2 0.5 --lr 3e-4 --beta 0.6
+
 
 ```
 
