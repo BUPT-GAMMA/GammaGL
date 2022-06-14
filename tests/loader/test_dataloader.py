@@ -41,3 +41,5 @@ def test_dataloader():
     for batch in loader:
         assert len(batch) == 9
         assert tlx.convert_to_numpy(batch.edge_index_batch).tolist() == [0, 0, 0, 0, 1, 1, 1, 1]
+
+test_dataloader()

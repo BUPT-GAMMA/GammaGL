@@ -16,4 +16,4 @@ def test_gatv2_conv():
     out = conv(x, edge_index)
     assert out.shape == (4, 16)
 
-# test_gatv2_conv()
+test_gatv2_conv()
