@@ -72,7 +72,7 @@ def main(args):
                       num_class = dataset.num_classes,
                       n_att_layers = args.n_att_layers,
                       dropout_rate = args.drop_rate,
-                      is_cora = (args.dataset == 'cora'),
+                      is_cora = (args.dataset == 'cora'),       #is_cora: Whether the dateset is cora. Cora dataset contains two agnn_conv layers and others contain four.
                       name = "AGNN")
     
     loss = tlx.losses.softmax_cross_entropy_with_logits
