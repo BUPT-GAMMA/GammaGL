@@ -8,6 +8,7 @@ from .degree import degree
 from .loop import add_self_loops, remove_self_loops, contains_self_loops
 from .mask import mask_to_index, index_to_mask
 from .inspector import Inspector
+from .device import set_device
 
 __all__ = [
     'calc_A_norm_hat',
@@ -21,7 +22,8 @@ __all__ = [
     'add_self_loops',
     'remove_self_loops',
     'mask_to_index',
-    'index_to_mask'
+    'index_to_mask',
+    'set_device'
 ]
 
 classes = __all__
