@@ -71,6 +71,7 @@ train_one_step = tlx.model.TrainOneStep(net_with_loss, optimizer, train_weights)
 for epoch in range(200):
     loss = train_one_step(data.x, data.y)
 ```
+
 </details>
 
 <details>
@@ -171,6 +172,7 @@ for epoch in range(200):
 More information about evaluating final model performance can be found in the corresponding [example](https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/gcn).
 
 ### Create your own GNN layer
+
 In addition to the easy application of existing GNNs, GammaGL makes it simple to implement custom Graph Neural Networks (see [here](https://gammagl.readthedocs.io/en/latest/notes/create_gnn.html) for the accompanying tutorial).
 For example, this is all it takes to implement the [edge convolutional layer](https://arxiv.org/abs/1801.07829) from Wang *et al.*:
 
@@ -238,9 +240,9 @@ class EdgeConv(MessagePassing):
    
    ```bash
    pip install git+https://github.com/tensorlayer/tensorlayerx.git 
+   # Try install from OpenI if network Error occurred.
+   # pip install git+https://git.openi.org.cn/OpenI/TensorLayerX.git 
    ```
-   
-   *Note*: use `pip install git+https://gitee.com/clearhanhui/TensorLayerX` for network problem. But it may not be the latest.
 
 3. **Download GammaGL**
    
