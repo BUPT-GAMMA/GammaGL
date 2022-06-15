@@ -52,4 +52,3 @@ def test_gcn_conv():
     # elif tlx.BACKEND in ('paddle', 'tensorflow'):
     #     assert np.allclose(out_mm, out_conv, atol=1e-2)
 
-test_gcn_conv()
