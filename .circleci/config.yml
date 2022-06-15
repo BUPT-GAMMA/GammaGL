@@ -40,8 +40,15 @@ jobs:
           # This assumes pytest is installed via the install-package step above
           command: TL_BACKEND=tensorflow pytest
       - run:
+          name: install torch
+          command: pip install torch==1.10.2
+      - run:
           name: Run TH tests
           command: TL_BACKEND=torch pytest
+
+      - run:
+          name: install paddle
+          command: pip install paddlepaddle
       - run:
           name: Run PD tests
           command: TL_BACKEND=paddle pytest

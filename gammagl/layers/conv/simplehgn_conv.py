@@ -1,8 +1,8 @@
 import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
 from gammagl.utils import segment_softmax
-import numpy as np
 from gammagl.mpops import *
+
 
 class SimpleHGNConv(MessagePassing):
     r'''The SimpleHGN layer from the `"Are we really making much progress? Revisiting, benchmarking, and refining heterogeneous graph neural networks"
