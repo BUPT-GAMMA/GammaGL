@@ -240,7 +240,7 @@ class EdgeConv(MessagePassing):
    
    ```bash
    pip install git+https://github.com/tensorlayer/tensorlayerx.git 
-   # Try install from OpenI if network Error occurred.
+   # Try to install from OpenI if network Error occurred.
    # pip install git+https://git.openi.org.cn/OpenI/TensorLayerX.git 
    ```
 
