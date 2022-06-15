@@ -20,16 +20,16 @@ Run with following (available dataset: "cora", "citeseer", "pubmed")
 ```bash
 # use fensorflow background
 TL_BACKEND=tensorflow python train_full.py --dataset cora --lr 0.01 --hidden_dim 128 --drop_rate 0.7 --n_epoch 500
-TL_BACKEND=tensorflow python reddit_sage.py 
+TL_BACKEND=tensorflow python reddit_sage.py --lr 0.0005 --hidden_dim 256 --drop_rate 0.8
 ```
 ```bash
 TL_BACKEND=paddle python train_full.py --dataset cora --n_epoch 500 --lr 0.005 --hidden_dim 512 --drop_rate 0.7 --n_epoch 500
-TL_BACKEND=paddle python reddit_sage.py 
+CUDA_VISIBLE_DEVICES=5 TL_BACKEND=paddle python reddit_sage.py --lr 0.001 --hidden_dim 128 --drop_rate 0.8
 ```
 ```bash
 # use pytorch
-TL_BACKEND=torch python train_full.py --dataset cora --n_epoch 100 --lr 0.001 --hidden_dim 512
-TL_BACKEND=torch python reddit_sage.py 
+TL_BACKEND=torch python train_full.py --dataset cora --n_epoch 500 --lr 0.005 --hidden_dim 512 --drop_rate 0.8
+TL_BACKEND=torch python reddit_sage.py --lr 0.005 --hidden_dim 128 --drop_rate 0.8
 ```
 
 
@@ -38,8 +38,8 @@ TL_BACKEND=torch python reddit_sage.py
 |        DGL        |       83.3        | 94.95 |
 |       Paper       |       83.3        | 95.0  |
 |     GammaGL(tf)   |    82.44 ± 0.88   | 95.0  |
-|     GammaGL(th)   |        --.-       | --.-  |
-|     GammaGL(pd)   |    82.04 ± 0.33   | --.-  |
+|     GammaGL(th)   |    81.13 ± 1.08   | 94.9  |
+|     GammaGL(pd)   |    82.04 ± 0.33   | 91.2  |
 |     GammaGL(ms)   |        --.-       | --.-  |
 
 * We fail to reproduce the reported accuracy on 'Cora', even with the DGL's code.
