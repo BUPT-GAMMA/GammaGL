@@ -738,8 +738,7 @@ class Graph(BaseGraph):
 			node_ids[i] = tlx.convert_to_tensor(idx)
 			# node_ids[i] = (node_type == i).nonzero(as_tuple=False).view(-1)
 			# index_map[node_ids[i]] = tlx.arange(start=0, limit=len(node_ids[i]))
-			index_map = tlx.scatter_update(index_map, node_ids[i],
-			                                         tlx.arange(start=0, limit=len(node_ids[i]), dtype=tlx.int64))
+			index_map = tlx.scatter_update(index_map, node_ids[i], tlx.arange(start=0, limit=len(node_ids[i]), dtype=tlx.int64))
 
 		# We iterate over edge types to find the local edge indices:
 		edge_ids = {}
@@ -758,7 +757,7 @@ class Graph(BaseGraph):
 					data[key][attr] = tlx.gather(value, node_ids[i])
 
 			if len(data[key]) == 0:
-				data[key].num_nodes = node_ids[i].size(0)
+				data[key].num_nodes = tlx.get_tensor_shape(node_ids[i])[0]
 
 		for i, key in enumerate(edge_type_names):
 			src, _, dst = key
@@ -770,7 +769,7 @@ class Graph(BaseGraph):
 					edge_index = tlx.stack([tlx.gather(index_map, edge_index[0]), tlx.gather(index_map, edge_index[1])])
 					data[key].edge_index = edge_index
 				elif tlx.is_tensor(value) and self.is_edge_attr(attr):
-					data[key][attr] = value[edge_ids[i]]
+					data[key][attr] = tlx.gather(value, edge_ids[i])
 
 		# Add global attributes.
 		keys = set(data.keys) | {'node_type', 'edge_type', 'num_nodes'}
