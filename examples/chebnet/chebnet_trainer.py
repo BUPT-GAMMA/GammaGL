@@ -7,8 +7,9 @@
 """
 
 import os
+
 # os.environ['CUDA_VISIBLE_DEVICES']='0'
-# os.environ['TL_BACKEND'] = 'paddle'
+os.environ['TL_BACKEND'] = 'torch'
 
 import sys
 
@@ -20,8 +21,11 @@ from gammagl.models import ChebNetModel
 from gammagl.utils import mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss
 
-if tlx.BACKEND == 'torch':  # when the backend is torch
-    tlx.set_device(device='GPU', id=0)
+if tlx.BACKEND == 'torch':  # when the backend is torch and you want to use GPU
+    try:
+        tlx.set_device(device='GPU', id=0)
+    except:
+        print("GPU is not available")
 
 
 class SemiSpvzLoss(WithLoss):
@@ -130,7 +134,7 @@ if __name__ == '__main__':
     parser.add_argument("--hidden_dim", type=int, default=64, help="dimention of hidden layers")
     parser.add_argument("--drop_rate", type=float, default=0.5, help="drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
-    parser.add_argument('--dataset', type=str, default='cora', help='dataset')
+    parser.add_argument('--dataset', type=str, default='citeseer', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
