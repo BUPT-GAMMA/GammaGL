@@ -118,7 +118,7 @@ def main(args):
             val_micro_f1, val_macro_f1 = calculate_f1_score(val_logits, val_y)
             print("Epoch [{:0>3d}]  ".format(epoch + 1),
                "   train loss: {:.4f}".format(train_loss.item()),
-               "   val loss: {:.4f}".format(val_loss),
+               "   val loss: {:.4f}".format(val_loss.item()),
                "   val micro: {:.4f}".format(val_micro_f1),
                "   val macro: {:.4f}".format(val_macro_f1),)
             if val_loss < best_val_loss:
@@ -132,7 +132,7 @@ def main(args):
 
         model.load_weights(args.best_model_path+model.name+".npz", format='npz_dict')
         if tlx.BACKEND == 'torch':
-            model.to(data["x"].device)
+            model.to(data["x"][0].device)
         model.set_eval()
         logits = model(data['x'], data['edge_index'], data['e_feat'])
         test_logits = tlx.gather(logits, data['test_idx'])
