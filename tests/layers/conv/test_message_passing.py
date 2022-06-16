@@ -5,15 +5,9 @@
 # @Author  : clear
 # @FileName: test_mp.py
 
-import os
-os.environ['TL_BACKEND'] = 'torch'
-# os.environ['TL_BACKEND'] = 'tensorflow'
-# os.environ['TL_BACKEND'] = 'paddle'
-# os.environ['TL_BACKEND'] = 'mindspore'
-os.environ["CUDA_VISIBLE_DEVICES"] = "6"
-
 import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
+
 
 def test_mp():
     x = tlx.reshape(tlx.arange(0, 8, dtype=tlx.float32), shape=(4,2))
@@ -28,5 +22,3 @@ def test_mp():
     assert tlx.ops.convert_to_numpy(sum_x).tolist() == [[4.0, 5.0], [4.0, 6.0], [2.0, 3.0], [6.0, 7.0]]
     assert tlx.ops.convert_to_numpy(mean_x).tolist() == [[4.0, 5.0], [2.0, 3.0], [2.0, 3.0], [6.0, 7.0]]
     assert tlx.ops.convert_to_numpy(max_x).tolist() == [[4.0, 5.0], [4.0, 5.0], [2.0, 3.0], [6.0, 7.0]]
-
-test_mp()
