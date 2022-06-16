@@ -14,6 +14,5 @@ def test_sgc_conv():
 
     conv = SGConv(iter_K=3, in_channels=64, out_channels=16)
     out = conv(x, edge_index)
-    assert out.shape == (4, 16)
+    assert tlx.get_tensor_shape(out) == [4, 16]
 
-test_sgc_conv()

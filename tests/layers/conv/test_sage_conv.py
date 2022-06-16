@@ -8,7 +8,7 @@ def test_sage_conv():
     edge_index = tlx.convert_to_tensor([[0, 1, 2, 3], [0, 0, 1, 1]], dtype=tlx.int64)
     conv = SAGEConv(in_channels=8, out_channels=32)
     out = conv(x1, edge_index)
-    assert out.shape == (4, 32)
+    assert tlx.get_tensor_shape(out) == [4, 32]
 
     # if is_full_test():
     #     t = '(Tensor, Tensor, Size) -> Tensor'
@@ -43,5 +43,3 @@ def test_sage_conv():
     #     jit = torch.jit.script(conv.jittable(t))
     #     assert jit((x1, x2), adj.t()).tolist() == out1.tolist()
     #     assert jit((x1, None), adj.t()).tolist() == out2.tolist()
-
-test_sage_conv()
