@@ -9,4 +9,4 @@ def test_simplehgn_conv():
     
     conv = SimpleHGNConv(in_feats=64, out_feats=128, num_etypes=6, edge_feats=64, heads=8)
     out, _ = conv(x, edge_index, edge_feat=edge_feat)
-    assert out.shape == (4, 8, 128)
+    assert tlx.get_tensor_shape(out) == [4, 8, 128]

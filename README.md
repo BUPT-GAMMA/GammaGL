@@ -1,8 +1,9 @@
 # Gamma Graph Library(GammaGL)
-
+[pypi-url]: https://pypi.python.org/pypi/gammagl
 [![Documentation Status](https://readthedocs.org/projects/gammagl/badge/?version=latest)](https://gammagl.readthedocs.io/en/latest/?badge=latest)
-[![visitors](https://visitor-badge.glitch.me/badge?page_id=BUPT-GAMMA.GammaGL)](https://github.com/BUPT-GAMMA/GammaGL)
-[![Total lines](https://img.shields.io/tokei/lines/github/BUPT-GAMMA/GammaGL?color=red)](https://github.com/BUPT-GAMMA/GammaGL)
+![GitHub](https://img.shields.io/github/license/BUPT-GAMMA/GammaGL)
+![visitors](https://visitor-badge.glitch.me/badge?page_id=BUPT-GAMMA.GammaGL)
+![Total lines](https://img.shields.io/tokei/lines/github/BUPT-GAMMA/GammaGL?color=red)
 
 **[Documentation](https://gammagl.readthedocs.io/en/latest/)** |
 
@@ -71,6 +72,7 @@ train_one_step = tlx.model.TrainOneStep(net_with_loss, optimizer, train_weights)
 for epoch in range(200):
     loss = train_one_step(data.x, data.y)
 ```
+
 </details>
 
 <details>
@@ -171,6 +173,7 @@ for epoch in range(200):
 More information about evaluating final model performance can be found in the corresponding [example](https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/gcn).
 
 ### Create your own GNN layer
+
 In addition to the easy application of existing GNNs, GammaGL makes it simple to implement custom Graph Neural Networks (see [here](https://gammagl.readthedocs.io/en/latest/notes/create_gnn.html) for the accompanying tutorial).
 For example, this is all it takes to implement the [edge convolutional layer](https://arxiv.org/abs/1801.07829) from Wang *et al.*:
 
@@ -238,9 +241,9 @@ class EdgeConv(MessagePassing):
    
    ```bash
    pip install git+https://github.com/tensorlayer/tensorlayerx.git 
+   # Try to install from OpenI if network Error occurred.
+   # pip install git+https://git.openi.org.cn/OpenI/TensorLayerX.git 
    ```
-   
-   *Note*: use `pip install git+https://gitee.com/clearhanhui/TensorLayerX` for network problem. But it may not be the latest.
 
 3. **Download GammaGL**
    
