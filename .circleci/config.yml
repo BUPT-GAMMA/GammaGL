@@ -45,7 +45,7 @@ jobs:
           command: TL_BACKEND=tensorflow pytest
       - run:
           name: install torch
-          command: pip install torch==1.10.2
+          command: pip install torch
       - run:
           name: Run TH tests
           command: TL_BACKEND=torch pytest
