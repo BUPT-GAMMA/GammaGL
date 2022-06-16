@@ -10,6 +10,7 @@ from gammagl.utils import segment_softmax
 from gammagl.layers.conv import GATConv
 from tensorlayerx.nn import Module, Sequential, ModuleDict, Linear, Tanh
 
+
 class SemAttAggr(Module):
     def __init__(self, in_size, hidden_size):
         super().__init__()
@@ -101,7 +102,6 @@ class HANConv(MessagePassing):
 
         self.sem_att_aggr = SemAttAggr(in_size=out_channels*heads,
                                        hidden_size=out_channels)
-
 
     def forward(self, x_dict, edge_index_dict, num_nodes_dict):
         out_dict = {}

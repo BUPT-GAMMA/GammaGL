@@ -2,6 +2,7 @@ import tensorlayerx as tlx
 import numpy as np
 from gammagl.layers.conv import MessagePassing
 
+
 class GPRConv(MessagePassing):
     r"""The graph propagation oeprator from the `"Adaptive 
     Universal Generalized PageRank Graph Neural Network"
@@ -53,8 +54,7 @@ class GPRConv(MessagePassing):
             # Specify Gamma
             TEMP = Gamma
         init = tlx.initializers.Constant(value=TEMP)
-        self.temp = self._get_weights(var_name='Gamma', shape=self.K+1, init=init)
-
+        self.temp = self._get_weights(var_name='Gamma', shape=(self.K+1,), init=init)
 
     def reset_parameters(self):
         self.temp = tlx.zeros_like(self.temp)
