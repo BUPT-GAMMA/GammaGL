@@ -1,5 +1,5 @@
 # Gamma Graph Library(GammaGL)
-[pypi-url]: https://pypi.python.org/pypi/gammagl
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/BUPT-GAMMA/GammaGL)
 [![Documentation Status](https://readthedocs.org/projects/gammagl/badge/?version=latest)](https://gammagl.readthedocs.io/en/latest/?badge=latest)
 ![GitHub](https://img.shields.io/github/license/BUPT-GAMMA/GammaGL)
 ![visitors](https://visitor-badge.glitch.me/badge?page_id=BUPT-GAMMA.GammaGL)
