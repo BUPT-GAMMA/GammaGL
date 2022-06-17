@@ -78,7 +78,7 @@ def segment_sum(x, segment_ids, num_segments=None):
 def segment_mean(x, segment_ids, num_segments=None):
     if num_segments is not None:
         assert pd.max(segment_ids) < num_segments
-    output = pd.incubate.segment_sum(x, segment_ids)
+    output = pd.incubate.segment_mean(x, segment_ids)
 
     if output.shape[0] == num_segments:
         return output
