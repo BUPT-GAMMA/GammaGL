@@ -5,9 +5,6 @@
 # @Author  : clear
 # @FileName: test_message_passing.py
 
-import os
-os.environ['TL_BACKEND'] = 'paddle'
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
 import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
 
