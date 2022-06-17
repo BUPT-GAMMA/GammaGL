@@ -58,7 +58,6 @@ class JumpingKnowledge(tlx.nn.Module):
                              bidirectional=True, batch_first=True)
             self.att = Linear(in_features=2 * channels, out_features=1)
 
-
     def forward(self, xs):
         r"""Aggregates representations across different layers.
 
