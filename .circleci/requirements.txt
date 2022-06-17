@@ -1,0 +1,8 @@
+numpy
+scipy
+cython
+tensorflow
+torch
+paddlepaddle
+git+https://github.com/tensorlayer/tensorlayerx.git
+pytest

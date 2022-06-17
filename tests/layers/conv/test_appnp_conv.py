@@ -18,6 +18,4 @@ def test_appnp():
     conv = APPNPConv(in_channels=16, out_channels=8, iter_K=5, alpha=0.1, drop_rate=0.6)
     out = conv(x, edge_index=edge_index, edge_weight=edge_weight)
 
-    assert out.shape == (4, 8)
-
-# test_appnp()
+    assert tlx.get_tensor_shape(out) == [4, 8]

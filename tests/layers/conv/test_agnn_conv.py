@@ -16,7 +16,5 @@ def test_agnn_conv():
 
     conv = AGNNConv(in_channels=64)
     out = conv(x, edge_index=edge_index, num_nodes=4)
-    assert out.shape == (4, 64)
+    assert tlx.get_tensor_shape(out) == [4, 64]
 
-
-test_agnn_conv()
