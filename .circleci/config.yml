@@ -34,6 +34,8 @@ jobs:
           app-dir: ~/project/.circleci/  # If you're requirements.txt isn't in the root directory.
           # pip-dependency-file: test-requirements.txt  # if you have a different name for your requirements file, maybe one that combines your runtime and test requirements.
       - run:
+          command: pip install git+https://github.com/tensorlayer/tensorlayerx.git 
+      - run:
           command: python setup.py install
       - run:
           name: Run TF tests
