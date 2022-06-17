@@ -9,6 +9,8 @@ from paddle.fluid.framework import in_dygraph_mode
 def unsorted_segment_sum(x, segment_ids, num_segments=None):
     if num_segments is not None:
         assert pd.max(segment_ids) < num_segments
+    else:
+        num_segments = pd.max(segment_ids)+1
     idx_ = pd.argsort(segment_ids)
     x = pd.gather(x, idx_)
     segment_ids = pd.gather(segment_ids, idx_)
@@ -20,13 +22,15 @@ def unsorted_segment_sum(x, segment_ids, num_segments=None):
         init_output = pd.zeros(shape=[num_segments, x.shape[1]],
                                dtype=output.dtype)
         idx = pd.arange(output.shape[0])
-        final_output = scatter(init_output, idx, output)
+        final_output = _scatter(init_output, idx, output)
         return final_output
 
 
 def unsorted_segment_mean(x, segment_ids, num_segments=None):
     if num_segments is not None:
         assert pd.max(segment_ids) < num_segments
+    else:
+        num_segments = pd.max(segment_ids)+1
     idx_ = pd.argsort(segment_ids)
     x = pd.gather(x, idx_)
     segment_ids = pd.gather(segment_ids, idx_)
@@ -38,17 +42,19 @@ def unsorted_segment_mean(x, segment_ids, num_segments=None):
         init_output = pd.zeros(shape=[num_segments, x.shape[1]],
                                dtype=output.dtype)
         idx = pd.arange(output.shape[0])
-        final_output = scatter(init_output, idx, output)
+        final_output = _scatter(init_output, idx, output)
         return final_output
 
 
 def unsorted_segment_max(x, segment_ids, num_segments=None):
     if num_segments is not None:
         assert pd.max(segment_ids) < num_segments
+    else:
+        num_segments = pd.max(segment_ids)+1
     idx_ = pd.argsort(segment_ids)
     x = pd.gather(x, idx_)
     segment_ids = pd.gather(segment_ids, idx_)
-    output = pd.incubate.segment_sum(x, segment_ids)
+    output = pd.incubate.segment_max(x, segment_ids)
 
     if output.shape[0] == num_segments:
         return output
@@ -56,13 +62,15 @@ def unsorted_segment_max(x, segment_ids, num_segments=None):
         init_output = pd.zeros(shape=[num_segments, x.shape[1]],
                                dtype=output.dtype)
         idx = pd.arange(output.shape[0])
-        final_output = scatter(init_output, idx, output)
+        final_output = _scatter(init_output, idx, output)
         return final_output
 
 
 def segment_sum(x, segment_ids, num_segments=None):
     if num_segments is not None:
         assert pd.max(segment_ids) < num_segments
+    else:
+        num_segments = pd.max(segment_ids)+1
     output = pd.incubate.segment_sum(x, segment_ids)
 
     if output.shape[0] == num_segments:
@@ -71,13 +79,15 @@ def segment_sum(x, segment_ids, num_segments=None):
         init_output = pd.zeros(shape=[num_segments, x.shape[1]],
                                dtype=output.dtype)
         idx = pd.arange(output.shape[0])
-        final_output = scatter(init_output, idx, output)
+        final_output = _scatter(init_output, idx, output)
         return final_output
 
 
 def segment_mean(x, segment_ids, num_segments=None):
     if num_segments is not None:
         assert pd.max(segment_ids) < num_segments
+    else:
+        num_segments = pd.max(segment_ids)+1
     output = pd.incubate.segment_mean(x, segment_ids)
 
     if output.shape[0] == num_segments:
@@ -86,14 +96,16 @@ def segment_mean(x, segment_ids, num_segments=None):
         init_output = pd.zeros(shape=[num_segments, x.shape[1]],
                                dtype=output.dtype)
         idx = pd.arange(output.shape[0])
-        final_output = scatter(init_output, idx, output)
+        final_output = _scatter(init_output, idx, output)
         return final_output
 
 
 def segment_max(x, segment_ids, num_segments=None):
     if num_segments is not None:
         assert pd.max(segment_ids) < num_segments
-    output = pd.incubate.segment_sum(x, segment_ids)
+    else:
+        num_segments = pd.max(segment_ids)+1
+    output = pd.incubate.segment_max(x, segment_ids)
 
     if output.shape[0] == num_segments:
         return output
@@ -101,11 +113,11 @@ def segment_max(x, segment_ids, num_segments=None):
         init_output = pd.zeros(shape=[num_segments, x.shape[1]],
                                dtype=output.dtype)
         idx = pd.arange(output.shape[0])
-        final_output = scatter(init_output, idx, output)
+        final_output = _scatter(init_output, idx, output)
         return final_output
 
 
-def scatter(x, index, updates, overwrite=True, name=None):
+def _scatter(x, index, updates, overwrite=True):
     """
     **Scatter Layer**
     Output is obtained by updating the input on selected indices based on updates.
@@ -141,7 +153,6 @@ def scatter(x, index, updates, overwrite=True, name=None):
         overwrite (bool): The mode that updating the output when there are same indices.
           If True, use the overwrite mode to update the output of the same index,
           if False, use the accumulate mode to update the output of the same index.Default value is True.
-        name(str, optional): The default value is None. Normally there is no need for user to set this property.  For more information, please refer to :ref:`api_guide_Name` .
 
     Returns:
         Tensor: The output is a Tensor with the same shape as x.
