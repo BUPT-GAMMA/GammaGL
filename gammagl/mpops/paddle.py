@@ -5,6 +5,7 @@ from paddle.fluid.layer_helper import LayerHelper
 from paddle.fluid.data_feeder import check_variable_and_dtype, check_type
 from paddle.fluid.framework import in_dygraph_mode
 
+
 def unsorted_segment_sum(x, segment_ids, num_segments=None):
     if num_segments is not None:
         assert pd.max(segment_ids) < num_segments
@@ -29,7 +30,7 @@ def unsorted_segment_mean(x, segment_ids, num_segments=None):
     idx_ = pd.argsort(segment_ids)
     x = pd.gather(x, idx_)
     segment_ids = pd.gather(segment_ids, idx_)
-    output = pd.incubate.segment_sum(x, segment_ids)
+    output = pd.incubate.segment_mean(x, segment_ids)
 
     if output.shape[0] == num_segments:
         return output
@@ -39,6 +40,7 @@ def unsorted_segment_mean(x, segment_ids, num_segments=None):
         idx = pd.arange(output.shape[0])
         final_output = scatter(init_output, idx, output)
         return final_output
+
 
 def unsorted_segment_max(x, segment_ids, num_segments=None):
     if num_segments is not None:
@@ -57,6 +59,7 @@ def unsorted_segment_max(x, segment_ids, num_segments=None):
         final_output = scatter(init_output, idx, output)
         return final_output
 
+
 def segment_sum(x, segment_ids, num_segments=None):
     if num_segments is not None:
         assert pd.max(segment_ids) < num_segments
@@ -70,6 +73,7 @@ def segment_sum(x, segment_ids, num_segments=None):
         idx = pd.arange(output.shape[0])
         final_output = scatter(init_output, idx, output)
         return final_output
+
 
 def segment_mean(x, segment_ids, num_segments=None):
     if num_segments is not None:
@@ -85,6 +89,7 @@ def segment_mean(x, segment_ids, num_segments=None):
         final_output = scatter(init_output, idx, output)
         return final_output
 
+
 def segment_max(x, segment_ids, num_segments=None):
     if num_segments is not None:
         assert pd.max(segment_ids) < num_segments
@@ -98,6 +103,7 @@ def segment_max(x, segment_ids, num_segments=None):
         idx = pd.arange(output.shape[0])
         final_output = scatter(init_output, idx, output)
         return final_output
+
 
 def scatter(x, index, updates, overwrite=True, name=None):
     """

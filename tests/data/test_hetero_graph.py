@@ -198,6 +198,141 @@ def test_copy_hetero_data():
     # assert data['to'].edge_index.data_ptr() != out['to'].edge_index.data_ptr()
     assert tlx.convert_to_numpy(data['to'].edge_index).tolist() == tlx.convert_to_numpy(out['to'].edge_index).tolist()
 
+def test_to_homogeneous_and_vice_versa():
+    data = HeteroGraph()
+
+    data['paper'].x = tlx.ops.convert_to_tensor(np.random.randn(100, 128))
+    data['author'].x = tlx.ops.convert_to_tensor(np.random.randn(200, 128))
+
+    data['paper', 'paper'].edge_index = get_edge_index(100, 100, 250)
+    data['paper', 'paper'].edge_weight = tlx.ops.convert_to_tensor(np.random.randn(250, ))
+    data['paper', 'paper'].edge_attr = tlx.ops.convert_to_tensor(np.random.randn(250, 64))
+
+    data['paper', 'author'].edge_index = get_edge_index(100, 200, 500)
+    data['paper', 'author'].edge_weight = tlx.ops.convert_to_tensor(np.random.randn(500, ))
+    data['paper', 'author'].edge_attr = tlx.ops.convert_to_tensor(np.random.randn(500, 64))
+
+    data['author', 'paper'].edge_index = get_edge_index(200, 100, 1000)
+    data['author', 'paper'].edge_weight = tlx.ops.convert_to_tensor(np.random.randn(1000, ))
+    data['author', 'paper'].edge_attr = tlx.ops.convert_to_tensor(np.random.randn(1000, 64))
+
+    out = data.to_homogeneous()
+    assert len(out) == 6
+    assert out.num_nodes == 300
+    assert out.num_edges == 1750
+    assert out.num_node_features == 128
+    assert out.num_edge_features == 64
+    assert tlx.get_tensor_shape(out.node_type)[0] == 300
+    assert tlx.reduce_min(out.node_type) == 0
+    assert tlx.reduce_max(out.node_type) == 1
+    assert tlx.get_tensor_shape(out.edge_type)[0] == 1750
+    assert tlx.reduce_min(out.edge_type) == 0
+    assert tlx.reduce_max(out.edge_type) == 2
+    assert len(out._node_type_names) == 2
+    assert len(out._edge_type_names) == 3
+
+    out = out.to_heterogeneous()
+    assert len(out) == 4
+    assert np.allclose(tlx.convert_to_numpy(data['paper'].x), tlx.convert_to_numpy(out['paper'].x))
+    assert np.allclose(tlx.convert_to_numpy(data['author'].x), tlx.convert_to_numpy(out['author'].x))
+
+    edge_index1 = data['paper', 'paper'].edge_index
+    edge_index2 = out['paper', 'paper'].edge_index
+    assert tlx.convert_to_numpy(edge_index1).tolist() == tlx.convert_to_numpy(edge_index2).tolist()
+    assert np.allclose(
+        tlx.convert_to_numpy(data['paper', 'paper'].edge_weight),
+        tlx.convert_to_numpy(out['paper', 'paper'].edge_weight),
+    )
+    assert np.allclose(
+        tlx.convert_to_numpy(data['paper', 'paper'].edge_attr),
+        tlx.convert_to_numpy(out['paper', 'paper'].edge_attr),
+    )
+
+    edge_index1 = data['paper', 'author'].edge_index
+    edge_index2 = out['paper', 'author'].edge_index
+    assert tlx.convert_to_numpy(edge_index1).tolist() == tlx.convert_to_numpy(edge_index2).tolist()
+    assert np.allclose(
+        data['paper', 'author'].edge_weight,
+        out['paper', 'author'].edge_weight,
+    )
+    assert np.allclose(
+        tlx.convert_to_numpy(data['paper', 'author'].edge_attr),
+        tlx.convert_to_numpy(out['paper', 'author'].edge_attr),
+    )
+
+    edge_index1 = data['author', 'paper'].edge_index
+    edge_index2 = out['author', 'paper'].edge_index
+    assert tlx.convert_to_numpy(edge_index1).tolist() == tlx.convert_to_numpy(edge_index2).tolist()
+    assert np.allclose(
+        tlx.convert_to_numpy(data['author', 'paper'].edge_weight),
+        tlx.convert_to_numpy(out['author', 'paper'].edge_weight),
+    )
+    assert np.allclose(
+        tlx.convert_to_numpy(data['author', 'paper'].edge_attr),
+        tlx.convert_to_numpy(out['author', 'paper'].edge_attr),
+    )
+
+    out = data.to_homogeneous()
+    node_type = out.node_type
+    edge_type = out.edge_type
+    del out.node_type
+    del out.edge_type
+    del out._edge_type_names
+    del out._node_type_names
+    out = out.to_heterogeneous(node_type, edge_type)
+    assert len(out) == 4
+    assert np.allclose(tlx.convert_to_numpy(data['paper'].x), tlx.convert_to_numpy(out['0'].x))
+    assert np.allclose(tlx.convert_to_numpy(data['author'].x), tlx.convert_to_numpy(out['1'].x))
+
+    edge_index1 = data['paper', 'paper'].edge_index
+    edge_index2 = out['0', '0'].edge_index
+    assert tlx.convert_to_numpy(edge_index1).tolist() == tlx.convert_to_numpy(edge_index2).tolist()
+    assert np.allclose(
+        tlx.convert_to_numpy(data['paper', 'paper'].edge_weight),
+        tlx.convert_to_numpy(out['0', '0'].edge_weight),
+    )
+    assert np.allclose(
+        tlx.convert_to_numpy(data['paper', 'paper'].edge_attr),
+        tlx.convert_to_numpy(out['0', '0'].edge_attr),
+    )
+
+    edge_index1 = data['paper', 'author'].edge_index
+    edge_index2 = out['0', '1'].edge_index
+    assert tlx.convert_to_numpy(edge_index1).tolist() == tlx.convert_to_numpy(edge_index2).tolist()
+    assert np.allclose(
+        tlx.convert_to_numpy(data['paper', 'author'].edge_weight),
+        tlx.convert_to_numpy(out['0', '1'].edge_weight),
+    )
+    assert np.allclose(
+        tlx.convert_to_numpy(data['paper', 'author'].edge_attr),
+        tlx.convert_to_numpy(out['0', '1'].edge_attr),
+    )
+
+    edge_index1 = data['author', 'paper'].edge_index
+    edge_index2 = out['1', '0'].edge_index
+    assert tlx.convert_to_numpy(edge_index1).tolist() == tlx.convert_to_numpy(edge_index2).tolist()
+    assert np.allclose(
+        tlx.convert_to_numpy(data['author', 'paper'].edge_weight),
+        tlx.convert_to_numpy(out['1', '0'].edge_weight),
+    )
+    assert np.allclose(
+        tlx.convert_to_numpy(data['author', 'paper'].edge_attr),
+        tlx.convert_to_numpy(out['1', '0'].edge_attr),
+    )
+
+    data = HeteroGraph()
+
+    data['paper'].num_nodes = 100
+    data['author'].num_nodes = 200
+
+    out = data.to_homogeneous(add_node_type=False)
+    assert len(out) == 1
+    assert out.num_nodes == 300
+
+    out = data.to_homogeneous().to_heterogeneous()
+    assert len(out) == 1
+    assert out['paper'].num_nodes == 100
+    assert out['author'].num_nodes == 200
 
 def test_hetero_data_to_canonical():
     data = HeteroGraph()

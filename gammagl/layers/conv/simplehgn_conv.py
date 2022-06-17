@@ -1,8 +1,8 @@
 import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
 from gammagl.utils import segment_softmax
-import numpy as np
 from gammagl.mpops import *
+
 
 class SimpleHGNConv(MessagePassing):
     r'''The SimpleHGN layer from the `"Are we really making much progress? Revisiting, benchmarking, and refining heterogeneous graph neural networks"
@@ -85,8 +85,8 @@ class SimpleHGNConv(MessagePassing):
         self.out_feats = out_feats
         self.edge_embedding = tlx.nn.Embedding(num_etypes, edge_feats)
 
-        self.fc_node = tlx.nn.Linear(out_feats * heads, in_features=in_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414), name='fc_node')
-        self.fc_edge = tlx.nn.Linear(edge_feats * heads, in_features=edge_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414), name='fc_edge')
+        self.fc_node = tlx.nn.Linear(out_feats * heads, in_features=in_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414))
+        self.fc_edge = tlx.nn.Linear(edge_feats * heads, in_features=edge_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414))
 
         self.attn_src = self._get_weights('attn_l', shape=(1, heads, out_feats), init=tlx.initializers.XavierNormal(gain=1.414), order=True)
         self.attn_dst = self._get_weights('attn_r', shape=(1, heads, out_feats), init=tlx.initializers.XavierNormal(gain=1.414), order=True)
@@ -96,7 +96,7 @@ class SimpleHGNConv(MessagePassing):
         self.attn_drop = tlx.nn.Dropout(attn_drop)
         self.leaky_relu = tlx.nn.LeakyReLU(negative_slope)
 
-        self.fc_res = tlx.nn.Linear(heads * out_feats, in_features=in_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414), name='fc_res') if residual else None
+        self.fc_res = tlx.nn.Linear(heads * out_feats, in_features=in_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414)) if residual else None
         
         self.activation = activation
         

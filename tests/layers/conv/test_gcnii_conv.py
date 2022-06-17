@@ -20,6 +20,4 @@ def test_gcnii():
     x = conv1(x0, x, edge_index, edge_weight=edge_weight, num_nodes=4)
     out = conv2(x0, x, edge_index, edge_weight=edge_weight, num_nodes=4)
 
-    assert out.shape == (4, 16)
-
-test_gcnii()
+    assert tlx.get_tensor_shape(out) == [4, 16]

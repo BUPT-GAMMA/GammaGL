@@ -5,9 +5,8 @@ import argparse
 import os
 
 # os.environ['TL_BACKEND'] = 'tensorflow
-os.environ['TL_BACKEND'] = 'paddle'
-# os.environ['TL_BACKEND'] = 'torch'
-os.environ["CUDA_VISIBLE_DEVICES"] = " "
+# os.environ["CUDA_VISIBLE_DEVICES"] = " "
+
 # set your backend here, default `tensorflow`, you can choose 'paddle'、'tensorflow'、'torch'
 import sys
 
