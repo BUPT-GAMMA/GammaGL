@@ -1,12 +1,13 @@
+import math
 import os
 
-os.environ['TL_BACKEND'] = 'tensorflow'
-# os.environ['CUDA_VISIBLE_DEVICES'] = ' '
-from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
+# os.environ['TL_BACKEND'] = 'torch'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '5'
+from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index, remove_self_loops
 
 import argparse
 from tqdm import tqdm
-import numpy as np
+
 from gammagl.datasets import Planetoid
 import tensorlayerx as tlx
 from tensorlayerx.model import TrainOneStep, WithLoss
@@ -18,7 +19,7 @@ class Unsupervised_Loss(WithLoss):
         super(Unsupervised_Loss, self).__init__(backbone=net, loss_fn=None)
 
     def forward(self, data, label):
-        loss = self._backbone(data["pos_feat"], data["neg_feat"], data["edge_index"], data["edge_weight"],
+        loss = self._backbone(data["x"], data["edge_index"], data["edge_weight"],
                               data["num_node"])
         return loss
 
@@ -36,8 +37,8 @@ class Classifier(tlx.nn.Module):
     def __init__(self, hid_feat, num_classes):
         super(Classifier, self).__init__()
         # import math
-        # init = tlx.nn.initializers.HeNormal(a=math.sqrt(5))
-        self.fc = tlx.nn.Linear(out_features=num_classes, in_features=hid_feat) # , W_init=init)
+        init = tlx.nn.initializers.HeNormal(a=math.sqrt(5))
+        self.fc = tlx.nn.Linear(out_features=num_classes, in_features=hid_feat, W_init=init)
 
     def forward(self, embed):
         return self.fc(embed)
@@ -73,16 +74,12 @@ def main(args):
     val_idx = mask_to_index(graph.val_mask)
 
     # add self loop and calc Laplacian matrix
-
+    edge_index = graph.edge_index
+    edge_index, _ = remove_self_loops(edge_index)
     edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=args.self_loops)
     edge_weight = tlx.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
 
-    pos_feat = graph.x
-    perm = np.random.permutation(graph.num_nodes)
-    neg_feat = tlx.gather(pos_feat, tlx.convert_to_tensor(perm, dtype=tlx.int64))
     data = {
-        "pos_feat": pos_feat,
-        "neg_feat": neg_feat,
         "edge_index": edge_index,
         "edge_weight": edge_weight,
         "num_node": graph.num_nodes,
@@ -95,8 +92,7 @@ def main(args):
 
     # build model
     net = DGIModel(in_feat=dataset.num_node_features, hid_feat=args.hidden_dim,
-                   # todo: tlx can't support cuda prelu, it will fix soon
-                   act=tlx.nn.ReLU())
+                   act=tlx.nn.PRelu(args.hidden_dim))
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     train_weights = net.trainable_weights
     loss_func = Unsupervised_Loss(net)
@@ -153,13 +149,14 @@ def main(args):
         print(acc)
         accs += acc
     print("avg_acc :{:.4f}".format(accs / args.num_evaluation))
+    return accs / args.num_evaluation
 
 
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lr", type=float, default=0.0005, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=300, help="number of epoch")
+    parser.add_argument("--lr", type=float, default=0.002, help="learnin rate")
+    parser.add_argument("--n_epoch", type=int, default=1000, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=512, help="dimention of hidden layers")
     parser.add_argument("--classifier_lr", type=float, default=1e-2, help="classifier learning rate")
     parser.add_argument("--classifier_epochs", type=int, default=100, help="the epoch to train classifier")
@@ -167,10 +164,16 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default='cora', help='dataset, pubmed, cora, citeseer')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
-    parser.add_argument("--patience", type=int, default=20)
     parser.add_argument("--clf_l2_coef", type=float, default=0.)
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     parser.add_argument("--num_evaluation", type=int, default=50, help="number of evaluate classifier")
-
+    parser.add_argument("--patience", type=int, default=20)
     args = parser.parse_args()
-    main(args)
+    # main(args)
+    accs = []
+    print(args)
+    for i in range(5):
+        accs.append(main(args))
+    import numpy as np
+    print("mean: {:.4f} \u00b1 {:4f}".format(np.mean(accs), np.std(accs)))
+

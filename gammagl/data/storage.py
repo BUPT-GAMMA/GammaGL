@@ -9,7 +9,7 @@ from typing import (Any, Callable, Dict, Iterable, List, NamedTuple, Optional,
 import numpy as np
 import tensorlayerx as tlx
 from gammagl.data.view import ItemsView, KeysView, ValuesView
-from gammagl.utils import is_undirected
+from gammagl.utils import is_undirected, coalesce
 
 # Node-types are denoted by a single string, e.g.: `data['paper']`:
 NodeType = str
@@ -279,18 +279,18 @@ class NodeStorage(BaseStorage):
 			return 1 if self.x.ndim == 1 else self.x.shape[-1]
 		return 0
 	
-	# @property
-	# def num_features(self) -> int:
-	#     return self.num_node_features
-	#
-	# def is_node_attr(self, key: str) -> bool:
-	#     value = self[key]
-	#     cat_dim = self._parent().__cat_dim__(key, value, self)
-	#     if not isinstance(value, Tensor):
-	#         return False
-	#     if value.size(cat_dim) != self.num_nodes:
-	#         return False
-	#     return True
+	@property
+	def num_features(self) -> int:
+		return self.num_node_features
+
+	def is_node_attr(self, key: str) -> bool:
+		value = self[key]
+		cat_dim = self._parent().__cat_dim__(key, value, self)
+		if not tlx.is_tensor(value):
+			return False
+		if tlx.get_tensor_shape(value)[cat_dim] != self.num_nodes:
+			return False
+		return True
 	
 	def is_edge_attr(self, key: str) -> bool:
 		return False
@@ -333,7 +333,7 @@ class EdgeStorage(BaseStorage):
 		# We sequentially access attributes that reveal the number of edges.
 		for key, value in self.items():
 			if tlx.is_tensor(value) and 'edge' in key:
-				return value.size(self._parent().__cat_dim__(key, value, self))
+				return tlx.get_tensor_shape(value)[self._parent().__cat_dim__(key, value, self)]
 		# for value in self.values('adj', 'adj_t'):
 		#     if isinstance(value, SparseTensor):
 		#         return value.nnz()
@@ -365,36 +365,36 @@ class EdgeStorage(BaseStorage):
 	def is_node_attr(self, key: str) -> bool:
 		return False
 	
-	# def is_edge_attr(self, key: str) -> bool:
-	#     value = self[key]
-	#     cat_dim = self._parent().__cat_dim__(key, value, self)
-	#     if not isinstance(value, Tensor):
-	#         return False
-	#     if value.size(cat_dim) != self.num_edges:
-	#         return False
-	#     return True
-	#
-	# def is_coalesced(self) -> bool:
-	#     for value in self.values('adj', 'adj_t'):
-	#         return value.is_coalesced()
-	#
-	#     edge_index = self.edge_index
-	#     new_edge_index, _ = coalesce(edge_index, None, self.size(0),
-	#                                  self.size(1))
-	#     return (edge_index.numel() == new_edge_index.numel() and bool(
-	#         (edge_index == new_edge_index).all()))
-	#
-	# def coalesce(self, reduce: str = 'sum'):
-	#     for key, value in self.items('adj', 'adj_t'):
-	#         self[key] = value.coalesce(reduce)
-	#
-	#     if 'edge_index' in self:
-	#         edge_index = self.edge_index
-	#         edge_attr = self.edge_attr if 'edge_attr' in self else None
-	#         self.edge_index, self.edge_attr = coalesce(edge_index, edge_attr,
-	#                                                    *self.size(), op=reduce)
-	#
-	#     return self
+	def is_edge_attr(self, key: str) -> bool:
+		value = self[key]
+		cat_dim = self._parent().__cat_dim__(key, value, self)
+		if not tlx.is_tensor(value):
+			return False
+		if tlx.get_tensor_shape(value)[cat_dim] != self.num_edges:
+			return False
+		return True
+
+	def is_coalesced(self) -> bool:
+		for value in self.values('adj', 'adj_t'):
+			return value.is_coalesced()
+
+		edge_index = self.edge_index
+		new_edge_index = coalesce(edge_index)
+		return tlx.convert_to_numpy(edge_index).size == tlx.convert_to_numpy(new_edge_index).size
+
+	def coalesce(self, reduce: str = 'sum'):
+		for key, value in self.items('adj', 'adj_t'):
+			self[key] = value.coalesce(reduce)
+
+		if 'edge_index' in self:
+			edge_index = self.edge_index
+			if 'edge_attr' in self:
+				edge_attr = self.edge_attr
+				self.edge_index, self.edge_attr = coalesce(edge_index, edge_attr, reduce=reduce)
+			else:
+				self.edge_index = coalesce(edge_index, reduce=reduce)
+
+		return self
 	
 	def has_isolated_nodes(self) -> bool:
 		edge_index, num_nodes = self.edge_index, self.size(1)
@@ -446,31 +446,31 @@ class GlobalStorage(NodeStorage, EdgeStorage):
 		size = (self.num_nodes, self.num_nodes)
 		return size if dim is None else size[dim]
 
-#     def is_node_attr(self, key: str) -> bool:
-#         value = self[key]
-#         cat_dim = self._parent().__cat_dim__(key, value, self)
-#
-#         num_nodes, num_edges = self.num_nodes, self.num_edges
-#         if not isinstance(value, Tensor):
-#             return False
-#         if value.size(cat_dim) != num_nodes:
-#             return False
-#         if num_nodes != num_edges:
-#             return True
-#         return 'edge' not in key
-#
-#     def is_edge_attr(self, key: str) -> bool:
-#         value = self[key]
-#         cat_dim = self._parent().__cat_dim__(key, value, self)
-#
-#         num_edges = self.num_edges
-#         if not isinstance(value, Tensor):
-#             return False
-#         if value.size(cat_dim) != num_edges:
-#             return False
-#         return 'edge' in key
-#
-#
+	def is_node_attr(self, key: str) -> bool:
+		value = self[key]
+		cat_dim = self._parent().__cat_dim__(key, value, self)
+
+		num_nodes, num_edges = self.num_nodes, self.num_edges
+		if not tlx.is_tensor(value):
+			return False
+		if tlx.get_tensor_shape(value)[cat_dim] != num_nodes:
+			return False
+		if num_nodes != num_edges:
+			return True
+		return 'edge' not in key
+
+	def is_edge_attr(self, key: str) -> bool:
+		value = self[key]
+		cat_dim = self._parent().__cat_dim__(key, value, self)
+
+		num_edges = self.num_edges
+		if not tlx.is_tensor(value):
+			return False
+		if tlx.get_tensor_shape(value)[cat_dim] != num_edges:
+			return False
+		return 'edge' in key
+
+
 def recursive_apply_(data: Any, func: Callable):
 	if tlx.is_tensor(data):
 		func(data)

@@ -7,6 +7,7 @@ from gammagl.utils import add_self_loops, calc_gcn_norm
 from gammagl.utils.tu_utils import local_global_loss_
 
 # ======================= Graph Model================================
+
 class MLP(tlx.nn.Module):
     def __init__(self, in_dim, out_dim):
         super(MLP, self).__init__()
@@ -17,7 +18,6 @@ class MLP(tlx.nn.Module):
             tlx.nn.PRelu(),
             tlx.nn.Linear(in_features=out_dim, out_features=out_dim),
             tlx.nn.PRelu(),
-
         )
         self.linear_shortcut = tlx.nn.Linear(in_features=in_dim, out_features=out_dim)
 
@@ -68,8 +68,13 @@ class MVGRL_Graph(tlx.nn.Module):
 
     def get_embedding(self, edge_index, diff_edge, diff_weight, feat, ptr):
         # calculate node embeddings and graph embeddings
+        if tlx.BACKEND == 'torch':
+            edge_index = edge_index.cpu()
         edge_index, _ = add_self_loops(edge_index)
         norm_weight = calc_gcn_norm(edge_index, feat.shape[0])
+        if tlx.BACKEND == 'torch':
+            edge_index = edge_index.to(feat.device)
+            norm_weight = norm_weight.to(feat.device)
         local_v1, global_v1 = self.encoder1(feat, edge_index, norm_weight, feat.shape[0], ptr)
         local_v2, global_v2 = self.encoder2(feat, diff_edge, diff_weight, feat.shape[0], ptr)
 
@@ -82,8 +87,13 @@ class MVGRL_Graph(tlx.nn.Module):
 
     def forward(self, edge_index, diff_edge, diff_weight, feat, ptr, batch):
         # calculate node embeddings and graph embeddings
+        if tlx.BACKEND == 'torch':
+            edge_index = edge_index.cpu()
         edge_index, _ = add_self_loops(edge_index)
         norm_weight = calc_gcn_norm(edge_index, feat.shape[0])
+        if tlx.BACKEND == 'torch':
+            edge_index = edge_index.to(feat.device)
+            norm_weight = norm_weight.to(feat.device)
         local_v1, global_v1 = self.encoder1(feat, edge_index, norm_weight, feat.shape[0], ptr)
         local_v2, global_v2 = self.encoder2(feat, diff_edge, diff_weight, feat.shape[0], ptr)
 
@@ -100,14 +110,17 @@ class MVGRL_Graph(tlx.nn.Module):
         loss = loss1 + loss2
 
         return loss
+
 # ========================= Node Model==============================
+
 class GCNConv_Dense(tlx.nn.Module):
     def __init__(self, in_dim, out_dim, add_bias=True):
         super(GCNConv_Dense, self).__init__()
-        self.fc = tlx.nn.Linear(in_features=in_dim, out_features=out_dim)
+        init = tlx.nn.initializers.XavierUniform()
+        self.fc = tlx.nn.Linear(in_features=in_dim, out_features=out_dim, W_init=init, b_init=None)
 
         if add_bias is True:
-            initor = tlx.initializers.truncated_normal()
+            initor = tlx.initializers.zeros()
             self.bias = self._get_weights("bias", shape=(1, out_dim), init=initor)
 
     def forward(self, adj, feat):
@@ -143,19 +156,15 @@ class Discriminator(tlx.nn.Module):
 
     def forward(self, h1, h2, h3, h4, c1, c2):
         # positive
-        # sc1 = tlx.reduce_sum(tlx.matmul(h2, self.fn.W) * c1, axis=1)
-        # sc2 = tlx.reduce_sum(tlx.matmul(h1, self.fn.W) * c2, axis=1)
         sc1 = tlx.reduce_sum(self.fn(h2) * c1, axis=1)
         sc2 = tlx.reduce_sum(self.fn(h1) * c2, axis=1)
 
         # negative
-        # sc3 = tlx.reduce_sum(tlx.matmul(h4, self.fn.W) * c1, axis=1)
-        # sc4 = tlx.reduce_sum(tlx.matmul(h3, self.fn.W) * c2, axis=1)
         sc3 = tlx.reduce_sum(self.fn(h4) * c1, axis=1)
         sc4 = tlx.reduce_sum(self.fn(h3) * c2, axis=1)
-        logits = tlx.concat((sc1, sc2, sc3, sc4), axis=0)
 
-        return logits
+        return tlx.concat((sc1, sc2, sc3, sc4), axis=0)
+
 
 
 class MVGRL(tlx.nn.Module):
@@ -192,6 +201,7 @@ class MVGRL(tlx.nn.Module):
         if tlx.BACKEND == 'torch':
             edge_index = edge_index.to(feat.device)
             edge_weight = edge_weight.to(feat.device)
+
         h1 = self.act(self.encoder1(feat, edge_index, edge_weight, feat.shape[0]))
         h2 = self.act(self.encoder2(diff_adj, feat))
 

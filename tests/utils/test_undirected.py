@@ -1,5 +1,3 @@
-import os
-os.environ['TL_BACKEND'] = 'tensorflow'
 import tensorlayerx as tlx
 from gammagl.utils import to_undirected, is_undirected
 
@@ -27,11 +25,9 @@ def test_to_undirected():
                                  [2, 3],
                                  [-5, 4]], dtype=tlx.float32)
 
-    edge_index, attr = to_undirected(edge_index=tlx.stack([row, col], axis=0), edge_attr=attr,reduce='add')
+    edge_index, attr = to_undirected(edge_index=tlx.stack([row, col], axis=0), edge_attr=attr, reduce='add')
     assert tlx.ops.convert_to_numpy(edge_index).tolist() == [[0, 1, 1, 2], [1, 0, 2, 1]]
     assert tlx.ops.convert_to_numpy(attr).tolist() == [[3.,  3.],
                                                        [3.,  3.],
                                                        [-5.,  4.],
                                                        [-5.,  4.]]
-
-# test_is_undirected()

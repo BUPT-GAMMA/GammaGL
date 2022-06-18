@@ -9,11 +9,11 @@ Results
 
 ```bash
 # use TensorFlow background
-CUDA_VISIBLE_DEVICES="1" TL_BACKEND="tensorflow" python sign_trainer.py
+TL_BACKEND=tensorflow python sign_trainer.py
 # use Paddle background
-CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python sign_trainer.py
+TL_BACKEND=paddle python sign_trainer.py
 # use Pytorch background
-CUDA_VISIBLE_DEVICES="1" TL_BACKEND="torch" python sign_trainer.py
+TL_BACKEND=torch python sign_trainer.py
 ```
 
 

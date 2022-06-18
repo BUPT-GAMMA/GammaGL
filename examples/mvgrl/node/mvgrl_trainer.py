@@ -75,9 +75,7 @@ def main(args):
             break
 
     net.load_weights(args.best_model_path + "MVGRL_" + args.dataset + ".npz")
-
     net.set_eval()
-
     embed = net.get_embedding(graph.edge_index, tlx.convert_to_tensor(diff_adj), tlx.convert_to_tensor(feat))
 
     train_embs = embed[graph.train_mask]
@@ -120,12 +118,12 @@ if __name__ == '__main__':
     parser.add_argument("--dataset_path", type=str, default=r'../../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--hidden_dim", type=int, default=512, help="dimention of hidden layers")
-    parser.add_argument("--lr", type=float, default=0.0005, help="learnin rate")
-    parser.add_argument("--l2_coef", type=float, default=0.01, help="l2 loss coeficient")
+    parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
+    parser.add_argument("--l2_coef", type=float, default=0., help="l2 loss coeficient")
 
     parser.add_argument("--n_epoch", type=int, default=500, help="number of epoch")
     parser.add_argument("--clf_lr", type=float, default=1e-2, help="classifier learning rate")
-    parser.add_argument("--clf_l2_coef", type=float, default=0.01)
+    parser.add_argument("--clf_l2_coef", type=float, default=0.)
     parser.add_argument("--patience", type=int, default=20)
     parser.add_argument('--epsilon', type=float, default=0.01, help='Edge mask threshold of diffusion graph.')
 

@@ -4,9 +4,11 @@ import os.path as osp
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import sys
 
-
 sys.path.insert(0, osp.abspath('../../')) # adds path2gammagl to execute in command line.
 import argparse
+
+from tqdm import tqdm
+import numpy as np
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid, WebKB, WikipediaNetwork, Amazon # , Actor
 from gammagl.models import GPRGNNModel
@@ -15,10 +17,6 @@ from gammagl.utils import calc_gcn_norm
 from tensorlayerx.model import TrainOneStep, WithLoss
 import gammagl.transforms as T
 
-
-import numpy as np
-
-from tqdm import tqdm
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -35,6 +33,7 @@ class SemiSpvzLoss(WithLoss):
             train_label = label[data['train_mask']]
         loss = self._loss_fn(train_logits, train_label)
         return loss
+
 
 def evaluate(net, data, y, mask, metrics):
     net.set_eval()
@@ -98,7 +97,7 @@ def main(args):
         dataset = Planetoid(args.dataset_path, args.dataset, transform=T.NormalizeFeatures())
         dataset.process()
         graph = dataset[0]
-    elif str.lower(args.dataset) in ['cornell','texas']:
+    elif str.lower(args.dataset) in ['cornell', 'texas']:
         dataset = WebKB(args.dataset_path, args.dataset)
         dataset.process()
         graph = dataset[0]
@@ -188,9 +187,6 @@ def main(args):
             if val_acc < tmp:
                 break
 
-        
-        
-
     net.load_weights(args.best_model_path+net.name+'_'+args.dataset+".npz", format='npz_dict')
     test_acc = evaluate(net, data, graph.y, data['test_mask'], metrics)
     print("Test acc:  {:.4f}".format(test_acc))
@@ -214,7 +210,7 @@ if __name__ == '__main__':
     parser.add_argument("--dataset_path", type=str, default=r'../datasets', help="path to save dataset")
     parser.add_argument("--train_rate", type=float, default=0.6, help="ratio of training set")
     parser.add_argument("--val_rate", type=float, default=0.2, help="ratio of validation set")
-    parser.add_argument("--best_model_path", type=str, default=r'./best_model/', help="path to save best model")
+    parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     parser.add_argument("--dprate", type=float, default=0.5, help="drop rate of gprprop")
     parser.add_argument("--Init", type=str, choices=['SGC', 'PPR', 'NPPR', 'Random', 'WS', 'Null'], default="PPR", help="initializaiton method of learnable weight of gprprop")

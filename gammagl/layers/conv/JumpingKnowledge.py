@@ -6,7 +6,6 @@
 """
 import tensorlayerx as tlx
 from tensorlayerx.nn.layers import LSTM, Linear
-import tensorflow as tf
 
 
 class JumpingKnowledge(tlx.nn.Module):
@@ -48,7 +47,6 @@ class JumpingKnowledge(tlx.nn.Module):
             self.lstm = LSTM(input_size=channels,hidden_size= channels,
                              bidirectional=True, batch_first=True)
             self.att = Linear(in_features=2 * channels, out_features=1)
-
 
     def forward(self, xs):
         r"""Aggregates representations across different layers.

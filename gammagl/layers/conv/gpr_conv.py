@@ -1,8 +1,7 @@
 import tensorlayerx as tlx
 import numpy as np
 from gammagl.layers.conv import MessagePassing
-# from tensorlayerx.nn.layers.utils import (get_variable_with_initializer, random_normal)
-from tensorlayerx.nn.initializers import Initializer
+
 
 class GPRConv(MessagePassing):
     r"""The graph propagation oeprator from the `"Adaptive 
@@ -25,12 +24,9 @@ class GPRConv(MessagePassing):
         k: steps to propagate.
         alpha: assgin initial value to learnt weights, used in concert with Init.
         Init: initialization method(SGC, PPR, NPPR, Random, WS).
-        add_bias: If set to :obj:`False`, the layer will not learn
-            an additive bias. (default: :obj:`True`)
     """
 
-
-    def __init__(self, K, alpha, Init='PPR', Gamma=None, bias=True, **kwargs):
+    def __init__(self, K, alpha, Init='PPR', Gamma=None, **kwargs):
         super(GPRConv, self).__init__(**kwargs)
         self.K = K
         self.Init = Init
@@ -58,8 +54,7 @@ class GPRConv(MessagePassing):
             # Specify Gamma
             TEMP = Gamma
         init = tlx.initializers.Constant(value=TEMP)
-        self.temp = self._get_weights(var_name='Gamma', shape=self.K+1, init=init)
-
+        self.temp = self._get_weights(var_name='Gamma', shape=(self.K+1,), init=init)
 
     def reset_parameters(self):
         self.temp = tlx.zeros_like(self.temp)
@@ -74,9 +69,6 @@ class GPRConv(MessagePassing):
             gamma = self.temp[k+1]
             hidden = hidden + gamma*x
         return hidden
-
-    # def message(self, x_j, norm):
-    #     return norm.view(-1, 1) * x_j
 
     def __repr__(self):
         return '{}(K={}, temp={})'.format(self.__class__.__name__, self.K,

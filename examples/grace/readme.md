@@ -44,28 +44,30 @@ This example was implemented by Siyuan Zhang
 In the paper(as well as authors' repo), the training set and testing set are split randomly with 1:9 ratio. In order to fairly compare it with other methods with the public split (20 training nodes each class), in this repo we also provide its results using the public split (with fine-tuned hyper-parameters). To run the examples, follow the following instructions.
 
 ```bash
-# use paddle background
+# use paddle backend
 
 # Cora with random split
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python grace_trainer.py --dataset cora
+TL_BACKEND=paddle python grace_trainer.py --dataset cora --n_epoch 100
 # Citeseer with random split
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="paddle" python grace_trainer.py --dataset citeseer
+TL_BACKEND=paddle python grace_trainer.py --dataset citeseer --n_epoch 20
 ```
 ```bash
-# use tensorflow background
+# use tensorflow backend
 
 # Cora with random split
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python grace_trainer.py --dataset cora
+TL_BACKEND=tensorflow python grace_trainer.py --dataset cora --n_epoch 150
 # Citeseer with random split
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="tensorflow" python grace_trainer.py --dataset citeseer
+TL_BACKEND=tensorflow python grace_trainer.py --dataset citeseer --lr 2e-3 --n_epoch 75 --hid_dim 256
+
 ```
 ```bash 
-# use pytorch background
+# use pytorch backend
 
 # Cora with random split
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="torch" python grace_trainer.py --dataset cora
+TL_BACKEND=torch python grace_trainer.py --dataset cora --n_epoch 500
 # Citeseer with random split
-CUDA_VISIBLE_DEVICES="0" TL_BACKEND="torch" python grace_trainer.py --dataset citeseer
+TL_BACKEND=torch python grace_trainer.py --dataset citeseer --n_epoch 200 --lr 1e-3 --l2 1e-5 --hid_dim 256 --drop_edge_rate_1 0.2 --drop_edge_rate_2 0.0 --drop_feature_rate_1 0.3 --drop_feature_rate_2 0.2 --temp 0.9
+
 
 ```
 
@@ -75,17 +77,19 @@ For random split, we use the hyper-parameters as stated in the paper. For public
 
 Random split (Train/Test = 1:9)
 
-Due to tlx don't have diag operation, now GRACE only support Tensorflow.
-It will support other background soon.
-
-TODO: fix l2_normal on pd and th, run again.
 
 
-|      Dataset      | Cora | Citeseer | Pubmed |
-| :---------------: | :--: | :------: | :----: |
-|   Author's Code   | 83.1 |   71.0   |  86.3  |
-|        DGL        | 83.3 |   72.1   |  86.7  |
-|     GammaGL(tf)   | 82.9 |   69.1   |  >1day |
-|     GammaGL(th)   | --.- |   --.-   |  >1day |
-|     GammaGL(pd)   | --.- |   --.-   |  >1day |
+
+
+|      Dataset      |     Cora     |   Citeseer   | Pubmed |
+| :---------------: | :----------: | :----------: | :----: |
+|   Author's Code   | 83.1         |   71.0       |  86.3  |
+|        DGL        | 83.3         |   72.1       |  86.7  |
+|     GammaGL(tf)   | 83.05 ± 0.38 | 70.81 ± 0.46 |  >1day |
+|     GammaGL(th)   | 83.28 ± 0.05 | 69.54 ± 0.49 |  >1day |
+|     GammaGL(pd)   | 83.74 ± 0.37 | 68.71 ± 1.64 |  >1day |
 |     GammaGL(ms)   | --.- |   --.-   |  >1day |
+
+* We fail to reproduce the reported accuracy on 'Citeseer' in torch backend, even with the DGL's code.
+* DGL' code can't achieve reported acc
+* The model performance is the average of 3 tests
