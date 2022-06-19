@@ -13,7 +13,7 @@ Results
 ```bash
 TL_BACKEND="paddle" python3 sgc_trainer.py --dataset cora --lr 0.2 --n_epoch 250 --iter_K 2 --l2_coef 0.005
 TL_BACKEND="paddle" python3 sgc_trainer.py --dataset citeseer --lr 0.2 --n_epoch 250 --iter_K 2 --l2_coef 0.005
-TL_BACKEND="paddle" python3 sgc_trainer.py --dataset pubmed --lr 0.2 --n_epoch 250 --iter_K 2 --l2_coef 0.005
+TL_BACKEND="paddle" python3 sgc_trainer.py --dataset pubmed --lr 0.1 --n_epoch 250 --iter_K 2 --l2_coef 0.0005
 ```
 
 | dataset  | paper      | our(tf)      | our(pd)       |
