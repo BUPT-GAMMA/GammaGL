@@ -20,6 +20,12 @@ from gammagl.models import ChebNetModel
 from gammagl.utils import mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss
 
+if tlx.BACKEND == 'torch':  # when the backend is torch and you want to use GPU
+    try:
+        tlx.set_device(device='GPU', id=0)
+    except:
+        print("GPU is not available")
+
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
