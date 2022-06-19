@@ -20,9 +20,16 @@ python jknet_trainer.py --dataset cora
 
 Results
 -------
-
+```bash
+TL_BACKEND="paddle" python jknet_trainer.py --dataset cora --mode max --lr 0.01 --n_epoch 170 --hidden_dim 32
+TL_BACKEND="paddle" python jknet_trainer.py --dataset citeseer --mode max --lr 0.01 --n_epoch 200 --hidden_dim 64
+TL_BACKEND="paddle" python jknet_trainer.py --dataset pubmed --mode cat --lr 0.01 --n_epoch 300 --hidden_dim 64 --itera_K 4
+TL_BACKEND="tensorflow" python jknet_trainer.py --dataset cora --mode cat --lr 0.005 --n_epoch 200 --hidden_dim 64
+TL_BACKEND="tensorflow" python jknet_trainer.py --dataset citeseer --mode cat --lr 0.01 --n_epoch 170 --hidden_dim 32
+TL_BACKEND="tensorflow" python jknet_trainer.py --dataset pubmed --mode max --lr 0.01 --n_epoch 170 --hidden_dim 32
+```
 | Dataset | Paper | Our(pd) | Our(tf) |
 | ---- | ---- | ---- | ---- |
 | cora | 0.896(±0.005) | 0.847(±0.01) | 0.8584(±0.007) |
-| pubmed |  | 0.7782(±0.003) | 0.7826(±0.005) |
 | citeseer | 0.783(±0.008) | 0.7554(±0.001) | 0.761(±0.01)|
+| pubmed |  | 0.7782(±0.003) | 0.7826(±0.005) |
