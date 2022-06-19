@@ -73,6 +73,7 @@ def main(args):
                      drop_rate=args.drop_rate,
                      name="GCNII")
 
+    # Notice that we do not use the same regularization method as the paper do, as TensorlayerX currently do not support it.
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
     train_weights = net.trainable_weights
