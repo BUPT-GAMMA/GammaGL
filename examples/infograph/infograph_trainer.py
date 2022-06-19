@@ -1,6 +1,6 @@
 import os
 
-# os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'paddle'
 # os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 # set your backend here, default `tensorflow`, you can choose 'paddle'、'tensorflow'、'torch'
 from gammagl.datasets import TUDataset
@@ -19,7 +19,7 @@ class Unsupervised_Loss(WithLoss):
         self.net = net
 
     def forward(self, data, label):
-        loss = self._backbone(data['x'], data['edge_index'], data['batch'])
+        loss = self._backbone(data.x, data.edge_index, data.batch)
         return loss
 
 
@@ -39,13 +39,12 @@ def main(args):
     accuracies = {args.name_eval: []}
     log_interval = 1
     accuracies[args.name_eval]
-
     for epoch in tqdm(range(args.epochs)):
         loss_all = 0
-        for batch in dataloader:
-            data = {'x': batch.x, 'edge_index': batch.edge_index, 'batch': batch.batch}
+        for data in dataloader:
+            # TODO: pd backend will not work, we will fix soon
             loss = train_one_step(data, tlx.convert_to_tensor([1]))
-            loss_all += loss.item() * batch.num_graphs
+            loss_all += loss.item() * data.num_graphs
             # print(data.batch)
             net.set_train()
         print('===== Epoch {}, Loss {} ====='.format(epoch + 1, loss_all / len(dataloader)))
@@ -59,8 +58,7 @@ def main(args):
                 best = loss
             if acc < res:
                 acc = res
-
-    print(args.name_eval + "'s best acc : ""{:.4f}".format(max(accuracies[args.name_eval])))
+            print(accuracies)
 
 
 if __name__ == '__main__':
@@ -86,7 +84,7 @@ if __name__ == '__main__':
 
     # evaluate embedding
     parser.add_argument('--name_eval', type=str, default='svc',
-                        help='The name of classify to evaluate accuracy,supporting method:log, svc, linsvc, rf')
+                        help='The name of classify to evaluate accuracy,supporting method:log,svc,linsvc,rf')
     args = parser.parse_args()
 
     main(args)
