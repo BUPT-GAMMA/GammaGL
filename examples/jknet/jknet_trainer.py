@@ -5,14 +5,6 @@
 @Author : Jia Yiming
 """
 
-import os
-os.environ['TL_BACKEND'] = 'paddle'
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-import tensorflow as tf
-physical_gpus = tf.config.experimental.list_physical_devices('GPU')
-print(physical_gpus)
-if len(physical_gpus) > 0: # dynamic allocate gpu memory
-    tf.config.experimental.set_memory_growth(physical_gpus[0], True)
 import sys
 sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import argparse
@@ -49,7 +41,6 @@ def calculate_acc(logits, y, metrics):
     rst = metrics.result()
     metrics.reset()
     return rst
-
 
 
 def main(args):
