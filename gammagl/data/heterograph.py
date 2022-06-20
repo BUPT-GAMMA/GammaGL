@@ -487,10 +487,12 @@ class HeteroGraph(BaseGraph):
         different types will be merged into a single representation, unless
         otherwise specified via the :obj:`node_attrs` and :obj:`edge_attrs`
         arguments.
+
         Furthermore, attributes named :obj:`node_type` and :obj:`edge_type`
         will be added to the returned :class:`~gammagl.data.Graph`
         object, denoting node-level and edge-level vectors holding the
         node and edge type as integers, respectively.
+
         Args:
             node_attrs (List[str], optional): The node features to combine
                 across all node types. These node features need to be of the
