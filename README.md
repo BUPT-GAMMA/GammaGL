@@ -6,7 +6,7 @@
 ![visitors](https://visitor-badge.glitch.me/badge?page_id=BUPT-GAMMA.GammaGL)
 ![Total lines](https://img.shields.io/tokei/lines/github/BUPT-GAMMA/GammaGL?color=red)
 
-**[Documentation](https://gammagl.readthedocs.io/en/latest/)** |**[启智社区]([GAMMALab/GammaGL - GammaGL - OpenI](https://git.openi.org.cn/GAMMALab/GammaGL))**
+**[Documentation](https://gammagl.readthedocs.io/en/latest/)** |**[启智社区](https://git.openi.org.cn/GAMMALab/GammaGL)**
 
 GammaGL is a multi-backend graph learning library based on [TensorLayerX](https://github.com/tensorlayer/TensorLayerX), which supports TensorFlow, PyTorch, PaddlePaddle, MindSpore as the backends.
 
