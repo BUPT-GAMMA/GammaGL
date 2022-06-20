@@ -682,6 +682,7 @@ class Graph(BaseGraph):
 		If the :class:`~gammagl.data.Graph` object was constructed via
 		:meth:`~gammagl.data.HeteroGraph.to_homogeneous`, the object can
 		be reconstructed without any need to pass in additional arguments.
+
 		Args:
 			node_type (Tensor, optional): A node-level vector denoting the type
 				of each node. (default: :obj:`None`)
