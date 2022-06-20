@@ -679,8 +679,8 @@ class Graph(BaseGraph):
 		:obj:`node_type_names` and :obj:`edge_type_names` can be used to give
 		meaningful node and edge type names, respectively.
 		That is, the node_type :obj:`0` is given by :obj:`node_type_names[0]`.
-		If the :class:`~torch_geometric.data.Data` object was constructed via
-		:meth:`~torch_geometric.data.HeteroData.to_homogeneous`, the object can
+		If the :class:`~gammagl.data.Graph` object was constructed via
+		:meth:`~gammagl.data.HeteroGraph.to_homogeneous`, the object can
 		be reconstructed without any need to pass in additional arguments.
 		Args:
 			node_type (Tensor, optional): A node-level vector denoting the type

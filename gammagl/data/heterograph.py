@@ -423,10 +423,10 @@ class HeteroGraph(BaseGraph):
         return mapping
 
     def get_node_store(self, key: NodeType) -> NodeStorage:
-        r"""Gets the :class:`~torch_geometric.data.storage.NodeStorage` object
+        r"""Gets the :class:`~gammagl.data.storage.NodeStorage` object
         of a particular node type :attr:`key`.
         If the storage is not present yet, will create a new
-        :class:`torch_geometric.data.storage.NodeStorage` object for the given
+        :class:`gammagl.data.storage.NodeStorage` object for the given
         node type.
 
         .. code:: python
@@ -441,10 +441,10 @@ class HeteroGraph(BaseGraph):
         return out
 
     def get_edge_store(self, src: str, rel: str, dst: str) -> EdgeStorage:
-        r"""Gets the :class:`~torch_geometric.data.storage.EdgeStorage` object
+        r"""Gets the :class:`~gammagl.data.storage.EdgeStorage` object
         of a particular edge type given by the tuple :obj:`(src, rel, dst)`.
         If the storage is not present yet, will create a new
-        :class:`torch_geometric.data.storage.EdgeStorage` object for the given
+        :class:`gammagl.data.storage.EdgeStorage` object for the given
         edge type.
 
         .. code:: python
@@ -504,11 +504,11 @@ class HeteroGraph(BaseGraph):
                 (default: :obj:`None`)
             add_node_type (bool, optional): If set to :obj:`False`, will not
                 add the node-level vector :obj:`node_type` to the returned
-                :class:`~torch_geometric.data.Data` object.
+                :class:`~gammagl.data.Graph` object.
                 (default: :obj:`True`)
             add_edge_type (bool, optional): If set to :obj:`False`, will not
                 add the edge-level vector :obj:`edge_type` to the returned
-                :class:`~torch_geometric.data.Data` object.
+                :class:`~gammagl.data.Graph` object.
                 (default: :obj:`True`)
         """
 
