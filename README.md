@@ -4,6 +4,7 @@
 [![Documentation Status](https://readthedocs.org/projects/gammagl/badge/?version=latest)](https://gammagl.readthedocs.io/en/latest/?badge=latest)
 ![GitHub](https://img.shields.io/github/license/BUPT-GAMMA/GammaGL)
 ![visitors](https://visitor-badge.glitch.me/badge?page_id=BUPT-GAMMA.GammaGL)
+![GitHub all releases](https://img.shields.io/github/downloads/BUPT-GAMMA/GammaGL/total)
 ![Total lines](https://img.shields.io/tokei/lines/github/BUPT-GAMMA/GammaGL?color=red)
 
 **[Documentation](https://gammagl.readthedocs.io/en/latest/)** |**[启智社区](https://git.openi.org.cn/GAMMALab/GammaGL)**
