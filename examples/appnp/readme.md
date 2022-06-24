@@ -22,6 +22,12 @@ Results
 TL_BACKEND="paddle" python appnp_trainer.py --dataset cora --lr 0.1 --n_epoch 200 --hidden_dim 64 --drop_rate 0.5 --l2_coef 0.001 --iter_K 6 --self_loops 1
 TL_BACKEND="paddle" python appnp_trainer.py --dataset pubmed --lr 0.2 --n_epoch 250 --hidden_dim 64 --drop_rate 0.6 --l2_coef 0.001 --iter_K 10 --self_loops 2
 TL_BACKEND="paddle" python appnp_trainer.py --dataset citeseer --lr 0.03 --n_epoch 500 --hidden_dim 32 --alpha 0.1 --drop_rate 0.4 --l2_coef 2e-3 --iter_K 10 --self_loops 1
+TL_BACKEND="tensorflow" python appnp_trainer.py --dataset cora --lr 0.015 --n_epoch 200 --hidden_dim 64 --drop_rate 0.5 --l2_coef 0.0005 --iter_K 20 --self_loops 0
+TL_BACKEND="tensorflow" python appnp_trainer.py --dataset pubmed --lr 0.1 --n_epoch 100 --hidden_dim 32 --alpha 0.1 --drop_rate 0.5  --iter_K 10 --self_loops 2
+TL_BACKEND="tensorflow" python appnp_trainer.py --dataset citeseer --lr 0.1 --n_epoch 100 --hidden_dim 64 --alpha 0.1 --drop_rate 0.4  --iter_K 10 --self_loops 2
+TL_BACKEND="torch" python appnp_trainer.py --dataset cora --lr 0.01 --n_epoch 200 --hidden_dim 64 --drop_rate 0.5 --l2_coef 0.001 --iter_K 6 --self_loops 1
+TL_BACKEND="torch" python appnp_trainer.py --dataset pubmed --lr 0.01 --n_epoch 200 --hidden_dim 64 --drop_rate 0.5 --l2_coef 0.001 --iter_K 6 --self_loops 1
+TL_BACKEND="torch" python appnp_trainer.py --dataset citeseer --lr 0.01 --n_epoch 200 --hidden_dim 64 --drop_rate 0.5 --l2_coef 0.001 --iter_K 6 --self_loops 1
 ```
 | dataset  | paper        | our(pd)     | our(tf)     | our(th)     |
 |----------|--------------|-------------|-------------|-------------|
