@@ -4,6 +4,9 @@
 @Time   : 2022/4/10 11:16 A.M.
 @Author : Jia Yiming
 """
+import os
+# os.environ['CUDA_VISIBLE_DEVICES']='0'
+# os.environ['TL_BACKEND'] = 'torch'
 
 import sys
 sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
@@ -12,7 +15,7 @@ import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
 from gammagl.models import JKNet
 from tensorlayerx.model import TrainOneStep, WithLoss
-from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
+from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index, set_device
 
 
 class SemiSpvzLoss(WithLoss):
@@ -42,9 +45,9 @@ def calculate_acc(logits, y, metrics):
     metrics.reset()
     return rst
 
-
 def main(args):
     # load cora dataset
+    # set_device(5)
     if str.lower(args.dataset) not in ['cora', 'pubmed', 'citeseer']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)
@@ -67,9 +70,9 @@ def main(args):
     train_num = int(useful_node * 0.6)
     val_num = int(useful_node * 0.2)
     test_num = useful_node - train_num - val_num
-    graph.train_mask = graph.train_mask.numpy()
-    graph.val_mask = graph.val_mask.numpy()
-    graph.test_mask = graph.test_mask.numpy()
+    graph.train_mask = graph.train_mask.cpu().numpy()
+    graph.val_mask = graph.val_mask.cpu().numpy()
+    graph.test_mask = graph.test_mask.cpu().numpy()
 
     graph.train_mask[:] = False
     graph.train_mask[useful_index[:train_num]] = True
@@ -157,5 +160,4 @@ if __name__ == '__main__':
     parser.add_argument("--mode", type=str, default='max', help="mode of jumping knowledge, optional=['max', 'cat', 'lstm']")
 
     args = parser.parse_args()
-
     main(args)
