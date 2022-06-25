@@ -1,0 +1,7 @@
+numpy
+scipy
+cython
+tensorflow
+torch
+paddlepaddle
+pytest

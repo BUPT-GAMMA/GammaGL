@@ -1,4 +1,4 @@
-# import os
+import os
 # os.environ['TL_BACKEND'] = 'paddle'
 # os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 from gammagl.models.graphsage import GraphSAGE_Full_Model
@@ -9,45 +9,56 @@ from gammagl.datasets import Planetoid
 
 from tensorlayerx.model import TrainOneStep, WithLoss
 
+from gammagl.utils import mask_to_index
+
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
         super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
 
-    def forward(self, data, label):
-        logits = self._backbone(data['x'], data["edge_index"])
-        train_logits = logits[data['train_mask']]
-        train_label = label[data['train_mask']]
-        loss = self._loss_fn(train_logits, train_label)
+    def forward(self, data, y):
+        logits = self.backbone_network(data['x'], data['edge_index'])
+        train_logits = tlx.gather(logits, data['train_idx'])
+        train_y = tlx.gather(data['y'], data['train_idx'])
+        loss = self._loss_fn(train_logits, train_y)
         return loss
 
 
-def evaluate(net, data, y, mask, metrics):
-    net.set_eval()
-    logits = net(data['x'], data['edge_index'])
-    _logits = logits[mask]
-    _label = y[mask]
-    metrics.update(_logits, _label)
-    acc = metrics.result()  # [0]
+def calculate_acc(logits, y, metrics):
+    """
+    Args:
+        logits: node logits
+        y: node labels
+        metrics: tensorlayerx.metrics
+
+    Returns:
+        rst
+    """
+
+    metrics.update(logits, y)
+    rst = metrics.result()
     metrics.reset()
-    return acc
+    return rst
+
+
+
 
 
 def main(args):
-    # load cora dataset
+    # load datasets
     if str.lower(args.dataset) not in ['cora', 'pubmed', 'citeseer']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)
-    # dataset.process() # suggest to execute explicitly so far
     graph = dataset[0]
 
-    x = graph.x
-    edge_index = graph.edge_index
-    y = tlx.argmax(graph.y, axis=1)
+    # for mindspore, it should be passed into node indices
+    train_idx = mask_to_index(graph.train_mask)
+    test_idx = mask_to_index(graph.test_mask)
+    val_idx = mask_to_index(graph.val_mask)
 
-    net = GraphSAGE_Full_Model(in_feats=x.shape[1],
+    net = GraphSAGE_Full_Model(in_feats=dataset.num_features,
                                n_hidden=args.hidden_dim,
-                               n_classes=graph.y.shape[1],
+                               n_classes=dataset.num_classes,
                                n_layers=args.n_layers,
                                activation=tlx.ReLU(),
                                dropout=args.drop_rate,
@@ -60,21 +71,24 @@ def main(args):
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
     data = {
-        "x": x,
-        "edge_index": edge_index,
-        "edge_weight": tlx.ones((edge_index.shape[1], ), dtype=tlx.float32),
-        "train_mask": graph.train_mask,
-        "test_mask": graph.test_mask,
-        "val_mask": graph.val_mask,
+        "x": graph.x,
+        "edge_index": graph.edge_index,
+        "train_idx": train_idx,
+        "test_idx": test_idx,
+        "val_idx": val_idx,
         "num_nodes": graph.num_nodes,
+        "y": graph.y
     }
 
     best_val_acc = 0
     for epoch in range(args.n_epoch):
         net.set_train()
-        train_loss = train_one_step(data, y)
-        val_acc = evaluate(net, data, y, data['val_mask'], metrics)
-
+        train_loss = train_one_step(data, graph.y)
+        net.set_eval()
+        logits = net(data['x'], data['edge_index'])
+        val_logits = tlx.gather(logits, data['val_idx'])
+        val_y = tlx.gather(data['y'], data['val_idx'])
+        val_acc = calculate_acc(val_logits, val_y, metrics)
         print("Epoch [{:0>3d}] ".format(epoch + 1) \
               + "  train loss: {:.4f}".format(train_loss.item()) \
               + "  val acc: {:.4f}".format(val_acc))
@@ -85,7 +99,14 @@ def main(args):
             net.save_weights(args.best_model_path + net.name + ".npz", format='npz_dict')
 
     net.load_weights(args.best_model_path + net.name + ".npz", format='npz_dict')
-    test_acc = evaluate(net, data, y, data['test_mask'], metrics)
+    if tlx.BACKEND == 'torch':
+        net.to(data['x'].device)
+    net.set_eval()
+
+    logits = net(data['x'], data['edge_index'])
+    test_logits = tlx.gather(logits, data['test_idx'])
+    test_y = tlx.gather(data['y'], data['test_idx'])
+    test_acc = calculate_acc(test_logits, test_y, metrics)
     print("Test acc:  {:.4f}".format(test_acc))
 
 

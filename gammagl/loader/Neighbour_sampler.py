@@ -5,12 +5,17 @@ import numpy as np
 class subg(object):
     def __init__(self, edge, size):
         '''
-        Args:
-            edge: Renumbered subgraph
-            size: [int , int ], store all_node's size and dst_node's size, get dst_node by slicing
+        Parameters
+        ----------
+        edge: 
+            Renumbered subgraph
+        size: int , int
+            store all_node's size and dst_node's size, get dst_node by slicing
         '''
         self.edge = tlx.convert_to_tensor(edge)
         self.size = size
+    def to(self, device):
+        self.edge = self.edge.to(device)
 
 
 from tensorlayerx.dataflow import DataLoader
@@ -20,27 +25,36 @@ import tensorlayerx as tlx
 class Neighbor_Sampler(DataLoader):
     def __init__(self, edge_index,
                  dst_nodes,
-                 sample_lists, indptr=None, replace=False,
+                 sample_lists, indptr=None, replace=False, is_sorted=False,
                  **kwargs):
         '''
-
-        :param edge_index: np.ndarray, shape = [2, E] ,[src, dst], dst is sortted
-        :param dst_nodes:  np.ndarray, target nodes, which need to sample its neighbour
-        :param sample_lists: list, sample number
-        :param indptr:  np.ndarray, csr matrix's parameters, use for sample, default = None
-        :param replace: bool, sample with or without replacement default = False
+        Parameters
+        ----------
+        edge_index: np.ndarray
+            shape = [2, E] ,[src, dst], dst is sortted
+        dst_nodes: np.ndarray
+            target nodes, which need to sample its neighbour
+        sample_lists: list
+            sample number
+        indptr:  np.ndarray
+            csr matrix's parameters, use for sample, default = None
+        replace: bool
+            sample with or without replacement default = False
         '''
         self.sample_list = sample_lists
-
-        self.edge_index = edge_index.T
-        self.dst_nodes = dst_nodes
-        self.replace = replace
         if indptr is None:
             self.rowptr = np.concatenate(([0], np.bincount(edge_index[1]).cumsum()))
         else:
             self.rowptr = indptr
+        if is_sorted == False:
+            ind = np.argsort(edge_index[1], axis=0)
+            edge_index = np.array(edge_index.T[ind]).T
+        self.edge_index = edge_index.T
+        self.dst_nodes = dst_nodes
+        self.replace = replace
+
         super(Neighbor_Sampler, self).__init__(
-            dst_nodes.numpy().tolist(), collate_fn=self.sample, **kwargs)
+            dst_nodes.tolist(), collate_fn=self.sample, **kwargs)
 
     def sample(self, batch):
         adjs = []
@@ -61,14 +75,15 @@ class Neighbor_Sampler(DataLoader):
         return batch
 
 
-'''
-python's sampler
-it equals Neighbor_Sampler, but it will cost too many times on sample per batch.
-it just use for test speed
-'''
+
 
 
 class Neighbor_Sampler_python(DataLoader):
+    '''
+    python's sampler
+    it equals Neighbor_Sampler, but it will cost too many times on sample per batch.
+    it just use for test speed
+    '''
     def __init__(self, edge_index, indptr,
                  dst_nodes,
                  sample_lists, replace,
@@ -152,11 +167,16 @@ class Neighbor_Sampler_python(DataLoader):
     def small_g(self, e_id):
         '''
 
-        Args:
-            nodes: Nodes to be renumbered
-            e_id:  Edge serial number to be renumbered
+        Parameters
+        ----------
+        nodes:
+            Nodes to be renumbered
+        e_id: 
+            Edge serial number to be renumbered
 
-        Returns:
+        Returns
+        -------
+        list
             Edge index after renumbering
 
         '''

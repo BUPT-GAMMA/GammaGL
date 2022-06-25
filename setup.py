@@ -46,7 +46,7 @@ classifiers = [
 
 setup(
     name="gammagl",
-    version="0.0.0",
+    version="0.1.0",
     author="BUPT-GAMMA LAB",
     author_email="tyzhao@bupt.edu.cn",
     maintainer="Tianyu Zhao",
@@ -60,7 +60,7 @@ setup(
     url="https://github.com/BUPT-GAMMA/GammaGL",
     download_url="https://github.com/BUPT-GAMMA/GammaGL",
 
-    python_requires='>=3.6',
+    python_requires='>=3.7',
 
     packages=find_packages(),
 

@@ -3,7 +3,6 @@ from typing import Any
 
 from gammagl.data import BaseGraph
 from gammagl.data.storage import BaseStorage
-import tensorflow as tf
 import tensorlayerx as tlx
 
 
@@ -47,7 +46,7 @@ def separate(cls, batch: BaseGraph, idx: int, slice_dict: Any,
         # the real number of nodes from the total number of nodes alone:
         
         if hasattr(batch_store, '_num_nodes'):
-            data_store.num_nodes = batch_store._num_nodes
+            data_store.num_nodes = batch_store._num_nodes[idx]
 
     return data
 
@@ -64,14 +63,14 @@ def _separate(
 ) -> Any:
 
     if tlx.is_tensor(value):
-        # Narrow a `torch.Tensor` based on `slices`.
+        # Narrow a `Tensor` based on `slices`.
         # NOTE: We need to take care of decrementing elements appropriately.
         cat_dim = batch.__cat_dim__(key, value, store)
         start, end = int(slices[idx]), int(slices[idx + 1])
-        value = tlx.gather(value, range(start, end), axis=cat_dim)
-        value = value.squeeze(0) if cat_dim is None else value
-        if decrement and (incs.dim() > 1 or int(incs[idx]) != 0):
-            value = value - incs[idx].to(value.device)
+        value = tlx.gather(value, tlx.arange(start=start, limit=end), axis=cat_dim)
+        value = tlx.squeeze(value, axis=0) if cat_dim is None else value
+        if decrement and (incs.ndim > 1 or int(incs[idx]) != 0):
+            value = value - incs[idx]
         return value
 
     # elif isinstance(value, SparseTensor) and decrement:
@@ -94,8 +93,8 @@ def _separate(
         }
 
     elif (isinstance(value, Sequence) and isinstance(value[0], Sequence)
-          and not isinstance(value[0], str)
-          and isinstance(value[0][0], (Tensor, SparseTensor))):
+          and not isinstance(value[0], str) and len(value[0]) > 0
+          and tlx.is_tensor(value[0][0])):
         # Recursively separate elements of lists of lists.
         return [
             _separate(key, elem, idx, slices[i],

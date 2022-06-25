@@ -3,8 +3,6 @@ from collections.abc import Sequence
 from typing import Any, List, Optional, Union
 
 import numpy as np
-# import torch
-# from torch import Tensor
 import tensorlayerx as tlx
 from gammagl.data import Graph
 from gammagl.data.collate import collate
@@ -19,7 +17,7 @@ class DynamicInheritance(type):
     def __call__(cls, *args, **kwargs):
         base_cls = kwargs.pop('_base_cls', Graph)
 
-        if issubclass(base_cls, Batch):
+        if issubclass(base_cls, BatchGraph):
             new_cls = base_cls
         else:
             name = f'{base_cls.__name__}{cls.__name__}'
@@ -45,11 +43,11 @@ class DynamicInheritanceGetter(object):
         return cls(_base_cls=base_cls)
 
 
-class Batch(metaclass=DynamicInheritance):
+class BatchGraph(metaclass=DynamicInheritance):
     r"""A data object describing a batch of graphs as one big (disconnected)
     graph.
-    Inherits from :class:`torch_geometric.data.Data` or
-    :class:`torch_geometric.data.HeteroData`.
+    Inherits from :class:`gammagl.data.Graph` or
+    :class:`gammagl.data.HeteroGraph`.
     In addition, single graphs can be identified via the assignment vector
     :obj:`batch`, which maps each node to its respective graph identifier.
     """
@@ -58,9 +56,9 @@ class Batch(metaclass=DynamicInheritance):
                        follow_batch: Optional[List[str]] = None,
                        exclude_keys: Optional[List[str]] = None):
         # https://github.com/pyg-team/pytorch_geometric/issues/3332
-        r"""Constructs a :class:`~torch_geometric.data.Batch` object from a
-        Python list of :class:`~torch_geometric.data.Data` or
-        :class:`~torch_geometric.data.HeteroData` objects.
+        r"""Constructs a :class:`~gammagl.data.BatchGraph` object from a
+        Python list of :class:`~gammagl.data.Graph` or
+        :class:`~gammagl.data.HeteroGraph` objects.
         The assignment vector :obj:`batch` is created on the fly.
         In addition, creates assignment vectors for each key in
         :obj:`follow_batch`.
@@ -70,7 +68,7 @@ class Batch(metaclass=DynamicInheritance):
             cls,
             data_list=data_list,
             increment=True,
-            add_batch=not isinstance(data_list[0], Batch),
+            add_batch=not isinstance(data_list[0], BatchGraph),
             follow_batch=follow_batch,
             exclude_keys=exclude_keys,
         )
@@ -82,9 +80,9 @@ class Batch(metaclass=DynamicInheritance):
         return batch
 
     def get_example(self, idx: int) -> Union[Graph]:
-        r"""Gets the :class:`~torch_geometric.data.Data` or
-        :class:`~torch_geometric.data.HeteroData` object at index :obj:`idx`.
-        The :class:`~torch_geometric.data.Batch` object must have been created
+        r"""Gets the :class:`~gammagl.data.Graph` or
+        :class:`~gammagl.data.HeteroGraph` object at index :obj:`idx`.
+        The :class:`~gammagl.data.BatchGraph` object must have been created
         via :meth:`from_data_list` in order to be able to reconstruct the
         initial object."""
 
@@ -106,23 +104,23 @@ class Batch(metaclass=DynamicInheritance):
 
     def index_select(self,
                      idx: IndexType) -> Union[List[Graph]]:
-        r"""Creates a subset of :class:`~torch_geometric.data.Data` or
-        :class:`~torch_geometric.data.HeteroData` objects from specified
+        r"""Creates a subset of :class:`~gammagl.data.Graph` or
+        :class:`~gammagl.data.HeteroGraph` objects from specified
         indices :obj:`idx`.
         Indices :obj:`idx` can be a slicing object, *e.g.*, :obj:`[2:5]`, a
         list, a tuple, or a :obj:`torch.Tensor` or :obj:`np.ndarray` of type
         long or bool.
-        The :class:`~torch_geometric.data.Batch` object must have been created
+        The :class:`~gammagl.data.BatchGraph` object must have been created
         via :meth:`from_data_list` in order to be able to reconstruct the
         initial objects."""
         if isinstance(idx, slice):
             idx = list(range(self.num_graphs)[idx])
 
-        elif isinstance(idx, Tensor) and idx.dtype == torch.long:
-            idx = idx.flatten().tolist()
+        elif tlx.is_tensor(idx) and idx.dtype == tlx.int64:
+            idx = tlx.convert_to_numpy(idx).flatten().tolist()
 
-        elif isinstance(idx, Tensor) and idx.dtype == torch.bool:
-            idx = idx.flatten().nonzero(as_tuple=False).flatten().tolist()
+        elif tlx.is_tensor(idx) and idx.dtype == tlx.bool:
+            idx = tlx.convert_to_numpy(idx).flatten().nonzero()[0].flatten().tolist()
 
         elif isinstance(idx, np.ndarray) and idx.dtype == np.int64:
             idx = idx.flatten().tolist()
@@ -154,10 +152,10 @@ class Batch(metaclass=DynamicInheritance):
             return self.index_select(idx)
 
     def to_data_list(self) -> Union[List[Graph]]:
-        r"""Reconstructs the list of :class:`~torch_geometric.data.Data` or
-        :class:`~torch_geometric.data.HeteroData` objects from the
-        :class:`~torch_geometric.data.Batch` object.
-        The :class:`~torch_geometric.data.Batch` object must have been created
+        r"""Reconstructs the list of :class:`~gammagl.data.Graph` or
+        :class:`~gammagl.data.HeteroGraph` objects from the
+        :class:`~gammagl.data.BatchGraph` object.
+        The :class:`~gammagl.data.BatchGraph` object must have been created
         via :meth:`from_data_list` in order to be able to reconstruct the
         initial objects."""
         return [self.get_example(i) for i in range(self.num_graphs)]

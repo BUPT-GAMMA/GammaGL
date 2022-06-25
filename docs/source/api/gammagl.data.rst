@@ -1,22 +1,22 @@
 gammagl.data
 ====================
 
+.. currentmodule:: gammagl.data
 
-.. currentmodule:: gammal.data
 .. autosummary::
-   :nosignatures:
-   {% for cls in gammal.data.classes %}
-     {{ cls }}
-   {% endfor %}
+    :nosignatures:
+    {% for cls in gammagl.data.classes %}
+      {{ cls }}
+    {% endfor %}
 
-.. automodule:: gammal.data
+.. automodule:: gammagl.data
     :members:
-    :exclude-members: Data, HeteroData
+    :exclude-members: Graph, HeteroGraph
 
-    .. autoclass:: Data
+    .. autoclass:: Graph
        :special-members: __cat_dim__, __inc__
        :inherited-members:
 
-    .. autoclass:: HeteroData
+    .. autoclass:: HeteroGraph
        :special-members: __cat_dim__, __inc__
        :inherited-members:

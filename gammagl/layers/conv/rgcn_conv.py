@@ -18,14 +18,16 @@ def masked_edge_index(edge_index, edge_mask):
 
 
 class RGCNConv(MessagePassing):
-    """
+    r"""
     The relational graph convolutional operator from the `"Modeling
     Relational Data with Graph Convolutional Networks"
     <https://arxiv.org/abs/1703.06103>`_ paper
+    
     .. math::
         \mathbf{x}^{\prime}_i = \mathbf{\Theta}_{\textrm{root}} \cdot
         \mathbf{x}_i + \sum_{r \in \mathcal{R}} \sum_{j \in \mathcal{N}_r(i)}
-        \frac{1}{|\mathcal{N}_r(i)|} \mathbf{\Theta}_r \cdot \mathbf{x}_j,
+        \frac{1}{|\mathcal{N}_r(i)|} \mathbf{\Theta}_r \cdot \mathbf{x}_j
+
     where :math:`\mathcal{R}` denotes the set of relations, *i.e.* edge types.
     Edge type needs to be a one-dimensional :obj:`torch.long` tensor which
     stores a relation identifier
@@ -60,10 +62,10 @@ class RGCNConv(MessagePassing):
         if num_bases is not None:
             self.weight = self._get_weights(var_name="weight",
                                             shape=(num_bases, in_channels[0], out_channels),
-                                            init=initor)
+                                            init=initor, order=True)
             self.base_att = self._get_weights(var_name="base_att",
                                               shape=(num_relations, num_bases),
-                                              init=initor)
+                                              init=initor, order=True)
         elif num_blocks is not None:
             assert (in_channels[0] % num_blocks == 0
                     and out_channels % num_blocks == 0)
@@ -72,11 +74,11 @@ class RGCNConv(MessagePassing):
                                                    num_blocks,
                                                    in_channels[0] // num_blocks,
                                                    out_channels // num_blocks),
-                                            init=initor)
+                                            init=initor, order=True)
         else:
             self.weight = self._get_weights(var_name="weight",
-                                            shape=(out_channels, in_channels[0], num_relations,),
-                                            init=initor)
+                                            shape=(num_relations, in_channels[0], out_channels),
+                                            init=initor, order=True)
 
         if root_weight:
             self.root = self._get_weights(var_name="root",
@@ -88,20 +90,23 @@ class RGCNConv(MessagePassing):
 
     def forward(self, x, edge_index, edge_type = None):
         r"""
-        Args:
-
-            x: The input node features. Can be either a :obj:`[num_nodes,
-               in_channels]` node feature matrix, or an optional
-               one-dimensional node index tensor (in which case input features
-               are treated as trainable node embeddings).
-               Furthermore, :obj:`x` can be of type :obj:`tuple` denoting
-               source and destination node features.
-            edge_index: edge index
-            edge_type: The one-dimensional relation type/index for each edge in
-               :obj:`edge_index`.
-               Should be only :obj:`None` in case :obj:`edge_index` is of type
-               :class:`torch_sparse.tensor.SparseTensor`.
-               (default: :obj:`None`)
+        Parameters
+        ----------
+        x: 
+            The input node features. Can be either a :obj:`[num_nodes,
+            in_channels]` node feature matrix, or an optional
+            one-dimensional node index tensor (in which case input features
+            are treated as trainable node embeddings).
+            Furthermore, :obj:`x` can be of type :obj:`tuple` denoting
+            source and destination node features.
+        edge_index: 
+            edge index
+        edge_type: 
+            The one-dimensional relation type/index for each edge in
+            :obj:`edge_index`.
+            Should be only :obj:`None` in case :obj:`edge_index` is of type
+            :class:`torch_sparse.tensor.SparseTensor`.
+            (default: :obj:`None`)
         """
         x_l = None
         if isinstance(x, tuple):
@@ -115,6 +120,8 @@ class RGCNConv(MessagePassing):
             x_r = x[1]
         size = (x_l.shape[0], x_r.shape[0])
         out = tlx.zeros(shape=(x_r.shape[0], self.out_channels), dtype=tlx.float32)
+        if tlx.BACKEND == 'torch':
+            out = out.cuda()
 
         weight = self.weight
         if self.num_bases is not None:  # Basis-decomposition =================
@@ -130,24 +137,20 @@ class RGCNConv(MessagePassing):
                 edges = masked_edge_index(edge_index, edge_type == i)
                 h = self.propagate(x_l, edges, size[1])
                 h = tlx.reshape(h, (-1, weight.shape[1], weight.shape[2]))
-                h = tlx.einsum('abc,bcd->abd', h, weight[i]) # tlx还不支持，因为ms没有这个算子。
+                h = tlx.einsum('abc,bcd->abd', h, weight[i]) # not support ms
                 out += h.contiguous().view(-1, self.out_channels)
 
         else:  # No regularization/Basis-decomposition ========================
             for i in range(self.num_relations):
                 edges = masked_edge_index(edge_index, edge_type==i)
+                if edges.shape[1] == 0:
+                    """
+                    which means 0 edge of this relation,
+                    however, `tlx.gather` may cause error in paddle backend.
+                    """
+                    continue
 
                 if x_l.dtype == tlx.int64 or str(x_l.dtype) == 'paddle.int64': # paddle 报错
-                    # paddle 的做法
-                    # bucketed_msg = Message(msg, segment_ids)
-                    # output = reduce_func(bucketed_msg)
-                    # output_dim = output.shape[-1]
-                    # init_output = paddle.zeros(
-                    #     shape=[self._num_nodes, output_dim], dtype=output.dtype)
-                    # final_output = scatter(init_output, uniq_ind, output)
-                    #
-                    # return final_output
-
                     out += self.propagate(tlx.gather(weight[i], x_l), edges, num_nodes=size[1])
                 else:
                     h = self.propagate(x, edges, num_nodes=size[1])
@@ -155,7 +158,7 @@ class RGCNConv(MessagePassing):
 
         root = self.root
         if root is not None:
-            out += root[x_r] if x_r.dtype == tlx.int64 else x_r @ root
+            out += tlx.gather(root, x_r) if x_r.dtype == tlx.int64 else x_r @ root
 
         if self.add_bias:
             out += self.bias

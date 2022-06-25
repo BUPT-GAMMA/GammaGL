@@ -16,30 +16,31 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
-    
+
 IndexType = Union[slice, np.ndarray, Sequence]
 
 
 class Dataset(Dataset):
     r"""Dataset base class for creating graph datasets.
-    See `here <https://pytorch-geometric.readthedocs.io/en/latest/notes/
-    create_dataset.html>`__ for the accompanying tutorial.
+    See `here <https://gammagl.readthedocs.io/en/latest/notes/create_dataset.html#l>`__ for the accompanying tutorial.
+
     Args:
         root (string, optional): Root directory where the dataset should be
             saved. (optional: :obj:`None`)
         transform (callable, optional): A function/transform that takes in an
-            :obj:`torch_geometric.data.Data` object and returns a transformed
+            :obj:`gammagl.data.Data` object and returns a transformed
             version. The data object will be transformed before every access.
             (default: :obj:`None`)
         pre_transform (callable, optional): A function/transform that takes in
-            an :obj:`torch_geometric.data.Data` object and returns a
+            an :obj:`gammagl.data.Data` object and returns a
             transformed version. The data object will be transformed before
             being saved to disk. (default: :obj:`None`)
         pre_filter (callable, optional): A function that takes in an
-            :obj:`torch_geometric.data.Data` object and returns a boolean
+            :obj:`gammagl.data.Data` object and returns a boolean
             value, indicating whether the data object should be included in the
             final dataset. (default: :obj:`None`)
     """
+
     @property
     def raw_file_names(self) -> Union[str, List[str], Tuple]:
         r"""The name of the files in the :obj:`self.raw_dir` folder that must
@@ -51,7 +52,7 @@ class Dataset(Dataset):
         r"""The name of the files in the :obj:`self.processed_dir` folder that
         must be present in order to skip processing."""
         raise NotImplementedError
-    
+
     def download(self):
         r"""Downloads the dataset to the :obj:`self.raw_dir` folder."""
         raise NotImplementedError
@@ -100,6 +101,7 @@ class Dataset(Dataset):
         return obj
 
     def save_data(self, obj, file_name):
+        r"""Support save data according to different backend."""
         if tlx.BACKEND == 'paddle':
             # with open(file_name, 'wb') as f:
             #     pickle.dump(obj, f)
@@ -111,10 +113,12 @@ class Dataset(Dataset):
             torch.save(obj, file_name)
         else:
             with open(file_name, 'wb') as f:
+                obj[0].numpy()
                 pickle.dump(obj, f)
         return True
-        
+
     def load_data(self, file_name):
+        r"""Support load data according to different backend."""
         if tlx.BACKEND == 'paddle':
             # with open(file_name, 'rb') as f:
             #     obj = pickle.load(f)
@@ -123,12 +127,18 @@ class Dataset(Dataset):
             obj[0].tensor()
         elif tlx.BACKEND == 'torch':
             import torch
-            obj = torch.load(file_name)
+            id = torch.tensor(1).get_device()
+            if id != -1:
+                device = 'cuda:' + str(id)
+            else:
+                device = 'cpu'
+            obj = torch.load(file_name, map_location=device)
         else:
             with open(file_name, 'rb') as f:
                 obj = pickle.load(f)
+                obj[0].tensor()
         return obj
-                
+
     def indices(self) -> Sequence:
         return range(self.len()) if self._indices is None else self._indices
 
@@ -205,7 +215,7 @@ class Dataset(Dataset):
                 "'{self.processed_dir}' first")
 
         if files_exist(self.processed_paths):  # pragma: no cover
-            self.process()
+            # self.process()
             return
 
         print('Processing...', file=sys.stderr)
@@ -225,14 +235,14 @@ class Dataset(Dataset):
         return len(self.indices())
 
     def __getitem__(
-        self,
-        idx: Union[int, np.integer, IndexType],
+            self,
+            idx: Union[int, np.integer, IndexType],
     ) -> Union['Dataset', Graph]:
         r"""In case :obj:`idx` is of type integer, will return the data object
         at index :obj:`idx` (and transforms it in case :obj:`transform` is
         present).
         In case :obj:`idx` is a slicing object, *e.g.*, :obj:`[2:5]`, a list, a
-        tuple, or a :obj:`torch.Tensor` or :obj:`np.ndarray` of type long or
+        tuple, or a :obj:`Tensor` or :obj:`np.ndarray` of type long or
         bool, will return a subset of the dataset at the specified indices."""
         if (isinstance(idx, (int, np.integer))
                 or (isinstance(idx, np.ndarray) and np.isscalar(idx))):
@@ -247,7 +257,7 @@ class Dataset(Dataset):
     def index_select(self, idx: IndexType) -> 'Dataset':
         r"""Creates a subset of the dataset from specified indices :obj:`idx`.
         Indices :obj:`idx` can be a slicing object, *e.g.*, :obj:`[2:5]`, a
-        list, a tuple, or a :obj:`torch.Tensor` or :obj:`np.ndarray` of type
+        list, a tuple, or a :obj:`Tensor` or :obj:`np.ndarray` of type
         long or bool."""
         indices = self.indices()
 
@@ -273,7 +283,7 @@ class Dataset(Dataset):
 
         else:
             raise IndexError(
-                f"Only slices (':'), list, tuples, torch.tensor and "
+                f"Only slices (':'), list, tuples, Tensor and "
                 f"np.ndarray of dtype long or bool are valid indices (got "
                 f"'{type(idx).__name__}')")
 
@@ -282,11 +292,12 @@ class Dataset(Dataset):
         return dataset
 
     def shuffle(
-        self,
-        return_perm: bool = False,
+            self,
+            return_perm: bool = False,
     ):
         #    -> Union['Dataset', Tuple['Dataset', tf.Tensor]]:
         r"""Randomly shuffles the examples in the dataset.
+
         Args:
             return_perm (bool, optional): If set to :obj:`True`, will also
                 return the random permutation used to shuffle the dataset.

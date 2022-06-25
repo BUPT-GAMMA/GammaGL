@@ -1,14 +1,15 @@
 import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
+from gammagl.utils import add_self_loops, calc_gcn_norm
 
 
 class SAGEConv(MessagePassing):
     r"""The GraphSAGE operator from the `"Inductive Representation Learning on
-       Large Graphs" <https://arxiv.org/abs/1706.02216>`_ paper
+    Large Graphs" <https://arxiv.org/abs/1706.02216>`_ paper
 
-       .. math::
-           \mathbf{x}^{\prime}_i = \mathbf{W}_1 \mathbf{x}_i + \mathbf{W}_2 \cdot
-           \mathrm{mean}_{j \in \mathcal{N(i)}} \mathbf{x}_j
+    .. math::
+        \mathbf{x}^{\prime}_i = \mathbf{W}_1 \mathbf{x}_i + \mathbf{W}_2 \cdot \
+        \mathrm{mean}_{j \in \mathcal{N(i)}} \mathbf{x}_j
 
     Args:
         in_channels (int or tuple): Size of each input sample, or :obj:`-1` to
@@ -26,7 +27,7 @@ class SAGEConv(MessagePassing):
 
     """
 
-    def __init__(self, in_channels, out_channels, activation=None, aggr="mean", add_bias=False):
+    def __init__(self, in_channels, out_channels, activation=None, aggr="mean", add_bias=True):
         super(SAGEConv, self).__init__()
         #
         self.aggr = aggr
@@ -35,15 +36,15 @@ class SAGEConv(MessagePassing):
         # relu use he_normal
         initor = tlx.initializers.he_normal()
         # self and neighbor
-        self.fc_neigh = tlx.nn.Linear(in_features=in_channels, out_features=out_channels, W_init=initor)
+        self.fc_neigh = tlx.nn.Linear(in_features=in_channels, out_features=out_channels, W_init=initor, b_init=None)
         if aggr != 'gcn':
-            self.fc_self = tlx.nn.Linear(in_features=in_channels, out_features=out_channels, W_init=initor)
+            self.fc_self = tlx.nn.Linear(in_features=in_channels, out_features=out_channels, W_init=initor, b_init=None)
 
         if aggr == "lstm":
             self.lstm = tlx.nn.LSTM(input_size=in_channels, hidden_size=in_channels, batch_first=True)
 
         if aggr == "pool":
-            self.pool = tlx.nn.Linear(in_features=in_channels, out_features=in_channels, W_init=initor)
+            self.pool = tlx.nn.Linear(in_features=in_channels, out_features=in_channels, W_init=initor, b_init=None)
         self.add_bias = add_bias
         if add_bias:
             init = tlx.initializers.zeros()
@@ -51,9 +52,6 @@ class SAGEConv(MessagePassing):
 
     def forward(self, feat, edge):
         r"""
-
-                Description
-                -----------
                 Compute GraphSAGE layer.
 
                 Parameters
@@ -74,15 +72,17 @@ class SAGEConv(MessagePassing):
         else:
             src_feat = feat
             dst_feat = feat
-        num_nodes = dst_feat.shape[0]
+        num_nodes = int(dst_feat.shape[0])
         if self.aggr == 'mean':
             src_feat = self.fc_neigh(src_feat)
             out = self.propagate(src_feat, edge, edge_weight=None, num_nodes=num_nodes, aggr='mean')
         elif self.aggr == 'gcn':
             src_feat = self.fc_neigh(src_feat)
-            col, row, weight = calc(edge,  1 + tlx.reduce_max(edge[0]))
-            out = self.propagate(src_feat, tlx.stack([col, row]), edge_weight=weight, num_nodes=(1 + tlx.reduce_max(row)), aggr='sum')
-            out = tlx.gather(out, tlx.arange(num_nodes))
+            edge, _ = add_self_loops(edge)
+            weight = calc_gcn_norm(edge, int(1 + tlx.reduce_max(edge[0])))
+            # col, row, weight = calc(edge,  1 + tlx.reduce_max(edge[0]))
+            out = self.propagate(src_feat, edge, edge_weight=weight, num_nodes=int(1 + tlx.reduce_max(edge[0])), aggr='sum')
+            out = tlx.gather(out, tlx.arange(0, num_nodes))
         elif self.aggr == 'pool':
             src_feat = tlx.nn.ReLU()(self.pool(src_feat))
             out = self.propagate(src_feat, edge, edge_weight=None, num_nodes=num_nodes, aggr='max')
@@ -105,20 +105,3 @@ class SAGEConv(MessagePassing):
         return out
 
 
-import numpy as np
-import scipy.sparse as sp
-
-
-def calc(edge, num_nodes):
-    # edge = edge.numpy()
-    weight = np.ones(edge.shape[1])
-    sparse_adj = sp.coo_matrix((weight, (edge[0], edge[1])), shape=(num_nodes, num_nodes))
-    A = (sparse_adj + sp.eye(num_nodes)).tocoo()
-    col, row, weight = A.col, A.row, A.data
-    deg = np.array(A.sum(1))
-    # deg_inv_sqrt = np.power(deg, -0.5).flatten()
-    # return col, row, np.array(deg_inv_sqrt[row] * weight * deg_inv_sqrt[col], dtype=np.float32)
-    deg_inv_sqrt = np.power(deg, -1).flatten()
-    return tlx.convert_to_tensor(col, dtype=tlx.int64), tlx.convert_to_tensor(row,
-                                                                              dtype=tlx.int64), tlx.convert_to_tensor(
-        np.array(weight * deg_inv_sqrt[col], dtype=np.float32))

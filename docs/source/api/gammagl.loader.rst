@@ -1,21 +1,14 @@
-gammagl.loader package
+gammagl.loader
 ======================
 
-Submodules
-----------
+.. currentmodule:: gammagl.loader
 
-gammagl.loader.dataloader module
---------------------------------
-
-.. automodule:: gammagl.loader.dataloader
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
+.. autosummary::
+    :nosignatures:
+    {% for cls in gammagl.loader.classes %}
+      {{ cls }}
+    {% endfor %}
 
 .. automodule:: gammagl.loader
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :members:
+    :undoc-members:
