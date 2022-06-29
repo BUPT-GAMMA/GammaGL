@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def read_edges(train_filename, test_filename):
     """read data from files
 
@@ -37,6 +38,7 @@ def read_edges(train_filename, test_filename):
 
     return len(nodes), graph
 
+
 def read_embeddings(filename, n_node, n_embed):
     """read pretrained node embeddings
     """
@@ -50,15 +52,16 @@ def read_embeddings(filename, n_node, n_embed):
         return embedding_matrix
 
 
-
 def read_edges_from_file(filename):
     with open(filename, "r") as f:
         lines = f.readlines()
         edges = [str_list_to_int(line.split()) for line in lines]
     return edges
 
+
 def str_list_to_int(str_list):
     return [int(item) for item in str_list]
+
 
 def str_list_to_float(str_list):
     return [float(item) for item in str_list]

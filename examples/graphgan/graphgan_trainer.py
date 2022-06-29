@@ -263,7 +263,7 @@ class Discriminator(Module):
             tlx.reduce_sum(tlx.multiply(node_embedding, node_neighbor_embedding), axis=1)) + bias
         scores = tlx.clip_by_value(scores, clip_value_min=-10, clip_value_max=10)
         self.reward = tlx.log(1 + tlx.exp(scores))
-        return node_embedding, node_neighbor_embedding, scores
+        return node_embedding, node_neighbor_embedding, bias, scores
 
 
 class Generator(Module):
@@ -299,14 +299,14 @@ class WithLossD(Module):
         self.d_net = D
 
     def forward(self, data, label_sets):
-        node_embedding, node_neighbor_embedding, scores = self.d_net(data)
+        node_embedding, node_neighbor_embedding, bias, scores = self.d_net(data)
         zeros_embedding = tlx.ops.zeros(shape=node_neighbor_embedding.shape, dtype='float32')
         label_sets = tlx.nn.Reshape(shape=[labels_sets.shape.dims[0].value, 1])(label_sets)
-        zeros_lables = tlx.ops.zeros(shape=label_sets.shape, dtype='float32')
+        zeros_bias = tlx.ops.zeros(shape=bias.shape, dtype='float32')
         loss = tlx.reduce_sum(tlx.losses.sigmoid_cross_entropy(scores, label_sets)) + config.lambda_dis * (
                 tlx.losses.mean_squared_error(node_embedding, zeros_embedding, 'sum') / 2 +
                 tlx.losses.mean_squared_error(node_neighbor_embedding, zeros_embedding, 'sum') / 2 +
-                tlx.losses.mean_squared_error(label_sets, zeros_lables, 'sum') / 2
+                tlx.losses.mean_squared_error(bias, zeros_bias, 'sum') / 2
         )
         return loss
 
