@@ -8,7 +8,7 @@ from gammagl.typing import EdgeType
 
 class AddMetaPaths(BaseTransform):
     r""" Adds additional edge types to a
-    :class:`~torch_geometric.data.HeteroData` object between the source node
+    :class:`~gammagl.data.HeteroGraph` object between the source node
     type and the destination node type of a given :obj:`metapath`, as described
     in the `"Heterogenous Graph Attention Networks"
     <https://arxiv.org/abs/1903.07293>`_ paper.
@@ -24,19 +24,19 @@ class AddMetaPaths(BaseTransform):
     represents the edge type connecting two node types.
     The added edge type is given by the sequential multiplication  of
     adjacency matrices along the metapath, and is added to the
-    :class:`~torch_geometric.data.HeteroData` object as edge type
+    :class:`~gammagl.data.HeteroGraph` object as edge type
     :obj:`(src_node_type, "metapath_*", dst_node_type)`, where
     :obj:`src_node_type` and :obj:`dst_node_type` denote :math:`\mathcal{V}_1`
     and :math:`\mathcal{V}_{\ell}`, repectively.
     In addition, a :obj:`metapath_dict` object is added to the
-    :class:`~torch_geometric.data.HeteroData` object which maps the
+    :class:`~gammagl.data.HeteroGraph` object which maps the
     metapath-based edge type to its original metapath.
 
     .. code:: python
 
-        >>> from torch_geometric.datasets import DBLP
-        >>> from torch_geometric.data import HeteroData
-        >>> from torch_geometric.transforms import AddMetaPaths
+        >>> from gammagl.datasets import DBLP
+        >>> from gammagl.data import HeteroGraph
+        >>> from gammagl.transforms import AddMetaPaths
         >>> data = DBLP(root)[0]
         # 4 node types: "paper", "author", "conference", and "term"
         # 6 edge types: ("paper","author"), ("author", "paper"),

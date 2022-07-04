@@ -44,8 +44,6 @@ def add_self_loops(
     In case the graph is weighted or has multi-dimensional edge features
     (:obj:`edge_attr != None`), edge features of self-loops will be added
     according to :obj:`fill_value`.
-
-    .. code:: python
     
     .. code:: python
 

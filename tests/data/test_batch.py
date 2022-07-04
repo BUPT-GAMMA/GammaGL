@@ -1,11 +1,5 @@
-import os
-os.environ['TL_BACKEND'] = 'paddle' # set your backend here, default `tensorflow`
-import random
-import sys
-
 import numpy as np
 import tensorlayerx as tlx
-
 
 from gammagl.data import BatchGraph, Graph, HeteroGraph
 

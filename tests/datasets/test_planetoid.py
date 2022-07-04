@@ -43,7 +43,7 @@ def test_citeseer_with_random_split(get_dataset):
     dataset = get_dataset(name='CiteSeer', split='random',
                           num_train_per_class=11, num_val=29, num_test=41)
     data = dataset[0]
-    assert tlx.reduce_sum(tlx.cast(data.train_mask, dtype=tlx.int64))  == dataset.num_classes * 11
+    assert tlx.reduce_sum(tlx.cast(data.train_mask, dtype=tlx.int64)) == dataset.num_classes * 11
     assert tlx.reduce_sum(tlx.cast(data.val_mask, dtype=tlx.int64)) == 29
     assert tlx.reduce_sum(tlx.cast(data.test_mask, dtype=tlx.int64)) == 41
     assert tlx.reduce_sum(tlx.cast((data.train_mask & data.val_mask & data.test_mask), dtype=tlx.int64)) == 0

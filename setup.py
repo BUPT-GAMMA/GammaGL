@@ -46,7 +46,7 @@ classifiers = [
 
 setup(
     name="gammagl",
-    version="0.0.1",
+    version="0.1.0",
     author="BUPT-GAMMA LAB",
     author_email="tyzhao@bupt.edu.cn",
     maintainer="Tianyu Zhao",

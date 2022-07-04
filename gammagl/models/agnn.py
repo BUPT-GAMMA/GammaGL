@@ -19,13 +19,8 @@ class AGNNModel(tlx.nn.Module):
         Number of attention layers.
     dropout_rate: float
         Dropout rate.
-    edge_index: 2-D tensor
-        Shape:(2, num_edges). A element(integer) of dim-1 expresses a node of graph and
-        edge_index[0,i] points to edge_index[1,i].
-    num_nodes: int
-        Number of nodes on the graph.
     is_cora: bool,optional
-        Whether the dateset is cora. There is a special operation on cora
+        Whether the dateset is cora. There is a special operation on cora that cora dataset contains two agnn_conv layers.
     """
 
     def __init__(self,
@@ -52,6 +47,7 @@ class AGNNModel(tlx.nn.Module):
         
         self.att_layers_list = []
         self.att_layers_list.append(AGNNConv(in_channels = self.hidden_dim,
+                                            #Note:Only param of cora dataset in second agnn_conv layer doesn't have grad.
                                              require_grad = not(self.n_att_layers == 2 and is_cora)))
         for i in range(1, self.n_att_layers):
             self.att_layers_list.append(AGNNConv(in_channels = self.hidden_dim,))

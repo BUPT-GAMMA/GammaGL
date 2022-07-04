@@ -1,5 +1,3 @@
-import os
-os.environ['TL_BACKEND'] = 'tensorflow'
 import tensorlayerx as tlx
 
 from gammagl.utils import (
@@ -19,7 +17,6 @@ def test_contains_self_loops():
     edge_index = tlx.convert_to_tensor([[0, 1, 1], [1, 0, 2]])
     assert not contains_self_loops(edge_index)
 
-# test_contains_self_loops()
 
 def test_remove_self_loops():
     edge_index = tlx.convert_to_tensor([[0, 1, 0], [1, 0, 0]])
@@ -61,6 +58,10 @@ def test_add_self_loops():
     assert tlx.convert_to_numpy(out[0]).tolist() == expected
     assert tlx.convert_to_numpy(out[1]).tolist() == [0.5, 0.5, 0.5, 1., 1.]
 
+    out = add_self_loops(edge_index, edge_weight, fill_value=2.)
+    assert tlx.convert_to_numpy(out[0]).tolist() == expected
+    assert tlx.convert_to_numpy(out[1]).tolist() == [0.5, 0.5, 0.5, 2., 2.]
+
     out = add_self_loops(edge_index, edge_weight, fill_value=tlx.convert_to_tensor([2.]))
     assert tlx.convert_to_numpy(out[0]).tolist() == expected
     assert tlx.convert_to_numpy(out[1]).tolist() == [0.5, 0.5, 0.5, 2., 2.]
@@ -90,6 +91,7 @@ def test_add_self_loops():
     out = add_self_loops(edge_index, edge_weight, num_nodes=1)
     assert tlx.convert_to_numpy(out[0]).tolist() == [[0], [0]]
     assert tlx.convert_to_numpy(out[1]).tolist() == [1.]
+
 
 #
 # def test_add_remaining_self_loops():

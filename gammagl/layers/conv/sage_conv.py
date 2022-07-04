@@ -5,11 +5,11 @@ from gammagl.utils import add_self_loops, calc_gcn_norm
 
 class SAGEConv(MessagePassing):
     r"""The GraphSAGE operator from the `"Inductive Representation Learning on
-       Large Graphs" <https://arxiv.org/abs/1706.02216>`_ paper
+    Large Graphs" <https://arxiv.org/abs/1706.02216>`_ paper
 
-       .. math::
-           \mathbf{x}^{\prime}_i = \mathbf{W}_1 \mathbf{x}_i + \mathbf{W}_2 \cdot
-           \mathrm{mean}_{j \in \mathcal{N(i)}} \mathbf{x}_j
+    .. math::
+        \mathbf{x}^{\prime}_i = \mathbf{W}_1 \mathbf{x}_i + \mathbf{W}_2 \cdot \
+        \mathrm{mean}_{j \in \mathcal{N(i)}} \mathbf{x}_j
 
     Args:
         in_channels (int or tuple): Size of each input sample, or :obj:`-1` to
@@ -52,9 +52,6 @@ class SAGEConv(MessagePassing):
 
     def forward(self, feat, edge):
         r"""
-
-                Description
-                -----------
                 Compute GraphSAGE layer.
 
                 Parameters

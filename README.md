@@ -1,14 +1,17 @@
 # Gamma Graph Library(GammaGL)
 
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/BUPT-GAMMA/GammaGL)
 [![Documentation Status](https://readthedocs.org/projects/gammagl/badge/?version=latest)](https://gammagl.readthedocs.io/en/latest/?badge=latest)
-[![visitors](https://visitor-badge.glitch.me/badge?page_id=BUPT-GAMMA.GammaGL)](https://github.com/BUPT-GAMMA/GammaGL)
-[![Total lines](https://img.shields.io/tokei/lines/github/BUPT-GAMMA/GammaGL?color=red)](https://github.com/BUPT-GAMMA/GammaGL)
+![GitHub](https://img.shields.io/github/license/BUPT-GAMMA/GammaGL)
+![visitors](https://visitor-badge.glitch.me/badge?page_id=BUPT-GAMMA.GammaGL)
+![GitHub all releases](https://img.shields.io/github/downloads/BUPT-GAMMA/GammaGL/total)
+![Total lines](https://img.shields.io/tokei/lines/github/BUPT-GAMMA/GammaGL?color=red)
 
-**[Documentation](https://gammagl.readthedocs.io/en/latest/)** |
+**[Documentation](https://gammagl.readthedocs.io/en/latest/)** |**[启智社区](https://git.openi.org.cn/GAMMALab/GammaGL)**
 
 GammaGL is a multi-backend graph learning library based on [TensorLayerX](https://github.com/tensorlayer/TensorLayerX), which supports TensorFlow, PyTorch, PaddlePaddle, MindSpore as the backends.
 
-It is under development, welcome join us!
+We release the version 0.1.0 on 20th June. 
 
 We give a development tutorial in Chinese on [wiki](https://github.com/BUPT-GAMMA/GammaGL/wiki/%E5%BC%80%E5%8F%91%E8%80%85%E6%B5%81%E7%A8%8B).
 
@@ -55,6 +58,24 @@ class GCN(tlx.nn.Module):
 
 model = GCN(dataset.num_features, 16, dataset.num_classes)
 ```
+
+<details>
+<summary>
+We can now optimize the model in a training loop, similar to the <a href="https://tensorlayerx.readthedocs.io/en/latest/modules/model.html#trainonestep">standard TensorLayerX training procedure</a>.</summary>
+
+```python
+import tensorlayerx as tlx
+data = dataset[0]
+loss_fn = tlx.losses.softmax_cross_entropy_with_logits
+optimizer = tlx.optimizers.Adam(learning_rate=1e-3)
+net_with_loss = tlx.model.WithLoss(model, loss_fn)
+train_one_step = tlx.model.TrainOneStep(net_with_loss, optimizer, train_weights)
+
+for epoch in range(200):
+    loss = train_one_step(data.x, data.y)
+```
+
+</details>
 
 <details>
 <summary>We can now optimize the model in a training loop, similar to the <a href="https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html#full-implementation">standard PyTorch training procedure</a>.</summary>
@@ -155,6 +176,37 @@ More information about evaluating final model performance can be found in the co
 
 ### Create your own GNN layer
 
+In addition to the easy application of existing GNNs, GammaGL makes it simple to implement custom Graph Neural Networks (see [here](https://gammagl.readthedocs.io/en/latest/notes/create_gnn.html) for the accompanying tutorial).
+For example, this is all it takes to implement the [edge convolutional layer](https://arxiv.org/abs/1801.07829) from Wang *et al.*:
+
+$$x_i^{\prime} ~ = ~ \max_{j \in \mathcal{N}(i)} ~ \textrm{MLP}_{\theta} \left( [ ~ x_i, ~ x_j - x_i ~ ] \right)$$
+
+```python
+import tensorlayerx as tlx
+from tensorlayerx.nn import Sequential as Seq, Linear, ReLU
+from gammagl.layers import MessagePassing
+
+class EdgeConv(MessagePassing):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.mlp = Seq(Linear(2 * in_channels, out_channels),
+                       ReLU(),
+                       Linear(out_channels, out_channels))
+
+    def forward(self, x, edge_index):
+        # x has shape [N, in_channels]
+        # edge_index has shape [2, E]
+
+        return self.propagate(x=x, edge_index,aggr_type='max')
+
+    def message(self, x_i, x_j):
+        # x_i has shape [E, in_channels]
+        # x_j has shape [E, in_channels]
+
+        tmp = tlx.concat([x_i, x_j - x_i], axis=1)  # tmp has shape [E, 2 * in_channels]
+        return self.mlp(tmp)
+```
+
 ## Get Started
 
 1. **Python environment** (Optional): We recommend using Conda package manager
@@ -193,7 +245,11 @@ More information about evaluating final model performance can be found in the co
    pip install git+https://github.com/tensorlayer/tensorlayerx.git 
    ```
    
-   *Note*: use `pip install git+https://gitee.com/clearhanhui/TensorLayerX` for network problem. But it may not be the latest.
+   > 大陆用户如果遇到网络问题，推荐从启智社区安装
+   > 
+   > Try to git clone from OpenI
+   > 
+   > `pip install git+https://git.openi.org.cn/OpenI/TensorLayerX.git`
 
 3. **Download GammaGL**
    
@@ -201,6 +257,12 @@ More information about evaluating final model performance can be found in the co
    git clone https://github.com/BUPT-GAMMA/GammaGL.git
    python setup.py install
    ```
+   
+   > 大陆用户如果遇到网络问题，推荐从启智社区安装
+   > 
+   > Try to git clone from OpenI
+   > 
+   > `git clone https://git.openi.org.cn/GAMMALab/GammaGL.git`
 
 ## How to Run
 
@@ -251,8 +313,8 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [DGI [ICLR 2019]](./examples/dgi)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [GRACE [ICML 2020 Workshop]](./examples/grace) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [MVGRL [ICML 2020]](./examples/mvgrl)          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
-| [InfoGraph [ICLR 2020]](./examples/infograph)  | :heavy_check_mark: | :heavy_check_mark: |                    |           |
-| [MERIT [IJCAI 2021]](./examples/merit)         | :heavy_check_mark: |                    |                    |           |
+| [InfoGraph [ICLR 2020]](./examples/infograph)  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [MERIT [IJCAI 2021]](./examples/merit)         | :heavy_check_mark: |                    | :heavy_check_mark: |           |
 
 | Heterogeneous Graph Learning                 | TensorFlow         | PyTorch            | Paddle             | MindSpore |
 | -------------------------------------------- | ------------------ | ------------------ | ------------------ | --------- |
@@ -261,8 +323,15 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | HGT [WWW 2020]                               |                    |                    |                    |           |
 | [SimpleHGN [KDD 2021]](./examples/simplehgn) | :heavy_check_mark: |                    |                    |           |
 
+> Note
+> 
+> The models can be run in mindspore backend. Howerver, the results of experiments are not satisfying due to training component issue,
+> which will be fixed in future.
+
 ## Contributors
 
 GammaGL Team[GAMMA LAB] and Peng Cheng Laboratory.
 
 See more in [CONTRIBUTING](./CONTRIBUTING.md).
+
+Contribution is always welcomed. Please feel free to open an issue or email to tyzhao@bupt.edu.cn.

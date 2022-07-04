@@ -11,6 +11,7 @@ from .inspector import Inspector
 from .read_info_from_files import read_edges, read_embeddings, read_edges_from_file
 from .write_embeddings_to_file import write_embeddings_to_file
 from .sample_for_gan import sample
+from .device import set_device
 
 __all__ = [
     'calc_A_norm_hat',
@@ -29,7 +30,8 @@ __all__ = [
     'read_embeddings',
     'read_edges_from_file',
     'write_embeddings_to_file',
-    'sample'
+    'sample',
+    'set_device'
 ]
 
 classes = __all__

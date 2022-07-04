@@ -6,7 +6,7 @@ from gammagl.utils import segment_softmax
 class GATV2Conv(MessagePassing):
     r"""The GATv2 operator from the `"How Attentive are Graph Attention Networks?"
     <https://arxiv.org/abs/2105.14491>`_ paper, which fixes the static
-    attention problem of the standard :class:`~torch_geometric.conv.GATConv`
+    attention problem of the standard :class:`~gammagl.conv.GATConv`
     layer: since the linear layers in the standard GAT are applied right after
     each other, the ranking of attended nodes is unconditioned on the query
     node. In contrast, in GATv2, every node can attend to any other node.
@@ -105,7 +105,7 @@ class GATV2Conv(MessagePassing):
         return x * edge_weight if edge_weight else x
 
 
-    def forward(self, x, edge_index, num_nodes):
+    def forward(self, x, edge_index, num_nodes=None):
         x = tlx.reshape(self.linear(x), shape=(-1, self.heads, self.out_channels))
         x = self.propagate(x, edge_index, num_nodes=num_nodes)
 

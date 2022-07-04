@@ -50,11 +50,13 @@ class HGBDataset(InMemoryDataset):
     Refining Heterogeneous Graph Neural Networks"
     <http://keg.cs.tsinghua.edu.cn/jietang/publications/
     KDD21-Lv-et-al-HeterGNN.pdf>`_ paper.
+
     .. note::
         Test labels are randomly given to prevent data leakage issues.
         If you want to obtain final test performance, you will need to submit
         your model predictions to the
         `HGB leaderboard <https://www.biendata.xyz/hgb/>`_.
+
     Args:
         root (string): Root directory where the dataset should be saved.
         name (string): The name of the dataset (one of :obj:`"ACM"`,
@@ -108,7 +110,7 @@ class HGBDataset(InMemoryDataset):
         url = self.url.format(self.names[self.name])
         path = download_url(url, self.raw_dir, self.names[self.name]+'.zip')
         extract_zip(path, self.raw_dir)
-        shutil.rmtree(osp.join(self.raw_dir,"__MACOSX"))
+        shutil.rmtree(osp.join(self.raw_dir, "__MACOSX"))
         for filename in self.raw_file_names:
             filePath = osp.join(self.raw_dir,self.names[self.name],filename)
             shutil.move(filePath, self.raw_dir)
@@ -165,7 +167,7 @@ class HGBDataset(InMemoryDataset):
                 x_dict[n_type].append([float(v) for v in x[3].split(',')])
         for n_type in n_types.values():
             if len(x_dict[n_type]) == 0:
-                data[n_type].x = tlx.ops.eye(num_nodes_dict[n_type], num_nodes_dict[n_type])
+                data[n_type].x = tlx.ops.eye(num_nodes_dict[n_type])
                 data[n_type].num_nodes = num_nodes_dict[n_type]
             else:
                 data[n_type].x = tlx.ops.convert_to_tensor(x_dict[n_type])

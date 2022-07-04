@@ -18,4 +18,4 @@ def test_fagcn():
     conv = FAGCNConv(hidden_dim=16, drop_rate=0.6)
     out = conv(x, edge_index, edge_weight, x.shape[0])
 
-    assert out.shape == (4, 16)
+    assert tlx.get_tensor_shape(out) == [4, 16]

@@ -679,9 +679,10 @@ class Graph(BaseGraph):
 		:obj:`node_type_names` and :obj:`edge_type_names` can be used to give
 		meaningful node and edge type names, respectively.
 		That is, the node_type :obj:`0` is given by :obj:`node_type_names[0]`.
-		If the :class:`~torch_geometric.data.Data` object was constructed via
-		:meth:`~torch_geometric.data.HeteroData.to_homogeneous`, the object can
+		If the :class:`~gammagl.data.Graph` object was constructed via
+		:meth:`~gammagl.data.HeteroGraph.to_homogeneous`, the object can
 		be reconstructed without any need to pass in additional arguments.
+
 		Args:
 			node_type (Tensor, optional): A node-level vector denoting the type
 				of each node. (default: :obj:`None`)
@@ -737,9 +738,8 @@ class Graph(BaseGraph):
 			idx = tlx.convert_to_numpy((node_type == i)).nonzero()[0]
 			node_ids[i] = tlx.convert_to_tensor(idx)
 			# node_ids[i] = (node_type == i).nonzero(as_tuple=False).view(-1)
-			index_map[node_ids[i]] = tlx.arange(start=0, limit=len(node_ids[i]))
-			# index_map = tlx.tensor_scatter_nd_update(index_map, node_ids[i],
-			#                                          tlx.arange(start=0, limit=len(node_ids[i]), dtype=tlx.int64))
+			# index_map[node_ids[i]] = tlx.arange(start=0, limit=len(node_ids[i]))
+			index_map = tlx.scatter_update(index_map, node_ids[i], tlx.arange(start=0, limit=len(node_ids[i]), dtype=tlx.int64))
 
 		# We iterate over edge types to find the local edge indices:
 		edge_ids = {}
@@ -755,10 +755,10 @@ class Graph(BaseGraph):
 				if attr == 'node_type' or attr == 'edge_type':
 					continue
 				elif tlx.is_tensor(value) and self.is_node_attr(attr):
-					data[key][attr] = value[node_ids[i]]
+					data[key][attr] = tlx.gather(value, node_ids[i])
 
 			if len(data[key]) == 0:
-				data[key].num_nodes = node_ids[i].size(0)
+				data[key].num_nodes = tlx.get_tensor_shape(node_ids[i])[0]
 
 		for i, key in enumerate(edge_type_names):
 			src, _, dst = key
@@ -767,11 +767,10 @@ class Graph(BaseGraph):
 					continue
 				elif attr == 'edge_index':
 					edge_index = tlx.gather(value, edge_ids[i], axis=1)
-					edge_index[0] = index_map[edge_index[0]]
-					edge_index[1] = index_map[edge_index[1]]
+					edge_index = tlx.stack([tlx.gather(index_map, edge_index[0]), tlx.gather(index_map, edge_index[1])])
 					data[key].edge_index = edge_index
 				elif tlx.is_tensor(value) and self.is_edge_attr(attr):
-					data[key][attr] = value[edge_ids[i]]
+					data[key][attr] = tlx.gather(value, edge_ids[i])
 
 		# Add global attributes.
 		keys = set(data.keys) | {'node_type', 'edge_type', 'num_nodes'}
