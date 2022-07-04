@@ -11,8 +11,8 @@ def read_edges(train_filename, test_filename):
     Returns:
         node_num: int, number of nodes in the graph
         graph: dict, node_id -> list of neighbors in the graph
-    """
 
+    """
     graph = {}
     nodes = set()
     train_edges = read_edges_from_file(train_filename)
@@ -40,7 +40,7 @@ def read_edges(train_filename, test_filename):
 
 
 def read_embeddings(filename, n_node, n_embed):
-    """read pretrained node embeddings
+    """read pre trained node embeddings
     """
 
     with open(filename, "r") as f:

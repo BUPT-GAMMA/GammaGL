@@ -2,7 +2,6 @@ import datetime
 import doctest
 
 import sphinx_rtd_theme
-
 import gammagl
 
 extensions = [
