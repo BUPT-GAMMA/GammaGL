@@ -30,7 +30,7 @@ __all__ = [
     'JumpingKnowledge',
     'HANConv',
     'ChebConv',
-    'SimpleHGNConv'
+    'SimpleHGNConv',
     'FAGCNConv',
     'GPRConv',
 ]

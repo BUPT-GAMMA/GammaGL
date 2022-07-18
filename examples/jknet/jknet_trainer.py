@@ -5,10 +5,6 @@
 @Author : Jia Yiming
 """
 
-import os
-# os.environ['TL_BACKEND'] = 'paddle'
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
 import sys
 sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import argparse
@@ -37,7 +33,6 @@ def calculate_acc(logits, y, metrics):
         logits: node logits
         y: node labels
         metrics: tensorlayerx.metrics
-
     Returns:
         rst
     """
@@ -55,8 +50,35 @@ def main(args):
     dataset = Planetoid(args.dataset_path, args.dataset)
     dataset.process()  # suggest to execute explicitly so far
     graph = dataset[0]
+
     edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=args.self_loops)
     edge_weight = tlx.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
+
+    useful_node = 0
+    useful_index = []
+    useful_mask = []
+    for i in range(graph.num_nodes):
+        new = graph.train_mask[i] or graph.test_mask[i] or graph.val_mask[i]
+        useful_mask.append(new)
+        if new:
+            useful_index.append(i)
+            useful_node += 1
+    useful_mask = tlx.convert_to_tensor(useful_mask)
+    train_num = int(useful_node * 0.6)
+    val_num = int(useful_node * 0.2)
+    test_num = useful_node - train_num - val_num
+    graph.train_mask = graph.train_mask.numpy()
+    graph.val_mask = graph.val_mask.numpy()
+    graph.test_mask = graph.test_mask.numpy()
+
+    graph.train_mask[:] = False
+    graph.train_mask[useful_index[:train_num]] = True
+    graph.val_mask[:] = False
+    graph.val_mask[useful_index[train_num:train_num + val_num]] = True
+    graph.test_mask[:] = False
+    graph.test_mask[useful_index[train_num + val_num:train_num + val_num + test_num]] = True
+
+    graph.tensor()
 
     # for mindspore, it should be passed into node indices
     train_idx = mask_to_index(graph.train_mask)

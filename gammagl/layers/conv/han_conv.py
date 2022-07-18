@@ -10,6 +10,7 @@ from gammagl.utils import segment_softmax
 from gammagl.layers.conv import GATConv
 from tensorlayerx.nn import Module, Sequential, ModuleDict, Linear, Tanh
 
+
 class SemAttAggr(Module):
     def __init__(self, in_size, hidden_size):
         super().__init__()
@@ -36,8 +37,7 @@ class HANConv(MessagePassing):
         .. note::
 
             For an example of using HANConv, see `examples/hetero/han_imdb.py
-            <https://github.com/pyg-team/pytorch_geometric/blob/master/examples/
-            hetero/han_imdb.py>`_.
+            <https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/han>`_.
 
         Parameters
         ----------
@@ -51,7 +51,7 @@ class HANConv(MessagePassing):
             The metadata
             of the heterogeneous graph, *i.e.* its node and edge types given
             by a list of strings and a list of string triplets, respectively.
-            See :meth:`torch_geometric.data.HeteroData.metadata` for more
+            See :meth:`gammagl.data.HeteroGraph.metadata` for more
             information.
         heads: int, optional
             Number of multi-head-attentions.
@@ -65,7 +65,7 @@ class HANConv(MessagePassing):
             sampled neighborhood during training. (default: :obj:`0`)
         **kwargs: optional
             Additional arguments of
-            :class:`torch_geometric.nn.conv.MessagePassing`.
+            :class:`gammagl.layers.conv.MessagePassing`.
         """
     def __init__(self,
                  in_channels,
@@ -101,7 +101,6 @@ class HANConv(MessagePassing):
 
         self.sem_att_aggr = SemAttAggr(in_size=out_channels*heads,
                                        hidden_size=out_channels)
-
 
     def forward(self, x_dict, edge_index_dict, num_nodes_dict):
         out_dict = {}

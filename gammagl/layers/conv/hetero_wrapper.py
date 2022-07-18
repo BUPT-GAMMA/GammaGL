@@ -41,7 +41,7 @@ class HeteroConv(tlx.nn.Module):
     convs: Dict[Tuple[str, str, str], Module]
         A dictionary
         holding a bipartite
-        :class:`~torch_geometric.nn.conv.MessagePassing` layer for each
+        :class:`~gammagl.layers.conv.MessagePassing` layer for each
         individual edge type.
     aggr: string, optional
         The aggregation scheme to use for grouping
@@ -88,15 +88,15 @@ class HeteroConv(tlx.nn.Module):
             edge type.
         *args_dict: optional
             Additional forward arguments of invididual
-            :class:`torch_geometric.nn.conv.MessagePassing` layers.
+            :class:`gammagl.layers.conv.MessagePassing` layers.
         **kwargs_dict: optional
             Additional forward arguments of
-            individual :class:`torch_geometric.nn.conv.MessagePassing`
+            individual :class:`gammagl.layers.conv.MessagePassing`
             layers.
             For example, if a specific GNN layer at edge type
             :obj:`edge_type` expects edge attributes :obj:`edge_attr` as a
             forward argument, then you can pass them to
-            :meth:`~torch_geometric.nn.conv.HeteroConv.forward` via
+            :meth:`~gammagl.layers.conv.HeteroConv.forward` via
             :obj:`edge_attr_dict = { edge_type: edge_attr }`.
         """
         out_dict = defaultdict(list)

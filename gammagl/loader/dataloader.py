@@ -41,9 +41,9 @@ class Collater:
 
 class DataLoader(tlx.dataflow.DataLoader):
     r"""A data loader which merges data objects from a
-    :class:`torch_geometric.data.Dataset` to a mini-batch.
-    Data objects can be either of type :class:`~torch_geometric.data.Data` or
-    :class:`~torch_geometric.data.HeteroData`.
+    :class:`gammagl.data.Dataset` to a mini-batch.
+    Data objects can be either of type :class:`~gammagl.data.Graph` or
+    :class:`~gammagl.data.HeteroGraph`.
 
     Parameters
     ----------

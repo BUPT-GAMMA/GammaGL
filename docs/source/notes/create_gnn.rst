@@ -98,7 +98,7 @@ The full layer implementation is shown below:
 
 :class:`~gammagl.layers.conv.GCNConv` inherits from :class:`~gammagl.layers.conv.message_passing.MessagePassing`.
 All the logic of the layer takes place in its :meth:`forward` method.
-Here, we first add self-loops to our edge indices using the :meth:`torch_geometric.utils.add_self_loops` function (step 1), as well as linearly transform node features by calling the :class:`torch.nn.Linear` instance (step 2).
+Here, we first add self-loops to our edge indices using the :meth:`gammagl.utils.add_self_loops` function (step 1), as well as linearly transform node features by calling the :class:`torch.nn.Linear` instance (step 2).
 
 The edge weight coefficients are derived by the node degrees :math:`\deg(i)` for each node :math:`i` which gets transformed to :math:`1/(\sqrt{\deg(i)} \cdot \sqrt{\deg(j)})` for each edge :math:`(j,i) \in \mathcal{E}`.
 The result is saved in the tensor :obj:`weights` of shape :obj:`[num_edges, ]` (step 3).
@@ -185,7 +185,7 @@ This leaves us with a clean interface for initializing and calling this layer:
 Exercises
 ---------
 
-Imagine we are given the following :obj:`~torch_geometric.data.Data` object:
+Imagine we are given the following :obj:`~gammagl.data.Data` object:
 
 .. code-block:: python
 

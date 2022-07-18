@@ -15,19 +15,16 @@ class JumpingKnowledge(tlx.nn.Module):
         **concatenation** (:obj:`"cat"`)
 
         .. math::
-
             \mathbf{x}_v^{(1)} \, \Vert \, \ldots \, \Vert \, \mathbf{x}_v^{(T)}
 
         **max pooling** (:obj:`"max"`)
 
         .. math::
-
             \max \left( \mathbf{x}_v^{(1)}, \ldots, \mathbf{x}_v^{(T)} \right)
 
         or **weighted summation**
 
         .. math::
-
             \sum_{t=1}^T \alpha_v^{(t)} \mathbf{x}_v^{(t)}
 
         with attention scores :math:`\alpha_v^{(t)}` obtained from a bi-directional
@@ -58,10 +55,8 @@ class JumpingKnowledge(tlx.nn.Module):
                              bidirectional=True, batch_first=True)
             self.att = Linear(in_features=2 * channels, out_features=1)
 
-
     def forward(self, xs):
         r"""Aggregates representations across different layers.
-
         Args:
             xs (list or tuple): List containing layer-wise representations.
         """
