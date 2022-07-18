@@ -335,7 +335,7 @@ def to_hetero_csc(hetero_graph):
             indptr = np.concatenate(([0], np.bincount(edge[1]).cumsum()))
             if size[1] > indptr.shape[0]:
                 cur = size[1] - indptr.shape[0]
-                indptr = np.concatenate((indptr, np.full(shape=(cur,), fill_value=indptr[-1], dtype=np.int64)))
+                indptr = np.concatenate((indptr, np.full(shape=(cur + 1,), fill_value=indptr[-1], dtype=np.int64)))
             colptr_dict[key], row_dict[key] = indptr, edge[0]
             # (row, col) = store.edge_index
             # perm = np.argsort(np.add(col * size[0], row))
