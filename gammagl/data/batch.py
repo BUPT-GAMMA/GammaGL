@@ -80,9 +80,9 @@ class BatchGraph(metaclass=DynamicInheritance):
         return batch
 
     def get_example(self, idx: int) -> Union[Graph]:
-        r"""Gets the :class:`~torch_geometric.data.Data` or
-        :class:`~torch_geometric.data.HeteroData` object at index :obj:`idx`.
-        The :class:`~torch_geometric.data.Batch` object must have been created
+        r"""Gets the :class:`~gammagl.data.Graph` or
+        :class:`~gammagl.data.HeteroGraph` object at index :obj:`idx`.
+        The :class:`~gammagl.data.BatchGraph` object must have been created
         via :meth:`from_data_list` in order to be able to reconstruct the
         initial object."""
 
@@ -104,13 +104,13 @@ class BatchGraph(metaclass=DynamicInheritance):
 
     def index_select(self,
                      idx: IndexType) -> Union[List[Graph]]:
-        r"""Creates a subset of :class:`~torch_geometric.data.Data` or
-        :class:`~torch_geometric.data.HeteroData` objects from specified
+        r"""Creates a subset of :class:`~gammagl.data.Graph` or
+        :class:`~gammagl.data.HeteroGraph` objects from specified
         indices :obj:`idx`.
         Indices :obj:`idx` can be a slicing object, *e.g.*, :obj:`[2:5]`, a
         list, a tuple, or a :obj:`torch.Tensor` or :obj:`np.ndarray` of type
         long or bool.
-        The :class:`~torch_geometric.data.Batch` object must have been created
+        The :class:`~gammagl.data.BatchGraph` object must have been created
         via :meth:`from_data_list` in order to be able to reconstruct the
         initial objects."""
         if isinstance(idx, slice):
@@ -152,10 +152,10 @@ class BatchGraph(metaclass=DynamicInheritance):
             return self.index_select(idx)
 
     def to_data_list(self) -> Union[List[Graph]]:
-        r"""Reconstructs the list of :class:`~torch_geometric.data.Data` or
-        :class:`~torch_geometric.data.HeteroData` objects from the
-        :class:`~torch_geometric.data.Batch` object.
-        The :class:`~torch_geometric.data.Batch` object must have been created
+        r"""Reconstructs the list of :class:`~gammagl.data.Graph` or
+        :class:`~gammagl.data.HeteroGraph` objects from the
+        :class:`~gammagl.data.BatchGraph` object.
+        The :class:`~gammagl.data.BatchGraph` object must have been created
         via :meth:`from_data_list` in order to be able to reconstruct the
         initial objects."""
         return [self.get_example(i) for i in range(self.num_graphs)]

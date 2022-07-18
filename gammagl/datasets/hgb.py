@@ -50,11 +50,13 @@ class HGBDataset(InMemoryDataset):
     Refining Heterogeneous Graph Neural Networks"
     <http://keg.cs.tsinghua.edu.cn/jietang/publications/
     KDD21-Lv-et-al-HeterGNN.pdf>`_ paper.
+
     .. note::
         Test labels are randomly given to prevent data leakage issues.
         If you want to obtain final test performance, you will need to submit
         your model predictions to the
         `HGB leaderboard <https://www.biendata.xyz/hgb/>`_.
+
     Args:
         root (string): Root directory where the dataset should be saved.
         name (string): The name of the dataset (one of :obj:`"ACM"`,

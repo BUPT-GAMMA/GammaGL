@@ -12,27 +12,27 @@ class SimpleHGNConv(MessagePassing):
 
     Calculating the coefficient:
         
-    ..math::
+    .. math::
         \alpha_{ij} = \frac{exp(LeakyReLU(a^T[Wh_i||Wh_j||W_r r_{\psi(<i,j>)}]))}{\Sigma_{k\in\mathcal{E}}{exp(LeakyReLU(a^T[Wh_i||Wh_k||W_r r_{\psi(<i,k>)}]))}}  (1)
     
     Residual connection including Node residual:
     
-    ..math::
+    .. math::
         h_i^{(l)} = \sigma(\Sigma_{j\in \mathcal{N}_i} {\alpha_{ij}^{(l)}W^{(l)}h_j^{(l-1)}} + h_i^{(l-1)})  (2)
     
     and Edge residual:
         
-    ..math::
+    .. math::
         \alpha_{ij}^{(l)} = (1-\beta)\alpha_{ij}^{(l)}+\beta\alpha_{ij}^{(l-1)}  (3)
         
     Multi-heads:
     
-    ..math::
+    .. math::
         h^{(l+1)}_j = \parallel^M_{m = 1}h^{(l + 1, m)}_j  (4)
     
     Residual:
     
-    ..math::
+    .. math::
         h^{(l+1)}_j = h^{(l)}_j + \parallel^M_{m = 1}h^{(l + 1, m)}_j  (5)
 
     Parameters
@@ -85,8 +85,8 @@ class SimpleHGNConv(MessagePassing):
         self.out_feats = out_feats
         self.edge_embedding = tlx.nn.Embedding(num_etypes, edge_feats)
 
-        self.fc_node = tlx.nn.Linear(out_feats * heads, in_features=in_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414), name='fc_node')
-        self.fc_edge = tlx.nn.Linear(edge_feats * heads, in_features=edge_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414), name='fc_edge')
+        self.fc_node = tlx.nn.Linear(out_feats * heads, in_features=in_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414))
+        self.fc_edge = tlx.nn.Linear(edge_feats * heads, in_features=edge_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414))
 
         self.attn_src = self._get_weights('attn_l', shape=(1, heads, out_feats), init=tlx.initializers.XavierNormal(gain=1.414), order=True)
         self.attn_dst = self._get_weights('attn_r', shape=(1, heads, out_feats), init=tlx.initializers.XavierNormal(gain=1.414), order=True)
@@ -96,7 +96,7 @@ class SimpleHGNConv(MessagePassing):
         self.attn_drop = tlx.nn.Dropout(attn_drop)
         self.leaky_relu = tlx.nn.LeakyReLU(negative_slope)
 
-        self.fc_res = tlx.nn.Linear(heads * out_feats, in_features=in_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414), name='fc_res') if residual else None
+        self.fc_res = tlx.nn.Linear(heads * out_feats, in_features=in_feats, b_init=None, W_init=tlx.initializers.XavierNormal(gain=1.414)) if residual else None
         
         self.activation = activation
         
@@ -123,7 +123,7 @@ class SimpleHGNConv(MessagePassing):
 
         #edge residual
         if res_alpha is not None:
-            alpha = alpha * (1 - self.beta) + res_attn * self.beta
+            alpha = alpha * (1 - self.beta) + res_alpha * self.beta
 
         rst = tlx.ops.gather(x_new, node_src) * tlx.ops.expand_dims(alpha, axis=-1)
         rst = unsorted_segment_sum(rst, node_dst, num_nodes)

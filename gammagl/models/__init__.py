@@ -34,7 +34,7 @@ __all__ = [
     'DGIModel',
     'GraceModel',
     'ChebNetModel',
-    'SimpleHGNModel'
+    'SimpleHGNModel',
     'FAGCNModel',
     'GPRGNNModel'
 ]

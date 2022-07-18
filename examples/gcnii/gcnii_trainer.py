@@ -73,6 +73,7 @@ def main(args):
                      drop_rate=args.drop_rate,
                      name="GCNII")
 
+    # Notice that we do not use the same regularization method as the paper do, as TensorlayerX currently do not support it.
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
     train_weights = net.trainable_weights
@@ -110,7 +111,7 @@ def main(args):
             best_val_acc = val_acc
             net.save_weights(args.best_model_path+net.name+".npz", format='npz_dict')
 
-    net.load_weights(args.best_model_path + "GCN_" + args.dataset + ".npz", format='npz_dict')
+    net.load_weights(args.best_model_path + "GCNII_" + ".npz", format='npz_dict')
     if tlx.BACKEND == 'torch':
         net.to(data['x'].device)
     net.set_eval()
