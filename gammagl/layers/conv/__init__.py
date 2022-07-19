@@ -15,7 +15,7 @@ from .simplehgn_conv import SimpleHGNConv
 from .fagcn_conv import FAGCNConv
 from .gpr_conv import GPRConv
 from .gin_conv import GINConv
-
+from .hgt_conv import HGTConv
 __all__ = [
     'MessagePassing',
     'GCNConv',
@@ -33,6 +33,7 @@ __all__ = [
     'SimpleHGNConv',
     'FAGCNConv',
     'GPRConv',
+    'HGTConv',
 ]
 
 classes = __all__
