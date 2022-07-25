@@ -16,6 +16,9 @@ from .chebnet import ChebNetModel
 from .simplehgn import SimpleHGNModel
 from .fagcn import FAGCNModel
 from .gprgnn import GPRGNNModel
+from .generator import Generator
+from .discriminator import Discriminator
+from .graphgan import GraphGAN
 
 __all__ = [
     'GCNModel',
@@ -36,7 +39,10 @@ __all__ = [
     'ChebNetModel',
     'SimpleHGNModel',
     'FAGCNModel',
-    'GPRGNNModel'
+    'GPRGNNModel',
+    'Generator',
+    'Discriminator',
+    'GraphGAN'
 ]
 
 classes = __all__
