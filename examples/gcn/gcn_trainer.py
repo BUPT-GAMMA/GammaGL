@@ -7,7 +7,7 @@
 """
 
 import os
-# os.environ['CUDA_VISIBLE_DEVICES']='0'
+os.environ['CUDA_VISIBLE_DEVICES']='5'
 # os.environ['TL_BACKEND'] = 'paddle'
 
 import sys
@@ -16,7 +16,7 @@ import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
 from gammagl.models import GCNModel
-from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
+from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index, set_device
 from tensorlayerx.model import TrainOneStep, WithLoss
 
 
@@ -51,6 +51,7 @@ def calculate_acc(logits, y, metrics):
 
 def main(args):
     # load datasets
+    # set_device(5)
     if str.lower(args.dataset) not in ['cora','pubmed','citeseer']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)

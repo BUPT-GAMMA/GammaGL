@@ -120,12 +120,12 @@ class RGCNConv(MessagePassing):
             x_r = x[1]
         size = (x_l.shape[0], x_r.shape[0])
         out = tlx.zeros(shape=(x_r.shape[0], self.out_channels), dtype=tlx.float32)
-        if tlx.BACKEND == 'torch':
-            out = out.cuda()
+        # if tlx.BACKEND == 'torch':
+        #     out = out.cuda()
 
         weight = self.weight
         if self.num_bases is not None:  # Basis-decomposition =================
-            weight = (self.comp @ weight.view(self.num_bases, -1)).view(
+            weight = (self.base_att @ weight.view(self.num_bases, -1)).view(
                 self.num_relations, self.in_channels_l, self.out_channels)
 
         if self.num_blocks is not None:  # Block-diagonal-decomposition =====
