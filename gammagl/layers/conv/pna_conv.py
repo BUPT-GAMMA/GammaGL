@@ -138,13 +138,10 @@ class PNAConv(MessagePassing):
         if self.divide_input:
             x = tlx.reshape(x, (-1, self.towers, self.F_in))
         else:
-            x = x.view(-1, 1, self.F_in).repeat(1, self.towers, 1)
-            # x = tlx.reshape(x, (-1, 1, self.F_in))
-            # x_list = [tlx.to_device(x) for i in range(0, self.towers)]
-            # x = tlx.concat(x_list, axis=1)
+            # test = x.view(-1, 1, self.F_in).repeat(1, self.towers, 1)
+            x = tlx.stack([x for i in range(0, self.towers)], axis=1)
             # 比较两个tensor是否相等
             # print(tlx.equal(x, test))
-            # x = convert_to_tensor(numpy.repeat(convert_to_numpy(tlx.reshape(x, (-1, 1, self.F_in))), self.towers, 1))
         out = self.propagate(x=x, edge_index=edge_index, edge_attr=edge_attr)
         out = tlx.concat([x, out], axis=-1)
         outs = [nn(out[:, i]) for i, nn in enumerate(self.post_nns)]
@@ -157,9 +154,9 @@ class PNAConv(MessagePassing):
 
         if edge_attr is not None:
             edge_attr = self.edge_encoder(edge_attr)
-            edge_attr = edge_attr.view(-1, 1, self.F_in).repeat(1, self.towers, 1)
-            # edge_attr = convert_to_tensor(numpy.repeat(convert_to_numpy(tlx.reshape(edge_attr, (-1, 1, self.F_in))),
-            #                                            self.towers, 1))
+            # test = edge_attr.view(-1, 1, self.F_in).repeat(1, self.towers, 1)
+            edge_attr = tlx.stack([edge_attr for i in range(0, self.towers)], axis=1)
+            # print(tlx.equal(edge_attr, test))
             h = tlx.concat([x_i, x_j, edge_attr], axis=-1)
         else:
             h = tlx.concat([x_i, x_j], axis=-1)

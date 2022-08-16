@@ -47,7 +47,6 @@ class SemiSpvzLoss(WithLoss):
 
 
 def evaluate(model, loader):
-    # model.eval()
     model.set_eval()
     for i in range(0, 4):
         model.batch_norms[i].is_train = False
@@ -143,35 +142,17 @@ def main(args):
     # scheduler = ReduceOnPlateau(0.001, mode='min', factor=0.5, patience=10,
     #                             min_lr=0.00001)
     optimizer = tlx.optimizers.Adam(lr=0.001)
-    # scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=20,
-    #                               min_lr=0.00001)
 
     train_weights = model.trainable_weights
     loss_func = SemiSpvzLoss(model, absolute_difference_error)
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
-    def train(loader):
-        model.train()
-        total_loss = 0
-        for data in loader:
-            optimizer.zero_grad()
-            out = model(data.x, data.edge_index, data.edge_attr, data.batch)
-
-            loss = absolute_difference_error(tlx.squeeze(out, 1), data.y)
-            loss.backward()
-            total_loss += loss.item() * data.num_graphs
-            optimizer.step()
-        return total_loss / len(loader.dataset)
-
-
-
     # model.load_weights(args.best_model_path + model.name + ".npz", format='npz_dict')
     # model.load_weights(args.best_model_path + "best.npz", format='npz_dict')
-
     # best_val_mae = evaluate(model, test_loader)
     best_val_mae = 1
-    for epoch in range(1, 1001):
-        init = copy.deepcopy(model.state_dict())
+    for epoch in range(1, 501):
+        # init = copy.deepcopy(model.state_dict())
         model.set_train()
         for i in range(0, 4):
             model.batch_norms[i].is_train = True
@@ -193,10 +174,10 @@ def main(args):
         #         i += 1
         test_mae = evaluate(model, test_loader)
         # test_mae = 0
+        # scheduler.step(val_mae)
         if val_mae < best_val_mae:
-            best_val_mae = test_mae
+            best_val_mae = val_mae
             model.save_weights(args.best_model_path + model.name + ".npz", format='npz_dict')
-
         # 可训练参数
         # i = 1
         # for name, param in model.named_parameters():
@@ -204,18 +185,18 @@ def main(args):
         #         print(i, name)
         #         i += 1
         # 验证参数是否得到训练
-        i = 1
-        for name in model.state_dict():
-            if not tlx.ops.equal(init[name], model.state_dict()[name]):
-                print(i, name)
-                i += 1
+        # i = 1
+        # for name in model.state_dict():
+        #     if not tlx.ops.equal(init[name], model.state_dict()[name]):
+        #         print(i, name)
+        #         i += 1
 
         # scheduler.step(val_mae)
         # print(f'Epoch: {epoch:02d}, Loss: {loss:.4f}, val_mae: {val_mae:.4f}, test_mae: {test_mae:.4f},lr: ', )
         # print(f'Epoch: {epoch:02d}, Loss: {loss:.4f}, val_mae: {val_mae:.4f}, test_mae: {test_mae:.4f},lr: ',
         #       optimizer.param_groups[0]['lr'])
-        print(f'Epoch: {epoch:02d}, Loss: {loss:.4f}, val_mae: {val_mae:.4f}, test_mae: {test_mae:.4f},lr: ')
-              # scheduler.last_lr)
+        print(f'Epoch: {epoch:02d}, Loss: {loss:.4f}, val_mae: {val_mae:.4f}, test_mae: {test_mae:.4f},')
+              # f'lr: ', scheduler.last_lr)
         with open('./log.txt', mode='a', encoding='utf-8') as file:
             file.write(f'Epoch: {epoch:02d}, Loss: {loss:.4f}, val_mae: {val_mae:.4f}, test_mae: {test_mae:.4f}\n')
 
