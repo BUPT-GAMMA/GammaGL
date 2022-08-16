@@ -89,8 +89,8 @@ def main(args):
     # init = copy.deepcopy(model.state_dict())
     # all = model.all_weights
     # # model.load_weights(args.best_model_path + model.name + ".npz", format='npz_dict')
-    # state = torch.load('./pna_state')
-    # new_state = state['net']
+    # state = torch.load('./init')
+    # new_state = state
     # # 测试embedding有没有问题---0809_17---没有问题---mae为0.1889
     # new_state['node_emb.embeddings'] = new_state.pop('node_emb.weight')
     # new_state['edge_emb.embeddings'] = new_state.pop('edge_emb.weight')
@@ -140,9 +140,9 @@ def main(args):
     # val = evaluate(model, val_loader)
     # test = evaluate(model, test_loader)
     # optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    scheduler = ReduceOnPlateau(0.001, mode='min', factor=0.5, patience=10,
-                                min_lr=0.00001)
-    optimizer = tlx.optimizers.Adam(lr=scheduler)
+    # scheduler = ReduceOnPlateau(0.001, mode='min', factor=0.5, patience=10,
+    #                             min_lr=0.00001)
+    optimizer = tlx.optimizers.Adam(lr=0.001)
     # scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=20,
     #                               min_lr=0.00001)
 
@@ -163,11 +163,15 @@ def main(args):
             optimizer.step()
         return total_loss / len(loader.dataset)
 
-    best_test_mae = 2
 
-    model.load_weights(args.best_model_path + model.name + ".npz", format='npz_dict')
-    best_test_mae = evaluate(model, test_loader)
-    for epoch in range(1, 401):
+
+    # model.load_weights(args.best_model_path + model.name + ".npz", format='npz_dict')
+    # model.load_weights(args.best_model_path + "best.npz", format='npz_dict')
+
+    # best_val_mae = evaluate(model, test_loader)
+    best_val_mae = 1
+    for epoch in range(1, 1001):
+        init = copy.deepcopy(model.state_dict())
         model.set_train()
         for i in range(0, 4):
             model.batch_norms[i].is_train = True
@@ -180,6 +184,7 @@ def main(args):
         # loss = train(train_loader)
         # init = copy.deepcopy(model.state_dict())
         val_mae = evaluate(model, val_loader)
+        # val_mae = 0
         # 测试验证模式是否会修改模型参数
         # i = 1
         # for name in model.state_dict():
@@ -188,8 +193,8 @@ def main(args):
         #         i += 1
         test_mae = evaluate(model, test_loader)
         # test_mae = 0
-        if test_mae < best_test_mae:
-            best_test_mae = test_mae
+        if val_mae < best_val_mae:
+            best_val_mae = test_mae
             model.save_weights(args.best_model_path + model.name + ".npz", format='npz_dict')
 
         # 可训练参数
@@ -198,18 +203,19 @@ def main(args):
         #     if param.requires_grad:
         #         print(i, name)
         #         i += 1
-        # i = 1
-        # for name in model.state_dict():
-        #     if not tlx.ops.equal(init[name], model.state_dict()[name]):
-        #         print(i, name)
-        #         i += 1
+        # 验证参数是否得到训练
+        i = 1
+        for name in model.state_dict():
+            if not tlx.ops.equal(init[name], model.state_dict()[name]):
+                print(i, name)
+                i += 1
 
         # scheduler.step(val_mae)
         # print(f'Epoch: {epoch:02d}, Loss: {loss:.4f}, val_mae: {val_mae:.4f}, test_mae: {test_mae:.4f},lr: ', )
         # print(f'Epoch: {epoch:02d}, Loss: {loss:.4f}, val_mae: {val_mae:.4f}, test_mae: {test_mae:.4f},lr: ',
         #       optimizer.param_groups[0]['lr'])
-        print(f'Epoch: {epoch:02d}, Loss: {loss:.4f}, val_mae: {val_mae:.4f}, test_mae: {test_mae:.4f},lr: ',
-              scheduler.last_lr)
+        print(f'Epoch: {epoch:02d}, Loss: {loss:.4f}, val_mae: {val_mae:.4f}, test_mae: {test_mae:.4f},lr: ')
+              # scheduler.last_lr)
         with open('./log.txt', mode='a', encoding='utf-8') as file:
             file.write(f'Epoch: {epoch:02d}, Loss: {loss:.4f}, val_mae: {val_mae:.4f}, test_mae: {test_mae:.4f}\n')
 

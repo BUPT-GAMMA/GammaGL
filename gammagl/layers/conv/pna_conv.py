@@ -82,7 +82,6 @@ class PNAConv(MessagePassing):
           edge features :math:`(|\mathcal{E}|, D)` *(optional)*
         - **output:** node features :math:`(|\mathcal{V}|, F_{out})`
     """
-
     def __init__(self, in_channels: int, out_channels: int,
                  aggregators: List[str], scalers: List[str], deg: Tensor,
                  edge_dim: Optional[int] = None, towers: int = 1,
@@ -106,25 +105,12 @@ class PNAConv(MessagePassing):
         self.F_in = in_channels // towers if divide_input else in_channels
         self.F_out = self.out_channels // towers
 
-        # deg = convert_to_numpy(deg)
-        # deg = to_device(deg, device='CPU')
         num_nodes = int(reduce_sum(deg))
-
         bin_degrees = tlx.arange(start=0, limit=len(deg), dtype=tlx.float32)
-        # bin_degrees = tlx.to_device(bin_degrees, device='CPU')
-        # bin_degrees = torch.arange(deg.numel())
         self.avg_deg: Dict[str, float] = {
             'lin': float(reduce_sum(bin_degrees * deg)) / num_nodes,
             'log': float(reduce_sum(tlx.log(bin_degrees + 1) * deg)) / num_nodes,
             'exp': float(reduce_sum(tlx.exp(bin_degrees) * deg)) / num_nodes,
-        }
-        # deg = deg.to(torch.float)
-        num_nodes_test = int(deg.sum())
-        # bin_degrees = torch.arange(deg.numel())
-        self.avg_deg_test: Dict[str, float] = {
-            'lin': float((bin_degrees * deg).sum()) / num_nodes,
-            'log': float(((bin_degrees + 1).log() * deg).sum()) / num_nodes,
-            'exp': float((bin_degrees.exp() * deg).sum()) / num_nodes,
         }
 
         if self.edge_dim is not None:
@@ -152,11 +138,13 @@ class PNAConv(MessagePassing):
         if self.divide_input:
             x = tlx.reshape(x, (-1, self.towers, self.F_in))
         else:
-            # test = x.view(-1, 1, self.F_in).repeat(1, self.towers, 1)
-            x = tlx.reshape(x, (-1, 1, self.F_in))
-            x = x.repeat(1, self.towers, 1)
+            x = x.view(-1, 1, self.F_in).repeat(1, self.towers, 1)
+            # x = tlx.reshape(x, (-1, 1, self.F_in))
+            # x_list = [tlx.to_device(x) for i in range(0, self.towers)]
+            # x = tlx.concat(x_list, axis=1)
+            # 比较两个tensor是否相等
+            # print(tlx.equal(x, test))
             # x = convert_to_tensor(numpy.repeat(convert_to_numpy(tlx.reshape(x, (-1, 1, self.F_in))), self.towers, 1))
-            # print(tlx.ops.equal(test, x))
         out = self.propagate(x=x, edge_index=edge_index, edge_attr=edge_attr)
         out = tlx.concat([x, out], axis=-1)
         outs = [nn(out[:, i]) for i, nn in enumerate(self.post_nns)]
@@ -170,9 +158,8 @@ class PNAConv(MessagePassing):
         if edge_attr is not None:
             edge_attr = self.edge_encoder(edge_attr)
             edge_attr = edge_attr.view(-1, 1, self.F_in).repeat(1, self.towers, 1)
-            # edge_attr = tlx.reshape(edge_attr, (-1, 1, self.F_in))
-            # edge_attr_list = [tlx.ops.to_device(edge_attr, device='GPU') for i in range(0, self.towers)]
-            # edge_attr = tlx.concat(edge_attr_list, axis=1)
+            # edge_attr = convert_to_tensor(numpy.repeat(convert_to_numpy(tlx.reshape(edge_attr, (-1, 1, self.F_in))),
+            #                                            self.towers, 1))
             h = tlx.concat([x_i, x_j, edge_attr], axis=-1)
         else:
             h = tlx.concat([x_i, x_j], axis=-1)
@@ -187,23 +174,23 @@ class PNAConv(MessagePassing):
 
         for aggregator in self.aggregators:
             if aggregator == 'sum':
-                # out = scatter(inputs, dst_index, 0, None, dim_size, reduce='sum')
-                out = global_sum_pool(inputs, dst_index)
+                out = scatter(inputs, dst_index, 0, None, dim_size, reduce='sum')
+                # out = global_sum_pool(inputs, dst_index)
             elif aggregator == 'mean':
-                # out = scatter(inputs, dst_index, 0, None, dim_size, reduce='mean')
-                out = global_mean_pool(inputs, dst_index)
+                out = scatter(inputs, dst_index, 0, None, dim_size, reduce='mean')
+                # out = global_mean_pool(inputs, dst_index)
             elif aggregator == 'min':
-                # out = scatter(inputs, dst_index, 0, None, dim_size, reduce='min')
-                out = global_min_pool(inputs, dst_index)
+                out = scatter(inputs, dst_index, 0, None, dim_size, reduce='min')
+                # out = global_min_pool(inputs, dst_index)
             elif aggregator == 'max':
-                # out = scatter(inputs, dst_index, 0, None, dim_size, reduce='max')
-                out = global_max_pool(inputs, dst_index)
+                out = scatter(inputs, dst_index, 0, None, dim_size, reduce='max')
+                # out = global_max_pool(inputs, dst_index)
             elif aggregator == 'var' or aggregator == 'std':
-                # mean = scatter(inputs, dst_index, 0, None, dim_size, reduce='mean')
-                mean = global_mean_pool(inputs, dst_index)
-                # mean_squares = scatter(inputs * inputs, dst_index, 0, None,
-                #                        dim_size, reduce='mean')
-                mean_squares = global_mean_pool(inputs * inputs, dst_index)
+                mean = scatter(inputs, dst_index, 0, None, dim_size, reduce='mean')
+                # mean = global_mean_pool(inputs, dst_index)
+                mean_squares = scatter(inputs * inputs, dst_index, 0, None,
+                                       dim_size, reduce='mean')
+                # mean_squares = global_mean_pool(inputs * inputs, dst_index)
                 out = mean_squares - mean * mean
                 if aggregator == 'std':
                     # out1 = torch.sqrt(torch.relu(out) + 1e-5)

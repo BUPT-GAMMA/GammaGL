@@ -3,7 +3,10 @@ import os.path as osp
 import pickle
 import shutil
 
+# import torch
+import tensorlayerx as tlx
 import torch
+from tensorlayerx import convert_to_tensor
 from tqdm import tqdm
 
 from gammagl.data import (
@@ -73,8 +76,8 @@ class ZINC(InMemoryDataset):
         assert split in ['train', 'val', 'test']
         super().__init__(root, transform, pre_transform, pre_filter)
         path = osp.join(self.processed_dir, f'{split}.pt')
-        self.data, self.slices = torch.load(path)
-
+        # self.data, self.slices = torch.load(path)
+        self.data, self.slices = self.load_data(path)
     @property
     def raw_file_names(self):
         return [
@@ -85,7 +88,7 @@ class ZINC(InMemoryDataset):
     @property
     def processed_dir(self):
         name = 'subset' if self.subset else 'full'
-        return osp.join(self.root, name, 'processed')
+        return osp.join(self.root, name, tlx.BACKEND)
 
     @property
     def processed_file_names(self):
@@ -119,15 +122,26 @@ class ZINC(InMemoryDataset):
             for idx in indices:
                 mol = mols[idx]
 
-                x = mol['atom_type'].to(torch.long).view(-1, 1)
-                y = mol['logP_SA_cycle_normalized'].to(torch.float)
+                # test = mol['atom_type'].to(torch.int64).view(-1, 1)
+                x = mol['atom_type'].view(-1, 1).numpy()
+                x = convert_to_tensor(value=x, dtype=tlx.int64)
+                # y = mol['logP_SA_cycle_normalized'].to(torch.float)
+                y = mol['logP_SA_cycle_normalized'].numpy()
+                y = convert_to_tensor(value=y, dtype=tlx.float32)
 
                 adj = mol['bond_type']
+
                 edge_index = adj.nonzero(as_tuple=False).t().contiguous()
-                edge_attr = adj[edge_index[0], edge_index[1]].to(torch.long)
+                # edge_attr = adj[edge_index[0], edge_index[1]].to(torch.long)
+                edge_attr = adj[edge_index[0], edge_index[1]].numpy()
+
+                edge_index = edge_index.numpy()
+                edge_index = convert_to_tensor(value=edge_index, dtype=tlx.int64)
+
+                edge_attr = convert_to_tensor(value=edge_attr, dtype=tlx.int64)
 
                 data = Graph(x=x, edge_index=edge_index, edge_attr=edge_attr,
-                            y=y, to_tensor=True)
+                             y=y, to_tensor=True)
                 # data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr,
                 #              y=y)
 
@@ -142,5 +156,7 @@ class ZINC(InMemoryDataset):
 
             pbar.close()
 
-            torch.save(self.collate(data_list),
-                       osp.join(self.processed_dir, f'{split}.pt'))
+            self.data, self.slices = self.collate(data_list)
+            self.save_data((self.data, self.slices), osp.join(self.processed_dir, f'{split}.pt'))
+            # torch.save(self.collate(data_list),
+            #            osp.join(self.processed_dir, f'{split}.pt'))
