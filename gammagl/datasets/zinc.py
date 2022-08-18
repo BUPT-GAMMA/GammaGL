@@ -3,9 +3,7 @@ import os.path as osp
 import pickle
 import shutil
 
-# import torch
 import tensorlayerx as tlx
-import torch
 from tensorlayerx import convert_to_tensor
 from tqdm import tqdm
 
@@ -16,12 +14,6 @@ from gammagl.data import (
     extract_zip,
 )
 
-# from torch_geometric.data import (
-#     Data,
-#     InMemoryDataset,
-#     download_url,
-#     extract_zip,
-# )
 
 class ZINC(InMemoryDataset):
     r"""The ZINC dataset from the `ZINC database
@@ -53,7 +45,7 @@ class ZINC(InMemoryDataset):
             If :obj:`"test"`, loads the test dataset.
             (default: :obj:`"train"`)
         transform (callable, optional): A function/transform that takes in an
-            :obj:`torch_geometric.data.Data` object and returns a transformed
+            :obj:`gamm.data.Data` object and returns a transformed
             version. The data object will be transformed before every access.
             (default: :obj:`None`)
         pre_transform (callable, optional): A function/transform that takes in
@@ -76,8 +68,8 @@ class ZINC(InMemoryDataset):
         assert split in ['train', 'val', 'test']
         super().__init__(root, transform, pre_transform, pre_filter)
         path = osp.join(self.processed_dir, f'{split}.pt')
-        # self.data, self.slices = torch.load(path)
         self.data, self.slices = self.load_data(path)
+
     @property
     def raw_file_names(self):
         return [
@@ -108,55 +100,34 @@ class ZINC(InMemoryDataset):
         for split in ['train', 'val', 'test']:
             with open(osp.join(self.raw_dir, f'{split}.pickle'), 'rb') as f:
                 mols = pickle.load(f)
-
             indices = range(len(mols))
-
             if self.subset:
                 with open(osp.join(self.raw_dir, f'{split}.index'), 'r') as f:
                     indices = [int(x) for x in f.read()[:-1].split(',')]
 
             pbar = tqdm(total=len(indices))
             pbar.set_description(f'Processing {split} dataset')
-
             data_list = []
             for idx in indices:
                 mol = mols[idx]
-
-                # test = mol['atom_type'].to(torch.int64).view(-1, 1)
-                x = mol['atom_type'].view(-1, 1).numpy()
-                x = convert_to_tensor(value=x, dtype=tlx.int64)
-                # y = mol['logP_SA_cycle_normalized'].to(torch.float)
-                y = mol['logP_SA_cycle_normalized'].numpy()
-                y = convert_to_tensor(value=y, dtype=tlx.float32)
+                x = convert_to_tensor(value=mol['atom_type'].view(-1, 1).numpy(), dtype=tlx.int64)
+                y = convert_to_tensor(value=mol['logP_SA_cycle_normalized'].numpy(), dtype=tlx.float32)
 
                 adj = mol['bond_type']
-
                 edge_index = adj.nonzero(as_tuple=False).t().contiguous()
-                # edge_attr = adj[edge_index[0], edge_index[1]].to(torch.long)
-                edge_attr = adj[edge_index[0], edge_index[1]].numpy()
-
-                edge_index = edge_index.numpy()
-                edge_index = convert_to_tensor(value=edge_index, dtype=tlx.int64)
-
-                edge_attr = convert_to_tensor(value=edge_attr, dtype=tlx.int64)
+                edge_attr = convert_to_tensor(value=adj[edge_index[0], edge_index[1]].numpy(), dtype=tlx.int64)
+                edge_index = convert_to_tensor(value=edge_index.numpy(), dtype=tlx.int64)
 
                 data = Graph(x=x, edge_index=edge_index, edge_attr=edge_attr,
                              y=y, to_tensor=True)
-                # data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr,
-                #              y=y)
 
                 if self.pre_filter is not None and not self.pre_filter(data):
                     continue
-
                 if self.pre_transform is not None:
                     data = self.pre_transform(data)
-
                 data_list.append(data)
                 pbar.update(1)
-
             pbar.close()
 
             self.data, self.slices = self.collate(data_list)
             self.save_data((self.data, self.slices), osp.join(self.processed_dir, f'{split}.pt'))
-            # torch.save(self.collate(data_list),
-            #            osp.join(self.processed_dir, f'{split}.pt'))

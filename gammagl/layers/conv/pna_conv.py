@@ -1,19 +1,10 @@
-import copy
-from typing import Dict, List, Optional
-
-import numpy
-import torch
 import tensorlayerx as tlx
-from tensorlayerx import ReLU, convert_to_tensor, convert_to_numpy, log, exp, to_device, reduce_sum
+from tensorlayerx import ReLU, reduce_sum
 from tensorlayerx.nn import Linear, ModuleList, Sequential
-from torch import Tensor
-# from torch_geometric.nn import MessagePassing
-from torch_scatter import scatter
 from gammagl.layers.pool.glob import global_sum_pool, global_mean_pool, global_max_pool, global_min_pool
-
 from gammagl.layers.conv.message_passing import MessagePassing
 from gammagl.utils.degree import degree
-from torch import nn as nn
+
 
 class PNAConv(MessagePassing):
     r"""The Principal Neighbourhood Aggregation graph convolution operator
@@ -82,14 +73,10 @@ class PNAConv(MessagePassing):
           edge features :math:`(|\mathcal{E}|, D)` *(optional)*
         - **output:** node features :math:`(|\mathcal{V}|, F_{out})`
     """
-    def __init__(self, in_channels: int, out_channels: int,
-                 aggregators: List[str], scalers: List[str], deg: Tensor,
-                 edge_dim: Optional[int] = None, towers: int = 1,
-                 pre_layers: int = 1, post_layers: int = 1,
-                 divide_input: bool = False):
+    def __init__(self, in_channels, out_channels, aggregators, scalers, deg, edge_dim, towers=1,
+                 pre_layers=1, post_layers=1, divide_input=False):
 
         super(PNAConv, self).__init__()
-        print('using self-define conv')
         if divide_input:
             assert in_channels % towers == 0
         assert out_channels % towers == 0
@@ -105,9 +92,12 @@ class PNAConv(MessagePassing):
         self.F_in = in_channels // towers if divide_input else in_channels
         self.F_out = self.out_channels // towers
 
+        # Mul operation in TensorFlow require two tensor have the same type
+        if tlx.BACKEND == 'tensorflow':
+            deg = tlx.constant(tlx.convert_to_numpy(deg), dtype=tlx.float32)
         num_nodes = int(reduce_sum(deg))
         bin_degrees = tlx.arange(start=0, limit=len(deg), dtype=tlx.float32)
-        self.avg_deg: Dict[str, float] = {
+        self.avg_deg = {
             'lin': float(reduce_sum(bin_degrees * deg)) / num_nodes,
             'log': float(reduce_sum(tlx.log(bin_degrees + 1) * deg)) / num_nodes,
             'exp': float(reduce_sum(tlx.exp(bin_degrees) * deg)) / num_nodes,
@@ -138,10 +128,8 @@ class PNAConv(MessagePassing):
         if self.divide_input:
             x = tlx.reshape(x, (-1, self.towers, self.F_in))
         else:
-            # test = x.view(-1, 1, self.F_in).repeat(1, self.towers, 1)
             x = tlx.stack([x for i in range(0, self.towers)], axis=1)
-            # 比较两个tensor是否相等
-            # print(tlx.equal(x, test))
+
         out = self.propagate(x=x, edge_index=edge_index, edge_attr=edge_attr)
         out = tlx.concat([x, out], axis=-1)
         outs = [nn(out[:, i]) for i, nn in enumerate(self.post_nns)]
@@ -154,9 +142,7 @@ class PNAConv(MessagePassing):
 
         if edge_attr is not None:
             edge_attr = self.edge_encoder(edge_attr)
-            # test = edge_attr.view(-1, 1, self.F_in).repeat(1, self.towers, 1)
             edge_attr = tlx.stack([edge_attr for i in range(0, self.towers)], axis=1)
-            # print(tlx.equal(edge_attr, test))
             h = tlx.concat([x_i, x_j, edge_attr], axis=-1)
         else:
             h = tlx.concat([x_i, x_j], axis=-1)
@@ -171,26 +157,18 @@ class PNAConv(MessagePassing):
 
         for aggregator in self.aggregators:
             if aggregator == 'sum':
-                out = scatter(inputs, dst_index, 0, None, dim_size, reduce='sum')
-                # out = global_sum_pool(inputs, dst_index)
+                out = global_sum_pool(inputs, dst_index)
             elif aggregator == 'mean':
-                out = scatter(inputs, dst_index, 0, None, dim_size, reduce='mean')
-                # out = global_mean_pool(inputs, dst_index)
+                out = global_mean_pool(inputs, dst_index)
             elif aggregator == 'min':
-                out = scatter(inputs, dst_index, 0, None, dim_size, reduce='min')
-                # out = global_min_pool(inputs, dst_index)
+                out = global_min_pool(inputs, dst_index)
             elif aggregator == 'max':
-                out = scatter(inputs, dst_index, 0, None, dim_size, reduce='max')
-                # out = global_max_pool(inputs, dst_index)
+                out = global_max_pool(inputs, dst_index)
             elif aggregator == 'var' or aggregator == 'std':
-                mean = scatter(inputs, dst_index, 0, None, dim_size, reduce='mean')
-                # mean = global_mean_pool(inputs, dst_index)
-                mean_squares = scatter(inputs * inputs, dst_index, 0, None,
-                                       dim_size, reduce='mean')
-                # mean_squares = global_mean_pool(inputs * inputs, dst_index)
+                mean = global_mean_pool(inputs, dst_index)
+                mean_squares = global_mean_pool(inputs * inputs, dst_index)
                 out = mean_squares - mean * mean
                 if aggregator == 'std':
-                    # out1 = torch.sqrt(torch.relu(out) + 1e-5)
                     out = tlx.sqrt(tlx.relu(out) + 1e-5)
             else:
                 raise ValueError(f'Unknown aggregator "{aggregator}".')
@@ -198,7 +176,6 @@ class PNAConv(MessagePassing):
         out = tlx.concat(outs, axis=-1)
         deg = degree(dst_index, dim_size, dtype=inputs.dtype)
         deg = tlx.reshape(tlx.where(deg > 1, deg, tlx.ones_like(deg)), (-1, 1, 1))
-        # deg = deg.clamp_(1).view(-1, 1, 1)
 
         outs = []
         for scaler in self.scalers:
@@ -216,4 +193,3 @@ class PNAConv(MessagePassing):
                 raise ValueError(f'Unknown scaler "{scaler}".')
             outs.append(out)
         return tlx.concat(outs, axis=-1)
-

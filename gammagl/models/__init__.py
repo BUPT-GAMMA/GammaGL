@@ -10,6 +10,7 @@ from .rgcn import RGCN
 from .agnn import AGNNModel
 from .jknet import JKNet
 from .han import HAN
+from .pna import PNAModel
 from .dgi import DGIModel
 from .grace import GraceModel
 from .chebnet import ChebNetModel
