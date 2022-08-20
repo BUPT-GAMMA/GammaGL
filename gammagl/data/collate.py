@@ -56,7 +56,10 @@ def collate(
     #   elements as attributes that got incremented need to be decremented
     #   while separating to obtain original values.
     device = None
-    slice_dict, inc_dict = defaultdict(dict), defaultdict(dict)
+    if tlx.BACKEND == 'paddle':
+        slice_dict, inc_dict = dict(), dict()
+    else:
+        slice_dict, inc_dict = defaultdict(dict), defaultdict(dict)
     for out_store in out.stores:
         key = out_store._key
         stores = key_to_stores[key]
