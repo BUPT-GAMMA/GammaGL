@@ -35,11 +35,6 @@ class PNAConv(MessagePassing):
     where :math:`\gamma_{\mathbf{\Theta}}` and :math:`h_{\mathbf{\Theta}}`
     denote MLPs.
 
-    .. note::
-
-        For an example of using :obj:`PNAConv`, see `examples/pna.py
-        <https://github.com/pyg-team/pytorch_geometric/blob/master/
-        examples/pna.py>`_.
 
     Args:
         in_channels (int): Size of each input sample, or :obj:`-1` to derive

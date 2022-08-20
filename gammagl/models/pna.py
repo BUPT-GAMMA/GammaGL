@@ -6,21 +6,22 @@ from gammagl.layers.pool.glob import global_sum_pool
 
 
 class PNAModel(nn.Module):
-    def __init__(self, deg):
+    def __init__(self, aggregators, scalers, deg, edge_dim, towers, pre_layers, post_layers, divide_input):
         super().__init__()
 
         self.node_emb = nn.Embedding(21, 75)
         self.edge_emb = nn.Embedding(4, 50)
-        aggregators = ['mean', 'min', 'max', 'std']
-        scalers = ['identity', 'amplification', 'attenuation']
         self.convs = nn.ModuleList()
         self.batch_norms = nn.ModuleList()
 
+        aggregators = aggregators.split()
+        scalers = scalers.split()
+
         for _ in range(4):
             conv = PNAConv(in_channels=75, out_channels=75,
-                             aggregators=aggregators, scalers=scalers, deg=deg,
-                             edge_dim=50, towers=5, pre_layers=1, post_layers=1,
-                             divide_input=False)
+                           aggregators=aggregators, scalers=scalers, deg=deg,
+                           edge_dim=edge_dim, towers=towers, pre_layers=pre_layers, post_layers=post_layers,
+                           divide_input=divide_input)
             self.convs.append(conv)
             self.batch_norms.append(nn.BatchNorm1d(num_features=75))
 
