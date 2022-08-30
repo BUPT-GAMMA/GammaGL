@@ -124,7 +124,7 @@ class OgbNodeDataset(InMemoryDataset):
             pass
         else:
             data = \
-            read_graph_pyg(self.raw_dir, add_inverse_edge=add_inverse_edge, additional_node_files=additional_node_files,
+            read_graph(self.raw_dir, add_inverse_edge=add_inverse_edge, additional_node_files=additional_node_files,
                            additional_edge_files=additional_edge_files, binary=self.binary)[0]
             ### adding prediction target
             if self.binary:
