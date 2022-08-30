@@ -8,7 +8,7 @@ from gammgl.utils.ogb_url import decide_download, download_url, extract_zip
 from read_ogb import read_node_label_hetero, read_nodesplitidx_split_hetero,read_graph, read_heterograph
 
 
-class PygNodePropPredDataset(InMemoryDataset):
+class OgbNodeDataset(InMemoryDataset):
     def __init__(self, name, root='dataset', transform=None, pre_transform=None, meta_dict=None):
         '''
             - name (str): name of the dataset
@@ -65,7 +65,7 @@ class PygNodePropPredDataset(InMemoryDataset):
         self.is_hetero = self.meta_info['is hetero'] == 'True'
         self.binary = self.meta_info['binary'] == 'True'
 
-        super(PygNodePropPredDataset, self).__init__(self.root, transform, pre_transform)
+        super(OgbNodeDataset, self).__init__(self.root, transform, pre_transform)
         self.data, self.slices = self.load_data(self.processed_paths[0])
 
     @property
@@ -158,8 +158,6 @@ class PygNodePropPredDataset(InMemoryDataset):
 
 
 if __name__ == '__main__':
-    pyg_dataset = PygNodePropPredDataset(name='ogbn-mag')
-    print(pyg_dataset[0])
-    split_index = pyg_dataset.get_idx_split()
-    # print(split_index)
+    data = OgbNodeDataset(name='ogbn-arxiv')
+    print(data[0])
 
