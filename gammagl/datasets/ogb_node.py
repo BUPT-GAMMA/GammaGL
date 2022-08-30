@@ -1,23 +1,21 @@
 import pandas as pd
 import shutil, os
 import os.path as osp
-import torch
 import numpy as np
 # from gammagl.data import Graph
 from gammagl.data import InMemoryDataset
-from gammagl.utils.url import decide_download, download_url, extract_zip
-from gammagl.io.read_graph_pyg import read_graph_pyg, read_heterograph_pyg
-from gammagl.io.read_graph_raw import read_node_label_hetero, read_nodesplitidx_split_hetero
+from gammgl.utils.ogb_url import decide_download, download_url, extract_zip
+from read_ogb import read_node_label_hetero, read_nodesplitidx_split_hetero,read_graph, read_heterograph
 
 
-class OgbNodeDataset(InMemoryDataset):
+class PygNodePropPredDataset(InMemoryDataset):
     def __init__(self, name, root='dataset', transform=None, pre_transform=None, meta_dict=None):
         '''
             - name (str): name of the dataset
             - root (str): root directory to store the dataset folder
             - transform, pre_transform (optional): transform/pre-transform graph objects
 
-            - meta_dict: dictionary that stores all the meta-information about data. Default is None, 
+            - meta_dict: dictionary that stores all the meta-information about data. Default is None,
                     but when something is passed, it uses its information. Useful for debugging for external contributers.
         '''
 
@@ -51,7 +49,7 @@ class OgbNodeDataset(InMemoryDataset):
         # check version
         # First check whether the dataset has been already downloaded or not.
         # If so, check whether the dataset version is the newest or not.
-        # If the dataset is not the newest version, notify this to the user. 
+        # If the dataset is not the newest version, notify this to the user.
         if osp.isdir(self.root) and (
         not osp.exists(osp.join(self.root, 'RELEASE_v' + str(self.meta_info['version']) + '.txt'))):
             print(self.name + ' has been updated.')
@@ -67,37 +65,8 @@ class OgbNodeDataset(InMemoryDataset):
         self.is_hetero = self.meta_info['is hetero'] == 'True'
         self.binary = self.meta_info['binary'] == 'True'
 
-        super(OgbNodeDataset, self).__init__(self.root, transform, pre_transform)
-        self.data, self.slices = torch.load(self.processed_paths[0])
-
-    def get_idx_split(self, split_type=None):
-        if split_type is None:
-            split_type = self.meta_info['split']
-
-        path = osp.join(self.root, 'split', split_type)
-
-        # short-cut if split_dict.pt exists
-        if os.path.isfile(os.path.join(path, 'split_dict.pt')):
-            return torch.load(os.path.join(path, 'split_dict.pt'))
-
-        if self.is_hetero:
-            train_idx_dict, valid_idx_dict, test_idx_dict = read_nodesplitidx_split_hetero(path)
-            for nodetype in train_idx_dict.keys():
-                train_idx_dict[nodetype] = torch.from_numpy(train_idx_dict[nodetype]).to(torch.long)
-                valid_idx_dict[nodetype] = torch.from_numpy(valid_idx_dict[nodetype]).to(torch.long)
-                test_idx_dict[nodetype] = torch.from_numpy(test_idx_dict[nodetype]).to(torch.long)
-
-                return {'train': train_idx_dict, 'valid': valid_idx_dict, 'test': test_idx_dict}
-
-        else:
-            train_idx = torch.from_numpy(
-                pd.read_csv(osp.join(path, 'train.csv.gz'), compression='gzip', header=None).values.T[0]).to(torch.long)
-            valid_idx = torch.from_numpy(
-                pd.read_csv(osp.join(path, 'valid.csv.gz'), compression='gzip', header=None).values.T[0]).to(torch.long)
-            test_idx = torch.from_numpy(
-                pd.read_csv(osp.join(path, 'test.csv.gz'), compression='gzip', header=None).values.T[0]).to(torch.long)
-
-            return {'train': train_idx, 'valid': valid_idx, 'test': test_idx}
+        super(PygNodePropPredDataset, self).__init__(self.root, transform, pre_transform)
+        self.data, self.slices = self.load_data(self.processed_paths[0])
 
     @property
     def num_classes(self):
@@ -152,31 +121,7 @@ class OgbNodeDataset(InMemoryDataset):
             additional_edge_files = self.meta_info['additional edge files'].split(',')
 
         if self.is_hetero:
-            data = read_heterograph_pyg(self.raw_dir, add_inverse_edge=add_inverse_edge,
-                                        additional_node_files=additional_node_files,
-                                        additional_edge_files=additional_edge_files, binary=self.binary)[0]
-
-            if self.binary:
-                tmp = np.load(osp.join(self.raw_dir, 'node-label.npz'))
-                node_label_dict = {}
-                for key in list(tmp.keys()):
-                    node_label_dict[key] = tmp[key]
-                del tmp
-            else:
-                node_label_dict = read_node_label_hetero(self.raw_dir)
-
-            data.y_dict = {}
-            if 'classification' in self.task_type:
-                for nodetype, node_label in node_label_dict.items():
-                    # detect if there is any nan
-                    if np.isnan(node_label).any():
-                        data.y_dict[nodetype] = torch.from_numpy(node_label).to(torch.float32)
-                    else:
-                        data.y_dict[nodetype] = torch.from_numpy(node_label).to(torch.long)
-            else:
-                for nodetype, node_label in node_label_dict.items():
-                    data.y_dict[nodetype] = torch.from_numpy(node_label).to(torch.float32)
-
+            pass
         else:
             data = \
             read_graph_pyg(self.raw_dir, add_inverse_edge=add_inverse_edge, additional_node_files=additional_node_files,
@@ -202,7 +147,7 @@ class OgbNodeDataset(InMemoryDataset):
         data = data if self.pre_transform is None else self.pre_transform(data)
         self.data = data
         print('Saving...')
-        torch.save(self.collate([data]), self.processed_paths[0])
+        self.save_data(self.collate([data]), self.processed_paths[0])
 
     def __getitem__(self, idx):
         assert idx == 0, 'This dataset has only one graph'
