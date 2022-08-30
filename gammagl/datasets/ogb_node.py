@@ -1,28 +1,36 @@
-from gammagl.data import Graph
 import pandas as pd
 import shutil, os
 import os.path as osp
-from gammagl.utils.ogb_url import decide_download, download_url, extract_zip
-from gammagl.io.read_ogb_raw import read_csv_graph_raw, read_csv_heterograph_raw, \
-    read_node_label_hetero, read_nodesplitidx_split_hetero, \
-    read_binary_graph_raw, read_binary_heterograph_raw
-
 import torch
 import numpy as np
+# from gammagl.data import Graph
+from gammagl.data import InMemoryDataset
+from gammagl.utils.url import decide_download, download_url, extract_zip
+from gammagl.io.read_graph_pyg import read_graph_pyg, read_heterograph_pyg
+from gammagl.io.read_graph_raw import read_node_label_hetero, read_nodesplitidx_split_hetero
 
-class OgbNodeDataset(object):
-    def __init__(self, name, root='dataset', meta_dict=None):
+
+class OgbNodeDataset(InMemoryDataset):
+    def __init__(self, name, root='dataset', transform=None, pre_transform=None, meta_dict=None):
         '''
             - name (str): name of the dataset
             - root (str): root directory to store the dataset folder
-            - meta_dict: dictionary that stores all the meta-information about data. Default is None,
+            - transform, pre_transform (optional): transform/pre-transform graph objects
+
+            - meta_dict: dictionary that stores all the meta-information about data. Default is None, 
                     but when something is passed, it uses its information. Useful for debugging for external contributers.
         '''
 
         self.name = name  ## original name, e.g., ogbn-proteins
 
         if meta_dict is None:
-            self.dir_name = '_'.join(name.split('-'))  ## replace hyphen with underline, e.g., ogbn_proteins
+            self.dir_name = '_'.join(name.split('-'))
+
+            # check if previously-downloaded folder exists.
+            # If so, use that one.
+            if osp.exists(osp.join(root, self.dir_name + '_pyg')):
+                self.dir_name = self.dir_name + '_pyg'
+
             self.original_root = root
             self.root = osp.join(root, self.dir_name)
 
@@ -43,9 +51,9 @@ class OgbNodeDataset(object):
         # check version
         # First check whether the dataset has been already downloaded or not.
         # If so, check whether the dataset version is the newest or not.
-        # If the dataset is not the newest version, notify this to the user.
+        # If the dataset is not the newest version, notify this to the user. 
         if osp.isdir(self.root) and (
-                not osp.exists(osp.join(self.root, 'RELEASE_v' + str(self.meta_info['version']) + '.txt'))):
+        not osp.exists(osp.join(self.root, 'RELEASE_v' + str(self.meta_info['version']) + '.txt'))):
             print(self.name + ' has been updated.')
             if input('Will you update the dataset now? (y/N)\n').lower() == 'y':
                 shutil.rmtree(self.root)
@@ -55,109 +63,12 @@ class OgbNodeDataset(object):
         self.num_tasks = int(self.meta_info['num tasks'])
         self.task_type = self.meta_info['task type']
         self.eval_metric = self.meta_info['eval metric']
-        self.num_classes = int(self.meta_info['num classes'])
+        self.__num_classes__ = int(self.meta_info['num classes'])
         self.is_hetero = self.meta_info['is hetero'] == 'True'
         self.binary = self.meta_info['binary'] == 'True'
 
-        super(OgbNodeDataset, self).__init__()
-
-        self.pre_process()
-
-    def pre_process(self):
-        processed_dir = osp.join(self.root, 'processed')
-        pre_processed_file_path = osp.join(processed_dir, 'data_processed')
-
-        if osp.exists(pre_processed_file_path):
-            loaded_dict = torch.load(pre_processed_file_path)
-            self.graph, self.labels = loaded_dict['graph'], loaded_dict['labels']
-            self.data = Graph(edge_index=self.graph['edge_index'], x=self.graph['node_feat'], y=self.labels)
-            self.data.num_nodes = self.graph['num_nodes']
-            self.data.edge_attr = self.graph['edge_feat']
-            self.data.tensor()
-
-        else:
-            ### check download
-            if self.binary:
-                # npz format
-                has_necessary_file_simple = osp.exists(osp.join(self.root, 'raw', 'data.npz')) and (not self.is_hetero)
-                has_necessary_file_hetero = osp.exists(
-                    osp.join(self.root, 'raw', 'edge_index_dict.npz')) and self.is_hetero
-            else:
-                # csv file
-                has_necessary_file_simple = osp.exists(osp.join(self.root, 'raw', 'edge.csv.gz')) and (
-                    not self.is_hetero)
-                has_necessary_file_hetero = osp.exists(
-                    osp.join(self.root, 'raw', 'triplet-type-list.csv.gz')) and self.is_hetero
-
-            has_necessary_file = has_necessary_file_simple or has_necessary_file_hetero
-
-            if not has_necessary_file:
-                url = self.meta_info['url']
-                if decide_download(url):
-                    path = download_url(url, self.original_root)
-                    extract_zip(path, self.original_root)
-                    os.unlink(path)
-                    # delete folder if there exists
-                    try:
-                        shutil.rmtree(self.root)
-                    except:
-                        pass
-                    shutil.move(osp.join(self.original_root, self.download_name), self.root)
-                else:
-                    print('Stop download.')
-                    exit(-1)
-
-            raw_dir = osp.join(self.root, 'raw')
-
-            ### pre-process and save
-            add_inverse_edge = self.meta_info['add_inverse_edge'] == 'True'
-
-            if self.meta_info['additional node files'] == 'None':
-                additional_node_files = []
-            else:
-                additional_node_files = self.meta_info['additional node files'].split(',')
-
-            if self.meta_info['additional edge files'] == 'None':
-                additional_edge_files = []
-            else:
-                additional_edge_files = self.meta_info['additional edge files'].split(',')
-
-            if self.is_hetero:
-                if self.binary:
-                    self.graph = read_binary_heterograph_raw(raw_dir, add_inverse_edge=add_inverse_edge)[
-                        0]  # only a single graph
-
-                    tmp = np.load(osp.join(raw_dir, 'node-label.npz'))
-                    self.labels = {}
-                    for key in list(tmp.keys()):
-                        self.labels[key] = tmp[key]
-                    del tmp
-                else:
-                    self.graph = read_csv_heterograph_raw(raw_dir, add_inverse_edge=add_inverse_edge,
-                                                          additional_node_files=additional_node_files,
-                                                          additional_edge_files=additional_edge_files)[
-                        0]  # only a single graph
-                    self.labels = read_node_label_hetero(raw_dir)
-
-            else:
-                if self.binary:
-                    self.graph = read_binary_graph_raw(raw_dir, add_inverse_edge=add_inverse_edge)[
-                        0]  # only a single graph
-                    self.labels = np.load(osp.join(raw_dir, 'node-label.npz'))['node_label']
-                else:
-                    self.graph = read_csv_graph_raw(raw_dir, add_inverse_edge=add_inverse_edge,
-                                                    additional_node_files=additional_node_files,
-                                                    additional_edge_files=additional_edge_files)[
-                        0]  # only a single graph
-                    self.labels = pd.read_csv(osp.join(raw_dir, 'node-label.csv.gz'), compression='gzip',
-                                              header=None).values
-
-            print('Saving...')
-            self.data = Graph(edge_index=self.graph['edge_index'], x=self.graph['node_feat'], y=self.labels)
-            self.data.num_nodes = self.graph['num_nodes']
-            self.data.edge_attr = self.graph['edge_feat']
-            self.data.tensor()
-            torch.save(self.data, pre_processed_file_path, pickle_protocol=4)
+        super(OgbNodeDataset, self).__init__(self.root, transform, pre_transform)
+        self.data, self.slices = torch.load(self.processed_paths[0])
 
     def get_idx_split(self, split_type=None):
         if split_type is None:
@@ -172,33 +83,138 @@ class OgbNodeDataset(object):
         if self.is_hetero:
             train_idx_dict, valid_idx_dict, test_idx_dict = read_nodesplitidx_split_hetero(path)
             for nodetype in train_idx_dict.keys():
-                train_idx_dict[nodetype] = train_idx_dict[nodetype]
-                valid_idx_dict[nodetype] = valid_idx_dict[nodetype]
-                test_idx_dict[nodetype] = test_idx_dict[nodetype]
+                train_idx_dict[nodetype] = torch.from_numpy(train_idx_dict[nodetype]).to(torch.long)
+                valid_idx_dict[nodetype] = torch.from_numpy(valid_idx_dict[nodetype]).to(torch.long)
+                test_idx_dict[nodetype] = torch.from_numpy(test_idx_dict[nodetype]).to(torch.long)
 
                 return {'train': train_idx_dict, 'valid': valid_idx_dict, 'test': test_idx_dict}
 
         else:
-            train_idx = pd.read_csv(osp.join(path, 'train.csv.gz'), compression='gzip', header=None).values.T[0]
-            valid_idx = pd.read_csv(osp.join(path, 'valid.csv.gz'), compression='gzip', header=None).values.T[0]
-            test_idx = pd.read_csv(osp.join(path, 'test.csv.gz'), compression='gzip', header=None).values.T[0]
+            train_idx = torch.from_numpy(
+                pd.read_csv(osp.join(path, 'train.csv.gz'), compression='gzip', header=None).values.T[0]).to(torch.long)
+            valid_idx = torch.from_numpy(
+                pd.read_csv(osp.join(path, 'valid.csv.gz'), compression='gzip', header=None).values.T[0]).to(torch.long)
+            test_idx = torch.from_numpy(
+                pd.read_csv(osp.join(path, 'test.csv.gz'), compression='gzip', header=None).values.T[0]).to(torch.long)
 
             return {'train': train_idx, 'valid': valid_idx, 'test': test_idx}
+
+    @property
+    def num_classes(self):
+        return self.__num_classes__
+
+    @property
+    def raw_file_names(self):
+        if self.binary:
+            if self.is_hetero:
+                return ['edge_index_dict.npz']
+            else:
+                return ['data.npz']
+        else:
+            if self.is_hetero:
+                return ['num-node-dict.csv.gz', 'triplet-type-list.csv.gz']
+            else:
+                file_names = ['edge']
+                if self.meta_info['has_node_attr'] == 'True':
+                    file_names.append('node-feat')
+                if self.meta_info['has_edge_attr'] == 'True':
+                    file_names.append('edge-feat')
+                return [file_name + '.csv.gz' for file_name in file_names]
+
+    @property
+    def processed_file_names(self):
+        return osp.join('geometric_data_processed.pt')
+
+    def download(self):
+        url = self.meta_info['url']
+        if decide_download(url):
+            path = download_url(url, self.original_root)
+            extract_zip(path, self.original_root)
+            os.unlink(path)
+            shutil.rmtree(self.root)
+            shutil.move(osp.join(self.original_root, self.download_name), self.root)
+        else:
+            print('Stop downloading.')
+            shutil.rmtree(self.root)
+            exit(-1)
+
+    def process(self):
+        add_inverse_edge = self.meta_info['add_inverse_edge'] == 'True'
+
+        if self.meta_info['additional node files'] == 'None':
+            additional_node_files = []
+        else:
+            additional_node_files = self.meta_info['additional node files'].split(',')
+
+        if self.meta_info['additional edge files'] == 'None':
+            additional_edge_files = []
+        else:
+            additional_edge_files = self.meta_info['additional edge files'].split(',')
+
+        if self.is_hetero:
+            data = read_heterograph_pyg(self.raw_dir, add_inverse_edge=add_inverse_edge,
+                                        additional_node_files=additional_node_files,
+                                        additional_edge_files=additional_edge_files, binary=self.binary)[0]
+
+            if self.binary:
+                tmp = np.load(osp.join(self.raw_dir, 'node-label.npz'))
+                node_label_dict = {}
+                for key in list(tmp.keys()):
+                    node_label_dict[key] = tmp[key]
+                del tmp
+            else:
+                node_label_dict = read_node_label_hetero(self.raw_dir)
+
+            data.y_dict = {}
+            if 'classification' in self.task_type:
+                for nodetype, node_label in node_label_dict.items():
+                    # detect if there is any nan
+                    if np.isnan(node_label).any():
+                        data.y_dict[nodetype] = torch.from_numpy(node_label).to(torch.float32)
+                    else:
+                        data.y_dict[nodetype] = torch.from_numpy(node_label).to(torch.long)
+            else:
+                for nodetype, node_label in node_label_dict.items():
+                    data.y_dict[nodetype] = torch.from_numpy(node_label).to(torch.float32)
+
+        else:
+            data = \
+            read_graph_pyg(self.raw_dir, add_inverse_edge=add_inverse_edge, additional_node_files=additional_node_files,
+                           additional_edge_files=additional_edge_files, binary=self.binary)[0]
+            ### adding prediction target
+            if self.binary:
+                node_label = np.load(osp.join(self.raw_dir, 'node-label.npz'))['node_label']
+            else:
+                node_label = pd.read_csv(osp.join(self.raw_dir, 'node-label.csv.gz'), compression='gzip',
+                                         header=None).values
+            '''
+            if 'classification' in self.task_type:
+                # detect if there is any nan
+                if np.isnan(node_label).any():
+                    data.y = torch.from_numpy(node_label).to(torch.float32)
+                else:
+                    data.y = torch.from_numpy(node_label).to(torch.long)
+
+            else:
+                data.y = torch.from_numpy(node_label).to(torch.float32)
+            '''
+            data.y = node_label
+        data = data if self.pre_transform is None else self.pre_transform(data)
+        self.data = data
+        print('Saving...')
+        torch.save(self.collate([data]), self.processed_paths[0])
 
     def __getitem__(self, idx):
         assert idx == 0, 'This dataset has only one graph'
         return self.data
 
-    def __len__(self):
-        return 1
-
-    def __repr__(self):  # pragma: no cover
-        return '{}({})'.format(self.__class__.__name__, len(self))
+    def __repr__(self):
+        return '{}()'.format(self.__class__.__name__)
 
 
 if __name__ == '__main__':
-    dataset = OgbNodeDataset(name='ogbn-mag')
-    print(dataset.num_classes)
-    split_index = dataset.get_idx_split()
-    print(dataset[0])
-    print(split_index)
+    pyg_dataset = PygNodePropPredDataset(name='ogbn-mag')
+    print(pyg_dataset[0])
+    split_index = pyg_dataset.get_idx_split()
+    # print(split_index)
+
