@@ -121,7 +121,33 @@ class OgbNodeDataset(InMemoryDataset):
             additional_edge_files = self.meta_info['additional edge files'].split(',')
 
         if self.is_hetero:
-            pass
+            data = read_heterograph(self.raw_dir, add_inverse_edge=add_inverse_edge,
+                                    additional_node_files=additional_node_files,
+                                    additional_edge_files=additional_edge_files, binary=self.binary)[0]
+
+            if self.binary:
+                tmp = np.load(osp.join(self.raw_dir, 'node-label.npz'))
+                node_label_dict = {}
+                for key in list(tmp.keys()):
+                    node_label_dict[key] = tmp[key]
+                del tmp
+            else:
+                node_label_dict = read_node_label_hetero(self.raw_dir)
+
+            data.y_dict = {}
+            if 'classification' in self.task_type:
+                for nodetype, node_label in node_label_dict.items():
+                    # detect if there is any nan
+                    '''
+                    if np.isnan(node_label).any():
+                        data.y_dict[nodetype] = torch.from_numpy(node_label).to(torch.float32)
+                    else:
+                        data.y_dict[nodetype] = torch.from_numpy(node_label).to(torch.long)
+                    '''
+                    data.y_dict[nodetype] = node_label
+            else:
+                for nodetype, node_label in node_label_dict.items():
+                    data.y_dict[nodetype] = node_label
         else:
             data = \
             read_graph(self.raw_dir, add_inverse_edge=add_inverse_edge, additional_node_files=additional_node_files,
