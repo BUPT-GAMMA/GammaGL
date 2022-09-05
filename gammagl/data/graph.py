@@ -244,7 +244,7 @@ class BaseGraph:
 			if tlx.is_tensor(value):
 				pass
 			elif check_is_numpy(value):
-				if key in ['edge_index', 'y', 'edge_type', 'train_idx', 'test_idx', 'train_y']:
+				if key in ['edge_index', 'edge_type', 'train_idx', 'test_idx', 'train_y', 'edge_attr', 'batch', 'x']:
 					value = tlx.convert_to_tensor(value, dtype=tlx.int64)
 				elif key in ['train_mask', 'val_mask', 'test_mask', ]:
 					value = tlx.convert_to_tensor(value, dtype=tlx.bool)

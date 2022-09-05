@@ -16,6 +16,8 @@ from .chebnet import ChebNetModel
 from .simplehgn import SimpleHGNModel
 from .fagcn import FAGCNModel
 from .gprgnn import GPRGNNModel
+from .pna import PNAModel
+
 
 __all__ = [
     'GCNModel',
@@ -36,7 +38,8 @@ __all__ = [
     'ChebNetModel',
     'SimpleHGNModel',
     'FAGCNModel',
-    'GPRGNNModel'
+    'GPRGNNModel',
+    'PNAModel'
 ]
 
 classes = __all__
