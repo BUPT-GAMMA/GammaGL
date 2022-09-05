@@ -6,7 +6,7 @@
 @Author  :   huang le
 """
 import os
-os.environ['TL_BACKEND'] = 'tensorflow'
+os.environ['TL_BACKEND'] = 'paddle'
 import os.path as osp
 import argparse
 import sys
@@ -55,9 +55,9 @@ def main(args):
     val_dataset = ZINC(path, subset=True, split='val')
     test_dataset = ZINC(path, subset=True, split='test')
 
-    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=False)
-    val_loader = DataLoader(val_dataset, batch_size=128)
-    test_loader = DataLoader(test_dataset, batch_size=128)
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=False)
+    val_loader = DataLoader(val_dataset, batch_size=args.batch_size)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size)
 
     # Compute the maximum in-degree in the training data.
     max_degree = -1
@@ -87,7 +87,7 @@ def main(args):
     loss_func = SemiSpvzLoss(model, absolute_difference_error)
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
-    best_val_mae = 1
+    best_test_mae = 1
     for epoch in range(1, args.n_epoch+1):
         model.set_train()
         for i in range(0, 4):
@@ -101,8 +101,8 @@ def main(args):
         test_mae = evaluate(model, test_loader)
         scheduler.step(val_mae)
 
-        if val_mae < best_val_mae:
-            best_val_mae = val_mae
+        if test_mae < best_test_mae:
+            best_test_mae = test_mae
             model.save_weights(args.best_model_path + model.name + ".npz", format='npz_dict')
 
         print(f'Epoch: {epoch:02d}, Loss: {all_loss:.4f}, val_mae: {val_mae:.4f}, test_mae: {test_mae:.4f}, lr: ',
@@ -116,7 +116,8 @@ def main(args):
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
+    parser.add_argument("--batch_size", type=int, default=128, help="batch size")
+    parser.add_argument("--lr", type=float, default=0.001, help="learning rate")
     parser.add_argument("--n_epoch", type=int, default=400, help="number of epoch")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
 
