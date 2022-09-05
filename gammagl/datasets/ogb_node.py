@@ -2,10 +2,9 @@ import pandas as pd
 import shutil, os
 import os.path as osp
 import numpy as np
-# from gammagl.data import Graph
 from gammagl.data import InMemoryDataset
 from gammgl.utils.ogb_url import decide_download, download_url, extract_zip
-from read_ogb import read_node_label_hetero, read_nodesplitidx_split_hetero,read_graph, read_heterograph
+from gammagl.io.read_ogb import read_node_label_hetero, read_nodesplitidx_split_hetero,read_graph, read_heterograph
 
 
 class OgbNodeDataset(InMemoryDataset):
@@ -32,7 +31,7 @@ class OgbNodeDataset(InMemoryDataset):
             self.original_root = root
             self.root = osp.join(root, self.dir_name)
 
-            master = pd.read_csv(os.path.join(os.path.dirname(__file__), 'master.csv'), index_col=0)
+            master = pd.read_csv(os.path.join(os.path.dirname(__file__), 'OgbNodeData.csv'), index_col=0)
             if not self.name in master:
                 error_mssg = 'Invalid dataset name {}.\n'.format(self.name)
                 error_mssg += 'Available datasets are as follows:\n'
