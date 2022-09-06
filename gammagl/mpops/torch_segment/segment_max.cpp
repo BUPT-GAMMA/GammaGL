@@ -2,6 +2,7 @@
 #include <torch/torch.h>
 #include <iostream>
 #include <vector>
+#include <assert.h>
 
 using torch::autograd::AutogradContext;
 using torch::autograd::Variable;
@@ -10,34 +11,34 @@ using torch::autograd::variable_list;
 std::tuple<torch::Tensor, torch::Tensor>
 segment_cpu(torch::Tensor src, torch::Tensor index, int64_t N) {
   // check inputs
+  assert(src.dim() == 2);
+  assert(index.dim() == 1);
+  assert(src.size(0) == index.size(0));
 
   src = src.contiguous();
 
 	auto sizes = src.sizes().vec();
   sizes[0] = N > *index.max().data_ptr<int64_t>() ? N : *index.max().data_ptr<int64_t>();
-
 	torch::Tensor out = torch::empty(sizes, src.options());
 	torch::Tensor arg_out = torch::full_like(out, 0, index.options());
   if (src.numel() == 0) {
     return std::make_tuple(out, arg_out);
   }
   
-
 	out.fill_(std::numeric_limits<int64_t>::lowest());
   auto E = src.size(0);
   auto K = src.size(1);
-
 	auto index_accessor = index.accessor<int64_t, 1>();
   auto arg_out_accessor = arg_out.accessor<int64_t, 2>();
 
-  AT_DISPATCH_ALL_TYPES_AND(at::ScalarType::Half, src.scalar_type(), "__ops_name", [&] {
+  AT_DISPATCH_ALL_TYPES(src.scalar_type(), "__ops_name", [&] {
 		auto src_accessor = src.accessor<scalar_t, 2>();
 		auto out_accessor = out.accessor<scalar_t, 2>();
 
     int64_t idx;
-		for (auto e = 0; e < E; e++) {
+		for (auto e = 0; e < E; ++e) {
       idx = index_accessor[e];
-			for (auto k = 0; k < K; k++) {
+			for (auto k = 0; k < K; ++k) {
 				if (out_accessor[idx][k] < src_accessor[e][k]) {
 					out_accessor[idx][k] = src_accessor[e][k];
 					arg_out_accessor[idx][k] = e;
@@ -53,7 +54,7 @@ segment_cpu(torch::Tensor src, torch::Tensor index, int64_t N) {
 inline std::vector<int64_t> list2vec(const c10::List<int64_t> list) {
   std::vector<int64_t> result;
   result.reserve(list.size());
-  for (size_t i = 0; i < list.size(); i++)
+  for (size_t i = 0; i < list.size(); ++i)
     result.push_back(list[i]);
   return result;
 }
@@ -67,7 +68,7 @@ public:
     auto out = std::get<0>(result);
     auto arg_out = std::get<1>(result);
     ctx->save_for_backward({index, arg_out});
-    ctx->mark_non_differentiable({arg_out});
+    // ctx->mark_non_differentiable({arg_out});
     return out;
   }
 
@@ -88,7 +89,7 @@ public:
 
 torch::Tensor segment_max(torch::Tensor src, torch::Tensor index, int64_t N) {
   auto result = SegmentMax::apply(src, index, N);
-  return result[0];
+  return result;
 }
 
 TORCH_LIBRARY(mp, m){
