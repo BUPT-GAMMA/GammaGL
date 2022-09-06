@@ -17,6 +17,11 @@ find_package(Torch REQUIRED)
 #     set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS})
 # endif()
 
-add_library(torch_segment SHARED segment_max.cpp)
-target_compile_features(torch_segment PRIVATE cxx_std_14)
+FIND_PACKAGE(CUDA)
+IF(${CUDA_FOUND})
+add_definitions(-DCOMPILE_WITH_CUDA)
+# SET(CUDA_NVCC_FLAGS -Xcompiler -std=c++11 -Xcompiler -fPIC)
+ENDIF()
+
+add_library(torch_segment SHARED segment_max.cpp segment_max_cuda.cu)
 target_link_libraries(torch_segment ${TORCH_LIBRARIES} ${PYTHON_LIBRARIES})
