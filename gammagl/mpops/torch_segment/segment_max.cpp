@@ -16,10 +16,11 @@ using torch::autograd::variable_list;
 std::tuple<torch::Tensor, torch::Tensor> segment_cpu(torch::Tensor src,
                                                      torch::Tensor index,
                                                      int64_t N) {
-  // check inputs
-  assert(src.dim() == 2);
-  assert(index.dim() == 1);
-  assert(src.size(0) == index.size(0));
+  TORCH_CHECK(src.device().is_cpu(), "src must be CPU tensor");
+  TORCH_CHECK(index.device().is_cpu(), "index must be CPU tensor");
+  TORCH_CHECK_INDEX(src.dim() == 2, "src dimension should be 2, but got ", src.dim());
+  TORCH_CHECK_INDEX(index.dim() == 1, "index dimension should be 1, but got ", index.dim());
+  TORCH_CHECK_INDEX(src.size(0) == index.size(0), "fisrt dimension of src and index should be same");
 
   src = src.contiguous();
 
@@ -30,6 +31,7 @@ std::tuple<torch::Tensor, torch::Tensor> segment_cpu(torch::Tensor src,
   torch::Tensor out = torch::empty(sizes, src.options());
   torch::Tensor arg_out = torch::full_like(out, 0, index.options());
   if (src.numel() == 0) {
+    out.fill_(0);
     return std::make_tuple(out, arg_out);
   }
 
@@ -39,21 +41,29 @@ std::tuple<torch::Tensor, torch::Tensor> segment_cpu(torch::Tensor src,
   auto index_accessor = index.accessor<int64_t, 1>();
   auto arg_out_accessor = arg_out.accessor<int64_t, 2>();
 
-  AT_DISPATCH_ALL_TYPES(src.scalar_type(), "__ops_name", [&] {
+  // AT_DISPATCH_ALL_TYPES(src.scalar_type(), "__ops_name", [&] {
+    using scalar_t = float;
     auto src_accessor = src.accessor<scalar_t, 2>();
     auto out_accessor = out.accessor<scalar_t, 2>();
 
     int64_t idx;
+#ifdef COMPILE_WITH_OMP
+#pragma omp parallel for
+#endif
     for (auto e = 0; e < E; ++e) {
       idx = index_accessor[e];
       for (auto k = 0; k < K; ++k) {
         if (out_accessor[idx][k] < src_accessor[e][k]) {
+#ifdef COMPILE_WITH_OMP
+#pragma omp atomic write
+#endif
           out_accessor[idx][k] = src_accessor[e][k];
           arg_out_accessor[idx][k] = e;
         }
       }
     }
-  });
+    out.masked_fill_(out == std::numeric_limits<int64_t>::lowest(), (scalar_t)0);
+  // });
 
   return std::make_tuple(out, arg_out);
 }
