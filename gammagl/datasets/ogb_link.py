@@ -4,22 +4,20 @@ import os.path as osp
 import numpy as np
 from gammagl.data import InMemoryDataset
 from gammgl.utils.ogb_url import decide_download, download_url, extract_zip
-from gammagl.io.read_ogb import read_graph
+from gammagl.io.read_ogb import read_graph, read_heterograph
 
-
-class OgbGraphDataset(InMemoryDataset):
-    def __init__(self, name, root = 'dataset', transform=None, pre_transform = None, meta_dict = None):
+class OgbLinkDataset(InMemoryDataset):
+    def __init__(self, name, root = 'dataset', transform=None, pre_transform=None, meta_dict = None):
         '''
             - name (str): name of the dataset
             - root (str): root directory to store the dataset folder
-            - transform, pre_transform (optional): transform/pre-transform graph objects
 
             - meta_dict: dictionary that stores all the meta-information about data. Default is None, 
                     but when something is passed, it uses its information. Useful for debugging for external contributers.
-        ''' 
+        '''          
 
-        self.name = name ## original name, e.g., ogbg-molhiv
-        
+        self.name = name ## original name, e.g., ogbl-ppa
+
         if meta_dict is None:
             self.dir_name = '_'.join(name.split('-')) 
             
@@ -31,7 +29,7 @@ class OgbGraphDataset(InMemoryDataset):
             self.original_root = root
             self.root = osp.join(root, self.dir_name)
             
-            master = pd.read_csv(os.path.join(os.path.dirname(__file__), 'OgbGraphData.csv'), index_col = 0)
+            master = pd.read_csv(os.path.join(os.path.dirname(__file__), 'OgbLinkData.csv'), index_col = 0)
             if not self.name in master:
                 error_mssg = 'Invalid dataset name {}.\n'.format(self.name)
                 error_mssg += 'Available datasets are as follows:\n'
@@ -44,7 +42,7 @@ class OgbGraphDataset(InMemoryDataset):
             self.original_root = ''
             self.root = meta_dict['dir_path']
             self.meta_info = meta_dict
-        
+
         # check version
         # First check whether the dataset has been already downloaded or not.
         # If so, check whether the dataset version is the newest or not.
@@ -54,19 +52,17 @@ class OgbGraphDataset(InMemoryDataset):
             if input('Will you update the dataset now? (y/N)\n').lower() == 'y':
                 shutil.rmtree(self.root)
 
-        self.download_name = self.meta_info['download_name'] ## name of downloaded file, e.g., tox21
+        self.download_name = self.meta_info['download_name'] ## name of downloaded file, e.g., ppassoc
 
-        self.num_tasks = int(self.meta_info['num tasks'])
-        self.eval_metric = self.meta_info['eval metric']
         self.task_type = self.meta_info['task type']
-        self.__num_classes__ = int(self.meta_info['num classes'])
+        self.eval_metric = self.meta_info['eval metric']
+        self.is_hetero = self.meta_info['is hetero'] == 'True'
         self.binary = self.meta_info['binary'] == 'True'
 
-        super(PygGraphPropPredDataset, self).__init__(self.root, transform, pre_transform)
-
+        super(OgbLinkDataset, self).__init__(self.root, transform, pre_transform)
         self.data, self.slices = self.load_data(self.processed_paths[0])
 
-    def get_idx_split(self, split_type = None):
+    def get_edge_split(self, split_type = None):
         if split_type is None:
             split_type = self.meta_info['split']
             
@@ -76,48 +72,48 @@ class OgbGraphDataset(InMemoryDataset):
         if os.path.isfile(os.path.join(path, 'split_dict.pt')):
             return self.load_data(os.path.join(path, 'split_dict.pt'))
 
-        train_idx = pd.read_csv(osp.join(path, 'train.csv.gz'), compression='gzip', header = None).values.T[0]
-        valid_idx = pd.read_csv(osp.join(path, 'valid.csv.gz'), compression='gzip', header = None).values.T[0]
-        test_idx = pd.read_csv(osp.join(path, 'test.csv.gz'), compression='gzip', header = None).values.T[0]
+        train = self.load_data(osp.join(path, 'train.pt'))
+        valid = self.load_data(osp.join(path, 'valid.pt'))
+        test = self.load_data(osp.join(path, 'test.pt'))
 
-        return {'train': train_idx, 'valid': valid_idx, 'test': test_idx}
-
-    @property
-    def num_classes(self):
-        return self.__num_classes__
+        return {'train': train, 'valid': valid, 'test': test}
 
     @property
     def raw_file_names(self):
         if self.binary:
-            return ['data.npz']
+            if self.is_hetero:
+                return ['edge_index_dict.npz']
+            else:
+                return ['data.npz']
         else:
-            file_names = ['edge']
-            if self.meta_info['has_node_attr'] == 'True':
-                file_names.append('node-feat')
-            if self.meta_info['has_edge_attr'] == 'True':
-                file_names.append('edge-feat')
-            return [file_name + '.csv.gz' for file_name in file_names]
+            if self.is_hetero:
+                return ['num-node-dict.csv.gz', 'triplet-type-list.csv.gz']
+            else:
+                file_names = ['edge']
+                if self.meta_info['has_node_attr'] == 'True':
+                    file_names.append('node-feat')
+                if self.meta_info['has_edge_attr'] == 'True':
+                    file_names.append('edge-feat')
+                return [file_name + '.csv.gz' for file_name in file_names]
 
     @property
     def processed_file_names(self):
-        return 'geometric_data_processed.pt'
+        return osp.join('geometric_data_processed.pt')
 
     def download(self):
-        url = self.meta_info['url']
+        url =  self.meta_info['url']
         if decide_download(url):
             path = download_url(url, self.original_root)
             extract_zip(path, self.original_root)
             os.unlink(path)
             shutil.rmtree(self.root)
             shutil.move(osp.join(self.original_root, self.download_name), self.root)
-
         else:
             print('Stop downloading.')
             shutil.rmtree(self.root)
             exit(-1)
 
     def process(self):
-        ### read pyg graph list
         add_inverse_edge = self.meta_info['add_inverse_edge'] == 'True'
 
         if self.meta_info['additional node files'] == 'None':
@@ -130,32 +126,17 @@ class OgbGraphDataset(InMemoryDataset):
         else:
             additional_edge_files = self.meta_info['additional edge files'].split(',')
 
-        data_list = read_graph(self.raw_dir, add_inverse_edge = add_inverse_edge, additional_node_files = additional_node_files, additional_edge_files = additional_edge_files, binary=self.binary)
-
-        if self.task_type == 'subtoken prediction':
-            graph_label_notparsed = pd.read_csv(osp.join(self.raw_dir, 'graph-label.csv.gz'), compression='gzip', header = None).values
-            graph_label = [str(graph_label_notparsed[i][0]).split(' ') for i in range(len(graph_label_notparsed))]
-
-            for i, g in enumerate(data_list):
-                g.y = graph_label[i]
-
+        if self.is_hetero:
+            data = read_heterograph(self.raw_dir, add_inverse_edge = add_inverse_edge, additional_node_files = additional_node_files, additional_edge_files = additional_edge_files, binary=self.binary)[0]
         else:
-            if self.binary:
-                graph_label = np.load(osp.join(self.raw_dir, 'graph-label.npz'))['graph_label']
-            else:
-                graph_label = pd.read_csv(osp.join(self.raw_dir, 'graph-label.csv.gz'), compression='gzip', header = None).values
+            data = read_graph(self.raw_dir, add_inverse_edge = add_inverse_edge, additional_node_files = additional_node_files, additional_edge_files = additional_edge_files, binary=self.binary)[0]
 
-            has_nan = np.isnan(graph_label).any()
-
-            for i, g in enumerate(data_list):
-                g.y = graph_label[i]
-
-        if self.pre_transform is not None:
-            data_list = [self.pre_transform(data) for data in data_list]
-
-        data, slices = self.collate(data_list)
+        data = data if self.pre_transform is None else self.pre_transform(data)
 
         print('Saving...')
-        self.save_data((data, slices), self.processed_paths[0])
+        self.save_data(self.collate([data]), self.processed_paths[0])
 
+    def __repr__(self):
+        return '{}()'.format(self.__class__.__name__)
+        
 
