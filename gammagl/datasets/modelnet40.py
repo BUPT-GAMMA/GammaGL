@@ -49,7 +49,6 @@ class ModelNet40(InMemoryDataset):
         if not osp.exists(self.raw_dir):
             path = download_url(self.url, self.root)
             extract_zip(path, self.root)
-            os.unlink(path)
             shutil.rmtree(self.raw_dir)
             name = self.url.split('/')[-1].split('.')[0]
             os.rename(osp.join(self.root, name), self.raw_dir)
