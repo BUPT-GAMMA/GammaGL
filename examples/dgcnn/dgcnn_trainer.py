@@ -9,7 +9,7 @@ import copy
 import os
 
 # os.environ['CUDA_VISIBLE_DEVICES']='0'
-os.environ['TL_BACKEND'] = 'paddle'
+# os.environ['TL_BACKEND'] = 'torch'
 
 import sys
 
@@ -22,8 +22,9 @@ import numpy as np
 from gammagl.models import DGCNNModel
 from gammagl.loader import DataLoader
 from tensorlayerx.model import TrainOneStep, WithLoss
-from scipy.special import log_softmax
 import sklearn.metrics as metrics
+import torch
+import torch.nn.functional as F
 
 if tlx.BACKEND == 'torch':  # when the backend is torch and you want to use GPU
     try:
@@ -36,7 +37,7 @@ class CalLoss(WithLoss):
     def __init__(self, net):
         super(CalLoss, self).__init__(backbone=net, loss_fn=None)
 
-    def forward(self, x, gold, smoothing=False):
+    def forward(self, x, gold, smoothing=True):
         pred = self.backbone_network(x)
         gold = tlx.reshape(tlx.convert_to_tensor(gold), (-1,))
 
@@ -47,7 +48,9 @@ class CalLoss(WithLoss):
 
             one_hot = nn.OneHot(depth=n_class)(gold)
             one_hot = one_hot * (1 - eps) + (1 - one_hot) * eps / (n_class - 1)
-            log_prb = tlx.convert_to_tensor(log_softmax(tlx.convert_to_numpy(one_hot), 1))
+            # log_prb = F.log_softmax(pred, dim=1)  # 这里出了问题
+            c = tlx.reduce_max(one_hot, 1, keepdims=True)
+            log_prb = (one_hot - c) - tlx.log(tlx.reduce_sum(tlx.exp(one_hot - c), 1, keepdims=True))
 
             loss = -tlx.reduce_mean(tlx.reduce_sum(one_hot * log_prb, axis=1))
         else:
@@ -76,16 +79,20 @@ def main(args):
     print(tlx.get_device())
 
     net = DGCNNModel(args)
+    try:
+        net.load_weights(args.best_model_path + "DGCNN.npz", format='npz_dict')
+    except:
+        print("no this file!")
     print(str(net))
 
-    if args.use_sgd is True:
-        scheduler = tlx.optimizers.lr.CosineAnnealingDecay(learning_rate=args.lr*10, T_max=args.epochs, eta_min=args.lr)
-        print("Use SGD")
-        opt = tlx.optimizers.SGD(lr=scheduler, momentum=args.momentum, weight_decay=1e-4)
-    else:
-        scheduler = tlx.optimizers.lr.CosineAnnealingDecay(learning_rate=args.lr, T_max=args.epochs, eta_min=args.lr)
-        print("Use Adam")
-        opt = tlx.optimizers.Adam(lr=scheduler, weight_decay=1e-4)
+    # if args.use_sgd is True:
+    #     scheduler = tlx.optimizers.lr.CosineAnnealingDecay(learning_rate=args.lr*10, T_max=args.epochs, eta_min=args.lr)
+    #     print("Use SGD")
+    #     opt = tlx.optimizers.SGD(lr=scheduler, momentum=args.momentum, weight_decay=1e-4)
+    # else:
+    scheduler = tlx.optimizers.lr.CosineAnnealingDecay(learning_rate=args.lr, T_max=args.epochs, eta_min=args.lr)
+    print("Use Adam")
+    opt = tlx.optimizers.Adam(lr=scheduler, weight_decay=1e-4)
 
     train_weights = net.trainable_weights
     loss_func = CalLoss(net)
