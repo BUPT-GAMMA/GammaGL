@@ -85,12 +85,12 @@ def main(args):
         print("no this file!")
     print(str(net))
 
-    # if args.use_sgd is True:
-    #     scheduler = tlx.optimizers.lr.CosineAnnealingDecay(learning_rate=args.lr*10, T_max=args.epochs, eta_min=args.lr)
-    #     print("Use SGD")
-    #     opt = tlx.optimizers.SGD(lr=scheduler, momentum=args.momentum, weight_decay=1e-4)
-    # else:
-    scheduler = tlx.optimizers.lr.CosineAnnealingDecay(learning_rate=args.lr, T_max=args.epochs, eta_min=args.lr)
+    if args.use_sgd is True:
+        scheduler = tlx.optimizers.lr.CosineAnnealingDecay(learning_rate=args.lr*10, T_max=args.epochs, eta_min=args.lr)
+        print("Use SGD")
+        opt = tlx.optimizers.SGD(lr=scheduler, momentum=args.momentum, weight_decay=1e-4)
+    else:
+        scheduler = tlx.optimizers.lr.CosineAnnealingDecay(learning_rate=args.lr, T_max=args.epochs, eta_min=args.lr)
     print("Use Adam")
     opt = tlx.optimizers.Adam(lr=scheduler, weight_decay=1e-4)
 
