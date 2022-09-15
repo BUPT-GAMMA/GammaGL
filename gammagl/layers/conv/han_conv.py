@@ -73,7 +73,7 @@ class HANConv(MessagePassing):
                  metadata,
                  heads=1,
                  negative_slope=0.2,
-                 dropout_rate=0.0):
+                 dropout_rate=0.5):
         super().__init__()
         if not isinstance(in_channels, dict):
             in_channels = {node_type: in_channels for node_type in metadata[0]}
@@ -84,10 +84,6 @@ class HANConv(MessagePassing):
         self.negetive_slop = negative_slope
         self.dropout_rate = dropout_rate
 
-        # self.proj_head = ModuleDict({})
-        # for node_type, in_channels in self.in_channels.items():
-        #     self.proj_head[node_type] = Linear(in_features=in_channels,
-        #                                        out_features=out_channels)
 
         self.gat_dict = ModuleDict({})
         for edge_type in metadata[1]:
