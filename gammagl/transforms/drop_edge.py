@@ -23,7 +23,7 @@ class DropEdge(BaseTransform):
         >>> print(g)
         Graph(edge_index=[2, 3], edge_attr=[3, 3], x=[5, 16], num_nodes=5)
         >>> print(new_g)
-        Graph(edge_index=[2, 1], edge_attr=[1, 3], x=[5, 16], num_nodes=5)
+        Graph(edge_index=[2, 2], edge_attr=[2, 3], x=[5, 16], num_nodes=5)
         >>> from gammagl.data import HeteroGraph
         >>> data = HeteroGraph()
         >>> num_papers=5
@@ -52,8 +52,8 @@ class DropEdge(BaseTransform):
           paper={ x=[5, 6] },
           author={ x=[7, 8] },
           (author, writes, paper)={
-            edge_index=[2, 1],
-            edge_attr=[1, 3]
+            edge_index=[2, 2],
+            edge_attr=[2, 3]
           },
           (author, writes, author)={ edge_index=[2, 2] }
         )
