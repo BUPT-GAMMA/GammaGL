@@ -91,7 +91,7 @@ def main(args):
     }
 
     best_val_acc = 0
-    trans = DropEdge(p=args.sampling_percent)
+    trans = DropEdge(p=1-args.sampling_percent)
     for epoch in range(args.n_epoch):
         dataset = Planetoid(args.dataset_path, args.dataset, transform=trans)
         graph = dataset[0]

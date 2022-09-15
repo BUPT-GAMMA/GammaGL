@@ -1,4 +1,3 @@
-import numpy
 from gammagl.transforms import BaseTransform
 from scipy.stats import bernoulli
 from gammagl.data import graph
@@ -13,6 +12,7 @@ class DropEdge(BaseTransform):
             Probability of an edge to be dropped.
         Example
         -------
+        >>> import numpy
         >>> from gammagl.data import graph
         >>> from gammagl.transforms import DropEdge
         >>> import tensorlayerx as tlx
@@ -22,7 +22,7 @@ class DropEdge(BaseTransform):
         >>> print(g)
         Graph(edge_index=[2, 3], edge_attr=[3, 3], x=[5, 16], num_nodes=5)
         >>> print(new_g)
-        Graph(edge_index=[2, 1], edge_attr=[1, 3], x=[5, 16], num_nodes=5)
+        Graph(edge_index=[2, 2], edge_attr=[2, 3], x=[5, 16], num_nodes=5)
         >>> from gammagl.data import HeteroGraph
         >>> data = HeteroGraph()
         >>> num_papers=5
@@ -51,20 +51,20 @@ class DropEdge(BaseTransform):
           paper={ x=[5, 6] },
           author={ x=[7, 8] },
           (author, writes, paper)={
-            edge_index=[2, 1],
-            edge_attr=[1, 3]
+            edge_index=[2, 2],
+            edge_attr=[2, 3]
           },
           (author, writes, author)={ edge_index=[2, 2] }
         )
         """
-    def __init__(self, p=0.7):
+    def __init__(self, p=0.3):
         self.p = p
 
     def __call__(self, g):
         if self.p == 0:
             return g
         if (type(g)==graph.Graph):
-            samples = tlx.ops.convert_to_tensor(bernoulli.rvs(self.p, size=g.num_edges),dtype=bool)
+            samples = tlx.ops.convert_to_tensor(bernoulli.rvs(1-self.p, size=g.num_edges),dtype=bool)
 
             if tlx.is_tensor(g.edge_index)==False:
                 return g
@@ -79,7 +79,7 @@ class DropEdge(BaseTransform):
                 return g
         else:
             for e_type in g.metadata()[-1]:
-                samples = tlx.ops.convert_to_tensor(bernoulli.rvs(self.p, size=tlx.ops.get_tensor_shape(g[e_type].edge_index)[-1]), dtype=bool)
+                samples = tlx.ops.convert_to_tensor(bernoulli.rvs(1-self.p, size=tlx.ops.get_tensor_shape(g[e_type].edge_index)[-1]), dtype=bool)
                 if hasattr(g[e_type],'edge_index'):
                     g[e_type].edge_index = tlx.ops.transpose(tlx.ops.transpose(g[e_type].edge_index)[samples])
                     if hasattr(g[e_type],'edge_attr'):
