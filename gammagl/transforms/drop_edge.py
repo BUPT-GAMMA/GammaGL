@@ -13,6 +13,7 @@ class DropEdge(BaseTransform):
             Probability of an edge to be dropped.
         Example
         -------
+        >>> import numpy
         >>> from gammagl.data import graph
         >>> from gammagl.transforms import DropEdge
         >>> import tensorlayerx as tlx
@@ -57,14 +58,14 @@ class DropEdge(BaseTransform):
           (author, writes, author)={ edge_index=[2, 2] }
         )
         """
-    def __init__(self, p=0.7):
+    def __init__(self, p=0.3):
         self.p = p
 
     def __call__(self, g):
         if self.p == 0:
             return g
         if (type(g)==graph.Graph):
-            samples = tlx.ops.convert_to_tensor(bernoulli.rvs(self.p, size=g.num_edges),dtype=bool)
+            samples = tlx.ops.convert_to_tensor(bernoulli.rvs(1-self.p, size=g.num_edges),dtype=bool)
 
             if tlx.is_tensor(g.edge_index)==False:
                 return g
@@ -79,7 +80,7 @@ class DropEdge(BaseTransform):
                 return g
         else:
             for e_type in g.metadata()[-1]:
-                samples = tlx.ops.convert_to_tensor(bernoulli.rvs(self.p, size=tlx.ops.get_tensor_shape(g[e_type].edge_index)[-1]), dtype=bool)
+                samples = tlx.ops.convert_to_tensor(bernoulli.rvs(1-self.p, size=tlx.ops.get_tensor_shape(g[e_type].edge_index)[-1]), dtype=bool)
                 if hasattr(g[e_type],'edge_index'):
                     g[e_type].edge_index = tlx.ops.transpose(tlx.ops.transpose(g[e_type].edge_index)[samples])
                     if hasattr(g[e_type],'edge_attr'):
