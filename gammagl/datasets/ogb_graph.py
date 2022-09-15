@@ -62,7 +62,7 @@ class OgbGraphDataset(InMemoryDataset):
         self.__num_classes__ = int(self.meta_info['num classes'])
         self.binary = self.meta_info['binary'] == 'True'
 
-        super(PygGraphPropPredDataset, self).__init__(self.root, transform, pre_transform)
+        super(OgbGraphDataset, self).__init__(self.root, transform, pre_transform)
 
         self.data, self.slices = self.load_data(self.processed_paths[0])
 
@@ -117,7 +117,6 @@ class OgbGraphDataset(InMemoryDataset):
             exit(-1)
 
     def process(self):
-        ### read pyg graph list
         add_inverse_edge = self.meta_info['add_inverse_edge'] == 'True'
 
         if self.meta_info['additional node files'] == 'None':
