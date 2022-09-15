@@ -15,9 +15,7 @@ def read_graph(raw_dir, add_inverse_edge=False, additional_node_files=[], additi
         graph_list = read_csv_graph_raw(raw_dir, add_inverse_edge, additional_node_files=additional_node_files,
                                         additional_edge_files=additional_edge_files)
 
-    pyg_graph_list = []
-
-    print('Converting graphs into PyG objects...')
+    graph_list = []
 
     for graph in tqdm(graph_list):
         g = Graph()
@@ -43,9 +41,9 @@ def read_graph(raw_dir, add_inverse_edge=False, additional_node_files=[], additi
             g[key] = graph[key]
             del graph[key]
 
-        pyg_graph_list.append(g)
+        graph_list.append(g)
 
-    return pyg_graph_list
+    return graph_list
 
 
 def read_heterograph(raw_dir, add_inverse_edge=False, additional_node_files=[], additional_edge_files=[],
@@ -58,9 +56,7 @@ def read_heterograph(raw_dir, add_inverse_edge=False, additional_node_files=[], 
         graph_list = read_csv_heterograph_raw(raw_dir, add_inverse_edge, additional_node_files=additional_node_files,
                                               additional_edge_files=additional_edge_files)
 
-    pyg_graph_list = []
-
-    print('Converting graphs into PyG objects...')
+    graph_list = []
 
     for graph in tqdm(graph_list):
         g = HeteroGraph()
@@ -103,9 +99,9 @@ def read_heterograph(raw_dir, add_inverse_edge=False, additional_node_files=[], 
 
             del graph[key]
 
-        pyg_graph_list.append(g)
+        graph_list.append(g)
 
-    return pyg_graph_list
+    return graph_list
 
 
 ### reading raw files from a directory.
