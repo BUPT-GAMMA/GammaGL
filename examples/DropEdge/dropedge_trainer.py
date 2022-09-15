@@ -1,16 +1,7 @@
-# !/usr/bin/env python
-# -*- encoding: utf-8 -*-
-"""
-@File    :   gcn_trainer.py
-@Time    :   2021/11/02 22:05:55
-@Author  :   hanhui
-"""
 
 import os
-os.environ['CUDA_VISIBLE_DEVICES']='5'
-
-#os.environ['TL_BACKEND'] = 'paddle'
-
+#os.environ['CUDA_VISIBLE_DEVICES']='5'
+#os.environ['TL_BACKEND'] = 'tensorflow'
 
 import sys
 sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
@@ -20,6 +11,7 @@ from gammagl.datasets import Planetoid
 from gammagl.models import GCNModel
 from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index, set_device
 from tensorlayerx.model import TrainOneStep, WithLoss
+from gammagl.transforms import DropEdge
 
 
 class SemiSpvzLoss(WithLoss):
@@ -92,9 +84,24 @@ def main(args):
     }
 
     best_val_acc = 0
+    trans = DropEdge(p=1-args.sampling_percent)
     for epoch in range(args.n_epoch):
+        dataset = Planetoid(args.dataset_path, args.dataset, transform=trans)
+        graph = dataset[0]
+        edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=args.self_loops)
+        edge_weight = tlx.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
+        new_data = {
+            "x": graph.x,
+            "y": graph.y,
+            "edge_index": edge_index,
+            "edge_weight": edge_weight,
+            "train_idx": train_idx,
+            "test_idx": test_idx,
+            "val_idx": val_idx,
+            "num_nodes": graph.num_nodes,
+        }
         net.set_train()
-        train_loss = train_one_step(data, graph.y)
+        train_loss = train_one_step(new_data, graph.y)
         net.set_eval()
         logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
         val_logits = tlx.gather(logits, data['val_idx'])
@@ -126,13 +133,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.01, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
-    parser.add_argument("--hidden_dim", type=int, default=16, help="dimention of hidden layers")
-    parser.add_argument("--drop_rate", type=float, default=0.5, help="drop_rate")
+    parser.add_argument("--hidden_dim", type=int, default=256, help="dimention of hidden layers")
+    parser.add_argument("--sampling_percent", type=float, default=1, help="sampling_percent")
+    parser.add_argument("--drop_rate", type=float, default=0.8, help="drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
-    parser.add_argument("--n_layers", type=int, default=2, help="number of total gcn layers")
+    parser.add_argument("--n_layers", type=int, default=4, help="number of total gcn layers")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     args = parser.parse_args()
 
