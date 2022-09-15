@@ -1,10 +1,3 @@
-# !/usr/bin/env python
-# -*- encoding: utf-8 -*-
-"""
-@File    :   gcn_trainer.py
-@Time    :   2021/11/02 22:05:55
-@Author  :   hanhui
-"""
 
 import os
 os.environ['CUDA_VISIBLE_DEVICES']='5'
