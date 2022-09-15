@@ -49,8 +49,8 @@ class CalLoss(WithLoss):
             one_hot = nn.OneHot(depth=n_class)(gold)
             one_hot = one_hot * (1 - eps) + (1 - one_hot) * eps / (n_class - 1)
             # log_prb = F.log_softmax(pred, dim=1)  # 这里出了问题
-            c = tlx.reduce_max(one_hot, 1, keepdims=True)
-            log_prb = (one_hot - c) - tlx.log(tlx.reduce_sum(tlx.exp(one_hot - c), 1, keepdims=True))
+            c = tlx.reduce_max(pred, 1, keepdims=True)
+            log_prb = (pred - c) - tlx.log(tlx.reduce_sum(tlx.exp(pred - c), 1, keepdims=True))
 
             loss = -tlx.reduce_mean(tlx.reduce_sum(one_hot * log_prb, axis=1))
         else:
