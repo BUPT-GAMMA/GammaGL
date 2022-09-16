@@ -53,11 +53,11 @@ class DGCNNModel(nn.Module):
         self.args = args
         self.k = args.k
 
-        self.bn1 = nn.BatchNorm2d(num_features=64)
-        self.bn2 = nn.BatchNorm2d(num_features=64)
-        self.bn3 = nn.BatchNorm2d(num_features=128)
-        self.bn4 = nn.BatchNorm2d(num_features=256)
-        self.bn5 = nn.BatchNorm1d(num_features=args.emb_dims)
+        self.bn1 = nn.BatchNorm2d(num_features=64, momentum=0.1)
+        self.bn2 = nn.BatchNorm2d(num_features=64, momentum=0.1)
+        self.bn3 = nn.BatchNorm2d(num_features=128, momentum=0.1)
+        self.bn4 = nn.BatchNorm2d(num_features=256, momentum=0.1)
+        self.bn5 = nn.BatchNorm1d(num_features=args.emb_dims, momentum=0.1)
 
         self.conv1 = nn.Sequential(nn.Conv2d(in_channels=6, out_channels=64, kernel_size=1, b_init=None),
                                    self.bn1,
@@ -80,10 +80,10 @@ class DGCNNModel(nn.Module):
                                    nn.LeakyReLU(negative_slope=0.2),
                                    nn.Transpose(perm=[0, 1, 2]))
         self.linear1 = nn.Linear(in_features=args.emb_dims*2, out_features=512, b_init=None)
-        self.bn6 = nn.BatchNorm1d(num_features=512)
+        self.bn6 = nn.BatchNorm1d(num_features=512, momentum=0.1)
         self.dp1 = nn.Dropout(p=args.dropout)
         self.linear2 = nn.Linear(in_features=512, out_features=256)
-        self.bn7 = nn.BatchNorm1d(num_features=256)
+        self.bn7 = nn.BatchNorm1d(num_features=256, momentum=0.1)
         self.dp2 = nn.Dropout(p=args.dropout)
         self.linear3 = nn.Linear(in_features=256, out_features=output_channels)
 
