@@ -136,13 +136,6 @@ class OgbNodeDataset(InMemoryDataset):
             data.y_dict = {}
             if 'classification' in self.task_type:
                 for nodetype, node_label in node_label_dict.items():
-                    # detect if there is any nan
-                    '''
-                    if np.isnan(node_label).any():
-                        data.y_dict[nodetype] = torch.from_numpy(node_label).to(torch.float32)
-                    else:
-                        data.y_dict[nodetype] = torch.from_numpy(node_label).to(torch.long)
-                    '''
                     data.y_dict[nodetype] = node_label
             else:
                 for nodetype, node_label in node_label_dict.items():
@@ -157,17 +150,6 @@ class OgbNodeDataset(InMemoryDataset):
             else:
                 node_label = pd.read_csv(osp.join(self.raw_dir, 'node-label.csv.gz'), compression='gzip',
                                          header=None).values
-            '''
-            if 'classification' in self.task_type:
-                # detect if there is any nan
-                if np.isnan(node_label).any():
-                    data.y = torch.from_numpy(node_label).to(torch.float32)
-                else:
-                    data.y = torch.from_numpy(node_label).to(torch.long)
-
-            else:
-                data.y = torch.from_numpy(node_label).to(torch.float32)
-            '''
             data.y = node_label
         data = data if self.pre_transform is None else self.pre_transform(data)
         self.data = data

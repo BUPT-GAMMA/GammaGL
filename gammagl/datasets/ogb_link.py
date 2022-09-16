@@ -23,8 +23,8 @@ class OgbLinkDataset(InMemoryDataset):
             
             # check if previously-downloaded folder exists.
             # If so, use that one.
-            if osp.exists(osp.join(root, self.dir_name + '_pyg')):
-                self.dir_name = self.dir_name + '_pyg'
+            if osp.exists(osp.join(root, self.dir_name + '_gammagl')):
+                self.dir_name = self.dir_name + '_gammagl'
 
             self.original_root = root
             self.root = osp.join(root, self.dir_name)
