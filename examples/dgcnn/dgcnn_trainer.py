@@ -9,7 +9,7 @@ import copy
 import os
 
 # os.environ['CUDA_VISIBLE_DEVICES']='0'
-# os.environ['TL_BACKEND'] = 'torch'
+os.environ['TL_BACKEND'] = 'torch'
 
 import sys
 
@@ -60,9 +60,9 @@ class CalLoss(WithLoss):
 
 
 def pre_transform(data_list):
-    x = tlx.random_uniform((3,), minval=2. / 3., maxval=3. / 2.)
-    y = tlx.random_uniform((3,), minval=-0.2, maxval=0.2)
     for data in data_list:
+        x = tlx.random_uniform((3,), minval=2. / 3., maxval=3. / 2.)
+        y = tlx.random_uniform((3,), minval=-0.2, maxval=0.2)
         data.x = tlx.add(tlx.multiply(data.x, x), y)
     return data_list
 
@@ -150,7 +150,7 @@ def main(args):
 if __name__ == "__main__":
     # Training settings
     parser = argparse.ArgumentParser()
-    parser.add_argument('--use_sgd', type=bool, default=False, help='Use SGD')
+    parser.add_argument('--use_sgd', type=bool, default=True, help='Use SGD')
     parser.add_argument('--exp_name', type=str, default='exp', metavar='N', help='Name of the experiment')
     parser.add_argument('--batch_size', type=int, default=32, metavar='batch_size', help='Size of batch)')
     parser.add_argument('--test_batch_size', type=int, default=16, metavar='batch_size', help='Size of batch)')
