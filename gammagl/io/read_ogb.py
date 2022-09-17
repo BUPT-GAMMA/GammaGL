@@ -2,9 +2,10 @@ import pandas as pd
 import os.path as osp
 import os
 import numpy as np
-from gammagl.utils.ogb_url import decide_download, download_url, extract_zip
+from gammagl.data.download import download_url
+from gammagl.data.extract import extract_zip
 from tqdm import tqdm
-from gammagl.data import Graph
+from gammagl.data import Graph,HeteroGraph
 
 def read_graph(raw_dir, add_inverse_edge=False, additional_node_files=[], additional_edge_files=[], binary=False):
     if binary:

@@ -3,7 +3,8 @@ import shutil, os
 import os.path as osp
 import numpy as np
 from gammagl.data import InMemoryDataset
-from gammgl.utils.ogb_url import decide_download, download_url, extract_zip
+from gammagl.data.download import download_url
+from gammagl.data.extract import extract_zip
 from gammagl.io.read_ogb import read_graph, read_heterograph
 
 class OgbLinkDataset(InMemoryDataset):
@@ -102,16 +103,12 @@ class OgbLinkDataset(InMemoryDataset):
 
     def download(self):
         url =  self.meta_info['url']
-        if decide_download(url):
-            path = download_url(url, self.original_root)
-            extract_zip(path, self.original_root)
-            os.unlink(path)
-            shutil.rmtree(self.root)
-            shutil.move(osp.join(self.original_root, self.download_name), self.root)
-        else:
-            print('Stop downloading.')
-            shutil.rmtree(self.root)
-            exit(-1)
+        path = download_url(url, self.original_root)
+        extract_zip(path, self.original_root)
+        os.unlink(path)
+        shutil.rmtree(self.root)
+        shutil.move(osp.join(self.original_root, self.download_name), self.root)
+
 
     def process(self):
         add_inverse_edge = self.meta_info['add_inverse_edge'] == 'True'
