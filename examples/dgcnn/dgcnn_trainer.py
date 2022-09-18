@@ -9,7 +9,7 @@ import copy
 import os
 
 # os.environ['CUDA_VISIBLE_DEVICES']='0'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'torch'
 
 import sys
 
@@ -41,14 +41,12 @@ class CalLoss(WithLoss):
         pred = self.backbone_network(x)
         gold = tlx.reshape(tlx.convert_to_tensor(gold), (-1,))
 
-        # [TODO] smoothing need to be modified
         if smoothing:
             eps = 0.2
             n_class = pred.shape[1]
 
             one_hot = nn.OneHot(depth=n_class)(gold)
             one_hot = one_hot * (1 - eps) + (1 - one_hot) * eps / (n_class - 1)
-            # log_prb = F.log_softmax(pred, dim=1)  # 这里出了问题
             c = tlx.reduce_max(pred, 1, keepdims=True)
             log_prb = (pred - c) - tlx.log(tlx.reduce_sum(tlx.exp(pred - c), 1, keepdims=True))
 
