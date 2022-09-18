@@ -9,7 +9,7 @@ import numpy as np
 def knn(x, k):
     inner = -2*tlx.bmm(tlx.transpose(x, (0, 2, 1)), x)
     xx = tlx.reduce_sum(x**2, axis=1, keepdims=True)
-    pairwise_distance = -xx - inner - tlx.transpose(xx, (0, 2, 1))
+    pairwise_distance = xx + inner + tlx.transpose(xx, (0, 2, 1))
 
     # idx = pairwise_distance.topk(k=k, dim=-1)[1]  # indices
     # top k indices
