@@ -1,3 +1,4 @@
+import os
 import ssl
 import sys
 import urllib.request
@@ -18,6 +19,9 @@ def download_url(url: str, folder: str, log: bool = True):
     filename = url.rpartition('/')[2]
     filename = filename if filename[0] == '?' else filename.split('?')[0]
     path = osp.join(folder, filename)
+
+    if os.environ.get('GGL_GITHUB_PROXY') == 'TRUE' and ('raw.githubusercontent.com' in url or 'github.com' in url):
+        url = 'https://ghproxy.com/' + url
 
     if osp.exists(path):  # pragma: no cover
         if log:
