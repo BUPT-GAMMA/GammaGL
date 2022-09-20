@@ -9,6 +9,7 @@ from .flickr import Flickr
 from .hgb import HGBDataset
 from .wikipedia_network import WikipediaNetwork
 from .webkb import WebKB
+from .dblp import DBLP
 
 
 __all__ = [
@@ -22,7 +23,8 @@ __all__ = [
     'Flickr',
     'HGBDataset',
     'WikipediaNetwork',
-    'WebKB'
+    'WebKB',
+    'DBLP'
 
 ]
 

@@ -1,44 +1,12 @@
 from itertools import product
 import scipy.sparse as sp
-import ssl
-import urllib.request
-import sys
 import os
 import os.path as osp
 from typing import Callable, List, Optional
 import numpy as np
-
-import errno
+import tensorlayerx as tlx
+from gammagl.data.download import download_url
 from gammagl.data import (HeteroGraph, InMemoryDataset, extract_zip)
-
-
-def makedirs(path: str):
-    r"""Recursive directory creation function."""
-    try:
-        os.makedirs(osp.expanduser(osp.normpath(path)))
-    except OSError as e:
-        if e.errno != errno.EEXIST and osp.isdir(path):
-            raise
-
-
-def download_url(url: str, folder: str, filename: str, log: bool = True):
-    path = osp.join(folder, filename)
-
-    if osp.exists(path):  # pragma: no cover
-        if log:
-            print(f'Using existing file {filename}', file=sys.stderr)
-        return path
-
-    if log:
-        print(f'Downloading {url}', file=sys.stderr)
-
-    makedirs(folder)
-
-    context = ssl._create_unverified_context()
-    data = urllib.request.urlopen(url, context=context)
-
-    with open(path, 'wb') as f:
-        f.write(data.read())
 
 
 class DBLP(InMemoryDataset):
@@ -52,15 +20,19 @@ class DBLP(InMemoryDataset):
         artificial intelligence, information retrieval).
         Each author is described by a bag-of-words representation of their paper
         keywords.
-
+        metapaths = [[('author', 'paper'), ('paper', 'author')],
+                     [('author', 'paper'), ('paper', 'term'), ('term', 'paper'), ('paper', 'term')],
+                     [('author', 'paper'), ('paper', 'venue'), ('venue', 'paper'), ('paper', 'term')]]
     Args:
         root (string): Root directory where the dataset should be saved.
-        transform (callable, optional): A function/transform that takes in an
-            :obj:`torch_geometric.data.HeteroData` object and returns a
+        transform: callable, optional
+            A function/transform that takes in an
+            :obj:`gammagl.data.HeteroGraph` object and returns a
             transformed version. The data object will be transformed before
             every access. (default: :obj:`None`)
-        pre_transform (callable, optional): A function/transform that takes in
-            an :obj:`torch_geometric.data.HeteroData` object and returns a
+        pre_transform: callable, optional
+            A function/transform that takes in
+            an :obj:`gammagl.data.HeteroGraph` object and returns a
             transformed version. The data object will be transformed before
             being saved to disk. (default: :obj:`None`)
     """
@@ -94,25 +66,25 @@ class DBLP(InMemoryDataset):
         node_types = ['author', 'paper', 'term', 'conference']
         for i, node_type in enumerate(node_types[:2]):
             x = sp.load_npz(osp.join(self.raw_dir, f'features_{i}.npz'))
-            data[node_type].x = torch.from_numpy(x.todense()).to(torch.float)
+            data[node_type].x = tlx.convert_to_tensor(x.todense(), dtype=tlx.float32)
 
         x = np.load(osp.join(self.raw_dir, 'features_2.npy'))
-        data['term'].x = torch.from_numpy(x).to(torch.float)
+        data['term'].x = tlx.convert_to_tensor(x, dtype=tlx.int64)
 
         node_type_idx = np.load(osp.join(self.raw_dir, 'node_types.npy'))
-        node_type_idx = torch.from_numpy(node_type_idx).to(torch.long)
+        node_type_idx = tlx.convert_to_tensor(node_type_idx, dtype=tlx.int64)
         data['conference'].num_nodes = int((node_type_idx == 3).sum())
 
         y = np.load(osp.join(self.raw_dir, 'labels.npy'))
-        data['author'].y = torch.from_numpy(y).to(torch.long)
+        data['author'].y = tlx.convert_to_tensor(y, dtype=tlx.int64)
 
         split = np.load(osp.join(self.raw_dir, 'train_val_test_idx.npz'))
         for name in ['train', 'val', 'test']:
             idx = split[f'{name}_idx']
-            idx = torch.from_numpy(idx).to(torch.long)
-            mask = torch.zeros(data['author'].num_nodes, dtype=torch.bool)
+            idx = tlx.convert_to_tensor(idx, dtype=tlx.int64)
+            mask = np.zeros(data['author'].num_nodes, dtype=np.bool)
             mask[idx] = True
-            data['author'][f'{name}_mask'] = mask
+            data['author'][f'{name}_mask'] = tlx.convert_to_tensor(mask, dtype=tlx.bool)
 
         s = {}
         N_a = data['author'].num_nodes
@@ -128,14 +100,14 @@ class DBLP(InMemoryDataset):
         for src, dst in product(node_types, node_types):
             A_sub = A[s[src][0]:s[src][1], s[dst][0]:s[dst][1]].tocoo()
             if A_sub.nnz > 0:
-                row = torch.from_numpy(A_sub.row).to(torch.long)
-                col = torch.from_numpy(A_sub.col).to(torch.long)
-                data[src, dst].edge_index = torch.stack([row, col], dim=0)
+                row = tlx.convert_to_tensor(A_sub.row, dtype=tlx.int64)
+                col = tlx.convert_to_tensor(A_sub.col, dtype=tlx.int64)
+                data[src, dst].edge_index = tlx.stack([row, col], axis=0)
 
         if self.pre_transform is not None:
             data = self.pre_transform(data)
 
-        torch.save(self.collate([data]), self.processed_paths[0])
+        self.save_data(self.collate([data]), self.processed_paths[0])
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}()'

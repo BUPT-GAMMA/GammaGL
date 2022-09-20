@@ -71,8 +71,10 @@ class HGTConv(MessagePassing):
         init_m = tlx.initializers.TruncatedNormal()
         for edge_type in metadata[1]:
             edge_type = '__'.join(edge_type)
-            self.a_rel[edge_type] = Parameter(init_a(shape=(heads, dim, dim)))
-            self.m_rel[edge_type] = Parameter(init_m(shape=(heads, dim, dim)))
+            self.a_rel[edge_type + 'a'] = self._get_weights(edge_type + 'a', shape=(heads, dim, dim), init=init_a,
+                                                            order=True)
+            self.m_rel[edge_type + 'm'] = self._get_weights(edge_type + 'm', shape=(heads, dim, dim), init=init_m,
+                                                            order=True)
             self.p_rel[edge_type] = Parameter(tlx.ones(shape=(heads,)))
 
     def forward(self, x_dict, edge_index_dict):
@@ -93,10 +95,10 @@ class HGTConv(MessagePassing):
             src_type, _, dst_type = edge_type
             edge_type = '__'.join(edge_type)
 
-            a_rel = self.a_rel[edge_type]
+            a_rel = self.a_rel[edge_type + 'a']
             k = transpose((transpose(k_dict[src_type]) @ a_rel))
 
-            m_rel = self.m_rel[edge_type]
+            m_rel = self.m_rel[edge_type + 'm']
             v = transpose((transpose(v_dict[src_type]) @ m_rel))
 
             if tlx.BACKEND != 'tensorflow':
