@@ -1,4 +1,4 @@
-An cpu-only cpp extension of unsorted_segment_max operator. This NAIVE implementation achieves over 10x acceleration on a single core over the original implementation on dual-core.
+An cpp extension of unsorted_segment_max operator. This NAIVE implementation achieves over 10 times acceleration.
 
 Compile Steps:  
 install and config cmake make libtorch  

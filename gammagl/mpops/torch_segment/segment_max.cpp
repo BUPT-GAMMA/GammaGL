@@ -38,27 +38,27 @@ std::tuple<torch::Tensor, torch::Tensor> segment_cpu(torch::Tensor src,
   out.fill_(std::numeric_limits<int64_t>::lowest());
   auto E = src.size(0);
   auto K = src.size(1);
-  auto index_accessor = index.accessor<int64_t, 1>();
-  auto arg_out_accessor = arg_out.accessor<int64_t, 2>();
+  auto index_data = index.data_ptr<int64_t>();
+  auto arg_out_data = arg_out.data_ptr<int64_t>();
 
   // AT_DISPATCH_ALL_TYPES(src.scalar_type(), "__ops_name", [&] {
     using scalar_t = float;
-    auto src_accessor = src.accessor<scalar_t, 2>();
-    auto out_accessor = out.accessor<scalar_t, 2>();
+    auto src_data = src.data_ptr<scalar_t>();
+    auto out_data = out.data_ptr<scalar_t>();
 
     int64_t idx;
 #ifdef COMPILE_WITH_OMP
 #pragma omp parallel for
 #endif
     for (auto e = 0; e < E; ++e) {
-      idx = index_accessor[e];
+      idx = index_data[e];
       for (auto k = 0; k < K; ++k) {
-        if (out_accessor[idx][k] < src_accessor[e][k]) {
+        if (out_data[idx * K + k] < src_data[e * K + k]) {
 #ifdef COMPILE_WITH_OMP
 #pragma omp atomic write
 #endif
-          out_accessor[idx][k] = src_accessor[e][k];
-          arg_out_accessor[idx][k] = e;
+          out_data[idx * K + k] = src_data[e * K + k];
+          arg_out_data[idx * K + k] = e;
         }
       }
     }
@@ -74,19 +74,6 @@ inline std::vector<int64_t> list2vec(const c10::List<int64_t> list) {
   for (size_t i = 0; i < list.size(); ++i) result.push_back(list[i]);
   return result;
 }
-
-// std::tuple<torch::Tensor, torch::Tensor>
-// segment_fw(torch::Tensor src, torch::Tensor index, int64_t N) {
-//   if (src.device().is_cuda()) {
-// #ifdef COMPILE_CUDA
-//     return segment_cuda(src, index, N);
-// #else
-//     AT_ERROR("Not compiled with CUDA support");
-// #endif
-//   } else {
-//     return segment_cpu(src, index, N);
-//   }
-// }
 
 class SegmentMax : public torch::autograd::Function<SegmentMax> {
  public:
