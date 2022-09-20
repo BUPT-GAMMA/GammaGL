@@ -16,7 +16,7 @@ def read_graph(raw_dir, add_inverse_edge=False, additional_node_files=[], additi
         graph_list = read_csv_graph_raw(raw_dir, add_inverse_edge, additional_node_files=additional_node_files,
                                         additional_edge_files=additional_edge_files)
 
-    graph_list = []
+    result_list = []
 
     for graph in tqdm(graph_list):
         g = Graph()
@@ -42,9 +42,9 @@ def read_graph(raw_dir, add_inverse_edge=False, additional_node_files=[], additi
             g[key] = graph[key]
             del graph[key]
 
-        graph_list.append(g)
+        result_list.append(g)
 
-    return graph_list
+    return result_list
 
 
 def read_heterograph(raw_dir, add_inverse_edge=False, additional_node_files=[], additional_edge_files=[],
