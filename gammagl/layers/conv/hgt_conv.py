@@ -18,7 +18,7 @@ class HGTConv(MessagePassing):
         metadata (Tuple[List[str], List[Tuple[str, str, str]]]): The metadata
             of the heterogeneous graph, *i.e.* its node and edge types given
             by a list of strings and a list of string triplets, respectively.
-            See :meth:`torch_geometric.data.HeteroData.metadata` for more
+            See :metadata:`gammagl.data.HeteroGraph.metadata` for more
             information.
         heads (int, optional): Number of multi-head-attentions.
             (default: :obj:`1`)
@@ -27,7 +27,7 @@ class HGTConv(MessagePassing):
             (:obj:`"sum"`, :obj:`"mean"`, :obj:`"min"`, :obj:`"max"`).
             (default: :obj:`"sum"`)
         **kwargs (optional): Additional arguments of
-            :class:`torch_geometric.nn.conv.MessagePassing`.
+            :class:`gammagl.layers.conv.MessagePassing`.
     """
 
     def __init__(
@@ -143,9 +143,3 @@ class HGTConv(MessagePassing):
         alpha = self.dropout(segment_softmax(alpha, target_index, num_nodes))
         out = v_j * tlx.expand_dims(alpha, -1)
         return tlx.ops.reshape(out, (-1, self.out_channels))
-
-    def aggregate(self, msg, edge_index, num_nodes=None, aggr='sum'):
-        return super().aggregate(msg, edge_index, num_nodes, aggr)
-
-    def update(self, x):
-        return super().update(x)
