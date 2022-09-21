@@ -67,7 +67,27 @@ class OgbNodeDataset(InMemoryDataset):
 
         super(OgbNodeDataset, self).__init__(self.root, transform, pre_transform)
         self.data, self.slices = self.load_data(self.processed_paths[0])
+    def get_idx_split(self, split_type = None):
+        if split_type is None:
+            split_type = self.meta_info['split']
 
+        path = osp.join(self.root, 'split', split_type)
+
+        if self.is_hetero:
+            train_idx_dict, valid_idx_dict, test_idx_dict = read_nodesplitidx_split_hetero(path)
+            for nodetype in train_idx_dict.keys():
+                train_idx_dict[nodetype] = train_idx_dict[nodetype]
+                valid_idx_dict[nodetype] = valid_idx_dict[nodetype]
+                test_idx_dict[nodetype] = test_idx_dict[nodetype]
+
+                return {'train': train_idx_dict, 'valid': valid_idx_dict, 'test': test_idx_dict}
+
+        else:
+            train_idx = pd.read_csv(osp.join(path, 'train.csv.gz'), compression='gzip', header = None).values.T[0]
+            valid_idx = pd.read_csv(osp.join(path, 'valid.csv.gz'), compression='gzip', header = None).values.T[0]
+            test_idx = pd.read_csv(osp.join(path, 'test.csv.gz'), compression='gzip', header = None).values.T[0]
+
+            return {'train': train_idx, 'valid': valid_idx, 'test': test_idx}
     @property
     def num_classes(self):
         return self.__num_classes__
