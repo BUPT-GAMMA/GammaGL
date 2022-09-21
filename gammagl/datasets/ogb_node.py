@@ -5,7 +5,7 @@ import numpy as np
 from gammagl.data import InMemoryDataset
 from gammagl.data.download import download_url
 from gammagl.data.extract import extract_zip
-from gammagl.io.read_ogb import read_node_label_hetero, read_graph, read_heterograph
+from gammagl.io.read_ogb import read_node_label_hetero, read_graph, read_heterograph， read_nodesplitidx_split_hetero
 
 
 class OgbNodeDataset(InMemoryDataset):
