@@ -13,21 +13,6 @@ using torch::autograd::variable_list;
 #define THREADS 1024
 #define BLOCKS(N) (N + THREADS - 1) / THREADS
 
-// static inline __device__ void atomic_max_float(float *addr, float value){
-//   float old = *addr, assumed;
-//   if (old >= value)
-//     return;
-//   do{
-//     assumed = old;
-//     if (assumed > value)
-//       break;
-//     old = atomicCAS((unsigned int *)addr, __float_as_int(assumed),
-//                     __float_as_int(value));
-
-//   } while (old != assumed);
-// }
-
-
 inline __device__ void atomic_max_float(float *addr, float value) {
   int *addr_as_i = (int *)addr;
   int old = *addr_as_i;
@@ -41,14 +26,12 @@ inline __device__ void atomic_max_float(float *addr, float value) {
 
 template <typename scalar_t>
 __global__ void segment_kernel(const scalar_t *src_data, const int64_t *index_data,
-                              //  at::GenericPackedTensorAccessor<int64_t, 1> &index_accessor,
                                scalar_t *out_data, int E, int K, int N, int numel) {
   int thread_idx = blockIdx.x * blockDim.x + threadIdx.x;
   int e = (thread_idx / K) % E;
   int k = thread_idx % K;
   if (thread_idx < numel)  {
     // TODO: support more data type
-    // int idx = index_accessor[e];
     int idx = index_data[e];
     atomic_max_float(out_data + idx * K + k,
                      src_data[thread_idx]);
@@ -65,7 +48,6 @@ segment_arg_kernel(const scalar_t *src_data, const int64_t *index_data,
   int k = thread_idx % K;
 
   if (thread_idx < numel) {
-    // int64_t idx = index_accessor[e];
     int idx = index_data[e];
     if (src_data[thread_idx] == out_data[idx * K + k]) {
       arg_out_data[idx * K + k] = e;
@@ -102,8 +84,6 @@ segment_cuda(torch::Tensor src, torch::Tensor index, int64_t N) {
   out.fill_(std::numeric_limits<int64_t>::lowest());
   auto E = src.size(0);
   auto K = src.size(1);
-  auto index_accessor = index.generic_packed_accessor<int64_t, 1>();
-  auto arg_out_accessor = arg_out.generic_packed_accessor<int64_t, 2>();
   auto stream = at::cuda::getCurrentCUDAStream();
 
   // AT_DISPATCH_ALL_TYPES(src.scalar_type(), "__ops_name",  [&] {
