@@ -6,7 +6,7 @@ from gammagl.layers.pool.glob import global_sum_pool
 
 
 class PNAModel(nn.Module):
-    def __init__(self, aggregators, scalers, deg, edge_dim, towers, pre_layers, post_layers, divide_input):
+    def __init__(self, in_channels, out_channels, aggregators, scalers, deg, edge_dim, towers, pre_layers, post_layers, divide_input):
         super().__init__()
 
         self.node_emb = nn.Embedding(21, 75)
@@ -18,14 +18,14 @@ class PNAModel(nn.Module):
         scalers = scalers.split()
 
         for _ in range(4):
-            conv = PNAConv(in_channels=75, out_channels=75,
+            conv = PNAConv(in_channels=in_channels, out_channels=out_channels,
                            aggregators=aggregators, scalers=scalers, deg=deg,
                            edge_dim=edge_dim, towers=towers, pre_layers=pre_layers, post_layers=post_layers,
                            divide_input=divide_input)
             self.convs.append(conv)
-            self.batch_norms.append(nn.BatchNorm1d(num_features=75))
+            self.batch_norms.append(nn.BatchNorm1d(num_features=out_channels))
 
-        self.mlp = nn.Sequential(nn.Linear(in_features=75, out_features=50, act=tlx.ReLU),
+        self.mlp = nn.Sequential(nn.Linear(in_features=out_channels, out_features=50, act=tlx.ReLU),
                                  nn.Linear(in_features=50, out_features=25, act=tlx.ReLU),
                                  nn.Linear(in_features=25, out_features=1))
 

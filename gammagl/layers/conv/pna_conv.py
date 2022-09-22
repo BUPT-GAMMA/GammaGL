@@ -1,6 +1,7 @@
 import tensorlayerx as tlx
-from tensorlayerx import ReLU, reduce_sum
-from tensorlayerx.nn import Linear, ModuleList, Sequential
+import tensorlayerx.nn
+from tensorlayerx import reduce_sum
+from tensorlayerx.nn import ReLU, Linear, ModuleList, Sequential
 # from torch_scatter import scatter
 from gammagl.layers.pool.glob import global_sum_pool, global_mean_pool, global_max_pool, global_min_pool
 from gammagl.layers.conv.message_passing import MessagePassing
@@ -105,18 +106,18 @@ class PNAConv(MessagePassing):
         self.pre_nns = ModuleList()
         self.post_nns = ModuleList()
         for _ in range(towers):
-            modules = [Linear(in_features=(3 if edge_dim else 2) * self.F_in, out_features=self.F_in)]
+            modules = Sequential([Linear(in_features=(3 if edge_dim else 2) * self.F_in, out_features=self.F_in)])
             for _ in range(pre_layers - 1):
-                modules += [ReLU()]
-                modules += [Linear(in_features=self.F_in, out_features=self.F_in)]
-            self.pre_nns.append(Sequential(modules))
+                modules.append(ReLU())
+                modules.append(Linear(in_features=self.F_in, out_features=self.F_in))
+            self.pre_nns.append(modules)
 
             in_channels = (len(aggregators) * len(scalers) + 1) * self.F_in
-            modules = [Linear(in_features=in_channels, out_features=self.F_out)]
+            modules = Sequential([Linear(in_features=in_channels, out_features=self.F_out)])
             for _ in range(post_layers - 1):
-                modules += [ReLU()]
-                modules += [Linear(in_features=self.F_out, out_features=self.F_out)]
-            self.post_nns.append(Sequential(modules))
+                modules.append(ReLU())
+                modules.append(Linear(in_features=self.F_out, out_features=self.F_out))
+            self.post_nns.append(modules)
 
         self.lin = Linear(in_features=out_channels, out_features=out_channels)
 
