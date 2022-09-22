@@ -95,7 +95,7 @@ class GCNConv(MessagePassing):
                 norm = tlx.pow(deg, -0.5)
             else:
                 norm = 1.0 / deg
-            weights = tlx.reshape(edge_weight, (-1,)) * tlx.ops.gather(norm, dst)
+            weights = tlx.reshape(weights, (-1,)) * tlx.ops.gather(norm, dst)
         
         out = self.propagate(x, edge_index, edge_weight=weights, num_nodes=num_nodes)
         if self.add_bias:
