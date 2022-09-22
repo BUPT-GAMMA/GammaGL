@@ -128,7 +128,7 @@ if __name__ == '__main__':
     parser.add_argument("--hidden_dim", type=int, default=16, help="dimention of hidden layers")
     parser.add_argument("--drop_rate", type=float, default=0.5, help="drop_rate")
     parser.add_argument("--num_layers", type=int, default=2, help="number of layers")
-    parser.add_argument("-- norm", type=str, default='both', help="how to apply the normalizer.")
+    parser.add_argument("--norm", type=str, default='both', help="how to apply the normalizer.")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")

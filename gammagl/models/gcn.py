@@ -29,20 +29,23 @@ class GCNModel(tlx.nn.Module):
                  norm = 'both',
                  name=None):
         super().__init__(name=name)
-        if num_layers < 2:
-            raise ValueError('The number of layers should be at least 2'
-                             ' But got "{}".'.format(num_layers))
         self.num_layers = num_layers
-        self.conv = nn.ModuleList([GCNConv(feature_dim, hidden_dim, norm = norm)])
-        for _ in range(1, num_layers - 1):
-            self.conv.append(GCNConv(hidden_dim, hidden_dim, norm = norm))
-        self.conv.append(GCNConv(hidden_dim, num_class, norm = 'none'))
-        # self.conv1 = GCNConv(feature_dim, hidden_dim, norm = 'both')
-        # self.conv2 = GCNConv(hidden_dim, num_class, norm = 'both')
-        self.relu = tlx.ReLU()
-        self.dropout = tlx.layers.Dropout(drop_rate)
+        if num_layers == 1:
+            self.conv = nn.ModuleList([GCNConv(feature_dim, num_class, norm = norm)])
+        else:
+            self.conv = nn.ModuleList([GCNConv(feature_dim, hidden_dim, norm = norm)])
+            for _ in range(1, num_layers - 1):
+                self.conv.append(GCNConv(hidden_dim, hidden_dim, norm = norm))
+            self.conv.append(GCNConv(hidden_dim, num_class, norm = norm))
+            # self.conv1 = GCNConv(feature_dim, hidden_dim, norm = 'both')
+            # self.conv2 = GCNConv(hidden_dim, num_class, norm = 'both')
+            self.relu = tlx.ReLU()
+            self.dropout = tlx.layers.Dropout(drop_rate)
 
     def forward(self, x, edge_index, edge_weight, num_nodes):
+        if self.num_layers == 1:
+            x = self.conv[0](x, edge_index, edge_weight, num_nodes)
+            return x
         for i in range(self.num_layers - 1):
             x = self.conv[i](x, edge_index, edge_weight, num_nodes)
             x = self.relu(x)
