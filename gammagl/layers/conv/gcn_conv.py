@@ -57,8 +57,8 @@ class GCNConv(MessagePassing):
     def __init__(self, 
                 in_channels,
                 out_channels,
-                norm = 'none',
-                add_bias=True):
+                norm = 'both',
+                add_bias = True):
         super().__init__()
         
         if norm not in ['left', 'right', 'none', 'both']:
@@ -83,19 +83,20 @@ class GCNConv(MessagePassing):
         if edge_weight is None:
             edge_weight = tlx.ones(shape=(edge_index.shape[1], 1))
         weights = edge_weight
-        deg = degree(dst, num_nodes=x.shape[0], dtype = tlx.float32)
+        deg = degree(src, num_nodes=x.shape[0], dtype = tlx.float32)
         if self._norm in ['left', 'both']:
             if self._norm == 'both':
                 norm = tlx.pow(deg, -0.5)
             else:
                 norm = 1.0 / deg
             weights = tlx.ops.gather(norm, src) * tlx.reshape(edge_weight, (-1,))
+        deg = degree(dst, num_nodes=x.shape[0], dtype = tlx.float32)
         if self._norm in ['right', 'both']:
             if self._norm == 'both':
                 norm = tlx.pow(deg, -0.5)
             else:
                 norm = 1.0 / deg
-            weights = tlx.reshape(edge_weight, (-1,)) * tlx.ops.gather(norm, dst)
+            weights = tlx.reshape(weights, (-1,)) * tlx.ops.gather(norm, dst)
         
         out = self.propagate(x, edge_index, edge_weight=weights, num_nodes=num_nodes)
         if self.add_bias:
