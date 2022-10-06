@@ -52,7 +52,7 @@ class MixHopConv(MessagePassing):
 
         if add_bias is True:
             initor = tlx.initializers.Zeros()
-            self.bias = self._get_weights("bias", shape=(1, self.out_channels*len(p)), init=initor)
+            self.bias = self._get_weights("bias", shape=(1, self.out_channels * len(p)), init=initor)
 
     def forward(self, x, edge_index, edge_weight=None, num_nodes=None):
         row, col = edge_index

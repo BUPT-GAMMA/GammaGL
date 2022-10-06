@@ -15,28 +15,12 @@ from gammagl.models import MIXHOPModel
 from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index, set_device
 from tensorlayerx.model import TrainOneStep, WithLoss
 
-if tlx.BACKEND == 'paddle':
-    try:
-        tlx.ops.set_device(device='GPU', id=0)
-    except:
-        print("GPU is not available")
-if tlx.BACKEND == 'torch':
-    try:
-        tlx.ops.set_device(device='GPU', id=0)
-    except:
-        print("GPU is not available")
-if tlx.BACKEND == 'tensorflow':
-    try:
-        tlx.ops.set_device(device='GPU', id=0)
-    except:
-        print("GPU is not available")
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
         super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
 
-    def forward(self, data, y):  # 前向传播计算loss
+    def forward(self, data, y):
         logits = self.backbone_network(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
         train_logits = tlx.gather(logits, data['train_idx'])
         train_y = tlx.gather(data['y'], data['train_idx'])
@@ -134,11 +118,11 @@ def main(args):
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
+    parser.add_argument("--lr", type=float, default=0.001, help="learning rate")
     parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
-    parser.add_argument("--hidden_dim", type=int, default=256, help="dimention of hidden layers")
+    parser.add_argument("--hidden_dim", type=int, default=256, help="dimension of hidden layers")
     parser.add_argument("--drop_rate", type=float, default=0.5, help="drop_rate")
-    parser.add_argument("--l2_coef", type=float, default=1e-3, help="l2 loss coeficient")
+    parser.add_argument("--l2_coef", type=float, default=1e-3, help="l2_loss_coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
@@ -147,6 +131,5 @@ if __name__ == '__main__':
     parser.add_argument('--p', nargs='+', type=list, help='List of powers of adjacency matrix.')
     parser.set_defaults(p=[0, 1, 2])
     args = parser.parse_args()
-
 
     main(args)
