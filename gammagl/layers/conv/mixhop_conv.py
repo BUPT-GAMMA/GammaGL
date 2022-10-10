@@ -1,6 +1,6 @@
 import tensorlayerx as tlx
-from gammagl.layers.conv import MessagePassing
-from gammagl import utils
+from ..conv import MessagePassing
+from ... import utils
 
 
 class MixHopConv(MessagePassing):

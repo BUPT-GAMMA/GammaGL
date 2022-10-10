@@ -1,9 +1,8 @@
 import tensorlayerx as tlx
-from gammagl.layers.conv import MixHopConv
+from ..layers.conv import MixHopConv
 
 
 class MIXHOPModel(tlx.nn.Module):
-
     r"""MixHop proposed in `"MixHop: Higher-Order Graph Convolutional
     Architectures via Sparsified Neighborhood Mixing"
     <https://arxiv.org/abs/1905.00067>`_ paper
