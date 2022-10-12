@@ -6,7 +6,10 @@ from sklearn.svm import SVC, LinearSVC
 import numpy as np
 import tensorlayerx as tlx
 from tensorlayerx.model import TrainOneStep, WithLoss
-
+'''
+Code adapted from https://github.com/fanyun-sun/InfoGraph/blob/master/unsupervised/evaluate_embedding.py
+Linear evaluation on learned node embeddings
+'''
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -115,6 +118,18 @@ def linearsvc_classify(x, y, search):
 
 
 def evaluate_embedding(embeddings, labels, method, search=True):
+    """
+    Computes the accuracy of the model.
+    Args:
+        embeddings: x
+        labels: label
+        method: four type of method to compute
+        (logistic regression, svc, linearsvc, randomforest)
+
+    Returns:
+        accuracy: the accuracy of model
+    """
+
     labels = preprocessing.LabelEncoder().fit_transform(labels)
     x, y = np.array(embeddings), np.array(labels)
     if method == 'log':

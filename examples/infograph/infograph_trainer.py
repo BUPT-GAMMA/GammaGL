@@ -1,6 +1,13 @@
+# !/usr/bin/env python
+# -*- encoding: utf-8 -*-
+"""
+@File    :   infograph_trainer.py
+@Time    :   2022/05/24 22:05:55
+@Author  :   Yang Yuxiang
+"""
 import os
 
-# os.environ['TL_BACKEND'] = 'paddle'
+os.environ['TL_BACKEND'] = 'paddle'
 # os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 # set your backend here, default `tensorflow`, you can choose 'paddle'、'tensorflow'、'torch'
 from gammagl.datasets import TUDataset
@@ -24,7 +31,7 @@ class Unsupervised_Loss(WithLoss):
 
 
 def main(args):
-    # load MUTAG dataset
+    # load  datasets
     dataset = TUDataset(args.dataset_path, args.dataset)
     dataloader = DataLoader(dataset, batch_size=args.batch_size)
     num_feature = max(dataset.num_features, 1)
@@ -42,10 +49,8 @@ def main(args):
     for epoch in tqdm(range(args.epochs)):
         loss_all = 0
         for data in dataloader:
-            # TODO: pd backend will not work, we will fix soon
             loss = train_one_step(data, tlx.convert_to_tensor([1]))
             loss_all += loss.item() * data.num_graphs
-            # print(data.batch)
             net.set_train()
         print('===== Epoch {}, Loss {} ====='.format(epoch + 1, loss_all / len(dataloader)))
         if epoch % log_interval == 0:
@@ -53,6 +58,7 @@ def main(args):
             x, y = net.get_embedding(dataloader)
             res = evaluate_embedding(x, y, args.name_eval)
             accuracies[args.name_eval].append(res)
+            # save best model on evaluation set
             if loss < best:
                 net.save_weights(args.best_model_path + "infograph.npz")
                 best = loss
@@ -64,8 +70,9 @@ def main(args):
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser(description='infograph')
+
     # data source params
-    parser.add_argument('--dataset', type=str, default='MUTAG',
+    parser.add_argument('--dataset', type=str, default='IMDB-BINARY',
                         help='Name of dataset.eg:MUTAG,IMDB-BINARY,REDDIT-BINARY')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     # training params
