@@ -5,3 +5,4 @@ tensorflow
 torch
 paddlepaddle
 pytest
+tqdm
