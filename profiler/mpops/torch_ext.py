@@ -22,20 +22,26 @@ src = edge_index[0,:]
 dst = edge_index[1,:]
 src = torch.from_numpy(src)
 dst = torch.from_numpy(dst)
-x = torch.from_numpy(np.random.randn(num_nodes, 100))
+x = torch.from_numpy(np.random.randn(num_nodes, 500)).float()
 
+py_iter = 10
+cpp_iter = 200 # about 10~80 times acceleration
+# The time consuming of `unsorted_segment_sum` is mainly 
+# the `for` loop, which is related to the number of edges. 
+# However, the time-consuming of `unsorted_segment_max_cpp`
+# is determined by the product of the number of edges 
+# and the feature dimension.
 start_t = time.time()
-for j in range(5):
+for j in range(cpp_iter):
     msg = x[src]
     unsorted_segment_max_cpp(msg, dst, num_nodes)
-print("{:.3f}".format(time.time()-start_t))
+print("cpp: {} iterations in {:.3f}s".format(cpp_iter, time.time()-start_t))
 
 start_t = time.time()
-for j in range(5):
+for j in range(py_iter):
     msg = x[src]
     unsorted_segment_max(msg, dst, num_nodes)
-print("{:.3f}".format(time.time()-start_t))
-
+print("py: {} iterations in {:.3f}s".format(py_iter, time.time()-start_t))
 
 # msg = torch.randn((edge_index.shape[1], 100))
 # start_t = time.time()
