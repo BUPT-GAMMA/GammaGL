@@ -9,6 +9,10 @@ from .loop import add_self_loops, remove_self_loops, contains_self_loops
 from .mask import mask_to_index, index_to_mask
 from .inspector import Inspector
 from .device import set_device
+from .read_info_from_files import read_edges, read_embeddings, read_edges_from_file
+from .write_embeddings_to_file import write_embeddings_to_file
+from .sample_for_gan import sample
+
 
 __all__ = [
     'calc_A_norm_hat',
@@ -23,7 +27,12 @@ __all__ = [
     'remove_self_loops',
     'mask_to_index',
     'index_to_mask',
-    'set_device'
+    'set_device',
+    'read_edges',
+    'read_embeddings',
+    'read_edges_from_file',
+    'write_embeddings_to_file',
+    'sample'
 ]
 
 classes = __all__
