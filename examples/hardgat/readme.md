@@ -1,4 +1,4 @@
-Graph Attention Networks (GAT)
+Graph Hard Attention Networks (HardGAT)
 ============
 
 - Paper link: [https://dl.acm.org/doi/pdf/10.1145/3292500.3330897](https://dl.acm.org/doi/pdf/10.1145/3292500.3330897)
