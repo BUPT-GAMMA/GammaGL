@@ -1,7 +1,7 @@
 from gammagl.datasets.ogb_node import OgbNodeDataset
 
-def test():
+def test_ogbnodedataset():
     data=OgbNodeDataset('ogbn-arxiv')
     print(data[0])
 
-test()
+test_ogbnodedataset()

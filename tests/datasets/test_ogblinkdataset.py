@@ -1,7 +1,7 @@
 from gammagl.datasets.ogb_link import OgbLinkDataset
 
-def test():
+def test_ogblinkdataset():
     data=OgbLinkDataset('ogbl-ppa')
     print(data[0])
 
-test()
+test_ogblinkdataset()
