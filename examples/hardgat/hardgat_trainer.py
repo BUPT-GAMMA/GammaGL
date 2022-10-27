@@ -69,6 +69,7 @@ def main(args):
                        heads=args.heads,
                        drop_rate=args.drop_rate,
                        k=args.k,
+                       num_layers=args.num_layers,
                        name="HardGAT")
 
     loss = tlx.losses.softmax_cross_entropy_with_logits
@@ -122,17 +123,18 @@ def main(args):
 if __name__ == "__main__":
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lr", type=float, default=0.03, help="learnin rate")
+    parser.add_argument("--lr", type=float, default=0.01, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
     parser.add_argument("--k", type=int, default=8, help="top k neighor for attention calculation", )
     parser.add_argument("--hidden_dim", type=int, default=8, help="dimention of hidden layers")
     parser.add_argument("--drop_rate", type=float, default=0.7, help="drop_rate")
-    parser.add_argument("--l2_coef", type=float, default=0.004, help="l2 loss coeficient")
+    parser.add_argument("--l2_coef", type=float, default=0.005, help="l2 loss coeficient")
     parser.add_argument("--heads", type=int, default=8, help="number of heads for stablization")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../../data/', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
+    parser.add_argument("--num_layers", type=int, default=2, help="number of gat layers")
     args = parser.parse_args()
 
     main(args)

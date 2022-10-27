@@ -2,8 +2,6 @@ Graph Hard Attention Networks (HardGAT)
 ============
 
 - Paper link: [https://dl.acm.org/doi/pdf/10.1145/3292500.3330897](https://dl.acm.org/doi/pdf/10.1145/3292500.3330897)
-- Author's code repo :
-  无
 - Popular pytorch implementation:
   [https://github.com/dmlc/dgl/tree/master/examples/pytorch/hardgat](https://github.com/dmlc/dgl/tree/master/examples/pytorch/hardgat)
 

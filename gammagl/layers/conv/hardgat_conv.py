@@ -114,20 +114,19 @@ class HardGATConv(MessagePassing):
             self.bias = self._get_weights("bias", shape=(self.out_channels,), init=initor)
 
     def select_topk(self, edge_index, value):
+        # Select Top k neighbors, return new edge_index
         src, dst = tlx.convert_to_numpy(edge_index)
         score = tlx.convert_to_numpy(value)
         score = score[src]
-
-        # 根据value进行降序排列
+        # Sort by value in descending
         rank = np.argsort(score)[::-1]
         src = src[rank]
         dst = dst[rank]
-        # 根据dst进行升序排列
+        # Sort by dst in ascending
         index = np.argsort(dst)
         src = src[index]
         dst = dst[index]
-
-        # 每个dst节点筛选前k个边
+        # Each dst-node choose the-top-k edges
         e_id = []
         rowptr = np.concatenate(([0], np.bincount(dst).cumsum()))
         for dst_node in np.unique(dst):
@@ -153,7 +152,6 @@ class HardGATConv(MessagePassing):
     def forward(self, x, edge_index, num_nodes):
         # projection process to get importance vector y
         y = tlx.abs(tlx.squeeze(tlx.matmul(self.p, tlx.transpose(x)), axis=0)) / math.sqrt(tlx.ops.reduce_sum(self.p ** 2))
-        # Select Top k neighbors 生成新的图
         edge_index = self.select_topk(edge_index, y)
         # Sigmoid as information threshold
         y = tlx.sigmoid(y)
