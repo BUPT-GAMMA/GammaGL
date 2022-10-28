@@ -10,12 +10,10 @@
 #endif
 
 using torch::autograd::AutogradContext;
-using torch::autograd::Variable;
-using torch::autograd::variable_list;
 
-std::tuple<torch::Tensor, torch::Tensor> segment_cpu(torch::Tensor src,
-                                                     torch::Tensor index,
-                                                     int64_t N) {
+std::tuple<torch::Tensor, torch::Tensor> segment_cpu(torch::Tensor& src,
+                                                     torch::Tensor& index,
+                                                     int64_t& N) {
   TORCH_CHECK(src.device().is_cpu(), "src must be CPU tensor");
   TORCH_CHECK(index.device().is_cpu(), "index must be CPU tensor");
   TORCH_CHECK_INDEX(src.dim() == 2, "src dimension should be 2, but got ", src.dim());
@@ -24,14 +22,14 @@ std::tuple<torch::Tensor, torch::Tensor> segment_cpu(torch::Tensor src,
 
   src = src.contiguous();
 
-  auto sizes = src.sizes().vec();
-  sizes[0] = N > *index.max().data_ptr<int64_t>()
-                 ? N
-                 : *index.max().data_ptr<int64_t>();
+  std::vector<int64_t> sizes = {N, src.size(1)};
+  // sizes[0] = N > *index.max().data_ptr<int64_t>()
+  //                ? N
+  //                : *index.max().data_ptr<int64_t>();
   torch::Tensor out = torch::empty(sizes, src.options());
-  torch::Tensor arg_out = torch::full_like(out, 0, index.options());
+  torch::Tensor arg_out = torch::full_like(out, 0., index.options());
   if (src.numel() == 0) {
-    out.fill_(0);
+    out.fill_(0.);
     return std::make_tuple(out, arg_out);
   }
 
@@ -77,8 +75,8 @@ inline std::vector<int64_t> list2vec(const c10::List<int64_t> list) {
 
 class SegmentMax : public torch::autograd::Function<SegmentMax> {
  public:
-  static torch::Tensor forward(AutogradContext *ctx, Variable src,
-                               Variable index, int64_t N) {
+  static torch::Tensor forward(AutogradContext *ctx, torch::Tensor src,
+                               torch::Tensor index, int64_t N) {
     ctx->saved_data["src_shape"] = src.sizes();
     auto result = segment_cpu(src, index, N);
     auto out = std::get<0>(result);
@@ -88,7 +86,7 @@ class SegmentMax : public torch::autograd::Function<SegmentMax> {
     return out;
   }
 
-  static variable_list backward(AutogradContext *ctx, variable_list grad_outs) {
+  static std::vector<torch::Tensor> backward(AutogradContext *ctx, std::vector<torch::Tensor> grad_outs) {
     auto grad_out = grad_outs[0];
     auto saved = ctx->get_saved_variables();
     auto index = saved[0];
@@ -98,7 +96,7 @@ class SegmentMax : public torch::autograd::Function<SegmentMax> {
     auto grad_in = torch::zeros(src_shape, grad_out.options());
     grad_in.scatter_(0, arg_out, grad_out);
     grad_in = grad_in.narrow(0, 0, src_shape[0] - 1);
-    return {grad_in, Variable(), Variable()};
+    return {grad_in, torch::Tensor(), torch::Tensor()};
   }
 };
 
