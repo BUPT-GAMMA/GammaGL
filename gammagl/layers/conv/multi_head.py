@@ -3,6 +3,47 @@ from gammagl.layers.conv import MessagePassing
 from gammagl.utils import segment_softmax
 
 class MultiHead(MessagePassing):
+
+    r"""A module for attention mechanisms which runs through an attention mechanism several times in parallel.
+
+    The independent attention outputs are then concatenated and linearly transformed into the expected dimension. 
+    
+    Intuitively, multiple attention heads allows for attending to parts of the sequence differently (e.g. longer-term dependencies versus shorter-term dependencies).
+    
+    .. math::
+        \mathbf{x}^{\prime}_i = \alpha_{i,i}\mathbf{\Theta}\mathbf{x}_{i} +
+        \sum_{j \in \mathcal{N}(i)} \alpha_{i,j}\mathbf{\Theta}\mathbf{x}_{j},
+
+    where the attention coefficients :math:`\alpha_{i,j}` are computed as
+
+    .. math::
+        \alpha_{i,j} =
+        \frac{
+        \exp\left(\mathrm{LeakyReLU}\left(\mathbf{a}^{\top}
+        [\mathbf{\Theta}\mathbf{x}_i \, \Vert \, \mathbf{\Theta}\mathbf{x}_j]
+        \right)\right)}
+        {\sum_{k \in \mathcal{N}(i) \cup \{ i \}}
+        \exp\left(\mathrm{LeakyReLU}\left(\mathbf{a}^{\top}
+        [\mathbf{\Theta}\mathbf{x}_i \, \Vert \, \mathbf{\Theta}\mathbf{x}_k]
+        \right)\right)}.
+
+    Parameters
+    ----------
+    in_features: int
+        Size of each input sample, or :obj:`-1` to
+        derive the size from the first input(s) to the forward method.
+        A tuple corresponds to the sizes of source and target
+        dimensionalities.
+    out_features: int
+        Size of each output sample.
+    n_heads: int
+        Number of multi-head-attentions.
+        (default: :obj:`1`)
+    num_nodes: int
+        Number of nodes
+        
+    """
+
     def __init__(self, in_features, out_features, n_heads,num_nodes):
         super().__init__()
         self.heads=n_heads
