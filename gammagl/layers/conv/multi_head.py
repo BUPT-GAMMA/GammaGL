@@ -28,3 +28,10 @@ class MultiHead(MessagePassing):
         alpha = self.dropout(segment_softmax(weight, node_dst, self.num_nodes))
         x = tlx.gather(x, node_src) * tlx.expand_dims(alpha, -1)
         return x
+    
+    def forward(self, x, edge_index):
+        x = tlx.reshape(self.linear(x), shape=(-1,self.heads, self.out_channels))
+        x = self.propagate(x, edge_index, num_nodes=self.num_nodes)
+        x=tlx.ops.reduce_mean(x,axis=1)
+
+        return x

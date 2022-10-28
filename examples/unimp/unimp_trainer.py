@@ -22,14 +22,6 @@ class CrossEntropyLoss(WithLoss):
         return loss
 
 
-    def forward(self, x, edge_index):
-        x = tlx.reshape(self.linear(x), shape=(-1,self.heads, self.out_channels))
-        x = self.propagate(x, edge_index, num_nodes=self.num_nodes)
-        x=tlx.ops.reduce_mean(x,axis=1)
-
-        return x
-
-
 def calculate_acc(logits, y, metrics):
     metrics.update(logits, y)
     rst = metrics.result()
