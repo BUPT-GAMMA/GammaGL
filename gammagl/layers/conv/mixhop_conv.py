@@ -1,6 +1,6 @@
 import tensorlayerx as tlx
 from ..conv import MessagePassing
-from ... import utils
+from ...utils import degree
 
 
 class MixHopConv(MessagePassing):
@@ -34,12 +34,18 @@ class MixHopConv(MessagePassing):
                  in_channels,
                  out_channels,
                  p,
+                 norm='both',
                  add_bias=True):
         super(MixHopConv, self).__init__()
+
+        if norm not in ['left', 'right', 'none', 'both']:
+            raise ValueError('Invalid norm value. Must be either "none", "both", "right" or "left".'
+                             ' But got "{}".'.format(norm))
 
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.p = p
+        self._norm = norm
         self.add_bias = add_bias
 
         # define weight dict for each power j
@@ -55,10 +61,24 @@ class MixHopConv(MessagePassing):
             self.bias = self._get_weights("bias", shape=(1, self.out_channels * len(p)), init=initor)
 
     def forward(self, x, edge_index, edge_weight=None, num_nodes=None):
-        row, col = edge_index
-        degs = utils.degree(col, dtype=tlx.float32)
-        norm = tlx.pow(degs, -0.5)
-        norm = tlx.reshape(norm, (x.shape[0], 1))
+        src, dst = edge_index[0], edge_index[1]
+        if edge_weight is None:
+            edge_weight = tlx.ones(shape=(edge_index.shape[1], 1))
+        weights = edge_weight
+        degs = degree(dst, num_nodes=x.shape[0], dtype=tlx.float32)
+        if self._norm in ['left', 'both']:
+            if self._norm == 'both':
+                norm = tlx.pow(degs, -0.5)
+            else:
+                norm = 1.0 / degs
+            weights = tlx.ops.gather(norm, src) * tlx.reshape(edge_weight, (-1,))
+        degs = degree(dst, num_nodes=x.shape[0], dtype=tlx.float32)
+        if self._norm in ['right', 'both']:
+            if self._norm == 'both':
+                norm = tlx.pow(degs, -0.5)
+            else:
+                norm = 1.0 / degs
+            weights = tlx.reshape(weights, (-1,)) * tlx.ops.gather(norm, dst)
 
         max_j = max(self.p) + 1
         outputs = []
@@ -67,9 +87,7 @@ class MixHopConv(MessagePassing):
                 output = self.weights[f'{j}'](x)
                 outputs.append(output)
 
-            x = x * norm
-            x = self.propagate(x, edge_index, edge_weight=None, num_nodes=num_nodes)
-            x = x * norm
+            x = self.propagate(x, edge_index, edge_weight=weights, num_nodes=num_nodes)
 
         final = tlx.concat(outputs, axis=1)
 

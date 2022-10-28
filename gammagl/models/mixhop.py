@@ -31,6 +31,7 @@ class MIXHOPModel(tlx.nn.Module):
                  p,
                  drop_rate,
                  num_layers=3,
+                 norm='both',
                  name=None):
         super(MIXHOPModel, self).__init__(name=name)
         self.feature_dim = feature_dim
@@ -45,12 +46,13 @@ class MIXHOPModel(tlx.nn.Module):
         # Input layer
         self.layer_head = MixHopConv(in_channels=self.feature_dim,
                                      out_channels=self.hidden_dim,
-                                     p=self.p)
+                                     p=self.p,
+                                     norm=norm)
 
         self.layers_list = []
         for i in range(1, self.num_layers - 1):
             self.layers_list.append(
-                MixHopConv(in_channels=self.hidden_dim * len(p), out_channels=self.hidden_dim, p=self.p))
+                MixHopConv(in_channels=self.hidden_dim * len(p), out_channels=self.hidden_dim, p=self.p, norm=norm))
         self.layers = tlx.nn.ModuleList(self.layers_list)
 
         W_initor = tlx.initializers.XavierUniform()
@@ -63,7 +65,7 @@ class MIXHOPModel(tlx.nn.Module):
 
         for i in range(len(self.layers_list)):
             x = self.dropout(x)
-            x = self.layers_list[i](x, edge_index, num_nodes)
+            x = self.layers_list[i](x, edge_index, edge_weight, num_nodes)
             x = self.relu(x)
 
         x = self.fc_layers(x)
