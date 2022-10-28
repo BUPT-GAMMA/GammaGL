@@ -3,11 +3,9 @@ os.environ['CUDA_VISIBLE_DEVICES']='0'
 import random
 import argparse
 import tensorlayerx as tlx
-import tensorlayerx.nn as nn
-from gammagl.utils import segment_softmax
+from gammagl.models.unimp import Unimp
 from gammagl.datasets import Planetoid
-from gammagl.layers.conv import MessagePassing
-from gammagl.utils import add_self_loops, mask_to_index
+from gammagl.utils import  mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss
 
 class CrossEntropyLoss(WithLoss):
@@ -24,34 +22,6 @@ class CrossEntropyLoss(WithLoss):
         return loss
 
 
-class MultiHead(MessagePassing):
-    def __init__(self, in_features, out_features, n_heads,num_nodes):
-        super().__init__()
-        self.heads=n_heads
-        self.num_nodes=num_nodes
-        self.out_channels=out_features
-        self.linear = tlx.layers.Linear(out_features=out_features* n_heads,
-                                        in_features=in_features)
-
-        init = tlx.initializers.RandomNormal()
-        self.att_src = init(shape=(1, n_heads, out_features), dtype=tlx.float32)
-        self.att_dst = init(shape=(1, n_heads, out_features), dtype=tlx.float32)
-
-        self.leaky_relu = tlx.layers.LeakyReLU(0.2)
-        self.dropout = tlx.layers.Dropout()
-
-    def message(self, x, edge_index):
-        node_src = edge_index[0, :]
-        node_dst = edge_index[1, :]
-        weight_src = tlx.gather(tlx.reduce_sum(x * self.att_src, -1), node_src)
-        weight_dst = tlx.gather(tlx.reduce_sum(x * self.att_dst, -1), node_dst)
-        weight = self.leaky_relu(weight_src + weight_dst)
-
-        alpha = self.dropout(segment_softmax(weight, node_dst, self.num_nodes))
-        x = tlx.gather(x, node_src) * tlx.expand_dims(alpha, -1)
-        return x
-
-
     def forward(self, x, edge_index):
         x = tlx.reshape(self.linear(x), shape=(-1,self.heads, self.out_channels))
         x = self.propagate(x, edge_index, num_nodes=self.num_nodes)
@@ -60,32 +30,12 @@ class MultiHead(MessagePassing):
         return x
 
 
-class Unimp(tlx.nn.Module):
-    def __init__(self,dataset):
-        super(Unimp, self).__init__()
-
-        out_layer1=int(dataset.num_node_features/2)
-        self.layer1=MultiHead(dataset.num_node_features+1, out_layer1, 4,dataset[0].num_nodes)
-        self.norm1=nn.LayerNorm(out_layer1)
-        self.relu1=nn.ReLU()
-
-        self.layer2=MultiHead(out_layer1, dataset.num_classes, 4,dataset[0].num_nodes)
-        self.norm2=nn.LayerNorm(dataset.num_classes)
-        self.relu2=nn.ReLU()
-    def forward(self, x, edge_index):
-        out1 = self.layer1(x, edge_index)
-        out2=self.norm1(out1)
-        out3=self.relu1(out2)
-        out4=self.layer2(out3,edge_index)
-        out5 = self.norm2(out4)
-        out6 = self.relu2(out5)
-        return out6
-
 def calculate_acc(logits, y, metrics):
     metrics.update(logits, y)
     rst = metrics.result()
     metrics.reset()
     return rst
+
 def get_label_mask(label,node,dtype):
     mask=[1 for i in range(node['train_node1'])]+[0 for i in range(node['train_node2'])]
     random.shuffle(mask)
@@ -100,6 +50,7 @@ def get_label_mask(label,node,dtype):
 
 def merge_feature_label(label,feature):
     return tlx.ops.concat([label,feature],axis=1)
+
 def main(args):
     dataset = Planetoid(root='./',name=args.dataset)
     graph=dataset[0]
