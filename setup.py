@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import glob
 import os
+import sys
+
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext as _build_ext
 
@@ -25,13 +28,39 @@ class CustomBuildExt(_build_ext):
         import numpy
         self.include_dirs.append(numpy.get_include())
 
+def get_metis_source():
+    metis_dir = os.path.join("gammagl", "third_party", "metis")
+    if sys.platform == "win32":
+        return glob.glob(os.path.join(metis_dir, "*.c")) \
+           + glob.glob(os.path.join(metis_dir, "fake", "*.c"))
+    else:
+        return glob.glob(os.path.join(metis_dir, "GKlib", "*.c")) \
+           + glob.glob(os.path.join(metis_dir, "*.c")) \
+           + glob.glob(os.path.join(metis_dir, "libmetis", "*.c"))
+
+
+def get_metis_inc():
+    metis_dir = os.path.join("gammagl", "third_party", "metis")
+    if sys.platform == "win32":
+        return [
+            os.path.join(metis_dir, "include"), os.path.join(metis_dir,
+                                                             "fake")
+        ]
+    else:
+        return [
+            os.path.join(metis_dir, "include"),
+            os.path.join(metis_dir, "GKlib"),
+            os.path.join(metis_dir, "libmetis")
+        ]
+
 
 compile_extra_args = ["-std=c++11"]
 link_extra_args = []
 extensions = [
     Extension(
         "gammagl.sample",
-        sources=[os.path.join("gammagl", "sample.pyx")],
+        sources=[os.path.join("gammagl", "sample.pyx")] + get_metis_source(),
+        include_dirs=get_metis_inc(),
         language="c++",
         extra_compile_args=compile_extra_args,
         extra_link_args=link_extra_args, ),

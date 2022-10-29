@@ -16,6 +16,32 @@ from libc.stdlib cimport rand, srand
 from libc.time cimport time
 from libc.stdio cimport printf
 
+cdef extern from *:
+    """
+    #if defined(_WIN32) || defined(MS_WINDOWS) || defined(_MSC_VER)
+        #include "third_party/metis/include/fake.h"
+        #define win32 1
+        #define METIS_Recursive_(a,b,c,d,e,f,g,h,i,j,k,l,m) fake_function_0(a,b,c,d,e,f,g,h,i,j,k,l,m)
+        #define METIS_Kway_(a,b,c,d,e,f,g,h,i,j,k,l,m) fake_function_1(a,b,c,d,e,f,g,h,i,j,k,l,m)
+    #else
+        #include "third_party/metis/include/metis.h"
+        #define win32 0
+        #define METIS_Recursive_(a,b,c,d,e,f,g,h,i,j,k,l,m) METIS_PartGraphRecursive(a,b,c,d,e,f,g,h,i,j,k,l,m)
+        #define METIS_Kway_(a,b,c,d,e,f,g,h,i,j,k,l,m) METIS_PartGraphKway(a,b,c,d,e,f,g,h,i,j,k,l,m)
+
+    #endif
+    """
+    bool win "win32"
+    int METIS_Recursive "METIS_Recursive_"(long long *nvtxs, long long *ncon, long long *xadj,
+                  long long *adjncy, long long *vwgt, long long *vsize, long long *adjwgt,
+                  long long *nparts, float *tpwgts, float *ubvec, long long *options,
+                  long long *edgecut, long long *part) nogil
+    int METIS_Kway "METIS_Kway_"(long long *nvtxs, long long *ncon, long long *xadj,
+                  long long *adjncy, long long *vwgt, long long *vsize, long long *adjwgt,
+                  long long *nparts, float *tpwgts, float *ubvec, long long *options,
+                  long long *edgecut, long long *part) nogil
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def sample_subset(long long k, np.ndarray[np.int64_t, ndim=1] dst_nodes, np.ndarray[np.int64_t, ndim=1] rowptr,
@@ -102,3 +128,45 @@ def sample_subset(long long k, np.ndarray[np.int64_t, ndim=1] dst_nodes, np.ndar
             eind[i][0] = all_nodes[edge[e_id[i]][0]]
             eind[i][1] = all_nodes[edge[e_id[i]][1]]
     return all_node, (b, a), smallg
+
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def metis_partition(
+    np.ndarray[np.int64_t, ndim=1] indptr,
+    np.ndarray[np.int64_t, ndim=1] col,
+    long long nparts,
+    np.ndarray[np.int64_t, ndim=1] node_weights=None,
+    np.ndarray[np.int64_t, ndim=1] edge_weights=None,
+    bool recursive=True,
+):
+    cdef:
+        long long nvtxs = indptr.shape[0] - 1
+        long long objval = -1
+        long long ncon = 1
+        np.ndarray part = np.zeros((nvtxs, ), dtype="int64")
+        long long * node_weight_ptr = NULL
+        long long * edge_weight_ptr = NULL
+
+    if node_weights is not None:
+        node_weight_ptr = <long long *> node_weights.data
+    if edge_weights is not None:
+        edge_weight_ptr = <long long *> edge_weights.data
+
+
+    if win == 0:
+        with nogil:
+            if recursive:
+                METIS_Recursive(nvtxs=&nvtxs, ncon=&ncon, xadj=<long long *> indptr.data,
+                             adjncy=<long long *> col.data, vwgt=node_weight_ptr, vsize=NULL, adjwgt=edge_weight_ptr,
+                             nparts=&nparts, tpwgts=NULL, ubvec=NULL, options=NULL,
+                             edgecut=&objval, part=<long long *> part.data)
+            else:
+                METIS_Kway(nvtxs=&nvtxs, ncon=&ncon, xadj=<long long *> indptr.data,
+                             adjncy=<long long *> col.data, vwgt=node_weight_ptr, vsize=NULL, adjwgt=edge_weight_ptr,
+                             nparts=&nparts, tpwgts=NULL, ubvec=NULL, options=NULL,
+                             edgecut=&objval, part=<long long *> part.data)
+    else:
+        return -1
+    return part
