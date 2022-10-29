@@ -72,7 +72,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='infograph')
 
     # data source params
-    parser.add_argument('--dataset', type=str, default='IMDB-BINARY',
+    parser.add_argument('--dataset', type=str, default='MUTAG',
                         help='Name of dataset.eg:MUTAG,IMDB-BINARY,REDDIT-BINARY')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     # training params
