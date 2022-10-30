@@ -1,4 +1,5 @@
 #include "segment_max_cuda.h"
+#include <torch/torch.h>
 #include <iostream>
 #include <vector>
 #include <cuda.h>
@@ -25,7 +26,7 @@ inline __device__ void atomic_max_float(float *addr, float value) {
 }
 
 template <typename scalar_t>
-__global__ void segment_kernel(const scalar_t *src_data, const int64_t *index_data,
+__global__ void segment_max_cuda_forward_kernel(const scalar_t *src_data, const int64_t *index_data,
                                scalar_t *out_data, int E, int K, int N, int numel) {
   int thread_idx = blockIdx.x * blockDim.x + threadIdx.x;
   int e = (thread_idx / K) % E;
@@ -38,9 +39,10 @@ __global__ void segment_kernel(const scalar_t *src_data, const int64_t *index_da
   }
 }
 
+// TODO: fuse segment & arg_segment to one kernel function.
 template <typename scalar_t>
 __global__ void
-segment_arg_kernel(const scalar_t *src_data, const int64_t *index_data,
+arg_segment_max_cuda_forward_kernel(const scalar_t *src_data, const int64_t *index_data,
                    scalar_t *out_data, int64_t *arg_out_data, int E,
                    int K, int N, int numel) {
   int thread_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -56,7 +58,7 @@ segment_arg_kernel(const scalar_t *src_data, const int64_t *index_data,
 }
 
 std::tuple<torch::Tensor, torch::Tensor>
-segment_cuda(torch::Tensor src, torch::Tensor index, int64_t N) {
+segment_max_cuda_forward(torch::Tensor src, torch::Tensor index, int64_t N) {
   // check inputs
   TORCH_CHECK(src.device().is_cuda(), "src must be CUDA tensor");
   TORCH_CHECK(index.device().is_cuda(), "index must be CUDA tensor");
@@ -92,13 +94,13 @@ segment_cuda(torch::Tensor src, torch::Tensor index, int64_t N) {
   auto out_data = out.data_ptr<scalar_t>();
   auto index_data = index.data_ptr<int64_t>();
 
-  segment_kernel<scalar_t>
+  segment_max_cuda_forward_kernel<scalar_t>
       <<<BLOCKS(src.numel()), THREADS, 0, stream>>>(
           src_data, index_data, out_data, E, K, N, src.numel());
 
   out.masked_fill_(out == std::numeric_limits<int64_t>::lowest(), (scalar_t)0);
 
-  segment_arg_kernel<scalar_t>
+  arg_segment_max_cuda_forward_kernel<scalar_t>
       <<<BLOCKS(src.numel()), THREADS, 0, stream>>>(
           src_data, index_data, out_data, arg_out_data, E, K, N,
           src.numel());
@@ -106,48 +108,3 @@ segment_cuda(torch::Tensor src, torch::Tensor index, int64_t N) {
 
   return std::make_tuple(out, arg_out);
 }
-
-inline std::vector<int64_t> list2vec(const c10::List<int64_t> list) {
-  std::vector<int64_t> result;
-  result.reserve(list.size());
-  for (size_t i = 0; i < list.size(); i++)
-    result.push_back(list[i]);
-  return result;
-}
-
-class SegmentMaxCuda : public torch::autograd::Function<SegmentMaxCuda> {
-public:
-  static torch::Tensor forward(AutogradContext *ctx, Variable src,
-                               Variable index, int64_t N) {
-    ctx->saved_data["src_shape"] = src.sizes();
-    auto result = segment_cuda(src, index, N);
-    auto out = std::get<0>(result);
-    auto arg_out = std::get<1>(result);
-    ctx->save_for_backward({index, arg_out});
-    ctx->mark_non_differentiable({arg_out});
-    return out;
-  }
-
-  static variable_list backward(AutogradContext *ctx, variable_list grad_outs) {
-    auto grad_out = grad_outs[0];
-    auto saved = ctx->get_saved_variables();
-    auto index = saved[0];
-    auto arg_out = saved[1];
-    auto src_shape = list2vec(ctx->saved_data["src_shape"].toIntList());
-    src_shape[0] += 1;
-    auto grad_in = torch::zeros(src_shape, grad_out.options());
-    grad_in.scatter_(0, arg_out, grad_out);
-    grad_in = grad_in.narrow(0, 0, src_shape[0] - 1);
-    return {grad_in, Variable(), Variable()};
-  }
-};
-
-torch::Tensor segment_max_cuda(torch::Tensor src, torch::Tensor index, int64_t N){
-  auto result = SegmentMaxCuda::apply(src, index, N);
-  return result;
-}
-
-// TORCH_LIBRARY(mp, m)
-// {
-//   m.def("segment_max_cuda", segment_max_cuda);
-// }
