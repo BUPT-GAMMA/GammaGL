@@ -16,6 +16,11 @@ from libc.stdlib cimport rand, srand
 from libc.time cimport time
 from libc.stdio cimport printf
 
+
+cdef extern from "stdint.h":
+    ctypedef signed int int64_t
+
+
 cdef extern from *:
     """
     #if defined(_WIN32) || defined(MS_WINDOWS) || defined(_MSC_VER)
@@ -32,33 +37,33 @@ cdef extern from *:
     #endif
     """
     bool win "win32"
-    int METIS_Recursive "METIS_Recursive_"(long long *nvtxs, long long *ncon, long long *xadj,
-                  long long *adjncy, long long *vwgt, long long *vsize, long long *adjwgt,
-                  long long *nparts, float *tpwgts, float *ubvec, long long *options,
-                  long long *edgecut, long long *part) nogil
-    int METIS_Kway "METIS_Kway_"(long long *nvtxs, long long *ncon, long long *xadj,
-                  long long *adjncy, long long *vwgt, long long *vsize, long long *adjwgt,
-                  long long *nparts, float *tpwgts, float *ubvec, long long *options,
-                  long long *edgecut, long long *part) nogil
+    int METIS_Recursive "METIS_Recursive_"(int64_t *nvtxs, int64_t *ncon, int64_t *xadj,
+                  int64_t *adjncy, int64_t *vwgt, int64_t *vsize, int64_t *adjwgt,
+                  int64_t *nparts, float *tpwgts, float *ubvec, int64_t *options,
+                  int64_t *edgecut, int64_t *part) nogil
+    int METIS_Kway "METIS_Kway_"(int64_t *nvtxs, int64_t *ncon, int64_t *xadj,
+                  int64_t *adjncy, int64_t *vwgt, int64_t *vsize, int64_t *adjwgt,
+                  int64_t *nparts, float *tpwgts, float *ubvec, int64_t *options,
+                  int64_t *edgecut, int64_t *part) nogil
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def sample_subset(long long k, np.ndarray[np.int64_t, ndim=1] dst_nodes, np.ndarray[np.int64_t, ndim=1] rowptr,
+def sample_subset(int64_t k, np.ndarray[np.int64_t, ndim=1] dst_nodes, np.ndarray[np.int64_t, ndim=1] rowptr,
                   np.ndarray[np.int64_t, ndim=2] edge_index, bool replace):
-    cdef vector[long long] e_id
-    cdef unordered_map[long long, long long] all_nodes
-    cdef vector[long long] n_ids
-    cdef long long [:,:] edge = edge_index
-    cdef unordered_set[long long] cur_eid
-    cdef long long i
+    cdef vector[int64_t] e_id
+    cdef unordered_map[int64_t, int64_t] all_nodes
+    cdef vector[int64_t] n_ids
+    cdef int64_t [:,:] edge = edge_index
+    cdef unordered_set[int64_t] cur_eid
+    cdef int64_t i
     for i in xrange(dst_nodes.shape[0]):
         all_nodes[dst_nodes[i]] = i
         n_ids.push_back(dst_nodes[i])
-    cdef long long cur
+    cdef int64_t cur
     srand(time(NULL))
 
-    cdef long long j, st, ed
+    cdef int64_t j, st, ed
     if k < 0 :
         "full sample"
         with nogil:
@@ -107,7 +112,7 @@ def sample_subset(long long k, np.ndarray[np.int64_t, ndim=1] dst_nodes, np.ndar
     define a variable in for loop, so we can put all sample e_id in unordered_set, and process in the end of sample.
     It equal to process each unordered_set per node's sample(PyG's sample_adj method)
     '''
-    cdef unordered_set[long long].iterator it = cur_eid.begin()
+    cdef unordered_set[int64_t].iterator it = cur_eid.begin()
     while it != cur_eid.end():
         i = deref(it)
         e_id.push_back(i)
@@ -120,9 +125,9 @@ def sample_subset(long long k, np.ndarray[np.int64_t, ndim=1] dst_nodes, np.ndar
     cdef np.ndarray[np.int64_t, ndim=1] all_node = np.empty([n_ids.size()], dtype=np.int64)
     for i in xrange(n_ids.size()):
         all_node[i] = n_ids[i]
-    cdef long long num_e = e_id.size()
+    cdef int64_t num_e = e_id.size()
     cdef np.ndarray[np.int64_t, ndim=2] smallg = np.empty([num_e, 2], dtype=np.int64)
-    cdef long long [:, :] eind = smallg
+    cdef int64_t [:, :] eind = smallg
     with nogil:
         for i in xrange(num_e):
             eind[i][0] = all_nodes[edge[e_id[i]][0]]
@@ -136,37 +141,56 @@ def sample_subset(long long k, np.ndarray[np.int64_t, ndim=1] dst_nodes, np.ndar
 def metis_partition(
     np.ndarray[np.int64_t, ndim=1] indptr,
     np.ndarray[np.int64_t, ndim=1] col,
-    long long nparts,
+    int64_t nparts,
     np.ndarray[np.int64_t, ndim=1] node_weights=None,
     np.ndarray[np.int64_t, ndim=1] edge_weights=None,
     bool recursive=True,
 ):
     cdef:
-        long long nvtxs = indptr.shape[0] - 1
-        long long objval = -1
-        long long ncon = 1
+        int64_t nvtxs = indptr.shape[0] - 1
+        int64_t objval = -1
+        int64_t ncon = 1
         np.ndarray part = np.zeros((nvtxs, ), dtype="int64")
-        long long * node_weight_ptr = NULL
-        long long * edge_weight_ptr = NULL
+        int64_t * node_weight_ptr = NULL
+        int64_t * edge_weight_ptr = NULL
 
     if node_weights is not None:
-        node_weight_ptr = <long long *> node_weights.data
+        node_weight_ptr = <int64_t *> node_weights.data
     if edge_weights is not None:
-        edge_weight_ptr = <long long *> edge_weights.data
+        edge_weight_ptr = <int64_t *> edge_weights.data
 
 
     if win == 0:
         with nogil:
             if recursive:
-                METIS_Recursive(nvtxs=&nvtxs, ncon=&ncon, xadj=<long long *> indptr.data,
-                             adjncy=<long long *> col.data, vwgt=node_weight_ptr, vsize=NULL, adjwgt=edge_weight_ptr,
+                METIS_Recursive(nvtxs=&nvtxs, ncon=&ncon, xadj=<int64_t *> indptr.data,
+                             adjncy=<int64_t *> col.data, vwgt=node_weight_ptr, vsize=NULL, adjwgt=edge_weight_ptr,
                              nparts=&nparts, tpwgts=NULL, ubvec=NULL, options=NULL,
-                             edgecut=&objval, part=<long long *> part.data)
+                             edgecut=&objval, part=<int64_t *> part.data)
             else:
-                METIS_Kway(nvtxs=&nvtxs, ncon=&ncon, xadj=<long long *> indptr.data,
-                             adjncy=<long long *> col.data, vwgt=node_weight_ptr, vsize=NULL, adjwgt=edge_weight_ptr,
+                METIS_Kway(nvtxs=&nvtxs, ncon=&ncon, xadj=<int64_t *> indptr.data,
+                             adjncy=<int64_t *> col.data, vwgt=node_weight_ptr, vsize=NULL, adjwgt=edge_weight_ptr,
                              nparts=&nparts, tpwgts=NULL, ubvec=NULL, options=NULL,
-                             edgecut=&objval, part=<long long *> part.data)
+                             edgecut=&objval, part=<int64_t *> part.data)
     else:
         return -1
     return part
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def ind2ptr(int64_t M,
+            np.ndarray[np.int64_t, ndim=1] ind
+):
+    cdef:
+        np.ndarray[np.int64_t, ndim=1] out = np.zeros([M + 1], dtype=np.int64)
+        int64_t i = 0, j = 0
+        int64_t numel = ind.shape[0]
+    if numel == 0:
+        return out
+    for i in xrange(1, numel):
+        for j in xrange(ind[i - 1], ind[i]):
+            out[j + 1] = i;
+    # for (int64_t i = ind_data[numel - 1] + 1; i < M + 1; i++)
+    # out_data[i] = numel;
+    for i in xrange(ind[numel - 1] + 1, M + 1):
+        out[i] = numel
+    return out
