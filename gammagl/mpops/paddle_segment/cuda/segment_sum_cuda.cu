@@ -1,5 +1,6 @@
-#include "paddle/extension.h"
+#include <paddle/extension.h>
 #include <vector>
+#include "segment_sum_cuda.h"
 
 #define THREADS 1024
 #define BLOCKS(N) (N + THREADS - 1) / THREADS
@@ -48,21 +49,10 @@ std::vector<paddle::Tensor> segment_sum_cuda_forward(const paddle::Tensor& src,
             src.numel());
   // }));
 
-  cudaError_t cudaStatus = cudaGetLastError();
-  if (cudaStatus != cudaSuccess) {
-      fprintf(stderr, "Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
-  }
+  // cudaError_t cudaStatus = cudaGetLastError();
+  // if (cudaStatus != cudaSuccess) {
+  //     fprintf(stderr, "Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
+  // }
 
   return {out}; 
-}
-
-std::vector<paddle::Tensor> segment_sum_cuda_backward(const paddle::Tensor& index,
-                                         const paddle::Tensor& grad_out) {
-  // same with cpu
-  CHECK_INPUT(index);
-  CHECK_INPUT(grad_out);
-
-  auto grad_src = paddle::gather(grad_out, index, 0);
-
-  return {grad_src};
 }

@@ -9,7 +9,7 @@ def get_exts():
         return [
             CUDAExtension(
                 name='torch_segment', # Note: same with TORCH_LIBRARY (import)
-                sources=['segment_max.cpp', 'segment_max_cuda.cu'],
+                sources=['segment_max.cpp'],
                 define_macros=[
                     ('COMPLIE_WITH_CUDA', None),
                     ('COMPILE_WITH_OMP', None) # Note: OpenMP needs gcc>4.2.0

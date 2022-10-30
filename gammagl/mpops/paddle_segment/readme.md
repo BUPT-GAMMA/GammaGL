@@ -1,7 +1,7 @@
-usage:
+Compile Steps:  (setuptools, recommended)  
 python setup.py install
-python test.py
 
-paddle/utils/cpp_extension/extension_utils.py:341L
-需要注释掉 ccbin cc
+Compile Steps:  (CMake, not work)  
+TODO: support cmake
 
+In `paddle/utils/cpp_extension/extension_utils.py:341L`, `"-ccbin" "cc"` may cause error, annotate them.
