@@ -26,7 +26,7 @@ inline __device__ void atomic_max_float(float *addr, float value) {
 }
 
 template <typename scalar_t>
-__global__ void segment_max_cuda_forward_kernel(const scalar_t *src_data, const int64_t *index_data,
+__global__ void segment_max_cuda_forward_kernel(const scalar_t *x_data, const int64_t *index_data,
                                scalar_t *out_data, int E, int K, int N, int numel) {
   int thread_idx = blockIdx.x * blockDim.x + threadIdx.x;
   int e = (thread_idx / K) % E;
@@ -35,14 +35,14 @@ __global__ void segment_max_cuda_forward_kernel(const scalar_t *src_data, const 
     // TODO: support more data type
     int idx = index_data[e];
     atomic_max_float(out_data + idx * K + k,
-                     src_data[thread_idx]);
+                     x_data[thread_idx]);
   }
 }
 
 // TODO: fuse segment & arg_segment to one kernel function.
 template <typename scalar_t>
 __global__ void
-arg_segment_max_cuda_forward_kernel(const scalar_t *src_data, const int64_t *index_data,
+arg_segment_max_cuda_forward_kernel(const scalar_t *x_data, const int64_t *index_data,
                    scalar_t *out_data, int64_t *arg_out_data, int E,
                    int K, int N, int numel) {
   int thread_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -51,59 +51,59 @@ arg_segment_max_cuda_forward_kernel(const scalar_t *src_data, const int64_t *ind
 
   if (thread_idx < numel) {
     int idx = index_data[e];
-    if (src_data[thread_idx] == out_data[idx * K + k]) {
+    if (x_data[thread_idx] == out_data[idx * K + k]) {
       arg_out_data[idx * K + k] = e;
     }
   }
 }
 
 std::tuple<torch::Tensor, torch::Tensor>
-segment_max_cuda_forward(torch::Tensor src, torch::Tensor index, int64_t N) {
+segment_max_cuda_forward(torch::Tensor x, torch::Tensor index, int64_t N) {
   // check inputs
-  TORCH_CHECK(src.device().is_cuda(), "src must be CUDA tensor");
+  TORCH_CHECK(x.device().is_cuda(), "x must be CUDA tensor");
   TORCH_CHECK(index.device().is_cuda(), "index must be CUDA tensor");
-  TORCH_CHECK_INDEX(src.dim() == 2, "src dimension should be 2, but got ", src.dim());
+  TORCH_CHECK_INDEX(x.dim() == 2, "x dimension should be 2, but got ", x.dim());
   TORCH_CHECK_INDEX(index.dim() == 1, "index dimension should be 1, but got ", index.dim());
-  TORCH_CHECK_INDEX(src.size(0) == index.size(0), "fisrt dimension of src and index should be same");
+  TORCH_CHECK_INDEX(x.size(0) == index.size(0), "fisrt dimension of x and index should be same");
   // only support float Tensor
-  TORCH_CHECK_TYPE(src.scalar_type() == c10::ScalarType::Float, "src should be float Tensor")
-  cudaSetDevice(src.get_device());
-  src = src.contiguous();
+  TORCH_CHECK_TYPE(x.scalar_type() == c10::ScalarType::Float, "x should be float Tensor")
+  cudaSetDevice(x.get_device());
+  x = x.contiguous();
 
-  auto sizes = src.sizes().vec();
+  auto sizes = x.sizes().vec();
   sizes[0] = N > *index.max().cpu().data_ptr<int64_t>()
                  ? N
                  : *index.max().cpu().data_ptr<int64_t>();
-  torch::Tensor out = torch::empty(sizes, src.options());
+  torch::Tensor out = torch::empty(sizes, x.options());
   // TORCH_CHECK(out.device().is_cuda(), "out must be CUDA tensor");
   torch::Tensor arg_out = torch::full_like(out, 0, index.options());
   int64_t *arg_out_data = arg_out.data_ptr<int64_t>();
-  if (src.numel() == 0) {
+  if (x.numel() == 0) {
     out.fill_(0);
     return std::make_tuple(out, arg_out);
   }
 
   out.fill_(std::numeric_limits<int64_t>::lowest());
-  auto E = src.size(0);
-  auto K = src.size(1);
+  auto E = x.size(0);
+  auto K = x.size(1);
   auto stream = at::cuda::getCurrentCUDAStream();
 
-  // AT_DISPATCH_ALL_TYPES(src.scalar_type(), "__ops_name",  [&] {
+  // AT_DISPATCH_ALL_TYPES(x.scalar_type(), "__ops_name",  [&] {
   using scalar_t = float; // temporary usage, delete later
-  auto src_data = src.data_ptr<scalar_t>();
+  auto x_data = x.data_ptr<scalar_t>();
   auto out_data = out.data_ptr<scalar_t>();
   auto index_data = index.data_ptr<int64_t>();
 
   segment_max_cuda_forward_kernel<scalar_t>
-      <<<BLOCKS(src.numel()), THREADS, 0, stream>>>(
-          src_data, index_data, out_data, E, K, N, src.numel());
+      <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
+          x_data, index_data, out_data, E, K, N, x.numel());
 
   out.masked_fill_(out == std::numeric_limits<int64_t>::lowest(), (scalar_t)0);
 
   arg_segment_max_cuda_forward_kernel<scalar_t>
-      <<<BLOCKS(src.numel()), THREADS, 0, stream>>>(
-          src_data, index_data, out_data, arg_out_data, E, K, N,
-          src.numel());
+      <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
+          x_data, index_data, out_data, arg_out_data, E, K, N,
+          x.numel());
   // });
 
   return std::make_tuple(out, arg_out);
