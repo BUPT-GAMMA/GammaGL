@@ -19,7 +19,7 @@ std::tuple<torch::Tensor, torch::Tensor> segment_max_cpu_forward(torch::Tensor& 
   TORCH_CHECK_INDEX(x.size(0) == index.size(0),
                     "fisrt dimension of x and index should be same");
 
-  x = x.contiguous();
+  x = x.contiguous(); // torch Tensor my not be contiguous.
 
   std::vector<int64_t> sizes = {N, x.size(1)};
   // sizes[0] = N > *index.max().data_ptr<int64_t>()
