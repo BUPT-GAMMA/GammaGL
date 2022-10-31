@@ -9,7 +9,6 @@ from gammagl.datasets.ppi import PPI
 from gammagl.models import FILMModel
 from gammagl.loader import DataLoader
 
-batch_size = 2
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -35,10 +34,11 @@ def main(args):
     val_dataset = PPI(path, split='val')
     test_dataset = PPI(path, split='test')
 
+    batch_size = int(args.batch_size)
+
     train_batch = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
     val_batch = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_batch = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-
 
     net = FILMModel(in_channels=train_dataset[0].num_node_features,
                     hidden_dim=args.hidden_dim,
@@ -106,6 +106,7 @@ if __name__ == '__main__':
     parser.add_argument("--dataset_path", type=str, default=r'../../data/', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
+    parser.add_argument("--batch_size", type=int, default=2, help="batch_size of dataloader")
     args = parser.parse_args()
 
     main(args)

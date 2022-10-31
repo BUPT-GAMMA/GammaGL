@@ -8,7 +8,6 @@ TORCH_BACKEND = 'torch'
 PADDLE_BACKEND = 'paddle'
 MS_BACKEND = 'mindspore'
 
-# 将tensor进行切割（pointer是切割点）
 def split_to_two(tensor, axis=-1):
     if tlx.BACKEND == TORCH_BACKEND or tlx.BACKEND == MS_BACKEND:
         return tlx.split(tensor, tensor.shape[-1] // 2, axis)
@@ -38,12 +37,6 @@ def cast(tensor, dtype):
         return tensor.astype(dtype=dtype)
     else:
         return None
-
-
-# 针对mini-batch
-def threshold_gather(x, idx):
-    return tlx.gather(x, np.where(idx < x.shape[0]))
-
 
 def product(xs, ys):
     res = []

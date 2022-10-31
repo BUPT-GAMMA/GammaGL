@@ -3,7 +3,6 @@ from gammagl.layers.conv.message_passing import MessagePassing
 from gammagl.utils.film_utils import split_to_two
 
 class FILMConv(MessagePassing):
-
     r"""The FiLM graph convolutional operator from the
     `"GNN-FiLM: Graph Neural Networks with Feature-wise Linear Modulation"
     <https://arxiv.org/abs/1906.12192>`_ paper
