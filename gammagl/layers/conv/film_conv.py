@@ -3,6 +3,35 @@ from gammagl.layers.conv.message_passing import MessagePassing
 from gammagl.utils.film_utils import split_to_two
 
 class FILMConv(MessagePassing):
+
+    r"""The FiLM graph convolutional operator from the
+    `"GNN-FiLM: Graph Neural Networks with Feature-wise Linear Modulation"
+    <https://arxiv.org/abs/1906.12192>`_ paper
+
+    .. math::
+        \mathbf{x}^{\prime}_i = \sum_{r \in \mathcal{R}}
+        \sum_{j \in \mathcal{N}(i)} \sigma \left(
+        \boldsymbol{\gamma}_{r,i} \odot \mathbf{W}_r \mathbf{x}_j +
+        \boldsymbol{\beta}_{r,i} \right)
+
+    where :math:`\boldsymbol{\beta}_{r,i}, \boldsymbol{\gamma}_{r,i} =
+    g(\mathbf{x}_i)` with :math:`g` being a single linear layer by default.
+    Self-loops are automatically added to the input graph and represented as
+    its own relation type.
+
+    Parameters
+    ----------
+        in_channels (int or tuple): Size of each input sample, or :obj:`-1` to
+            derive the size from the first input(s) to the forward method.
+            A tuple corresponds to the sizes of source and target
+            dimensionalities.
+        out_channels (int): Size of each output sample.
+        num_relations (int, optional): Number of relations. (default: :obj:`1`)
+        act (callable, optional): Activation function :math:`\sigma`.
+            (default: :meth:`torch.nn.ReLU()`)
+    """
+
+
     def __init__(self,
                  in_channels,
                  out_channels,
