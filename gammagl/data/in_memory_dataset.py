@@ -1,5 +1,5 @@
 import copy
-from collections.abc import Mapping
+from collections.abc import Mapping,Sequence
 from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from gammagl.data import Graph

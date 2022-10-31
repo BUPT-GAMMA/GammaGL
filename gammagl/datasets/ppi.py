@@ -1,6 +1,5 @@
 import os
 import json
-from collections.abc import Mapping, Sequence
 import os.path as osp
 from gammagl.data import (InMemoryDataset, download_url,
                           extract_zip)
@@ -80,22 +79,3 @@ class PPI(InMemoryDataset):
                 graph = Graph(edge_index=edge_index, x=x[mask], y=y[mask])
                 graph_list.append(graph)
             self.save_data(self.collate(graph_list), self.processed_paths[s])
-
-    def len(self) -> int:
-        if self.slices is None:
-            return 1
-        for _, value in nested_iter(self.slices):
-            return len(value) - 1
-        return 0
-
-
-def nested_iter(node):
-    if isinstance(node, Mapping):
-        for key, value in node.items():
-            for inner_key, inner_value in nested_iter(value):
-                yield inner_key, inner_value
-    elif isinstance(node, Sequence):
-        for i, inner_value in enumerate(node):
-            yield i, inner_value
-    else:
-        yield None, node
