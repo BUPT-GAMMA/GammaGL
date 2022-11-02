@@ -12,7 +12,7 @@ def sample(all_score, root, tree, sample_num, for_d):
 
 
     Returns:
-        (:obj:`list`, :obj:`list`):the indices of the sampled nodes and paths from the root to the sampled nodes
+        (:obj:`list`, :obj:`list`):indices of the sampled nodes and paths from the root to the sampled nodes
     """
     samples = []
     paths = []
@@ -38,7 +38,8 @@ def sample(all_score, root, tree, sample_num, for_d):
             relevance_probability = all_score[current_node, node_neighbor]
             e_x = np.exp(relevance_probability - np.max(relevance_probability))
             relevance_probability = e_x / e_x.sum()
-            next_node = np.random.choice(node_neighbor, size=1, p=relevance_probability)[0]  # select next node
+            next_node = np.random.choice(node_neighbor, size=1, p=relevance_probability)[
+                0]  # select next node
             paths[n].append(next_node)
             if next_node == previous_node:  # terminating condition
                 samples.append(current_node)

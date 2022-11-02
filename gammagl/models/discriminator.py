@@ -34,16 +34,20 @@ class Discriminator(tlx.nn.Module):
         invitor = tlx.nn.initializers.Zeros()
         self.embedding_matrix = self._get_weights("b_embedding_matrix", shape=self.node_emb_init.shape,
                                                   init=embedding)
-        self.bias_vector = self._get_weights("b_bias", shape=(self.n_node, 1), init=invitor)
+        self.bias_vector = self._get_weights(
+            "b_bias", shape=(self.n_node, 1), init=invitor)
 
     def forward(self, data):
-        node_embedding = tlx.gather(self.embedding_matrix, data['center_nodes'])
-        node_neighbor_embedding = tlx.gather(self.embedding_matrix, data['neighbor_nodes'])
+        node_embedding = tlx.gather(
+            self.embedding_matrix, data['center_nodes'])
+        node_neighbor_embedding = tlx.gather(
+            self.embedding_matrix, data['neighbor_nodes'])
         bias = tlx.gather(self.bias_vector, data['neighbor_nodes'])
 
         scores = tlx.nn.Reshape(shape=bias.shape)(
             tlx.reduce_sum(tlx.multiply(node_embedding, node_neighbor_embedding), axis=1)) + bias
-        scores = tlx.clip_by_value(scores, clip_value_min=-10, clip_value_max=10)
+        scores = tlx.clip_by_value(
+            scores, clip_value_min=-10, clip_value_max=10)
         return node_embedding, node_neighbor_embedding, bias, scores
 
     def get_reward(self, data):
@@ -61,12 +65,15 @@ class Discriminator(tlx.nn.Module):
             :math:`D(v,v_{c})`
 
         """
-        node_embedding = tlx.gather(self.embedding_matrix, data['center_nodes'])
-        node_neighbor_embedding = tlx.gather(self.embedding_matrix, data['neighbor_nodes'])
+        node_embedding = tlx.gather(
+            self.embedding_matrix, data['center_nodes'])
+        node_neighbor_embedding = tlx.gather(
+            self.embedding_matrix, data['neighbor_nodes'])
         bias = tlx.gather(self.bias_vector, data['neighbor_nodes'])
 
         scores = tlx.nn.Reshape(shape=bias.shape)(
             tlx.reduce_sum(tlx.multiply(node_embedding, node_neighbor_embedding), axis=1)) + bias
-        scores = tlx.clip_by_value(scores, clip_value_min=-10, clip_value_max=10)
+        scores = tlx.clip_by_value(
+            scores, clip_value_min=-10, clip_value_max=10)
         reward = tlx.log(1 + tlx.exp(scores))
         return reward

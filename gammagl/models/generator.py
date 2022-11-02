@@ -39,17 +39,21 @@ class Generator(tlx.nn.Module):
         invitor = tlx.initializers.Zeros()
         self.embedding_matrix = self._get_weights("b_embedding_matrix", shape=self.node_emb_init.shape,
                                                   init=embedding)
-        self.bias_vector = self._get_weights("b_bias", shape=(self.n_node, 1), init=invitor)
+        self.bias_vector = self._get_weights(
+            "b_bias", shape=(self.n_node, 1), init=invitor)
         if tlx.BACKEND == 'torch':
-            embedding_matrix_transpose = tlx.convert_to_tensor(np.transpose(self.embedding_matrix.detach()))
-            self.all_scores = tlx.matmul(self.embedding_matrix, embedding_matrix_transpose) + self.bias_vector
+            embedding_matrix_transpose = tlx.convert_to_tensor(
+                np.transpose(self.embedding_matrix.detach()))
+            self.all_scores = tlx.matmul(
+                self.embedding_matrix, embedding_matrix_transpose) + self.bias_vector
         else:
             self.all_scores = tlx.matmul(self.embedding_matrix, self.embedding_matrix,
                                          transpose_b=True) + self.bias_vector
 
     def forward(self, data):
         node_embedding = tlx.gather(self.embedding_matrix, data['node_1'])
-        node_neighbor_embedding = tlx.gather(self.embedding_matrix, data['node_2'])
+        node_neighbor_embedding = tlx.gather(
+            self.embedding_matrix, data['node_2'])
         bias = tlx.gather(self.bias_vector, data['node_2'])
         score = tlx.nn.Reshape(shape=bias.shape)(
             tlx.reduce_sum(node_embedding * node_neighbor_embedding, axis=1)) + bias
@@ -67,8 +71,10 @@ class Generator(tlx.nn.Module):
 
         """
         if tlx.BACKEND == 'torch':
-            embedding_matrix_transpose = tlx.convert_to_tensor(np.transpose(self.embedding_matrix.detach()))
-            self.all_scores = tlx.matmul(self.embedding_matrix, embedding_matrix_transpose) + self.bias_vector
+            embedding_matrix_transpose = tlx.convert_to_tensor(
+                np.transpose(self.embedding_matrix.detach()))
+            self.all_scores = tlx.matmul(
+                self.embedding_matrix, embedding_matrix_transpose) + self.bias_vector
         else:
             self.all_scores = tlx.matmul(self.embedding_matrix, self.embedding_matrix,
                                          transpose_b=True) + self.bias_vector

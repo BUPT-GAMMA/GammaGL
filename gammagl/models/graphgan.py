@@ -47,7 +47,7 @@ class GraphGAN(object):
             print("constructing BFS-trees...")
             if not os.path.isdir(cache_dir):
                 os.makedirs(cache_dir)
-            
+
             pickle_file = open(f'{cache_dir}/CA-GrQc.pkl', 'wb')
             if multi_processing:
                 self.construct_trees_with_mp(self.root_nodes)
@@ -76,7 +76,8 @@ class GraphGAN(object):
         n_node_per_core = self.n_node // cores
         for i in range(cores):
             if i != cores - 1:
-                new_nodes.append(nodes[i * n_node_per_core: (i + 1) * n_node_per_core])
+                new_nodes.append(
+                    nodes[i * n_node_per_core: (i + 1) * n_node_per_core])
             else:
                 new_nodes.append(nodes[i * n_node_per_core:])
         self.trees = {}
