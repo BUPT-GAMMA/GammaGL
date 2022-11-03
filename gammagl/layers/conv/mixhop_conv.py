@@ -56,7 +56,7 @@ class MixHopConv(MessagePassing):
                                       b_init=None) for j in p
         })
 
-        if add_bias is True:
+        if add_bias:
             initor = tlx.initializers.Zeros()
             self.bias = self._get_weights("bias", shape=(1, self.out_channels * len(p)), init=initor)
 

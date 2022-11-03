@@ -14,7 +14,7 @@ class MIXHOPModel(tlx.nn.Module):
         hidden_dim: int
             hidden dimension
         out_dim: int
-		    The number of classes for prediction
+            The number of classes for prediction
         p: list
             The list of integer adjacency powers
         drop_rate: float
