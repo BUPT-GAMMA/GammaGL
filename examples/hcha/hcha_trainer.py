@@ -1,6 +1,6 @@
 import os
-# os.environ['CUDA_VISIBLE_DEVICES']='5'
-# os.environ['TL_BACKEND'] = 'paddle'
+os.environ['CUDA_VISIBLE_DEVICES']='1'
+os.environ['TL_BACKEND'] = 'torch'
 import sys
 # sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 import argparse
@@ -72,9 +72,10 @@ for key, value in hedge_map.items():
     for item in value:
         hyperedge_index[0].append(item) # node index
         hyperedge_index[1].append(key) # hyperedge index
+        m = m + x[item]
         m += x[item]
         count += 1
-    m = m/3
+    m = m/count
     hyperedge_attr.append(m)
 hyperedge_attr = tlx.ops.convert_to_tensor(hyperedge_attr)
 hyperedge_weight = tlx.ones((len(hyperedge_index[1]),))
@@ -96,10 +97,11 @@ ea_len = len(hyperedge_attr[0])
 net = HCHA(in_channels=dataset.num_node_features,
                 hidden_channels=hidden_dim,
                 out_channels=dataset.num_classes,
+                ea_len=ea_len,
                 name="HCHA",
                 use_attention=False, 
                 heads=1,
-                negative_slope=0.2, dropout=drop_rate, bias=True,ea_len=ea_len)
+                negative_slope=0.2, dropout=drop_rate, bias=True)
 
 optimizer = tlx.optimizers.Adam(lr=lr, weight_decay=l2_coef)
 metrics = tlx.metrics.Accuracy()

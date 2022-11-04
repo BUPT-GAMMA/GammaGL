@@ -16,6 +16,7 @@ from .fagcn_conv import FAGCNConv
 from .gpr_conv import GPRConv
 from .gin_conv import GINConv
 from .mixhop_conv import MixHopConv
+from .hcha_conv import HypergraphConv
 
 __all__ = [
     'MessagePassing',

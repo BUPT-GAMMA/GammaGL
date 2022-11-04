@@ -17,6 +17,7 @@ from .simplehgn import SimpleHGNModel
 from .fagcn import FAGCNModel
 from .gprgnn import GPRGNNModel
 from .mixhop import MIXHOPModel
+from .hcha import HCHA
 
 __all__ = [
     'GCNModel',

@@ -13,8 +13,8 @@ def scatter_add(src, index, lenth):
     return a
 
 class HypergraphConv(MessagePassing):
-    def __init__(self, in_channels, out_channels, use_attention=False, heads=1,
-                 concat=True, negative_slope=0.2, dropout=0, bias=True,ea_len,
+    def __init__(self, in_channels, out_channels, ea_len, use_attention=False, heads=1,
+                 concat=True, negative_slope=0.2, dropout=0, bias=True,
                  **kwargs):
         kwargs.setdefault('aggr', 'add')
         super().__init__()
