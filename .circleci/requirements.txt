@@ -3,5 +3,8 @@ scipy
 cython
 tensorflow
 torch
+torchvision
 paddlepaddle
 pytest
+tqdm
+rich

@@ -16,6 +16,8 @@ from .chebnet import ChebNetModel
 from .simplehgn import SimpleHGNModel
 from .fagcn import FAGCNModel
 from .gprgnn import GPRGNNModel
+from .mixhop import MIXHOPModel
+from .hardgat import HardGATModel
 
 __all__ = [
     'GCNModel',
@@ -34,9 +36,11 @@ __all__ = [
     'DGIModel',
     'GraceModel',
     'ChebNetModel',
-    'SimpleHGNModel'
+    'SimpleHGNModel',
     'FAGCNModel',
-    'GPRGNNModel'
+    'GPRGNNModel',
+    'MIXHOPModel',
+    'HardGATModel'
 ]
 
 classes = __all__

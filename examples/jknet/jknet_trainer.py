@@ -4,9 +4,11 @@
 @Time   : 2022/4/10 11:16 A.M.
 @Author : Jia Yiming
 """
+
 import os
 # os.environ['CUDA_VISIBLE_DEVICES']='0'
 # os.environ['TL_BACKEND'] = 'torch'
+
 
 import sys
 sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
@@ -70,9 +72,11 @@ def main(args):
     train_num = int(useful_node * 0.6)
     val_num = int(useful_node * 0.2)
     test_num = useful_node - train_num - val_num
+
     graph.train_mask = graph.train_mask.cpu().numpy()
     graph.val_mask = graph.val_mask.cpu().numpy()
     graph.test_mask = graph.test_mask.cpu().numpy()
+
 
     graph.train_mask[:] = False
     graph.train_mask[useful_index[:train_num]] = True

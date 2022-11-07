@@ -20,7 +20,7 @@ __all__ = [
     'IMDB',
     'Entities',
     'Flickr',
-    'HGBDataset'
+    'HGBDataset',
     'WikipediaNetwork',
     'WebKB'
 

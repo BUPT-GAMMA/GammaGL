@@ -1,15 +1,17 @@
 # Gamma Graph Library(GammaGL)
+
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/BUPT-GAMMA/GammaGL)
 [![Documentation Status](https://readthedocs.org/projects/gammagl/badge/?version=latest)](https://gammagl.readthedocs.io/en/latest/?badge=latest)
 ![GitHub](https://img.shields.io/github/license/BUPT-GAMMA/GammaGL)
 ![visitors](https://visitor-badge.glitch.me/badge?page_id=BUPT-GAMMA.GammaGL)
+![GitHub all releases](https://img.shields.io/github/downloads/BUPT-GAMMA/GammaGL/total)
 ![Total lines](https://img.shields.io/tokei/lines/github/BUPT-GAMMA/GammaGL?color=red)
 
-**[Documentation](https://gammagl.readthedocs.io/en/latest/)** |
+**[Documentation](https://gammagl.readthedocs.io/en/latest/)** |**[启智社区](https://git.openi.org.cn/GAMMALab/GammaGL)**
 
 GammaGL is a multi-backend graph learning library based on [TensorLayerX](https://github.com/tensorlayer/TensorLayerX), which supports TensorFlow, PyTorch, PaddlePaddle, MindSpore as the backends.
 
-It is under development, welcome join us!
+We release the version 0.1.0 on 20th June. 
 
 We give a development tutorial in Chinese on [wiki](https://github.com/BUPT-GAMMA/GammaGL/wiki/%E5%BC%80%E5%8F%91%E8%80%85%E6%B5%81%E7%A8%8B).
 
@@ -241,9 +243,13 @@ class EdgeConv(MessagePassing):
    
    ```bash
    pip install git+https://github.com/tensorlayer/tensorlayerx.git 
-   # Try to install from OpenI if network Error occurred.
-   # pip install git+https://git.openi.org.cn/OpenI/TensorLayerX.git 
    ```
+   
+   > 大陆用户如果遇到网络问题，推荐从启智社区安装
+   > 
+   > Try to git clone from OpenI
+   > 
+   > `pip install git+https://git.openi.org.cn/OpenI/TensorLayerX.git`
 
 3. **Download GammaGL**
    
@@ -251,6 +257,12 @@ class EdgeConv(MessagePassing):
    git clone https://github.com/BUPT-GAMMA/GammaGL.git
    python setup.py install
    ```
+   
+   > 大陆用户如果遇到网络问题，推荐从启智社区安装
+   > 
+   > Try to git clone from OpenI
+   > 
+   > `git clone https://git.openi.org.cn/GAMMALab/GammaGL.git`
 
 ## How to Run
 
@@ -279,7 +291,7 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 ## Supported Models
 
 |                                                  | TensorFlow         | PyTorch            | Paddle             | MindSpore |
-| ------------------------------------------------ | ------------------ | ------------------ | ------------------ | --------- |
+|--------------------------------------------------| ------------------ | ------------------ | ------------------ | --------- |
 | [GCN [ICLR 2017]](./examples/gcn)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [GAT [ICLR 2018]](./examples/gat)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [GraphSAGE [NeurIPS 2017]](./examples/graphsage) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
@@ -292,6 +304,7 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [APPNP [ICLR 2019]](./examples/appnp)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [AGNN [arxiv]](./examples/agnn)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [SIGN [ICML 2020 Workshop]](./examples/sign)     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [DropEdge [ICLR 2020]](./examples/dropedge)      | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [GATv2 [ICLR 2021]](./examples/gatv2)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [GPRGNN [ICLR 2021]](./examples/gprgnn)          | :heavy_check_mark: |                    |                    |           |
 | [FAGCN [AAAI 2021]](./examples/fagcn)            | :heavy_check_mark: | :heavy_check_mark: |                    |           |
@@ -301,8 +314,8 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [DGI [ICLR 2019]](./examples/dgi)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [GRACE [ICML 2020 Workshop]](./examples/grace) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [MVGRL [ICML 2020]](./examples/mvgrl)          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
-| [InfoGraph [ICLR 2020]](./examples/infograph)  | :heavy_check_mark: | :heavy_check_mark: |                    |           |
-| [MERIT [IJCAI 2021]](./examples/merit)         | :heavy_check_mark: |                    |                    |           |
+| [InfoGraph [ICLR 2020]](./examples/infograph)  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [MERIT [IJCAI 2021]](./examples/merit)         | :heavy_check_mark: |                    | :heavy_check_mark: |           |
 
 | Heterogeneous Graph Learning                 | TensorFlow         | PyTorch            | Paddle             | MindSpore |
 | -------------------------------------------- | ------------------ | ------------------ | ------------------ | --------- |
@@ -311,8 +324,15 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | HGT [WWW 2020]                               |                    |                    |                    |           |
 | [SimpleHGN [KDD 2021]](./examples/simplehgn) | :heavy_check_mark: |                    |                    |           |
 
+> Note
+> 
+> The models can be run in mindspore backend. Howerver, the results of experiments are not satisfying due to training component issue,
+> which will be fixed in future.
+
 ## Contributors
 
 GammaGL Team[GAMMA LAB] and Peng Cheng Laboratory.
 
 See more in [CONTRIBUTING](./CONTRIBUTING.md).
+
+Contribution is always welcomed. Please feel free to open an issue or email to tyzhao@bupt.edu.cn.

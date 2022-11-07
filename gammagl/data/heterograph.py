@@ -33,15 +33,27 @@ class HeteroGraph(BaseGraph):
         >>> import tensorlayerx as tlx
         >>> data = HeteroGraph()
         # Create two node types "paper" and "author" holding a feature matrix:
+        >>> num_papers = 6
+        >>> num_paper_features = 16
+        >>> num_authors = 3
+        >>> num_authors_features = 8
         >>> data['paper'].x = tlx.random_uniform((num_papers, num_paper_features))
-        >>> data['author'].x =  tlx.random_uniform((num_authors, num_authors_features)))
+        >>> data['author'].x =  tlx.random_uniform((num_authors, num_authors_features))
         # Create an edge type "(author, writes, paper)" and building the
         # graph connectivity:
-        >>> data['author', 'writes', 'paper'].edge_index = ...  # [2, num_edges]
+        >>> edge = tlx.convert_to_tensor([
+        ... [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2],
+        ... [0, 1, 3, 5, 0, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5]
+        ])
+        >>> data['author', 'writes', 'paper'].edge_index = edge
         >>> data['paper'].num_nodes
-        23
+        3
+        >>> data.num_nodes
+        9
         >>> data['author', 'writes', 'paper'].num_edges
-        52
+        15
+        >>> data.num_edges
+        15
         
     Note that there exists multiple ways to create a heterogeneous graph data,
     *e.g.*:
@@ -423,10 +435,10 @@ class HeteroGraph(BaseGraph):
         return mapping
 
     def get_node_store(self, key: NodeType) -> NodeStorage:
-        r"""Gets the :class:`~torch_geometric.data.storage.NodeStorage` object
+        r"""Gets the :class:`~gammagl.data.storage.NodeStorage` object
         of a particular node type :attr:`key`.
         If the storage is not present yet, will create a new
-        :class:`torch_geometric.data.storage.NodeStorage` object for the given
+        :class:`gammagl.data.storage.NodeStorage` object for the given
         node type.
 
         .. code:: python
@@ -441,10 +453,10 @@ class HeteroGraph(BaseGraph):
         return out
 
     def get_edge_store(self, src: str, rel: str, dst: str) -> EdgeStorage:
-        r"""Gets the :class:`~torch_geometric.data.storage.EdgeStorage` object
+        r"""Gets the :class:`~gammagl.data.storage.EdgeStorage` object
         of a particular edge type given by the tuple :obj:`(src, rel, dst)`.
         If the storage is not present yet, will create a new
-        :class:`torch_geometric.data.storage.EdgeStorage` object for the given
+        :class:`gammagl.data.storage.EdgeStorage` object for the given
         edge type.
 
         .. code:: python
@@ -487,10 +499,12 @@ class HeteroGraph(BaseGraph):
         different types will be merged into a single representation, unless
         otherwise specified via the :obj:`node_attrs` and :obj:`edge_attrs`
         arguments.
+
         Furthermore, attributes named :obj:`node_type` and :obj:`edge_type`
         will be added to the returned :class:`~gammagl.data.Graph`
         object, denoting node-level and edge-level vectors holding the
         node and edge type as integers, respectively.
+
         Args:
             node_attrs (List[str], optional): The node features to combine
                 across all node types. These node features need to be of the
@@ -504,11 +518,11 @@ class HeteroGraph(BaseGraph):
                 (default: :obj:`None`)
             add_node_type (bool, optional): If set to :obj:`False`, will not
                 add the node-level vector :obj:`node_type` to the returned
-                :class:`~torch_geometric.data.Data` object.
+                :class:`~gammagl.data.Graph` object.
                 (default: :obj:`True`)
             add_edge_type (bool, optional): If set to :obj:`False`, will not
                 add the edge-level vector :obj:`edge_type` to the returned
-                :class:`~torch_geometric.data.Data` object.
+                :class:`~gammagl.data.Graph` object.
                 (default: :obj:`True`)
         """
 

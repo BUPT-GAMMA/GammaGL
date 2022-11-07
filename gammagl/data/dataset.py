@@ -16,7 +16,7 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
-    
+
 IndexType = Union[slice, np.ndarray, Sequence]
 
 
@@ -40,6 +40,7 @@ class Dataset(Dataset):
             value, indicating whether the data object should be included in the
             final dataset. (default: :obj:`None`)
     """
+
     @property
     def raw_file_names(self) -> Union[str, List[str], Tuple]:
         r"""The name of the files in the :obj:`self.raw_dir` folder that must
@@ -51,7 +52,7 @@ class Dataset(Dataset):
         r"""The name of the files in the :obj:`self.processed_dir` folder that
         must be present in order to skip processing."""
         raise NotImplementedError
-    
+
     def download(self):
         r"""Downloads the dataset to the :obj:`self.raw_dir` folder."""
         raise NotImplementedError
@@ -115,7 +116,7 @@ class Dataset(Dataset):
                 obj[0].numpy()
                 pickle.dump(obj, f)
         return True
-        
+
     def load_data(self, file_name):
         r"""Support load data according to different backend."""
         if tlx.BACKEND == 'paddle':
@@ -126,13 +127,18 @@ class Dataset(Dataset):
             obj[0].tensor()
         elif tlx.BACKEND == 'torch':
             import torch
-            obj = torch.load(file_name)
+            id = torch.tensor(1).get_device()
+            if id != -1:
+                device = 'cuda:' + str(id)
+            else:
+                device = 'cpu'
+            obj = torch.load(file_name, map_location=device)
         else:
             with open(file_name, 'rb') as f:
                 obj = pickle.load(f)
                 obj[0].tensor()
         return obj
-                
+
     def indices(self) -> Sequence:
         return range(self.len()) if self._indices is None else self._indices
 
@@ -229,8 +235,8 @@ class Dataset(Dataset):
         return len(self.indices())
 
     def __getitem__(
-        self,
-        idx: Union[int, np.integer, IndexType],
+            self,
+            idx: Union[int, np.integer, IndexType],
     ) -> Union['Dataset', Graph]:
         r"""In case :obj:`idx` is of type integer, will return the data object
         at index :obj:`idx` (and transforms it in case :obj:`transform` is
@@ -286,8 +292,8 @@ class Dataset(Dataset):
         return dataset
 
     def shuffle(
-        self,
-        return_perm: bool = False,
+            self,
+            return_perm: bool = False,
     ):
         #    -> Union['Dataset', Tuple['Dataset', tf.Tensor]]:
         r"""Randomly shuffles the examples in the dataset.

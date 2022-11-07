@@ -12,27 +12,27 @@ class SimpleHGNConv(MessagePassing):
 
     Calculating the coefficient:
         
-    ..math::
+    .. math::
         \alpha_{ij} = \frac{exp(LeakyReLU(a^T[Wh_i||Wh_j||W_r r_{\psi(<i,j>)}]))}{\Sigma_{k\in\mathcal{E}}{exp(LeakyReLU(a^T[Wh_i||Wh_k||W_r r_{\psi(<i,k>)}]))}}  (1)
     
     Residual connection including Node residual:
     
-    ..math::
+    .. math::
         h_i^{(l)} = \sigma(\Sigma_{j\in \mathcal{N}_i} {\alpha_{ij}^{(l)}W^{(l)}h_j^{(l-1)}} + h_i^{(l-1)})  (2)
     
     and Edge residual:
         
-    ..math::
+    .. math::
         \alpha_{ij}^{(l)} = (1-\beta)\alpha_{ij}^{(l)}+\beta\alpha_{ij}^{(l-1)}  (3)
         
     Multi-heads:
     
-    ..math::
+    .. math::
         h^{(l+1)}_j = \parallel^M_{m = 1}h^{(l + 1, m)}_j  (4)
     
     Residual:
     
-    ..math::
+    .. math::
         h^{(l+1)}_j = h^{(l)}_j + \parallel^M_{m = 1}h^{(l + 1, m)}_j  (5)
 
     Parameters
@@ -123,7 +123,7 @@ class SimpleHGNConv(MessagePassing):
 
         #edge residual
         if res_alpha is not None:
-            alpha = alpha * (1 - self.beta) + res_attn * self.beta
+            alpha = alpha * (1 - self.beta) + res_alpha * self.beta
 
         rst = tlx.ops.gather(x_new, node_src) * tlx.ops.expand_dims(alpha, axis=-1)
         rst = unsorted_segment_sum(rst, node_dst, num_nodes)

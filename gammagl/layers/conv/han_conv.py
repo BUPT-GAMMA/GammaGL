@@ -37,8 +37,7 @@ class HANConv(MessagePassing):
         .. note::
 
             For an example of using HANConv, see `examples/hetero/han_imdb.py
-            <https://github.com/pyg-team/pytorch_geometric/blob/master/examples/
-            hetero/han_imdb.py>`_.
+            <https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/han>`_.
 
         Parameters
         ----------
@@ -52,7 +51,7 @@ class HANConv(MessagePassing):
             The metadata
             of the heterogeneous graph, *i.e.* its node and edge types given
             by a list of strings and a list of string triplets, respectively.
-            See :meth:`torch_geometric.data.HeteroData.metadata` for more
+            See :meth:`gammagl.data.HeteroGraph.metadata` for more
             information.
         heads: int, optional
             Number of multi-head-attentions.
@@ -66,7 +65,7 @@ class HANConv(MessagePassing):
             sampled neighborhood during training. (default: :obj:`0`)
         **kwargs: optional
             Additional arguments of
-            :class:`torch_geometric.nn.conv.MessagePassing`.
+            :class:`gammagl.layers.conv.MessagePassing`.
         """
     def __init__(self,
                  in_channels,
@@ -74,7 +73,7 @@ class HANConv(MessagePassing):
                  metadata,
                  heads=1,
                  negative_slope=0.2,
-                 dropout_rate=0.0):
+                 dropout_rate=0.5):
         super().__init__()
         if not isinstance(in_channels, dict):
             in_channels = {node_type: in_channels for node_type in metadata[0]}
@@ -85,10 +84,6 @@ class HANConv(MessagePassing):
         self.negetive_slop = negative_slope
         self.dropout_rate = dropout_rate
 
-        # self.proj_head = ModuleDict({})
-        # for node_type, in_channels in self.in_channels.items():
-        #     self.proj_head[node_type] = Linear(in_features=in_channels,
-        #                                        out_features=out_channels)
 
         self.gat_dict = ModuleDict({})
         for edge_type in metadata[1]:
