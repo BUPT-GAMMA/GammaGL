@@ -57,7 +57,7 @@ If need to support cuda, create two other files:
         auto K = x.size(1); // feature dim
         for (auto e = 0; e < E; ++e) {
             for (auto k = 0; k < K; ++k) {
-                out[e * K + k] = op_func(out[e * K + k], x[e * K + k])
+                out[e * K + k] = op_func(out[e * K + k], x[e * K + k]);
             }
         }
         return out;
@@ -74,7 +74,7 @@ If need to support cuda, create two other files:
         auto K = x.size(1);
         for (auto e = 0; e < E; ++e) {
             for (auto k = 0; k < K; ++k) {
-                grad_x[e * K + k] = jvp_func(grad_out[e * K + k])
+                grad_x[e * K + k] = jvp_func(grad_out[e * K + k]);
             }
         }
         return grad_x;

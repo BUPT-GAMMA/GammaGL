@@ -74,4 +74,5 @@ torch::Tensor segment_max(torch::Tensor x, torch::Tensor index, int64_t N) {
 
 TORCH_LIBRARY(torch_segment, m) {
   m.def("segment_max", segment_max);
+  // m.def("segment_sum", segment_sum);
 }

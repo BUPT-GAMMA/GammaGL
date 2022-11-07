@@ -13,17 +13,39 @@ def get_exts():
                 define_macros=[
                     ('COMPLIE_WITH_CUDA', None),
                     ('COMPILE_WITH_OMP', None) # Note: OpenMP needs gcc>4.2.0
-                ]
+                ],
+                extra_compile_args={
+                    'cxx':['-fopenmp']
+                }
             )
         ]
     else:
         return [
             CppExtension(
                 name='torch_segment', 
-                sources=['segment_max.cpp'],
+                sources=[
+                    'segment_max.cpp',
+                    'cpu/segment_max_cpu.cpp'
+                    ],
                 define_macros=[
                     ('COMPILE_WITH_OMP', None)
-                ]
+                ],
+                extra_compile_args={
+                    'cxx':['-fopenmp']
+                }
+            ),
+            CppExtension(
+                name='torch_gspmm', 
+                sources=[
+                    'gspmm.cpp',
+                    'cpu/spmm_sum_cpu.cpp'
+                    ],
+                define_macros=[
+                    ('COMPILE_WITH_OMP', None)
+                ],
+                extra_compile_args={
+                    'cxx':['-fopenmp']
+                }
             )
         ]
 
