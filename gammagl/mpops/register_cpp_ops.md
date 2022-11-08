@@ -26,12 +26,12 @@ If need to support cuda, create two other files:
         return SegmentOp::apply(x);
     }
 
-    TORCH_LIBRARY(torch_segment, m) {
+    TORCH_LIBRARY(torch_ext, m) {
         m.def("segment_op", segment_op);
     }
     ```
 
-    * Device dispatching function (CPU, GPU, ROCm ...):   
+    * Device dispatching function (CPU, CUDA, ROCm ...):   
     ```c++
     torch::Tensor device_dispatch_forward(
         torch::Tensor& x) {
@@ -52,7 +52,7 @@ If need to support cuda, create two other files:
     torch::Tensor segment_max_cpu_forward(torch::Tensor& x) {
         TORCH_CHECK(x.device().is_cpu(), "x must be CPU tensor");
         x = x.contiguous(); // torch Tensor my not be contiguous.
-        auto out = torch::empty(x.sizes(), x.options());
+        auto out = torch::zeros(x.sizes(), x.options());
         auto E = x.size(0); // edge num
         auto K = x.size(1); // feature dim
         for (auto e = 0; e < E; ++e) {
@@ -69,7 +69,7 @@ If need to support cuda, create two other files:
     torch::Tensor segment_max_cpu_forward(torch::Tensor& x,
                                           torch::Tensor& grad_out) {
         TORCH_CHECK(x.device().is_cpu(), "x must be CPU tensor");
-        auto grad_x = torch::empty(x.sizes(), x.options());
+        auto grad_x = torch::zeros(x.sizes(), x.options());
         auto E = x.size(0);
         auto K = x.size(1);
         for (auto e = 0; e < E; ++e) {

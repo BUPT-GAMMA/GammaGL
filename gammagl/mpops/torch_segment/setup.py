@@ -3,20 +3,34 @@ import torch
 from setuptools import setup
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtension
 
+cuda_macro = ('COMPLIE_WITH_CUDA', None)
+omp_macro = ('COMPLIE_WITH_OMP', None) # Note: OpenMP needs gcc>4.2.0
+compile_args = {
+    'cxx':['-fopenmp']
+}
 
 def get_exts():
     if torch.cuda.is_available():
         return [
             CUDAExtension(
                 name='torch_segment', # Note: same with TORCH_LIBRARY (import)
-                sources=['segment_max.cpp'],
-                define_macros=[
-                    ('COMPLIE_WITH_CUDA', None),
-                    ('COMPILE_WITH_OMP', None) # Note: OpenMP needs gcc>4.2.0
-                ],
-                extra_compile_args={
-                    'cxx':['-fopenmp']
-                }
+                sources=[
+                    'segment_max.cpp',
+                    'cpu/segment_max_cpu.cpp',
+                    'cuda/segment_max_cuda.cpp'
+                    ],
+                define_macros=[cuda_macro, omp_macro],
+                extra_compile_args=compile_args
+            ),
+            CUDAExtension(
+                name='torch_gspmm', # Note: same with TORCH_LIBRARY (import)
+                sources=[
+                    'gspmm.cpp',
+                    'cpu/spmm_sum_cpu.cpp'
+                    'cuda/spmm_sum_cuda.cpp'
+                    ],
+                define_macros=[cuda_macro, omp_macro],
+                extra_compile_args=compile_args
             )
         ]
     else:
@@ -27,12 +41,8 @@ def get_exts():
                     'segment_max.cpp',
                     'cpu/segment_max_cpu.cpp'
                     ],
-                define_macros=[
-                    ('COMPILE_WITH_OMP', None)
-                ],
-                extra_compile_args={
-                    'cxx':['-fopenmp']
-                }
+                define_macros=[omp_macro],
+                extra_compile_args=compile_args
             ),
             CppExtension(
                 name='torch_gspmm', 
@@ -40,12 +50,8 @@ def get_exts():
                     'gspmm.cpp',
                     'cpu/spmm_sum_cpu.cpp'
                     ],
-                define_macros=[
-                    ('COMPILE_WITH_OMP', None)
-                ],
-                extra_compile_args={
-                    'cxx':['-fopenmp']
-                }
+                define_macros=[omp_macro],
+                extra_compile_args=compile_args
             )
         ]
 
