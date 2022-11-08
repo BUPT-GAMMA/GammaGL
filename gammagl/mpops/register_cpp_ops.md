@@ -26,7 +26,7 @@ If need to support cuda, create two other files:
         return SegmentOp::apply(x);
     }
 
-    TORCH_LIBRARY(torch_ext, m) {
+    TORCH_LIBRARY(torch_segment, m) {
         m.def("segment_op", segment_op);
     }
     ```

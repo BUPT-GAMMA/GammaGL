@@ -26,7 +26,7 @@ def get_exts():
                 name='torch_gspmm', # Note: same with TORCH_LIBRARY (import)
                 sources=[
                     'gspmm.cpp',
-                    'cpu/spmm_sum_cpu.cpp'
+                    'cpu/spmm_sum_cpu.cpp',
                     'cuda/spmm_sum_cuda.cpp'
                     ],
                 define_macros=[cuda_macro, omp_macro],
