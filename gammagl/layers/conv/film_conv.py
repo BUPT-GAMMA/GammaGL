@@ -2,6 +2,7 @@ import tensorlayerx as tlx
 from gammagl.layers.conv.message_passing import MessagePassing
 from gammagl.utils.film_utils import split_to_two
 
+
 class FILMConv(MessagePassing):
     r"""The FiLM graph convolutional operator from the
     `"GNN-FiLM: Graph Neural Networks with Feature-wise Linear Modulation"
@@ -30,7 +31,6 @@ class FILMConv(MessagePassing):
             (default: :meth:`torch.nn.ReLU()`)
     """
 
-
     def __init__(self,
                  in_channels,
                  out_channels,
@@ -52,7 +52,6 @@ class FILMConv(MessagePassing):
             in_channels = (in_channels, in_channels)
 
         for _ in range(num_relations):
-
             self.lins.append(Linear(in_features=in_channels[0], out_features=out_channels, b_init=None))
             self.films.append(Linear(in_features=in_channels[1], out_features=2 * out_channels))
 
@@ -63,7 +62,7 @@ class FILMConv(MessagePassing):
 
         x = (x, x)
 
-        beta, gamma = split_to_two(self.film_skip(x[1]), axis=-1)
+        beta, gamma = tlx.split(self.flim_skip(x[1]), 2, axis=-1)
         out = tlx.multiply(gamma, self.lin_skip(x[1])) + beta
 
         if self.act is not None:
