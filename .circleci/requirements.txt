@@ -8,3 +8,4 @@ paddlepaddle
 pytest
 tqdm
 rich
+django
