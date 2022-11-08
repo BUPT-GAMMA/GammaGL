@@ -22,10 +22,12 @@ torch::Tensor spmm_sum_cpu_forward(torch::Tensor &index, torch::Tensor &weight,
     col = index_data[e];
     row = index_data[e + E]; // or e + 1;
     for (auto k = 0; k < K; ++k) {
+      scalar_t val =  out_data[row * K + k] + weight_data[e] * x_data[col * K + k];
 #ifdef COMPILE_WITH_OMP
 #pragma omp atomic write
 #endif
-      out_data[row * K + k] += (weight_data[e] * x_data[col * K + k]);
+      // Error: expected ‘=’ before ‘+=’ token
+      out_data[row * K + k] = val;
     }
   }
 
@@ -53,11 +55,13 @@ torch::Tensor spmm_sum_cpu_backward(torch::Tensor &index, torch::Tensor &weight,
   for (auto e = 0; e < E; ++e) {
     col = index_data[e];
     row = index_data[e + E]; // or e + 1;
+    
     for (auto k = 0; k < K; ++k) {
+      scalar_t val = out_data[col * K + k] +  weight_data[e] * grad_data[row * K + k];
 #ifdef COMPILE_WITH_OMP
 #pragma omp atomic write
 #endif
-      out_data[col * K + k] += (weight_data[e] * grad_data[row * K + k]);
+      out_data[col * K + k] = val;
     }
   }
 

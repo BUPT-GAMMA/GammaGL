@@ -27,13 +27,13 @@ torch::Tensor device_dispatch_forward(torch::Tensor &index,
 torch::Tensor device_dispatch_backward(torch::Tensor &index,
                                        torch::Tensor &weight,
                                        torch::Tensor &grad) {
-  if (x.is_cuda() && index.is_cuda() && weight.is_cuda()) {
+  if (grad.is_cuda() && index.is_cuda() && weight.is_cuda()) {
 #ifdef COMPILE_WITH_CUDA
-    return spmm_sum_cuda_backward(index, weight, x, grad);
+    return spmm_sum_cuda_backward(index, weight, grad);
 #else
     AT_ERROR("Compiled with CUDA support while tensor is on GPU!");
 #endif
-  } else if (x.is_cpu() && index.is_cpu() && weight.is_cpu()) {
+  } else if (grad.is_cpu() && index.is_cpu() && weight.is_cpu()) {
     return spmm_sum_cpu_backward(index, weight, grad);
   } else {
     AT_ERROR("Device type error.");
@@ -71,8 +71,9 @@ torch::Tensor spmm_sum(torch::Tensor index, torch::Tensor weight,
   return result;
 }
 
-
-TORCH_LIBRARY(torch_gspmm, m) {
+// TORCH_LIBRARY BUG: dynamic module does not define module export function.
+// Use PYBIND11_MODULE
+PYBIND11_MODULE(torch_gspmm, m) {
   m.def("spmm_sum", spmm_sum);
   // m.def("spmm_max", spmm_max);
   // ...

@@ -72,7 +72,7 @@ torch::Tensor segment_max(torch::Tensor x, torch::Tensor index, int64_t N) {
   return result;
 }
 
-TORCH_LIBRARY(torch_segment, m) {
+PYBIND11_MODULE(torch_segment, m) {
   m.def("segment_max", segment_max);
   // m.def("segment_sum", segment_sum);
 }

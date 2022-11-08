@@ -51,7 +51,7 @@ def get_exts():
 
 
 setup(
-    name='torch_segment', # PyPI name (install)
+    name='torch_ext', # PyPI name (install)
     ext_modules=get_exts(),
     cmdclass={'build_ext': BuildExtension}
 )
