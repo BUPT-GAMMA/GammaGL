@@ -17,7 +17,7 @@ def get_exts():
                 sources=[
                     'segment_max.cpp',
                     'cpu/segment_max_cpu.cpp',
-                    'cuda/segment_max_cuda.cpp'
+                    'cuda/segment_max_cuda.cu'
                     ],
                 define_macros=[cuda_macro, omp_macro],
                 extra_compile_args=compile_args
@@ -27,7 +27,7 @@ def get_exts():
                 sources=[
                     'gspmm.cpp',
                     'cpu/spmm_sum_cpu.cpp',
-                    'cuda/spmm_sum_cuda.cpp'
+                    'cuda/spmm_sum_cuda.cu'
                     ],
                 define_macros=[cuda_macro, omp_macro],
                 extra_compile_args=compile_args
