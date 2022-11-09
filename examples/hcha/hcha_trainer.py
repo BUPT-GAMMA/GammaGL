@@ -53,7 +53,6 @@ y = graph.y  # 每一个节点的label
 '''label type'''
 label_type = np.array(y)
 label_type = set(list(label_type))
-print(label_type)
 
 '''hyper-edge construction'''
 temp = []
@@ -72,8 +71,7 @@ for key, value in hedge_map.items():
     for item in value:
         hyperedge_index[0].append(item) # node index
         hyperedge_index[1].append(key) # hyperedge index
-        m = m + x[item]
-        m += x[item]
+        m += np.array(x[item])
         count += 1
     m = m/count
     hyperedge_attr.append(m)
@@ -93,7 +91,6 @@ train_idx = mask_to_index(graph.train_mask)
 test_idx = mask_to_index(graph.test_mask)
 val_idx = mask_to_index(graph.val_mask)
 ea_len = len(hyperedge_attr[0])
-
 net = HCHA(in_channels=dataset.num_node_features,
                 hidden_channels=hidden_dim,
                 out_channels=dataset.num_classes,
