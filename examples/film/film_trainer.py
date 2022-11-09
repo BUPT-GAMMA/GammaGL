@@ -43,7 +43,7 @@ def main(args):
     net = FILMModel(in_channels=train_dataset.num_node_features,
                     hidden_dim=args.hidden_dim,
                     out_channels=train_dataset.num_classes,
-                    num_layers = args.num_layers,
+                    num_layers=args.num_layers,
                     drop_rate=args.drop_rate,
                     name="FILM")
 
