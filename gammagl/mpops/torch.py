@@ -1,5 +1,13 @@
 import torch
 
+use_ext = False
+try:
+    import torch_segment
+    import torch_gspmm
+    use_ext = True
+except:
+    pass
+
 
 def unsorted_segment_sum(x, segment_ids, num_segments=None):
     assert x.shape[0] == segment_ids.shape[0], "the length of segment_ids should be equal to data.shape[0]."
@@ -52,6 +60,8 @@ def unsorted_segment_max(x, segment_ids, num_segments=None):
     # assert segment_ids.max() < num_segments
 
     assert x.shape[0] == segment_ids.shape[0], "the length of segment_ids should be equal to data.shape[0]."
+    if use_ext:
+        return torch_segment.segment_max(x, segment_ids, num_segments)
     res = []
     for i in range(num_segments):
         res.append(torch.max(x[segment_ids == i], dim=0)[0])
@@ -69,3 +79,8 @@ def segment_mean(x, segment_ids,num_segments=None):
 def segment_sum(x, segment_ids,num_segments=None):
     return unsorted_segment_sum(x, segment_ids,num_segments)
 
+def gspmm(index, weight, x, reduce='sum'):
+    if reduce == 'sum':
+        return torch_gspmm.spmm_sum(index, weight, x)
+    else:
+        raise Exception("Unsupported reduce type, please choose from ['sum', ].")
