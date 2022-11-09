@@ -85,11 +85,11 @@ def global_max_pool(x, batch, size: Optional[int] = None):
 
 def global_min_pool(x, batch, size: Optional[int] = None):
     r"""Returns batch-wise graph-level-outputs by taking the channel-wise
-    maximum across the node dimension, so that for a single graph
+    minimum across the node dimension, so that for a single graph
     :math:`\mathcal{G}_i` its output is computed by
 
     .. math::
-        \mathbf{r}_i = \mathrm{max}_{n=1}^{N_i} \, \mathbf{x}_n
+        \mathbf{r}_i = \mathrm{min}_{n=1}^{N_i} \, \mathbf{x}_n
 
     Parameters
     ----------
