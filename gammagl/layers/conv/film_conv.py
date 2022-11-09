@@ -1,6 +1,5 @@
 import tensorlayerx as tlx
 from gammagl.layers.conv.message_passing import MessagePassing
-from gammagl.utils.film_utils import split_to_two
 
 
 class FILMConv(MessagePassing):
@@ -62,13 +61,13 @@ class FILMConv(MessagePassing):
 
         x = (x, x)
 
-        beta, gamma = tlx.split(self.flim_skip(x[1]), 2, axis=-1)
+        beta, gamma = tlx.split(self.film_skip(x[1]), 2, axis=-1)
         out = tlx.multiply(gamma, self.lin_skip(x[1])) + beta
 
         if self.act is not None:
             out = self.act(out)
 
-        beta, gamma = split_to_two(self.films[0](x[1]), axis=-1)
+        beta, gamma = tlx.split(self.films[0](x[1]), 2, axis=-1)
         out = out + self.propagate(x=self.lins[0](x[0]), edge_index=edge_index, beta=beta, gamma=gamma)
 
         return out
