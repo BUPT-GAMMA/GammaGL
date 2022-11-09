@@ -10,9 +10,8 @@ os.environ['TL_BACKEND'] = 'tensorflow'  # set your backend here, default `tenso
 import os.path as osp
 import argparse
 import sys
-
 sys.path.insert(0, osp.abspath('../../'))  # adds path2gammagl to execute in command line.
-import numpy
+import numpy as np
 import tensorlayerx as tlx
 from tensorlayerx import convert_to_tensor, convert_to_numpy
 from gammagl.datasets import ZINC
@@ -32,6 +31,8 @@ class SemiSpvzLoss(WithLoss):
 
     def forward(self, data, label):
         logits = self.backbone_network(data.x, data.edge_index, data.edge_attr, data.batch)
+        # convert the type of label to tlx.float32
+        label = convert_to_tensor(convert_to_numpy(label), dtype=tlx.float32)
         loss = self._loss_fn(tlx.squeeze(logits, axis=1), label)
         return loss
 
@@ -43,7 +44,8 @@ def evaluate(model, loader):
     total_loss = 0
     for data in loader:
         out = model(data.x, data.edge_index, data.edge_attr, data.batch)
-        loss = absolute_difference_error(tlx.squeeze(x=out, axis=1), data.y)
+        label = convert_to_tensor(convert_to_numpy(data.y), dtype=tlx.float32)
+        loss = absolute_difference_error(tlx.squeeze(x=out, axis=1), label)
         total_loss += float(loss) * data.num_graphs
     return total_loss / len(loader.dataset)
 
@@ -60,17 +62,19 @@ def main(args):
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size)
 
     # Compute the maximum in-degree in the training data.
-    max_degree = -1
-    for data in train_dataset:
-        d = degree(data.edge_index[1], num_nodes=data.num_nodes, dtype=tlx.int64)
-        max_degree = max(max_degree, int(tlx.reduce_max(d)))
+    # max_degree = -1
+    # for data in train_dataset:
+    #     d = degree(data.edge_index[1], num_nodes=data.num_nodes, dtype=tlx.int64)
+    #     max_degree = max(max_degree, int(tlx.reduce_max(d)))
 
     # Compute the in-degree histogram tensor
-    deg = tlx.zeros((max_degree + 1,), dtype=tlx.int64)
-    for data in train_dataset:
-        d = degree(data.edge_index[1], num_nodes=data.num_nodes, dtype=tlx.int64)
-        deg_i = numpy.bincount(convert_to_numpy(d), minlength=len(deg))
-        deg += convert_to_tensor(deg_i)
+    # deg = tlx.zeros((max_degree + 1,), dtype=tlx.int64)
+    # for data in train_dataset:
+    #     d = degree(data.edge_index[1], num_nodes=data.num_nodes, dtype=tlx.int64)
+    #     deg_i = numpy.bincount(convert_to_numpy(d), minlength=len(deg))
+    #     deg += convert_to_tensor(deg_i)
+
+    deg = tlx.convert_to_tensor(np.array([0, 41130, 117278, 70152, 3104]), dtype=tlx.int64)
 
     model = PNAModel(in_channels=args.in_channels,
                      out_channels=args.out_channels,
@@ -82,6 +86,7 @@ def main(args):
                      pre_layers=args.pre_layers,
                      post_layers=args.post_layers,
                      divide_input=args.divide_input)
+
     scheduler = ReduceOnPlateau(learning_rate=args.lr, mode='min', factor=0.5, patience=20,
                                 min_lr=0.00001)
     optimizer = tlx.optimizers.Adam(lr=scheduler)
@@ -107,8 +112,7 @@ def main(args):
             best_test_mae = test_mae
             model.save_weights(args.best_model_path + model.name + ".npz", format='npz_dict')
 
-        print(f'Epoch: {epoch:02d}, Loss: {all_loss:.4f}, val_mae: {val_mae:.4f}, test_mae: {test_mae:.4f}, lr: ',
-              scheduler.last_lr)
+        print(f'Epoch: {epoch:02d}, Loss: {all_loss:.4f}, val_mae: {val_mae:.4f}, test_mae: {test_mae:.4f}')
 
     model.load_weights(args.best_model_path + model.name + ".npz", format='npz_dict')
     test_mae = evaluate(model, test_loader)
@@ -122,8 +126,6 @@ if __name__ == '__main__':
     parser.add_argument("--lr", type=float, default=0.001, help="learning rate")
     parser.add_argument("--n_epoch", type=int, default=400, help="number of epoch")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
-
-    # model
     parser.add_argument('--in_channels', type=int, default=75, help='Size of each input sample in PNAConv layer')
     parser.add_argument('--out_channels', type=int, default=75, help='Size of each output sample in PNAConv layer')
     parser.add_argument('--aggregators', type=str, default='mean min max std', help='Aggregators to use')
