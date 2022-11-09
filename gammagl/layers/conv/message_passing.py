@@ -75,7 +75,7 @@ class MessagePassing(tlx.nn.Module):
         try to fuse message and aggregate to reduce expensed edge information.
         """
         # use_ext is defined in mpops
-        if use_ext:
+        if use_ext is not None and use_ext:
             if edge_weight is None:
                 edge_weight = torch.ones(edge_index.shape[1],
                                          device=x.device, 

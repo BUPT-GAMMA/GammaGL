@@ -53,7 +53,6 @@ torch::Tensor spmm_sum_cuda_forward(torch::Tensor &index, torch::Tensor &weight,
   auto stream = at::cuda::getCurrentCUDAStream();
 
   auto index_data = index.data_ptr<int64_t>();
-  int64_t col, row;
   // AT_DISPATCH_ALL_TYPES(x.scalar_type(), "__ops_name", [&] {
   using scalar_t = float;
   auto x_data = x.data_ptr<scalar_t>();
