@@ -36,13 +36,13 @@ def main(args):
 
     batch_size = int(args.batch_size)
 
-    train_batch = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
-    val_batch = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-    test_batch = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-    net = FILMModel(in_channels=train_dataset[0].num_node_features,
+    net = FILMModel(in_channels=train_dataset.num_node_features,
                     hidden_dim=args.hidden_dim,
-                    out_channels=train_dataset[0]['y'].shape[-1],
+                    out_channels=train_dataset.num_classes,
                     drop_rate=args.drop_rate,
                     name="FILM")
 
@@ -62,12 +62,12 @@ def main(args):
     best_val_acc = 0
     for epoch in range(args.n_epoch):
         net.set_train()
-        for batch in train_batch:
+        for batch in train_loader:
             train_loss = train_one_step(batch, batch['y'])
 
         net.set_eval()
 
-        for batch in val_batch:
+        for batch in val_loader:
             val_logits = net(batch['x'], batch['edge_index'])
 
             val_y = batch['y']
@@ -83,12 +83,12 @@ def main(args):
 
     net.load_weights(args.best_model_path + net.name + ".npz", format='npz_dict')
     if tlx.BACKEND == 'torch':
-        net.to(test_batch['x'].device)
+        net.to(test_loader['x'].device)
     net.set_eval()
-    for batch in test_batch:
+    for batch in test_loader:
         test_logits = net(batch['x'], batch['edge_index'])
 
-        test_y = test_batch['y']
+        test_y = test_loader['y']
         test_acc = calculate_acc(tlx.where(test_logits > 0, 1, 0), test_y, metrics)
 
         print("Test acc:  {:.4f}".format(test_acc))
