@@ -22,18 +22,19 @@ class FILMModel(tlx.nn.Module):
     def __init__(self, in_channels,
                  hidden_dim,
                  out_channels,
+                 num_layers,
                  drop_rate,
                  name=None):
         super(FILMModel, self).__init__(name=name)
 
         self.convs = tlx.nn.ModuleList()
         self.convs.append(FILMConv(in_channels=in_channels, out_channels=hidden_dim))
-        for _ in range(2):
+        for _ in range(num_layers - 2):
             self.convs.append(FILMConv(in_channels=hidden_dim, out_channels=hidden_dim))
         self.convs.append(FILMConv(in_channels=hidden_dim, out_channels=out_channels, act=None))
 
         self.norms = tlx.nn.ModuleList()
-        for _ in range(3):
+        for _ in range(num_layers - 1):
             self.norms.append(tlx.nn.BatchNorm1d(momentum=0.1))
 
         self.dropout = tlx.nn.Dropout(drop_rate)

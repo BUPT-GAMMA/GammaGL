@@ -43,6 +43,7 @@ def main(args):
     net = FILMModel(in_channels=train_dataset.num_node_features,
                     hidden_dim=args.hidden_dim,
                     out_channels=train_dataset.num_classes,
+                    num_layers = args.num_layers,
                     drop_rate=args.drop_rate,
                     name="FILM")
 
@@ -107,6 +108,7 @@ if __name__ == '__main__':
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     parser.add_argument("--batch_size", type=int, default=2, help="batch_size of dataloader")
+    parser.add_argument("--num_layers", type=int, default=4, help="num of film layers")
     args = parser.parse_args()
 
     main(args)
