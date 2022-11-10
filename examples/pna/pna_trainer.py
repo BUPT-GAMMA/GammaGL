@@ -30,9 +30,12 @@ class SemiSpvzLoss(WithLoss):
         super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
 
     def forward(self, data, label):
-        logits = self.backbone_network(data.x, data.edge_index, data.edge_attr, data.batch)
-        # convert the type of label to tlx.float32
+        # type conversion
+        x = convert_to_tensor(convert_to_numpy(data.x), dtype=tlx.int64)
+        edge_attr = convert_to_tensor(convert_to_numpy(data.edge_attr), dtype=tlx.int64)
         label = convert_to_tensor(convert_to_numpy(label), dtype=tlx.float32)
+
+        logits = self.backbone_network(x, data.edge_index, edge_attr, data.batch)
         loss = self._loss_fn(tlx.squeeze(logits, axis=1), label)
         return loss
 
@@ -43,8 +46,12 @@ def evaluate(model, loader):
         model.batch_norms[i].is_train = False
     total_loss = 0
     for data in loader:
-        out = model(data.x, data.edge_index, data.edge_attr, data.batch)
+        # type conversion
+        x = convert_to_tensor(convert_to_numpy(data.x), dtype=tlx.int64)
+        edge_attr = convert_to_tensor(convert_to_numpy(data.edge_attr), dtype=tlx.int64)
         label = convert_to_tensor(convert_to_numpy(data.y), dtype=tlx.float32)
+
+        out = model(x, data.edge_index, edge_attr, data.batch)
         loss = absolute_difference_error(tlx.squeeze(x=out, axis=1), label)
         total_loss += float(loss) * data.num_graphs
     return total_loss / len(loader.dataset)
