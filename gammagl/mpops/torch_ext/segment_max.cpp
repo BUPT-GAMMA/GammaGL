@@ -32,7 +32,7 @@ std::tuple<torch::Tensor, torch::Tensor> device_dispatch_forward(torch::Tensor& 
   } else if (x.is_cpu() && index.is_cpu()) {
     return segment_max_cpu_forward(x, index, N);
   } else {
-    TORCH_CHECK(false, "Device type error.");
+    AT_ERROR("Tensor device inconsistent error.");
   }
 }
 
@@ -72,6 +72,7 @@ torch::Tensor segment_max(torch::Tensor x, torch::Tensor index, int64_t N) {
   return result;
 }
 
-TORCH_LIBRARY(torch_segment, m) {
+PYBIND11_MODULE(torch_segment, m) {
   m.def("segment_max", segment_max);
+  // m.def("segment_sum", segment_sum);
 }

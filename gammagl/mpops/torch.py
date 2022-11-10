@@ -3,6 +3,7 @@ import torch
 use_ext = False
 try:
     import torch_segment
+    import torch_gspmm
     use_ext = True
 except:
     pass
@@ -78,3 +79,8 @@ def segment_mean(x, segment_ids,num_segments=None):
 def segment_sum(x, segment_ids,num_segments=None):
     return unsorted_segment_sum(x, segment_ids,num_segments)
 
+def gspmm(index, weight, x, reduce='sum'):
+    if reduce == 'sum':
+        return torch_gspmm.spmm_sum(index, weight, x)
+    else:
+        raise Exception("Unsupported reduce type, please choose from ['sum', ].")
