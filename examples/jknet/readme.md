@@ -27,9 +27,13 @@ TL_BACKEND="paddle" python jknet_trainer.py --dataset pubmed --mode cat --lr 0.0
 TL_BACKEND="tensorflow" python jknet_trainer.py --dataset cora --mode cat --lr 0.005 --n_epoch 200 --hidden_dim 64
 TL_BACKEND="tensorflow" python jknet_trainer.py --dataset citeseer --mode cat --lr 0.01 --n_epoch 170 --hidden_dim 32
 TL_BACKEND="tensorflow" python jknet_trainer.py --dataset pubmed --mode max --lr 0.01 --n_epoch 170 --hidden_dim 32
+TL_BACKEND="torch" python jknet_trainer.py --dataset cora --mode max --lr 0.01 --n_epoch 200 --hidden_dim 16 
+TL_BACKEND="torch" python jknet_trainer.py --dataset citeseer --mode cat --lr 0.01 --n_epoch 200 --hidden_dim 16 
+TL_BACKEND="torch" python jknet_trainer.py --dataset pubmed --mode max --lr 0.1 --n_epoch 200 --hidden_dim 16
 ```
-| Dataset | Paper | Our(pd) | Our(tf) |
-| ---- | ---- | ---- | ---- |
-| cora | 0.896(±0.005) | 0.847(±0.01) | 0.8584(±0.007) |
-| citeseer | 0.783(±0.008) | 0.7554(±0.001) | 0.761(±0.01)|
-| pubmed |  | 0.7782(±0.003) | 0.7826(±0.005) |
+| Dataset | Paper | Our(pd) | Our(tf) | Our(th) |
+| ---- | ---- | ---- | ---- | ---- |
+| cora | 0.896(±0.005) | 0.847(±0.01) | 0.8584(±0.007) | 0.872(±0.007) |
+| citeseer | 0.783(±0.008) | 0.7554(±0.001) | 0.761(±0.01)| 0.769(±0.014)|
+| pubmed |  | 0.7782(±0.003) | 0.7826(±0.005) | 0.792(±0.005)| 
+

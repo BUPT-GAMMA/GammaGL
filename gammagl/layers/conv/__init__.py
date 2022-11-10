@@ -15,6 +15,8 @@ from .simplehgn_conv import SimpleHGNConv
 from .fagcn_conv import FAGCNConv
 from .gpr_conv import GPRConv
 from .gin_conv import GINConv
+from .mixhop_conv import MixHopConv
+from .hardgat_conv import HardGATConv
 from .film_conv import FILMConv
 
 __all__ = [
@@ -34,6 +36,8 @@ __all__ = [
     'SimpleHGNConv',
     'FAGCNConv',
     'GPRConv',
+    'MixHopConv',
+    'HardGATConv'
     'GINConv',
 ]
 
