@@ -1,136 +1,107 @@
-"""
-@File    :   gin.py
-@Time    :   2022/03/07
-@Author  :   Tianyu Zhao
-"""
-
-import os
-
-os.environ['TL_BACKEND'] = 'tensorflow'  # set your backend here, default 'tensorflow'
-# sys.path.insert(0, os.path.abspath('../')) # adds path2gammagl to execute in command line.
-
 import argparse
-import tensorflow as tf
 import tensorlayerx as tlx
-from gammagl.datasets import TUDataset
+from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.loader import DataLoader
+from gammagl.datasets import TUDataset
 from gammagl.models import GINModel
 
 
-def train(model, train_loader, optimizer, train_weights):
-    model.set_train()
-    correct = 0
-    all_loss = 0
-    for data in train_loader:
-        with tf.GradientTape() as tape:
-            out = model(data.x, data.edge_index, data.batch)
-            train_loss = tlx.losses.softmax_cross_entropy_with_logits(out, tlx.cast(data.y, dtype=tlx.int32))
-            all_loss += train_loss
-            pred = tlx.argmax(out, axis=1)
-            correct += tlx.reduce_sum(tlx.cast((pred == data.y), dtype=tlx.int64))
-        grad = tape.gradient(train_loss, train_weights)
-        optimizer.apply_gradients(zip(grad, train_weights))
-    print(all_loss)
-    print(correct / len(train_loader.dataset))
+class SemiSpvzLoss(WithLoss):
+    def __init__(self, net, loss_fn):
+        super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
+
+    def forward(self, data, y):
+        train_logits = self.backbone_network(data.x, data.edge_index, data.batch)
+        loss = self._loss_fn(train_logits, data.y)
+        return loss
 
 
-def evaluate(model, loader):
-    model.set_eval()  # disable dropout
-    correct = 0
-    for data in loader:
-        out = model(data.x, data.edge_index, data.batch)
-        pred = tlx.argmax(out, axis=1)
-        correct += tlx.reduce_sum(tlx.cast((pred == data.y), dtype=tlx.int64))
-    return correct / len(loader.dataset)
+def calculate_acc(logits, y, metrics):
+    metrics.update(logits, y)
+    rst = metrics.result()
+    metrics.reset()
+    return rst
 
 
 def main(args):
-    # load mutag dataset
-    if str.lower(args.dataset) not in ['mutag']:
-        raise ValueError('Unknown dataset: {}'.format(args.dataset))
+    print("loading dataset...")
+    path = args.dataset_path + 'TU'
+    dataset = TUDataset(path, name="MUTAG")
 
-    dataset = TUDataset(args.dataset_path, args.dataset, use_node_attr=True)
+    dataset_unit = len(dataset) // 10
+    train_dataset = dataset[2 * dataset_unit:]
+    val_dataset = dataset[:dataset_unit]
+    test_dataset = dataset[dataset_unit: 2 * dataset_unit]
+    train_batch = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=False)
+    val_batch = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
+    test_batch = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
-    train_dataset = dataset[:110]
-    val_dataset = dataset[110:150]
-    test_dataset = dataset[150:]
-    train_loader = DataLoader(dataset=train_dataset, batch_size=64, shuffle=False)
-    val_loader = DataLoader(dataset=val_dataset, batch_size=64, shuffle=True)
-    test_loader = DataLoader(dataset=test_dataset, batch_size=64, shuffle=True)
+    net = GINModel(in_channels=dataset.num_features,
+                   hidden_channels=args.hidden_dim,
+                   out_channels=dataset.num_classes,
+                   num_layers=args.num_layers,
+                   name="GIN")
 
-    # model = GINModel(name="GIN", input_dim=dataset.num_features, hidden=args.hidden_dim, out_dim=dataset.num_classes)
-    model = GINModel(input_dim=dataset.num_features,
-                     hidden_dim=args.hidden_dim,
-                     output_dim=dataset.num_classes,
-                     final_dropout=args.final_dropout,
-                     num_layers=args.num_layers,
-                     num_mlp_layers=args.num_mlp_layers,
-                     learn_eps=args.learn_eps,
-                     graph_pooling_type=args.graph_pooling_type,
-                     neighbor_pooling_type=args.neighbor_pooling_type,
-                     name="GIN"
-                     )
+    # if tlx.BACKEND == film_utils.TORCH_BACKEND:
+    #     net = net.to(device)
+
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
-    # metrics = tlx.metrics.Accuracy()
-    train_weights = model.trainable_weights
-    '''
-    data = {
-        "x": x,
-        "edge_index": edge_index,
-        "train_mask": graph.train_mask,
-        "test_mask": graph.test_mask,
-        "num_nodes": graph.num_nodes,
-    }
-    '''
+
+    metrics = tlx.metrics.Accuracy()
+
+    train_weights = net.trainable_weights
+
+    loss_func = SemiSpvzLoss(net, tlx.losses.softmax_cross_entropy_with_logits)
+
+    train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
     best_val_acc = 0
-    print('start training...')
     for epoch in range(args.n_epoch):
-        train(model, train_loader, optimizer, train_weights)
-        train_acc = evaluate(model=model, loader=train_loader)
-        val_acc = evaluate(model=model, loader=val_loader)
+        net.set_train()
+        for data in train_batch:
+            train_loss = train_one_step(data, data['y'])
 
-        print("Epoch [{:0>3d}]  ".format(epoch + 1),
-              "   train acc: {:.4f}".format(train_acc),
-              "   val acc: {:.4f}".format(val_acc))
+        net.set_eval()
 
-        # save best model on evaluation set
-        if val_acc > best_val_acc:
-            best_val_acc = val_acc
-            model.save_weights(args.best_model_path + model.name + ".npz", format='npz_dict')
+        for data in val_batch:
+            val_logits = net(data.x, data.edge_index, data.batch)
 
-    model.load_weights(args.best_model_path + model.name + ".npz", format='npz_dict')
-    test_acc = evaluate(model=model, loader=test_loader)
-    print("Test acc:  {:.4f}".format(test_acc))
+            val_acc = calculate_acc(tlx.where(val_logits > 0, 1, 0), data.y, metrics)
+
+            print("Epoch [{:0>3d}] ".format(epoch + 1) \
+                  + "  train loss: {:.4f}".format(train_loss.item()) \
+                  + "  val acc: {:.4f}".format(val_acc))
+
+            if val_acc > best_val_acc:
+                best_val_acc = val_acc
+                net.save_weights(args.best_model_path + net.name + ".npz", format='npz_dict')
+
+    net.load_weights(args.best_model_path + net.name + ".npz", format='npz_dict')
+    if tlx.BACKEND == 'torch':
+        net.to(test_batch['x'].device)
+    net.set_eval()
+    for data in test_batch:
+        test_logits = net(data.x, data.edge_index, data.batch)
+
+        test_acc = calculate_acc(tlx.where(test_logits > 0, 1, 0), data.y, metrics)
+
+        print("Test acc:  {:.4f}".format(test_acc))
 
 
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    # learning
-    parser.add_argument("--lr", type=float, default=0.2, help="learning rate")
-    parser.add_argument("--n_epoch", type=int, default=350, help="number of epoch")
-    parser.add_argument("--final_dropout", type=float, default=0.01, help="final layer dropout")
+    parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
+    parser.add_argument("--n_epoch", type=int, default=100, help="number of epoch")
+    parser.add_argument("--hidden_dim", type=int, default=160, help="dimention of hidden layers")
+    parser.add_argument("--drop_rate", type=float, default=0.1, help="drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
-
-    # graph
-    parser.add_argument("--graph_pooling_type", type=str, default="sum", choices=["sum", "mean", "max"],
-                        help="type of graph pooling: sum, mean or max")
-    parser.add_argument("--neighbor_pooling_type", type=str, default="sum", choices=["sum", "mean", "max"],
-                        help="type of neighboring pooling: sum, mean or max")
-    parser.add_argument("--learn_eps", type=bool, default=False, help="learn the epsilon weighting")
-
-    # net
-    parser.add_argument("--num_layers", type=int, default=5, help="numbers of layers")
-    parser.add_argument("--num_mlp_layers", type=int, default=2, help="number of MLP layers. 1 means linear model")
-    parser.add_argument("--hidden_dim", type=int, default=64, help="dimension of hidden layers")
-    parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
-
-    # dataset
-    parser.add_argument('--dataset', type=str, default='MUTAG', help='dataset')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument('--dataset', type=str, default='TUDataset', help='dataset(TUDataset)')
+    parser.add_argument("--dataset_path", type=str, default=r'../../data/', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
-
+    parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
+    parser.add_argument("--num_layers", type=int, default=5, help="num of gin layers")
+    parser.add_argument("--batch_size", type=int, default=128, help="batch_size of the data_loader")
     args = parser.parse_args()
 
     main(args)
