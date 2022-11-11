@@ -47,10 +47,10 @@ class HCHA(tlx.nn.Module):
             x = self.conv[i](x, hyperedge_index, hyperedge_weight, hyperedge_attr)
             x = self.relu(x)
             x = self.dropout(x)
-        print('x.shape:',x.shape)
-        print('hyperedge_index:',hyperedge_index.shape)
-        print('hyperedge_weight.shape',hyperedge_weight.shape)
-        print('hyperedge_attr.shape',hyperedge_attr.shape)
+        # print('x.shape:',x.shape)
+        # print('hyperedge_index:',hyperedge_index.shape)
+        # print('hyperedge_weight.shape',hyperedge_weight.shape)
+        # print('hyperedge_attr.shape',hyperedge_attr.shape)
         x = self.conv[-1](x, hyperedge_index, hyperedge_weight, hyperedge_attr)
         
         return x

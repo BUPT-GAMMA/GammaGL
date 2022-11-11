@@ -46,11 +46,11 @@ class HypergraphConv(MessagePassing):
         if bias and concat:
             # self.bias = tlx.nn.Parameter(data=tlx.zeros(heads * out_channels))
             initor = tlx.initializers.Zeros()
-            self.bias = self._get_weights('bias', init=initor, shape=(heads * out_channels))
+            self.bias = self._get_weights('bias', init=initor, shape=(heads * out_channels,))
         elif bias and not concat:
             # self.bias = tlx.nn.Parameter(data=tlx.zeros(out_channels))
             initor = tlx.initializers.Zeros()
-            self.bias = self._get_weights('bias', init=initor, shape=(out_channels))
+            self.bias = self._get_weights('bias', init=initor, shape=(out_channels,))
         else:
             self.register_parameter('bias', None)
 
@@ -61,11 +61,11 @@ class HypergraphConv(MessagePassing):
         zeros = tlx.nn.initializers.Zeros()
         if self.use_attention:
             self.att = glorot(self.att)
-        self.bias = zeros(shape=self.bias.shape, dtype=tlx.float32)
+        # self.bias = zeros(shape=self.bias.shape, dtype=tlx.float32)
 
     def forward(self, x, hyperedge_index,hyperedge_weight,hyperedge_attr):
         num_nodes, num_edges = x.shape[0], 0
-        if tlx.ops.count_nonzero(np.array(hyperedge_index)+1) > 0:
+        if tlx.ops.count_nonzero(hyperedge_index + 1) > 0:
             num_edges = max(hyperedge_index[1]) + 1
 
         if hyperedge_weight is None:
@@ -76,47 +76,55 @@ class HypergraphConv(MessagePassing):
         
 
         alpha = None
-        hyperedge_weight = np.array(hyperedge_weight)
-        hyperedge_index = np.array(hyperedge_index)
-        hyperedge_attr = np.array(hyperedge_attr)
+        # hyperedge_weight = tlx.convert_to_numpy(hyperedge_weight)
+        # hyperedge_index = tlx.convert_to_numpy(hyperedge_index)
+        # hyperedge_attr = tlx.convert_to_numpy(hyperedge_attr)
 
         if self.use_attention:
             assert hyperedge_attr is not None
             x = tlx.reshape(x, (-1,self.heads, self.out_channels))
             hyperedge_attr = self.lin(hyperedge_attr)
             hyperedge_attr = tlx.reshape(hyperedge_attr, (-1,self.heads,self.out_channels))
-            x_i = x[hyperedge_index[0]]
-            x_j = hyperedge_attr[hyperedge_index[1]]
+            # x_i = x[hyperedge_index[0]]
+            # x_j = hyperedge_attr[hyperedge_index[1]]
+            x_i = tlx.gather(x, hyperedge_index[0])
+            x_j = tlx.gather(hyperedge_attr, hyperedge_index[1])
             alpha = tlx.reduce_sum((tlx.ops.concat([x_i, x_j],-1) * self.att), axis=-1)
             alpha = tlx.nn.LeakyReLU(self.negative_slope)(alpha)
             alpha = segment_softmax(alpha, hyperedge_index[0], num_nodes=x.size(0)) 
             alpha = tlx.nn.dropout(self.dropout)(alpha)
-        else:
+        else: 
             assert hyperedge_attr is not None
-            x_j = hyperedge_attr[hyperedge_index[1]]
+            # x_j = hyperedge_attr[hyperedge_index[1]]
+            x_j = tlx.gather(hyperedge_attr, hyperedge_index[1])
+            
             
             
         
         D = scatter_add(hyperedge_weight[hyperedge_index[1]],hyperedge_index[0],num_nodes)
         D = 1.0 / D
         D[D == float("inf")] = 0
-        print('D.shape',D.shape)
+        # print('D.shape',D.shape)
         B = scatter_add(np.ones(len(hyperedge_index[0])),hyperedge_index[1],num_edges)
         B = 1.0 / B
         B[B == float("inf")] = 0
-        print('B.shape',B.shape)
-        hyperedge_weight = tlx.ops.convert_to_tensor(hyperedge_weight)
-        hyperedge_index = tlx.ops.convert_to_tensor(hyperedge_index)
-        hyperedge_attr = tlx.ops.convert_to_tensor(hyperedge_attr)
+        # print('B.shape',B.shape)
+        # hyperedge_weight = tlx.convert_to_tensor(hyperedge_weight)
+        # hyperedge_index = tlx.convert_to_tensor(hyperedge_index)
+        # hyperedge_attr = tlx.convert_to_tensor(hyperedge_attr)
 
-        print('propagate1 start')
+        # print('propagate1 start')
         out = self.propagate(x=x, edge_index=hyperedge_index,aggr='sum',
                             norm=B, alpha=alpha,y=hyperedge_attr)
-        print('propagate1 end')
-        print('propagate2 start')
-        out = self.propagate(x=out, edge_index=np.flip(hyperedge_index,axis=0),aggr='sum',
-                            norm=D, alpha=alpha,y=None)
-        print('propagate2 end')
+        # print('propagate1 end')
+        # print('propagate2 start')
+        hyperedge_index_r  = tlx.gather(hyperedge_index, [1, 0], axis = 0)
+        # hyperedge_index_r = np.flip(tlx.convert_to_numpy(hyperedge_index),axis=0)
+        # print('clear')
+        # hyperedge_index_r = tlx.convert_to_tensor(hyperedge_index_r)
+        out = self.propagate(x=out, edge_index=hyperedge_index_r ,aggr='sum',
+                            norm=D, alpha=alpha, y=None)
+        # print('propagate2 end')
         if self.concat is True:
             out = tlx.reshape(out, (-1, self.heads * self.out_channels))
         else:
@@ -125,7 +133,7 @@ class HypergraphConv(MessagePassing):
         if self.bias is not None:
             out = out + self.bias
 
-        print('conv forward done!')
+        # print('conv forward done!')
         return out
 
     # def message(self, x, norm, alpha, y):
@@ -159,12 +167,12 @@ class HypergraphConv(MessagePassing):
     #     else:
     #         raise NotImplementedError('Not support for this opearator')
     def message(self, x, edge_index, alpha, y, edge_weight=None):
-        print('inside message')
+        # print('inside message')
         if y is None:
             msg = tlx.gather(x, edge_index[0, :])
         else:
             msg = tlx.gather(y, edge_index[0, :])
-        print('gather done')
+        # print('gather done')
         if edge_weight is not None:
             edge_weight = tlx.expand_dims(edge_weight, -1)
             return msg * edge_weight
@@ -173,9 +181,9 @@ class HypergraphConv(MessagePassing):
     
     def aggregate(self, msg, edge_index, num_nodes=None, aggr='sum'):
         dst_index = edge_index[1, :]
-        print('inside aggregate')
-        print('msg.shape:',msg.shape)
-        print('dst_index.shape:',dst_index.shape)
+        # print('inside aggregate')
+        # print('msg.shape:',msg.shape)
+        # print('dst_index.shape:',dst_index.shape)
         if aggr == 'sum':
             return unsorted_segment_sum(msg, dst_index, num_nodes)
         elif aggr == 'mean':
