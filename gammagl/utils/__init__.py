@@ -10,6 +10,7 @@ from .mask import mask_to_index, index_to_mask
 from .inspector import Inspector
 from .device import set_device
 from .to_dense_batch import to_dense_batch
+from .subgraph import k_hop_subgraph
 
 __all__ = [
     'calc_A_norm_hat',
@@ -25,7 +26,8 @@ __all__ = [
     'mask_to_index',
     'index_to_mask',
     'set_device',
-    'to_dense_batch'
+    'to_dense_batch',
+    'k_hop_subgraph'
 ]
 
 classes = __all__
