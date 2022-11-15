@@ -2,7 +2,6 @@ import tensorlayerx as tlx
 import tensorlayerx.nn
 from tensorlayerx import reduce_sum
 from tensorlayerx.nn import ReLU, Linear, ModuleList, Sequential
-# from torch_scatter import scatter
 from gammagl.layers.pool.glob import global_sum_pool, global_mean_pool, global_max_pool, global_min_pool
 from gammagl.layers.conv.message_passing import MessagePassing
 from gammagl.utils.degree import degree
@@ -60,8 +59,7 @@ class PNAConv(MessagePassing):
             aggregation (default: :obj:`1`).
         divide_input (bool, optional): Whether the input features should
             be split between towers or not (default: :obj:`False`).
-        **kwargs (optional): Additional arguments of
-            :class:`torch_geometric.nn.conv.MessagePassing`.
+
 
     Shapes:
         - **input:**
@@ -154,21 +152,14 @@ class PNAConv(MessagePassing):
 
         for aggregator in self.aggregators:
             if aggregator == 'sum':
-                # out = scatter(inputs, dst_index, 0, None, dim_size, reduce='sum')
                 out = global_sum_pool(inputs, dst_index)
             elif aggregator == 'mean':
-                # out = scatter(inputs, dst_index, 0, None, dim_size, reduce='mean')
                 out = global_mean_pool(inputs, dst_index)
             elif aggregator == 'min':
-                # out = scatter(inputs, dst_index, 0, None, dim_size, reduce='min')
                 out = global_min_pool(inputs, dst_index)
             elif aggregator == 'max':
-                # out = scatter(inputs, dst_index, 0, None, dim_size, reduce='max')
                 out = global_max_pool(inputs, dst_index)
             elif aggregator == 'var' or aggregator == 'std':
-                # mean = scatter(inputs, dst_index, 0, None, dim_size, reduce='mean')
-                # mean_squares = scatter(inputs * inputs, dst_index, 0, None,
-                #                        dim_size, reduce='mean')
                 mean = global_mean_pool(inputs, dst_index)
                 mean_squares = global_mean_pool(inputs * inputs, dst_index)
                 out = mean_squares - mean * mean
