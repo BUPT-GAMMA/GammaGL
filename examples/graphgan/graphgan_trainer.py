@@ -2,15 +2,11 @@
 # -*- encoding: utf-8 -*-
 
 import os
-
-os.environ['CUDA_VISIBLE_DEVICES'] = '6'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'paddle'
 
 import sys
-
 sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
-
-from gammagl.data import download_url
 from gammagl.models import GraphGAN
 from gammagl.utils import read_embeddings
 from gammagl.datasets import CA_GrQc
@@ -90,7 +86,7 @@ def prepare_data_for_d(GANModel, args):
         if np.random.rand() < args.update_ratio:
             pos = GANModel.graph[i]
             neg, _ = GANModel.sample(all_score_ndarray, i,
-                            GANModel.trees[i], len(pos), for_d=True)
+                                     GANModel.trees[i], len(pos), for_d=True)
             if len(pos) != 0 and neg is not None:
                 # positive samples
                 center_nodes.extend([i] * len(pos))
@@ -228,10 +224,10 @@ class WithLossD(tlx.nn.Module):
         label_sets = tlx.nn.Reshape(shape=[data['nodes_num'], 1])(label_sets)
         loss = tlx.reduce_sum(tlx.losses.sigmoid_cross_entropy(target=label_sets, output=scores)) + data[
             'args'].lambda_dis * (
-            tlx.reduce_sum(tlx.ops.square(node_embedding)) / 2 +
-            tlx.reduce_sum(tlx.ops.square(node_neighbor_embedding)) / 2 +
-            tlx.reduce_sum(tlx.ops.square(bias)) / 2
-        )
+                       tlx.reduce_sum(tlx.ops.square(node_embedding)) / 2 +
+                       tlx.reduce_sum(tlx.ops.square(node_neighbor_embedding)) / 2 +
+                       tlx.reduce_sum(tlx.ops.square(bias)) / 2
+               )
         return loss
 
 
@@ -244,8 +240,8 @@ class WithLossG(tlx.nn.Module):
     def forward(self, data, reward_sets):
         node_embedding, node_neighbor_embedding, prob = self.g_net(data)
         loss = -tlx.reduce_mean(tlx.log(prob) * reward_sets) + data['args'].lambda_gen * (
-            tlx.reduce_sum(tlx.ops.square(node_embedding)) / 2 +
-            tlx.reduce_sum(tlx.ops.square(node_neighbor_embedding)) / 2
+                tlx.reduce_sum(tlx.ops.square(node_embedding)) / 2 +
+                tlx.reduce_sum(tlx.ops.square(node_neighbor_embedding)) / 2
         )
         return loss
 
@@ -298,9 +294,9 @@ def main(args):
             store_num_d = len(glob.glob(pathname='checkpoint/*_d*.npz')) + 1
             store_num_g = len(glob.glob(pathname='checkpoint/*_g*.npz')) + 1
             store_path_d = 'checkpoint/model_d-0000' + \
-                str(store_num_d) + '.npz'
+                           str(store_num_d) + '.npz'
             store_path_g = 'checkpoint/model_g-0000' + \
-                str(store_num_g) + '.npz'
+                           str(store_num_g) + '.npz'
             GANModel.discriminator.save_weights(
                 file_path=store_path_d, format='npz_dict')
             GANModel.generator.save_weights(
@@ -363,9 +359,8 @@ def main(args):
         write_embeddings_to_file(GANModel, args, 1)
         g_val_acc, d_val_acc = calculate_acc(
             GANModel.n_node, dataset.test_edges, dataset.test_edges_neg, args)
-        
-        print(f'epoch : {epoch} \t generator acc : {g_val_acc:.4f} \t discriminator acc : {d_val_acc:.4f}')
 
+        print(f'epoch : {epoch} \t generator acc : {g_val_acc:.4f} \t discriminator acc : {d_val_acc:.4f}')
 
         # Save best model on evaluation set
         if g_val_acc > g_best_val_acc:
