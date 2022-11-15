@@ -11,6 +11,7 @@ from .inspector import Inspector
 from .device import set_device
 from .to_dense_batch import to_dense_batch
 from .subgraph import k_hop_subgraph
+from .negative_sampling import negative_sampling
 
 __all__ = [
     'calc_A_norm_hat',
@@ -27,7 +28,8 @@ __all__ = [
     'index_to_mask',
     'set_device',
     'to_dense_batch',
-    'k_hop_subgraph'
+    'k_hop_subgraph',
+    'negative_sampling'
 ]
 
 classes = __all__
