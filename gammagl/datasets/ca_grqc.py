@@ -1,3 +1,4 @@
+import numpy as np
 from typing import List
 from gammagl.data import download_url
 from gammagl.utils import read_embeddings
@@ -24,12 +25,18 @@ class CA_GrQc():
         self.test_edges = self.read_edges_from_file(f'{dir}/CA-GrQc_test.txt')
         self.test_edges_neg = self.read_edges_from_file(f'{dir}/CA-GrQc_test_neg.txt')
 
-        self.node_embed_init_d = read_embeddings(filename=f'{dir}/CA-GrQc_pre_train.emb',
-                                                 n_node=self.n_node,
-                                                 n_embed=n_emb)
-        self.node_embed_init_g = read_embeddings(filename=f'{dir}/CA-GrQc_pre_train.emb',
-                                                 n_node=self.n_node,
-                                                 n_embed=n_emb)
+        filename=f'{dir}/CA-GrQc_pre_train.emb'
+
+        with open(filename, "r") as f:
+            lines = f.readlines()[1:]
+            embedding_matrix = np.random.rand(self.n_node, n_emb)
+            for line in lines:
+                emd = line.split()
+                embedding_matrix[int(emd[0]), :] = [float(item) for item in emd[1:]]
+            
+        self.node_embed_init_d = embedding_matrix
+        self.node_embed_init_g = embedding_matrix
+
 
     @property
     def file_names(self) -> List[str]:

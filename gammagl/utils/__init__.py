@@ -9,8 +9,6 @@ from .loop import add_self_loops, remove_self_loops, contains_self_loops
 from .mask import mask_to_index, index_to_mask
 from .inspector import Inspector
 from .device import set_device
-from .write_embeddings_to_file import write_embeddings_to_file
-from .sample_for_gan import sample
 from .read_embeddings import read_embeddings
 
 __all__ = [
@@ -27,8 +25,6 @@ __all__ = [
     'mask_to_index',
     'index_to_mask',
     'set_device',
-    "write_embeddings_to_file",
-    "sample",
     "read_embeddings"
 ]
 

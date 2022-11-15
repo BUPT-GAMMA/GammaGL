@@ -6,7 +6,7 @@ def read_embeddings(filename, n_node, n_embed):
     """
 
     with open(filename, "r") as f:
-        lines = f.readlines()[1:]  # skip the first line
+        lines = f.readlines()
         embedding_matrix = np.random.rand(n_node, n_embed)
         for line in lines:
             emd = line.split()

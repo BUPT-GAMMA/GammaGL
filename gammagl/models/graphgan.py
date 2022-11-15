@@ -3,6 +3,7 @@ import tqdm
 import pickle
 import collections
 import multiprocessing
+import numpy as np
 
 from gammagl.models import Generator, Discriminator
 
@@ -47,7 +48,7 @@ class GraphGAN(object):
             print("constructing BFS-trees...")
             if not os.path.isdir(cache_dir):
                 os.makedirs(cache_dir)
-            
+
             pickle_file = open(f'{cache_dir}/CA-GrQc.pkl', 'wb')
             if multi_processing:
                 self.construct_trees_with_mp(self.root_nodes)
@@ -58,6 +59,56 @@ class GraphGAN(object):
 
         self.discriminator = Discriminator(self.n_node, self.node_embed_init_d)
         self.generator = Generator(self.n_node, self.node_embed_init_g)
+
+    def sample(self, all_score, root, tree, sample_num, for_d):
+        """ sample nodes from BFS-tree
+
+        Args:
+            root: int, root node
+            tree: dict, BFS-tree
+            sample_num: the number of required samples
+            for_d: bool, whether the samples are used for the G or the D
+
+
+        Returns:
+            (:obj:`list`, :obj:`list`):indices of the sampled nodes and paths from the root to the sampled nodes
+        """
+        samples = []
+        paths = []
+        n = 0
+
+        while len(samples) < sample_num:
+            current_node = root
+            previous_node = -1
+            paths.append([])
+            is_root = True
+            paths[n].append(current_node)
+            while True:
+                node_neighbor = tree[current_node][1:] if is_root else tree[current_node]
+                is_root = False
+                if len(node_neighbor) == 0:  # the tree only has a root
+                    return None, None
+                if for_d:  # skip 1-hop nodes (positive samples)
+                    if node_neighbor == [root]:
+                        # in current version, None is returned for simplicity
+                        return None, None
+                    if root in node_neighbor:
+                        node_neighbor.remove(root)
+                relevance_probability = all_score[current_node, node_neighbor]
+                e_x = np.exp(relevance_probability - np.max(relevance_probability))
+                relevance_probability = e_x / e_x.sum()
+                next_node = np.random.choice(node_neighbor, size=1, p=relevance_probability)[
+                    0]  # select next node
+                paths[n].append(next_node)
+                if next_node == previous_node:  # terminating condition
+                    samples.append(current_node)
+                    break
+                previous_node = current_node
+                current_node = next_node
+            n = n + 1
+        return samples, paths
+
+
 
     def construct_trees_with_mp(self, nodes):
         """
@@ -76,7 +127,8 @@ class GraphGAN(object):
         n_node_per_core = self.n_node // cores
         for i in range(cores):
             if i != cores - 1:
-                new_nodes.append(nodes[i * n_node_per_core: (i + 1) * n_node_per_core])
+                new_nodes.append(
+                    nodes[i * n_node_per_core: (i + 1) * n_node_per_core])
             else:
                 new_nodes.append(nodes[i * n_node_per_core:])
         self.trees = {}
