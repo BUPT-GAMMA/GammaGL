@@ -12,6 +12,7 @@ from .device import set_device
 from .to_dense_batch import to_dense_batch
 from .subgraph import k_hop_subgraph
 from .negative_sampling import negative_sampling
+from .convert import to_scipy_sparse_matrix
 
 __all__ = [
     'calc_A_norm_hat',
@@ -29,7 +30,8 @@ __all__ = [
     'set_device',
     'to_dense_batch',
     'k_hop_subgraph',
-    'negative_sampling'
+    'negative_sampling',
+    'to_scipy_sparse_matrix'
 ]
 
 classes = __all__
