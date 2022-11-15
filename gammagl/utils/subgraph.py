@@ -21,9 +21,9 @@ def k_hop_subgraph(node_idx, num_hops, edge_index, relabel_nodes=False, num_node
         edge_mask = tlx.gather(node_mask, row)
         subsets.append(tlx.mask_select(col, edge_mask))
     
-    subset, inv = np.unique(tlx.concat(subsets, axis=0).numpy(), return_inverse=True)
+    subset, inv = np.unique(tlx.convert_to_numpy(tlx.concat(subsets, axis=0)), return_inverse=True)
     subset = tlx.convert_to_tensor(subset, device=edge_index.device)
-    inv = inv[:tlx.count_nonzero(node_idx+1).numpy()]
+    inv = inv[:tlx.convert_to_numpy(tlx.count_nonzero(node_idx+1))]
 
     node_mask = tlx.zeros(num_nodes, dtype=tlx.bool, device=edge_index.device)
     node_mask = tlx.scatter_update(node_mask, subset, tlx.ones_like(subset, dtype=tlx.bool))

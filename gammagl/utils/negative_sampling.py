@@ -19,7 +19,7 @@ def negative_sampling(edge_index, num_nodes = None, num_neg_samples = None, meth
 
     idx, population = edge_index_to_vector(edge_index, num_nodes, bipartite, force_undirected)
 
-    if idx.numpy().size >= population:
+    if tlx.convert_to_numpy(idx).size >= population:
         return tlx.convert_to_tensor([[],[]], dtype=edge_index.dtype, device=edge_index.device)
     
     if num_neg_samples is None:
@@ -27,7 +27,7 @@ def negative_sampling(edge_index, num_nodes = None, num_neg_samples = None, meth
     if force_undirected:
         num_neg_samples = num_neg_samples // 2
     
-    prob = 1. - idx.numpy().size / population
+    prob = 1. - tlx.convert_to_numpy(idx).size / population
     sample_size = int(1.1 * num_neg_samples / prob)
 
     neg_idx = None
@@ -41,7 +41,7 @@ def negative_sampling(edge_index, num_nodes = None, num_neg_samples = None, meth
                 neg_idx = rnd
             else:
                 neg_idx = tlx.concat([neg_idx, rnd], axis=0)
-            if neg_idx.numpy().size >= num_neg_samples:
+            if tlx.convert_to_numpy(neg_idx).size >= num_neg_samples:
                 neg_idx = neg_idx[:num_neg_samples]
                 break
             mask = tlx.scatter_update(mask, neg_idx, tlx.zeros(neg_idx.shape[0], dtype=tlx.bool, device=neg_idx.device))
@@ -59,10 +59,10 @@ def negative_sampling(edge_index, num_nodes = None, num_neg_samples = None, meth
                 neg_idx = rnd
             else:
                 neg_idx = tlx.concat([neg_idx, rnd], axis=0)
-            if neg_idx.numpy().size >= num_neg_samples:
+            if tlx.convert_to_numpy(neg_idx).size >= num_neg_samples:
                 neg_idx = neg_idx[:num_neg_samples]
                 break
-        neg_idx = tlx.convert_to_tensor(neg_idx.numpy(), device=edge_index.device)
+        neg_idx = tlx.convert_to_tensor(tlx.convert_to_numpy(neg_idx), device=edge_index.device)
     return vector_to_edge_index(neg_idx, num_nodes, bipartite, force_undirected)
 
 
