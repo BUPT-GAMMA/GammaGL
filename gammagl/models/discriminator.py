@@ -1,4 +1,5 @@
 import tensorlayerx as tlx
+import numpy as np
 
 
 class Discriminator(tlx.nn.Module):
@@ -29,13 +30,15 @@ class Discriminator(tlx.nn.Module):
         self.n_node = n_node
         self.node_emb_init = node_emb_init
 
-        # embedding = tlx.nn.initializers.constant(value=self.node_emb_init)
-        embedding = tlx.nn.initializers.constant(node_emb_init)
-        invitor = tlx.nn.initializers.Zeros()
-        self.embedding_matrix = self._get_weights("b_embedding_matrix", shape=self.node_emb_init.shape,
+        # embedding = tlx.nn.initializers.constant(node_emb_init)
+        # init_bias = np.zeros(((self.n_node, 1)))
+        # invitor = tlx.nn.initializers.constant(init_bias)
+        embedding = tlx.initializers.Constant(value=self.node_emb_init)
+        invitor = tlx.initializers.Zeros()
+        self.embedding_matrix = self._get_weights("d_embedding_matrix", shape=self.node_emb_init.shape,
                                                   init=embedding)
         self.bias_vector = self._get_weights(
-            "b_bias", shape=(self.n_node, 1), init=invitor)
+            "d_bias", shape=(self.n_node, 1), init=invitor)
 
     def forward(self, data):
         node_embedding = tlx.gather(

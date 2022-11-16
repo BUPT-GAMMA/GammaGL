@@ -16,6 +16,7 @@ from functools import partial
 import numpy as np
 import glob
 import argparse
+# tlx.set_device("GPU", 0)
 
 
 def calculate_acc(n_node, test_edges, test_edges_neg, args):
@@ -178,7 +179,7 @@ def write_embeddings_to_file(GANModel, args, choice):
     if choice == 1:
         for i in range(2):
             if tlx.BACKEND == 'torch':
-                embedding_matrix = modes[i].embedding_matrix.detach()
+                embedding_matrix = modes[i].embedding_matrix.detach().cpu()
             else:
                 embedding_matrix = modes[i].embedding_matrix
             index = np.array(range(GANModel.n_node)).reshape(-1, 1)
@@ -196,7 +197,7 @@ def write_embeddings_to_file(GANModel, args, choice):
         for i in range(2):
             if (choice == 2 and i == 0) or (choice == 3 and i == 1):
                 if tlx.BACKEND == 'torch':
-                    embedding_matrix = modes[i].embedding_matrix.detach()
+                    embedding_matrix = modes[i].embedding_matrix.detach().cpu()
                 else:
                     embedding_matrix = modes[i].embedding_matrix
                 index = np.array(range(GANModel.n_node)).reshape(-1, 1)
@@ -280,6 +281,7 @@ def main(args):
                 file_path="checkpoint/model_g" + str_g + ".npz", format='npz_dict')
 
     write_embeddings_to_file(GANModel, args, 1)
+
     calculate_acc(GANModel.n_node, dataset.test_edges,
                   dataset.test_edges_neg, args)
 

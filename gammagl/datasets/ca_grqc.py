@@ -29,13 +29,15 @@ class CA_GrQc():
 
         with open(filename, "r") as f:
             lines = f.readlines()[1:]
-            embedding_matrix = np.random.rand(self.n_node, n_emb)
+            embedding_matrix_d = np.random.rand(self.n_node, n_emb)
             for line in lines:
                 emd = line.split()
-                embedding_matrix[int(emd[0]), :] = [float(item) for item in emd[1:]]
+                embedding_matrix_d[int(emd[0]), :] = [float(item) for item in emd[1:]]
+
+        embedding_matrix_g = embedding_matrix_d.copy()
             
-        self.node_embed_init_d = embedding_matrix
-        self.node_embed_init_g = embedding_matrix
+        self.node_embed_init_d = embedding_matrix_d
+        self.node_embed_init_g = embedding_matrix_g
 
 
     @property
