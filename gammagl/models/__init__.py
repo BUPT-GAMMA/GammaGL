@@ -18,6 +18,9 @@ from .fagcn import FAGCNModel
 from .gprgnn import GPRGNNModel
 from .mixhop import MIXHOPModel
 from .hardgat import HardGATModel
+from .generator import Generator
+from .discriminator import Discriminator
+from .graphgan import GraphGAN
 
 __all__ = [
     'GCNModel',
@@ -40,7 +43,10 @@ __all__ = [
     'FAGCNModel',
     'GPRGNNModel',
     'MIXHOPModel',
-    'HardGATModel'
+    'HardGATModel',
+    'Generator',
+    'Discriminator',
+    'GraphGAN'
 ]
 
 classes = __all__
