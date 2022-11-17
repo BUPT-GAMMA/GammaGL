@@ -7,3 +7,5 @@ torchvision
 paddlepaddle
 pytest
 tqdm
+rich
+django

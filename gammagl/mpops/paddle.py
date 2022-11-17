@@ -5,12 +5,20 @@ from paddle.fluid.layer_helper import LayerHelper
 from paddle.fluid.data_feeder import check_variable_and_dtype, check_type
 from paddle.fluid.framework import in_dygraph_mode
 
+use_ext = False
+try:
+    import paddle_segment
+    use_ext = True
+except:
+    pass
 
 def unsorted_segment_sum(x, segment_ids, num_segments=None):
     if num_segments is not None:
         assert pd.max(segment_ids) < num_segments
     else:
         num_segments = pd.max(segment_ids)+1
+    if use_ext:
+        return paddle_segment.segment_sum(x, segment_ids, num_segments)
     idx_ = pd.argsort(segment_ids)
     x = pd.gather(x, idx_)
     segment_ids = pd.gather(segment_ids, idx_)
