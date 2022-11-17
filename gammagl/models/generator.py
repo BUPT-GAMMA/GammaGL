@@ -1,6 +1,4 @@
 import tensorlayerx as tlx
-import numpy as np
-
 
 class Generator(tlx.nn.Module):
     r"""The generator of GraphGAN Model operator from the `"GraphGAN: Graph Representation Learning with Generative Adversarial Nets"

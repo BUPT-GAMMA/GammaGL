@@ -16,6 +16,8 @@ from .chebnet import ChebNetModel
 from .simplehgn import SimpleHGNModel
 from .fagcn import FAGCNModel
 from .gprgnn import GPRGNNModel
+from .mixhop import MIXHOPModel
+from .hardgat import HardGATModel
 from .generator import Generator
 from .discriminator import Discriminator
 from .graphgan import GraphGAN
@@ -40,6 +42,8 @@ __all__ = [
     'SimpleHGNModel',
     'FAGCNModel',
     'GPRGNNModel',
+    'MIXHOPModel',
+    'HardGATModel',
     'Generator',
     'Discriminator',
     'GraphGAN'

@@ -1,6 +1,4 @@
 import tensorlayerx as tlx
-import numpy as np
-
 
 class Discriminator(tlx.nn.Module):
     r"""The discriminator of GraphGAN Model operator from the `"GraphGAN: Graph Representation Learning with Generative Adversarial Nets"
