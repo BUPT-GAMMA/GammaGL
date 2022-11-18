@@ -104,7 +104,7 @@ def global_sort_pool(x, batch, k):
     B, N, D = x.shape
 
     perm = tlx.argsort(x[:, :, -1], axis=-1, descending=True)
-    arange = tlx.arange(B) * N
+    arange = tlx.arange(0, B) * N
     perm = perm + tlx.reshape(arange, (-1, 1))
 
     x = tlx.reshape(x, (B * N, -1))
