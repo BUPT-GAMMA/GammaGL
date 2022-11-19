@@ -1,47 +1,55 @@
 import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
 from gammagl.utils import segment_softmax
-
+import math
 class MultiHead(MessagePassing):
+    r"""The graph transformer operator from the `"Masked Label Prediction:
+      Unified Message Passing Model for Semi-Supervised Classification"
+      <https://arxiv.org/abs/2009.03509>`_ paper
 
-    r"""A module for attention mechanisms which runs through an attention mechanism several times in parallel.
+      .. math::
+          \mathbf{x}^{\prime}_i = \mathbf{W}_1 \mathbf{x}_i +
+          \sum_{j \in \mathcal{N}(i)} \alpha_{i,j} \mathbf{W}_2 \mathbf{x}_{j},
 
-    The independent attention outputs are then concatenated and linearly transformed into the expected dimension. 
-    
-    Intuitively, multiple attention heads allows for attending to parts of the sequence differently (e.g. longer-term dependencies versus shorter-term dependencies).
-    
-    .. math::
-        \mathbf{x}^{\prime}_i = \alpha_{i,i}\mathbf{\Theta}\mathbf{x}_{i} +
-        \sum_{j \in \mathcal{N}(i)} \alpha_{i,j}\mathbf{\Theta}\mathbf{x}_{j},
+      where the attention coefficients :math:`\alpha_{i,j}` are computed via
+      multi-head dot product attention:
 
-    where the attention coefficients :math:`\alpha_{i,j}` are computed as
+      .. math::
+          \alpha_{i,j} = \textrm{softmax} \left(
+          \frac{(\mathbf{W}_3\mathbf{x}_i)^{\top} (\mathbf{W}_4\mathbf{x}_j)}
+          {\sqrt{d}} \right)
 
-    .. math::
-        \alpha_{i,j} =
-        \frac{
-        \exp\left(\mathrm{LeakyReLU}\left(\mathbf{a}^{\top}
-        [\mathbf{\Theta}\mathbf{x}_i \, \Vert \, \mathbf{\Theta}\mathbf{x}_j]
-        \right)\right)}
-        {\sum_{k \in \mathcal{N}(i) \cup \{ i \}}
-        \exp\left(\mathrm{LeakyReLU}\left(\mathbf{a}^{\top}
-        [\mathbf{\Theta}\mathbf{x}_i \, \Vert \, \mathbf{\Theta}\mathbf{x}_k]
-        \right)\right)}.
+      Args:
+          in_channels (int or tuple): Size of each input sample, or :obj:`-1` to
+              derive the size from the first input(s) to the forward method.
+              A tuple corresponds to the sizes of source and target
+              dimensionalities.
+          out_channels (int): Size of each output sample.
+          heads (int, optional): Number of multi-head-attentions.
+              (default: :obj:`1`)
+              .. math::
+                  \mathbf{x}^{\prime}_i = \beta_i \mathbf{W}_1 \mathbf{x}_i +
+                  (1 - \beta_i) \underbrace{\left(\sum_{j \in \mathcal{N}(i)}
+                  \alpha_{i,j} \mathbf{W}_2 \vec{x}_j \right)}_{=\mathbf{m}_i}
 
-    Parameters
-    ----------
-    in_features: int
-        Size of each input sample, or :obj:`-1` to
-        derive the size from the first input(s) to the forward method.
-        A tuple corresponds to the sizes of source and target
-        dimensionalities.
-    out_features: int
-        Size of each output sample.
-    n_heads: int
-        Number of multi-head-attentions.
-        (default: :obj:`1`)
-    num_nodes: int
-        Number of nodes
-        
+              with :math:`\beta_i = \textrm{sigmoid}(\mathbf{w}_5^{\top}
+              [ \mathbf{W}_1 \mathbf{x}_i, \mathbf{m}_i, \mathbf{W}_1
+              \mathbf{x}_i - \mathbf{m}_i ])` (default: :obj:`False`)
+
+              .. math::
+                  \mathbf{x}^{\prime}_i = \mathbf{W}_1 \mathbf{x}_i +
+                  \sum_{j \in \mathcal{N}(i)} \alpha_{i,j} \left(
+                  \mathbf{W}_2 \mathbf{x}_{j} + \mathbf{W}_6 \mathbf{e}_{ij}
+                  \right),
+
+              where the attention coefficients :math:`\alpha_{i,j}` are now
+              computed via:
+
+              .. math::
+                  \alpha_{i,j} = \textrm{softmax} \left(
+                  \frac{(\mathbf{W}_3\mathbf{x}_i)^{\top}
+                  (\mathbf{W}_4\mathbf{x}_j + \mathbf{W}_6 \mathbf{e}_{ij})}
+                  {\sqrt{d}} \right)
     """
 
     def __init__(self, in_features, out_features, n_heads,num_nodes):
@@ -52,27 +60,37 @@ class MultiHead(MessagePassing):
         self.linear = tlx.layers.Linear(out_features=out_features* n_heads,
                                         in_features=in_features)
 
+        self.lin_key = tlx.layers.Linear(in_features=in_features, out_features=n_heads * out_features)
+        self.lin_query = tlx.layers.Linear(in_features=in_features, out_features=n_heads * out_features)
+        self.lin_value = tlx.layers.Linear(in_features=in_features, out_features=n_heads * out_features)
+        self.lin_skip = tlx.layers.Linear(in_features=in_features, out_features=n_heads * out_features)
         init = tlx.initializers.RandomNormal()
         self.att_src = init(shape=(1, n_heads, out_features), dtype=tlx.float32)
         self.att_dst = init(shape=(1, n_heads, out_features), dtype=tlx.float32)
 
         self.leaky_relu = tlx.layers.LeakyReLU(0.2)
         self.dropout = tlx.layers.Dropout()
+        self.reset_parameters()
 
-    def message(self, x, edge_index):
-        node_src = edge_index[0, :]
-        node_dst = edge_index[1, :]
-        weight_src = tlx.gather(tlx.reduce_sum(x * self.att_src, -1), node_src)
-        weight_dst = tlx.gather(tlx.reduce_sum(x * self.att_dst, -1), node_dst)
-        weight = self.leaky_relu(weight_src + weight_dst)
+    def reset_parameters(self):
+        self.lin_key.reset_parameters()
+        self.lin_query.reset_parameters()
+        self.lin_value.reset_parameters()
+        self.lin_skip.reset_parameters()
 
-        alpha = self.dropout(segment_softmax(weight, node_dst, self.num_nodes))
-        x = tlx.gather(x, node_src) * tlx.expand_dims(alpha, -1)
-        return x
+    def message(self,  query, key, value):
+        alpha = (query * key).sum(dim=-1) / math.sqrt(self.out_channels)
+        alpha = segment_softmax(alpha)
+        alpha = tlx.layers.Dropout(alpha)
+        out = value
+        out = out * alpha.view(-1, self.heads, 1)
+        return out
     
     def forward(self, x, edge_index):
-        x = tlx.reshape(self.linear(x), shape=(-1,self.heads, self.out_channels))
-        x = self.propagate(x, edge_index, num_nodes=self.num_nodes)
-        x=tlx.ops.reduce_mean(x,axis=1)
-
-        return x
+        H, C = self.heads, self.out_channels
+        query = self.lin_query(x[1]).view(-1, H, C)
+        key = self.lin_key(x[0]).view(-1, H, C)
+        value = self.lin_value(x[0]).view(-1, H, C)
+        out = self.propagate(edge_index, query=query, key=key, value=value)
+        out = out.view(-1, self.heads * self.out_channels)
+        return out
