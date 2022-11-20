@@ -117,7 +117,7 @@ def global_sort_pool(x, batch, k):
         expand_x = tlx.constant(fill_value, dtype=x.dtype, shape=(B, k - N, D), device = x.device)
         x = tlx.concat([x, expand_x], axis=1)
 
-    x = tlx.where(x == fill_value, 0, x)
+    x = tlx.where(x == fill_value, tlx.zeros_like(x), x)
     x = tlx.reshape(x, (B, -1))
 
     return x
