@@ -19,15 +19,15 @@ Results
 
 ```bash
 # available dataset: "cora", "citeseer", "pubmed"
-TL_BACKEND="paddle" python gcn_trainer.py --dataset cora --n_layers 2 --lr 0.01 --l2_coef 0.005 --drop_rate 0.9
-TL_BACKEND="paddle" python gcn_trainer.py --dataset citeseer --n_layers 2 --lr 0.01 --l2_coef 0.01 --drop_rate 0.7
-TL_BACKEND="paddle" python gcn_trainer.py --dataset pubmed --n_layers 2 --lr 0.01 --l2_coef 0.005 --drop_rate 0.6
-TL_BACKEND="tensorflow" python gcn_trainer.py --dataset cora --n_layers 2 --lr 0.005 --l2_coef 0.001 --drop_rate 0.6
-TL_BACKEND="tensorflow" python gcn_trainer.py --dataset cora --n_layers 2 --lr 0.01 --l2_coef 0.001 --drop_rate 0.9
-TL_BACKEND="tensorflow" python gcn_trainer.py --dataset cora --n_layers 2 --lr 0.01 --l2_coef 0.001 --drop_rate 0.9
-TL_BACKEND="torch" python gcn_trainer.py --dataset cora --n_layers 2 --lr 0.005 --l2_coef 0.001 --drop_rate 0.8
-TL_BACKEND="torch" python gcn_trainer.py --dataset citeseer --n_layers 2 --lr 0.01 --l2_coef 0.01 --drop_rate 0.7
-TL_BACKEND="torch" python gcn_trainer.py --dataset pubmed --n_layers 2 --lr 0.01 --l2_coef 0.002 --drop_rate 0.5
+TL_BACKEND="paddle" python gcn_trainer.py --dataset cora --num_layers 2 --lr 0.01 --l2_coef 0.005 --drop_rate 0.9 --norm none
+TL_BACKEND="paddle" python gcn_trainer.py --dataset citeseer --num_layers 2 --lr 0.01 --l2_coef 0.01 --drop_rate 0.7 --norm none
+TL_BACKEND="paddle" python gcn_trainer.py --dataset pubmed --num_layers 2 --lr 0.01 --l2_coef 0.005 --drop_rate 0.6 --norm none
+TL_BACKEND="tensorflow" python gcn_trainer.py --dataset cora --num_layers 2 --lr 0.005 --l2_coef 0.001 --drop_rate 0.6 --norm none
+TL_BACKEND="tensorflow" python gcn_trainer.py --dataset cora --num_layers 2 --lr 0.01 --l2_coef 0.001 --drop_rate 0.9 --norm none
+TL_BACKEND="tensorflow" python gcn_trainer.py --dataset cora --num_layers 2 --lr 0.01 --l2_coef 0.001 --drop_rate 0.9 --norm none
+TL_BACKEND="torch" python gcn_trainer.py --dataset cora --num_layers 2 --lr 0.005 --l2_coef 0.001 --drop_rate 0.8 --norm none
+TL_BACKEND="torch" python gcn_trainer.py --dataset citeseer --num_layers 2 --lr 0.01 --l2_coef 0.01 --drop_rate 0.7 --norm none
+TL_BACKEND="torch" python gcn_trainer.py --dataset pubmed --num_layers 2 --lr 0.01 --l2_coef 0.002 --drop_rate 0.5 --norm none
 ```
 
 | Dataset  | Paper | Our(pd)    | Our(tf)    | Our(th)    |
