@@ -9,12 +9,12 @@ from gammagl.utils.check import check_is_numpy
 
 
 def collate(
-        cls,
-        data_list: List[BaseGraph],
-        increment: bool = True,
-        add_batch: bool = True,
-        follow_batch: Optional[Union[List[str]]] = None,
-        exclude_keys: Optional[Union[List[str]]] = None,
+    cls,
+    data_list: List[BaseGraph],
+    increment: bool = True,
+    add_batch: bool = True,
+    follow_batch: Optional[Union[List[str]]] = None,
+    exclude_keys: Optional[Union[List[str]]] = None,
 ) -> Tuple[BaseGraph, Mapping, Mapping]:
     # Collates a list of `data` objects into a single object of type `cls`.
     # `collate` can handle both homogeneous and heterogeneous data objects by
@@ -121,6 +121,7 @@ def _collate(
         stores: List[BaseStorage],
         increment: bool,
 ) -> Tuple[Any, Any, Any]:
+
     elem = values[0]
 
     if tlx.is_tensor(elem):
@@ -204,10 +205,10 @@ def _collate(
 
 
 def repeat_interleave(
-        repeats: List[int],
-        device=None,
+    repeats: List[int],
+    device=None,
 ):
-    outs = [tlx.constant(value=i, shape=(n,), dtype=tlx.int64) for i, n in enumerate(repeats)]
+    outs = [tlx.constant(value=i, shape=(n, ), dtype=tlx.int64) for i, n in enumerate(repeats)]
     return tlx.concat(outs, axis=0)
 
 
@@ -224,7 +225,7 @@ def cumsum(value):
             value = tlx.convert_to_numpy(value)
         else:
             value = np.array(value)
-    out = np.empty((value.shape[0] + 1,) + value.shape[1:])
+    out = np.empty((value.shape[0] + 1, ) + value.shape[1:])
     out[0] = 0
     out[1:] = np.cumsum(value, 0)
     return tlx.convert_to_tensor(out, dtype=tlx.int64)

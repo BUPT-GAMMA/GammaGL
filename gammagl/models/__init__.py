@@ -16,11 +16,14 @@ from .chebnet import ChebNetModel
 from .simplehgn import SimpleHGNModel
 from .fagcn import FAGCNModel
 from .gprgnn import GPRGNNModel
+from .pna import PNAModel
 from .mixhop import MIXHOPModel
 from .hardgat import HardGATModel
+from .graphgan import GraphGAN
+from .graphgan_generator import Generator
+from .graphgan_discriminator import Discriminator
+from .pna import PNAModel
 from .film import FILMModel
-from .mlp import MLP
-from .gin import GINModel
 
 __all__ = [
     'GCNModel',
@@ -42,11 +45,16 @@ __all__ = [
     'SimpleHGNModel',
     'FAGCNModel',
     'GPRGNNModel',
+    'PNAModel',
     'MIXHOPModel',
+    'HardGATModel',
+    'GraphGAN',
+    'Generator',
+    'Discriminator',
+    'PNAModel',
     'HardGATModel'
     'GPRGNNModel',
     'FILMModel',
-    'MLP'
 ]
 
 classes = __all__
