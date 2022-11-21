@@ -16,16 +16,24 @@ class PPI(InMemoryDataset):
     def __init__(self, root, split='train', transform=None, pre_transform=None,
                  pre_filter=None):
 
-        assert split in ['train', 'val', 'test']
+        assert split in ['train', 'val', 'valid', 'test']
 
         super().__init__(root, transform, pre_transform, pre_filter)
 
         if split == 'train':
             self.data, self.slices = self.load_data(self.processed_paths[0])
-        elif split == 'val':
+        elif split == 'val' or split == 'valid':
             self.data, self.slices = self.load_data(self.processed_paths[1])
         elif split == 'test':
             self.data, self.slices = self.load_data(self.processed_paths[2])
+
+    @property
+    def raw_dir(self) -> str:
+        return osp.join(self.root, 'ppi', 'raw')
+
+    @property
+    def processed_dir(self) -> str:
+        return osp.join(self.root, 'ppi', 'processed')
 
     @property
     def raw_file_names(self):
@@ -59,8 +67,6 @@ class PPI(InMemoryDataset):
 
             graph_list = []
             path = osp.join(self.raw_dir, f'{split}_graph_id.npy')
-            # idx = tlx.convert_to_tensor(np.load(path), dtype=tlx.int64)
-            # idx = idx - tlx.reduce_min(idx)
             idx = np.load(path).astype(np.long)
             idx = idx - idx.min()
 
@@ -72,10 +78,14 @@ class PPI(InMemoryDataset):
                     if mask_index[0] <= edge[0] <= mask_index[-1]:
                         edge_index.append(edge)
 
-                edge_index = tlx.convert_to_tensor(np.array(edge_index).T, dtype=tlx.int64)
-                edge_index = tlx.subtract(edge_index, tlx.reduce_min(edge_index))
-                edge_index, _ = remove_self_loops(edge_index)
-
+                edge_index = np.array(edge_index,dtype=int).T
+                edge_index = edge_index - np.min(edge_index)
+                edge_index = remove_self_loops(edge_index)
                 graph = Graph(edge_index=edge_index, x=x[mask], y=y[mask])
                 graph_list.append(graph)
             self.save_data(self.collate(graph_list), self.processed_paths[s])
+
+
+def remove_self_loops(edge_index):
+    mask = edge_index[0] != edge_index[1]
+    return edge_index[:, mask]

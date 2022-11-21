@@ -9,12 +9,12 @@ from gammagl.utils.check import check_is_numpy
 
 
 def collate(
-    cls,
-    data_list: List[BaseGraph],
-    increment: bool = True,
-    add_batch: bool = True,
-    follow_batch: Optional[Union[List[str]]] = None,
-    exclude_keys: Optional[Union[List[str]]] = None,
+        cls,
+        data_list: List[BaseGraph],
+        increment: bool = True,
+        add_batch: bool = True,
+        follow_batch: Optional[Union[List[str]]] = None,
+        exclude_keys: Optional[Union[List[str]]] = None,
 ) -> Tuple[BaseGraph, Mapping, Mapping]:
     # Collates a list of `data` objects into a single object of type `cls`.
     # `collate` can handle both homogeneous and heterogeneous data objects by
@@ -39,11 +39,10 @@ def collate(
 
     # Group all storage objects of every data object in the `data_list` by key,
     # i.e. `key_to_store_list = { key: [store_1, store_2, ...], ... }`:
-    key_to_stores = defaultdict(list)
+    key_to_stores = dict()
     for data in data_list:
         for store in data.stores:
-            key_to_stores[store._key].append(store)
-
+            key_to_stores.setdefault(store._key, []).append(store)
     # With this, we iterate over each list of storage objects and recursively
     # collate all its attributes into a unified representation:
 
@@ -56,7 +55,7 @@ def collate(
     #   elements as attributes that got incremented need to be decremented
     #   while separating to obtain original values.
     device = None
-    slice_dict, inc_dict = defaultdict(dict), defaultdict(dict)
+    slice_dict, inc_dict = dict(), dict()
     for out_store in out.stores:
         key = out_store._key
         stores = key_to_stores[key]
@@ -86,8 +85,8 @@ def collate(
 
             out_store[attr] = value
             if key is not None:
-                slice_dict[key][attr] = slices
-                inc_dict[key][attr] = incs
+                slice_dict.setdefault(key, dict())[attr] = slices
+                inc_dict.setdefault(key, dict())[attr] = slices
             else:
                 slice_dict[attr] = slices
                 inc_dict[attr] = incs
@@ -104,7 +103,7 @@ def collate(
         if (add_batch and isinstance(stores[0], NodeStorage)
                 and stores[0].can_infer_num_nodes):
             repeats = [store.num_nodes for store in stores]
-            out_store.batch = repeat_interleave(repeats,)
+            out_store.batch = repeat_interleave(repeats, )
             out_store.ptr = cumsum(repeats)
 
             # Sometimes stores can't get num nodes
@@ -116,13 +115,12 @@ def collate(
 
 
 def _collate(
-    key: str,
-    values: List[Any],
-    data_list: List[BaseGraph],
-    stores: List[BaseStorage],
-    increment: bool,
+        key: str,
+        values: List[Any],
+        data_list: List[BaseGraph],
+        stores: List[BaseStorage],
+        increment: bool,
 ) -> Tuple[Any, Any, Any]:
-
     elem = values[0]
 
     if tlx.is_tensor(elem):
@@ -206,10 +204,10 @@ def _collate(
 
 
 def repeat_interleave(
-    repeats: List[int],
-    device=None,
+        repeats: List[int],
+        device=None,
 ):
-    outs = [tlx.constant(value=i, shape=(n, ), dtype=tlx.int64) for i, n in enumerate(repeats)]
+    outs = [tlx.constant(value=i, shape=(n,), dtype=tlx.int64) for i, n in enumerate(repeats)]
     return tlx.concat(outs, axis=0)
 
 
@@ -226,7 +224,7 @@ def cumsum(value):
             value = tlx.convert_to_numpy(value)
         else:
             value = np.array(value)
-    out = np.empty((value.shape[0] + 1, ) + value.shape[1:])
+    out = np.empty((value.shape[0] + 1,) + value.shape[1:])
     out[0] = 0
     out[1:] = np.cumsum(value, 0)
     return tlx.convert_to_tensor(out, dtype=tlx.int64)
