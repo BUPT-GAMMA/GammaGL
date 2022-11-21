@@ -308,6 +308,11 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [GATv2 [ICLR 2021]](./examples/gatv2)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [GPRGNN [ICLR 2021]](./examples/gprgnn)          | :heavy_check_mark: |                    |                    |           |
 | [FAGCN [AAAI 2021]](./examples/fagcn)            | :heavy_check_mark: | :heavy_check_mark: |                    |           |
+| [GNN-Film [PMLR 2020]](./examples/film)          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [GraphGAN [AAAI 2018]](./examples/graphgan)      | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [HardGAT [KDD 2019]](./examples/hardgat)         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [MixHop [ICML 2019]](./examples/mixhop)          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [PNA [NeurIPS 2020]](./examples/pna)             | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 
 | Contrastive Learning                           | TensorFlow         | PyTorch            | Paddle             | MindSpore |
 | ---------------------------------------------- | ------------------ | ------------------ | ------------------ | --------- |

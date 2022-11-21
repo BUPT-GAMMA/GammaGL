@@ -17,6 +17,8 @@ from .gpr_conv import GPRConv
 from .gin_conv import GINConv
 from .mixhop_conv import MixHopConv
 from .hardgat_conv import HardGATConv
+from .pna_conv import PNAConv
+
 
 __all__ = [
     'MessagePassing',
@@ -36,7 +38,8 @@ __all__ = [
     'FAGCNConv',
     'GPRConv',
     'MixHopConv',
-    'HardGATConv'
+    'HardGATConv',
+    'PNAConv',
 ]
 
 classes = __all__
