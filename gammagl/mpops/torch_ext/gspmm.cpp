@@ -1,10 +1,14 @@
-#include "cpu/spmm_sum_cpu.h"
 #include <assert.h>
 #include <iostream>
 #include <torch/extension.h>
 #include <torch/script.h>
 #include <torch/torch.h>
 #include <vector>
+
+#include "cpu/spmm_sum_cpu.h"
+#ifdef COMPILE_WITH_CUDA
+#include "cuda/spmm_sum_cuda.h"
+#endif
 
 using torch::autograd::AutogradContext;
 using tenosr_list = std::vector<torch::Tensor>;
@@ -20,7 +24,7 @@ torch::Tensor device_dispatch_forward(torch::Tensor &index,
   } else if (x.is_cpu() && index.is_cpu() && weight.is_cpu()) {
     return spmm_sum_cpu_forward(index, weight, x);
   } else {
-    AT_ERROR("Device type error.");
+    AT_ERROR("Tensor device inconsistent error.");
   }
 }
 
@@ -36,7 +40,7 @@ torch::Tensor device_dispatch_backward(torch::Tensor &index,
   } else if (grad.is_cpu() && index.is_cpu() && weight.is_cpu()) {
     return spmm_sum_cpu_backward(index, weight, grad);
   } else {
-    AT_ERROR("Device type error.");
+    AT_ERROR("Tensor device inconsistent error.");
   }
 }
 

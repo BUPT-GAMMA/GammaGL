@@ -42,7 +42,7 @@ If need to support cuda, create two other files:
             return segment_sum_cuda_forward(x, index, n);
     #endif
         } else {
-            TORCH_CHECK(false, "Device type error.");
+            AT_ERROR("Tensor device inconsistent error.");
         }
     }
     ```

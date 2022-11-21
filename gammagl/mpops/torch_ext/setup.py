@@ -3,7 +3,7 @@ import torch
 from setuptools import setup
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtension
 
-cuda_macro = ('COMPLIE_WITH_CUDA', None)
+cuda_macro = ('COMPILE_WITH_CUDA', None)
 omp_macro = ('COMPLIE_WITH_OMP', None) # Note: OpenMP needs gcc>4.2.0
 compile_args = {
     'cxx':['-fopenmp']

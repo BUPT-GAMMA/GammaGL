@@ -32,7 +32,7 @@ std::tuple<torch::Tensor, torch::Tensor> device_dispatch_forward(torch::Tensor& 
   } else if (x.is_cpu() && index.is_cpu()) {
     return segment_max_cpu_forward(x, index, N);
   } else {
-    TORCH_CHECK(false, "Device type error.");
+    AT_ERROR("Tensor device inconsistent error.");
   }
 }
 
