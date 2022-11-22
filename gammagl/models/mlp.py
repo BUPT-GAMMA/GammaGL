@@ -21,6 +21,7 @@ class MLP(tlx.nn.Module):
                  act_first=False,
                  norm=tlx.nn.BatchNorm1d(gamma_init='ones'),
                  dropout=0.0,
+
                  bias=True,
                  plain_last=True
                  ):
@@ -52,11 +53,13 @@ class MLP(tlx.nn.Module):
 
         self.lins = tlx.nn.ModuleList()
         iterator = zip(channel_list[:-1], channel_list[1:], bias)
+
         for i, o, _bias in iterator:
             if _bias:
                 self.lins.append(Linear(in_features=i, out_features=o))
             else:
                 self.lins.append(Linear(in_features=i, out_features=o, b_init=None))
+
 
         self.norms = tlx.nn.ModuleList()
         iterator = channel_list[1:-1] if plain_last else channel_list[1:]

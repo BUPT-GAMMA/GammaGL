@@ -10,7 +10,6 @@ from gammagl.models import FILMModel
 from gammagl.loader import DataLoader
 from sklearn.metrics import f1_score
 
-tlx.set_device("GPU", 3)  # set GPU for torch backend
 
 
 class SemiSpvzLoss(WithLoss):
@@ -70,7 +69,10 @@ def main(args):
 
             val_y = batch['y']
             pred = tlx.where(val_logits > 0, 1, 0)
+
+
             val_f1 = f1_score(val_y.cpu(), pred.cpu(), average='micro')
+
 
             print("Epoch [{:0>3d}] ".format(epoch + 1) \
                   + "  train loss: {:.4f}".format(train_loss.item()) \
@@ -87,8 +89,10 @@ def main(args):
 
         test_y = batch['y']
         pred = tlx.where(test_logits > 0, 1, 0)
+
         test_f1 = f1_score(test_y.cpu(), pred.cpu(), average='micro')
         print("Test f1-micro:  {:.4f}".format(test_f1))
+
 
 
 if __name__ == '__main__':

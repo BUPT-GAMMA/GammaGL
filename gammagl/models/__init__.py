@@ -25,6 +25,7 @@ from .graphgan_discriminator import Discriminator
 from .graphgan import GraphGAN
 from .vgae import VGAEModel, GAEModel
 
+
 __all__ = [
     'GCNModel',
     'GATModel',
@@ -57,6 +58,7 @@ __all__ = [
     'FILMModel',
     'VGAEModel',
     'GAEModel'
+
 ]
 
 classes = __all__

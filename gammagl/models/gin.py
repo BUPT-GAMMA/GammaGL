@@ -31,6 +31,7 @@ class GINModel(tlx.nn.Module):
                  hidden_channels,
                  out_channels,
                  num_layers=4,
+
                  name="GIN"):
         super(GINModel, self).__init__(name=name)
 
@@ -50,5 +51,6 @@ class GINModel(tlx.nn.Module):
 
         for conv in self.convs:
             x = tlx.relu(conv(x, edge_index))
+
         x = global_sum_pool(x, batch)
         return self.mlp(x)

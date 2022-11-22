@@ -37,7 +37,7 @@ extensions = [
         extra_link_args=link_extra_args, ),
 ]
 
-install_requires = ['numpy', 'scipy', 'pytest', 'cython', 'tensorflow', 'tensorlayerx']
+install_requires = ['numpy', 'scipy', 'pytest', 'cython', 'tensorlayerx']
 
 classifiers = [
     'Development Status :: 3 - Alpha',

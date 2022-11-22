@@ -1,3 +1,4 @@
+
 import numpy
 import os
 import sys
@@ -6,6 +7,7 @@ sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in
 
 import argparse
 import numpy as np
+
 import tensorlayerx as tlx
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.loader import DataLoader
@@ -26,24 +28,30 @@ class SemiSpvzLoss(WithLoss):
         return loss
 
 
+
 def main(args):
     print("loading dataset...")
+
     path = args.dataset_path
     dataset = TUDataset(path, name=args.dataset)
+
 
     dataset_unit = len(dataset) // 10
     train_dataset = dataset[2 * dataset_unit:]
     val_dataset = dataset[:dataset_unit]
     test_dataset = dataset[dataset_unit: 2 * dataset_unit]
+
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
     net = GINModel(in_channels=max(dataset.num_features, 1),
+
                    hidden_channels=args.hidden_dim,
                    out_channels=dataset.num_classes,
                    num_layers=args.num_layers,
                    name="GIN")
+
 
     # net = GCNModel(feature_dim=max(dataset.num_features, 1),
     #                hidden_dim=args.hidden_dim,
@@ -54,6 +62,7 @@ def main(args):
 
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
 
+
     train_weights = net.trainable_weights
 
     loss_func = SemiSpvzLoss(net, tlx.losses.softmax_cross_entropy_with_logits)
@@ -63,6 +72,7 @@ def main(args):
     best_val_acc = 0
     for epoch in range(args.n_epoch):
         net.set_train()
+
         for data in train_loader:
             train_loss = train_one_step(data, data.y)
 
@@ -98,9 +108,11 @@ def main(args):
     print("Test acc:  {:.4f}".format(test_acc))
 
 
+
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
+
     parser.add_argument("--lr", type=float, default=0.001, help="learning rate")
     parser.add_argument("--n_epoch", type=int, default=100, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=32, help="dimention of hidden layers")
@@ -114,6 +126,7 @@ if __name__ == '__main__':
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     parser.add_argument("--num_layers", type=int, default=5, help="num of gin layers")
     parser.add_argument("--batch_size", type=int, default=100, help="batch_size of the data_loader")
+
     args = parser.parse_args()
 
     main(args)
