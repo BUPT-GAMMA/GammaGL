@@ -1,4 +1,5 @@
 import tensorlayerx as tlx
+from tensorlayerx.nn import Linear
 from gammagl.layers.conv.message_passing import MessagePassing
 
 
@@ -37,8 +38,6 @@ class FILMConv(MessagePassing):
                  act=tlx.nn.ReLU()):
         super(FILMConv, self).__init__()
 
-        Linear = tlx.layers.Linear
-
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.num_relations = num_relations
@@ -49,13 +48,13 @@ class FILMConv(MessagePassing):
 
         if isinstance(in_channels, int):
             in_channels = (in_channels, in_channels)
-
+        initor = tlx.initializers.TruncatedNormal()
         for _ in range(num_relations):
-            self.lins.append(Linear(in_features=in_channels[0], out_features=out_channels, b_init=None))
-            self.films.append(Linear(in_features=in_channels[1], out_features=2 * out_channels))
+            self.lins.append(Linear(in_features=in_channels[0], out_features=out_channels, W_init=initor, b_init=None))
+            self.films.append(Linear(in_features=in_channels[1], out_features=2 * out_channels, W_init=initor))
 
-        self.lin_skip = Linear(in_features=in_channels[1], out_features=out_channels)
-        self.film_skip = Linear(in_features=in_channels[1], out_features=2 * out_channels, b_init=None)
+        self.lin_skip = Linear(in_features=in_channels[1], out_features=out_channels, W_init=initor)
+        self.film_skip = Linear(in_features=in_channels[1], out_features=2 * out_channels, W_init=initor, b_init=None)
 
     def forward(self, x, edge_index):
 
@@ -74,7 +73,7 @@ class FILMConv(MessagePassing):
 
     def message(self, x, edge_index, beta, gamma, edge_weight=None):
 
-        msg = tlx.gather(x, edge_index[0, :])
+        msg = tlx.gather(x, edge_index[1, :])
         beta = tlx.gather(beta, edge_index[0, :])
         gamma = tlx.gather(gamma, edge_index[0, :])
 

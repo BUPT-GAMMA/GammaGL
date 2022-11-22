@@ -23,6 +23,7 @@ from .graphgan_generator import Generator
 from .graphgan_discriminator import Discriminator
 from .graphgan import GraphGAN
 from .pna import PNAModel
+from .film import FILMModel
 
 __all__ = [
     'GCNModel',
@@ -51,6 +52,9 @@ __all__ = [
     'Generator',
     'Discriminator',
     'PNAModel',
+    'HardGATModel'
+    'GPRGNNModel',
+    'FILMModel',
 ]
 
 classes = __all__

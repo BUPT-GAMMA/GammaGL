@@ -35,8 +35,7 @@ class FILMModel(tlx.nn.Module):
 
         self.norms = tlx.nn.ModuleList()
         for _ in range(num_layers - 1):
-            self.norms.append(tlx.nn.BatchNorm1d(momentum=0.1))
-
+            self.norms.append(tlx.nn.BatchNorm1d(num_features=hidden_dim, momentum=0.1,gamma_init='ones'))
         self.dropout = tlx.nn.Dropout(drop_rate)
 
     def forward(self, x, edge_index):

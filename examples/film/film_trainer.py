@@ -8,6 +8,9 @@ from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.datasets.ppi import PPI
 from gammagl.models import FILMModel
 from gammagl.loader import DataLoader
+from sklearn.metrics import f1_score
+
+tlx.set_device("GPU", 4)  # set GPU for torch backend
 
 
 class SemiSpvzLoss(WithLoss):
@@ -29,14 +32,13 @@ def calculate_acc(logits, y, metrics):
 
 def main(args):
     print("loading ppi dataset...")
-    path = args.dataset_path + 'ppi'
-    train_dataset = PPI(path)
-    val_dataset = PPI(path, split='val')
-    test_dataset = PPI(path, split='test')
+    train_dataset = PPI(args.dataset_path)
+    val_dataset = PPI(args.dataset_path, split='val')
+    test_dataset = PPI(args.dataset_path, split='test')
 
     batch_size = int(args.batch_size)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
@@ -47,12 +49,7 @@ def main(args):
                     drop_rate=args.drop_rate,
                     name="FILM")
 
-    # if tlx.BACKEND == film_utils.TORCH_BACKEND:
-    #     net = net.to(device)
-
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
-
-    metrics = tlx.metrics.Precision()
 
     train_weights = net.trainable_weights
 
@@ -72,7 +69,8 @@ def main(args):
             val_logits = net(batch['x'], batch['edge_index'])
 
             val_y = batch['y']
-            val_acc = calculate_acc(tlx.where(val_logits > 0, 1, 0), val_y, metrics)
+            pred = tlx.where(val_logits > 0, 1, 0)
+            val_acc = f1_score(val_y.cpu(), pred.cpu(), average='micro')
 
             print("Epoch [{:0>3d}] ".format(epoch + 1) \
                   + "  train loss: {:.4f}".format(train_loss.item()) \
@@ -83,15 +81,13 @@ def main(args):
                 net.save_weights(args.best_model_path + net.name + ".npz", format='npz_dict')
 
     net.load_weights(args.best_model_path + net.name + ".npz", format='npz_dict')
-    if tlx.BACKEND == 'torch':
-        net.to(test_loader['x'].device)
     net.set_eval()
     for batch in test_loader:
         test_logits = net(batch['x'], batch['edge_index'])
 
-        test_y = test_loader['y']
-        test_acc = calculate_acc(tlx.where(test_logits > 0, 1, 0), test_y, metrics)
-
+        test_y = batch['y']
+        pred = tlx.where(test_logits > 0, 1, 0)
+        test_acc = f1_score(test_y.cpu(), pred.cpu(), average='micro')
         print("Test acc:  {:.4f}".format(test_acc))
 
 
@@ -99,12 +95,12 @@ if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=500, help="number of epoch")
-    parser.add_argument("--hidden_dim", type=int, default=160, help="dimention of hidden layers")
+    parser.add_argument("--n_epoch", type=int, default=2000, help="number of epoch")
+    parser.add_argument("--hidden_dim", type=int, default=320, help="dimention of hidden layers")
     parser.add_argument("--drop_rate", type=float, default=0.1, help="drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='ppi', help='dataset(ppi)')
-    parser.add_argument("--dataset_path", type=str, default=r'../../data/', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'../../../data', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     parser.add_argument("--batch_size", type=int, default=2, help="batch_size of dataloader")
