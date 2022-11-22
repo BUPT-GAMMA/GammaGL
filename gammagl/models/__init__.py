@@ -19,9 +19,9 @@ from .gprgnn import GPRGNNModel
 from .pna import PNAModel
 from .mixhop import MIXHOPModel
 from .hardgat import HardGATModel
-from .graphgan import GraphGAN
 from .graphgan_generator import Generator
 from .graphgan_discriminator import Discriminator
+from .graphgan import GraphGAN
 from .pna import PNAModel
 
 __all__ = [
