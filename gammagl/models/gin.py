@@ -30,7 +30,7 @@ class GINModel(tlx.nn.Module):
     def __init__(self, in_channels,
                  hidden_channels,
                  out_channels,
-                 num_layers=5,
+                 num_layers=4,
                  name="GIN"):
         super(GINModel, self).__init__(name=name)
 
@@ -44,7 +44,11 @@ class GINModel(tlx.nn.Module):
                        norm=None, dropout=0.5)
 
     def forward(self, x, edge_index, batch):
+        if x is None:
+            # x = tlx.ones((batch.shape[0], 1), dtype=tlx.float32)
+            x = tlx.random_normal((batch.shape[0], 1), dtype=tlx.float32)
+
         for conv in self.convs:
-            x = tlx.relu(conv(x, edge_index, ))
+            x = tlx.relu(conv(x, edge_index))
         x = global_sum_pool(x, batch)
         return self.mlp(x)

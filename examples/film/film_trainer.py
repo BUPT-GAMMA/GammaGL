@@ -10,7 +10,7 @@ from gammagl.models import FILMModel
 from gammagl.loader import DataLoader
 from sklearn.metrics import f1_score
 
-tlx.set_device("GPU", 4)  # set GPU for torch backend
+tlx.set_device("GPU", 3)  # set GPU for torch backend
 
 
 class SemiSpvzLoss(WithLoss):
@@ -70,14 +70,14 @@ def main(args):
 
             val_y = batch['y']
             pred = tlx.where(val_logits > 0, 1, 0)
-            val_acc = f1_score(val_y.cpu(), pred.cpu(), average='micro')
+            val_f1 = f1_score(val_y.cpu(), pred.cpu(), average='micro')
 
             print("Epoch [{:0>3d}] ".format(epoch + 1) \
                   + "  train loss: {:.4f}".format(train_loss.item()) \
-                  + "  val acc: {:.4f}".format(val_acc))
+                  + "  val f1-micro: {:.4f}".format(val_f1))
 
-            if val_acc > best_val_acc:
-                best_val_acc = val_acc
+            if val_f1 > best_val_acc:
+                best_val_acc = val_f1
                 net.save_weights(args.best_model_path + net.name + ".npz", format='npz_dict')
 
     net.load_weights(args.best_model_path + net.name + ".npz", format='npz_dict')
@@ -87,8 +87,8 @@ def main(args):
 
         test_y = batch['y']
         pred = tlx.where(test_logits > 0, 1, 0)
-        test_acc = f1_score(test_y.cpu(), pred.cpu(), average='micro')
-        print("Test acc:  {:.4f}".format(test_acc))
+        test_f1 = f1_score(test_y.cpu(), pred.cpu(), average='micro')
+        print("Test f1-micro:  {:.4f}".format(test_f1))
 
 
 if __name__ == '__main__':

@@ -4,8 +4,8 @@ import os.path as osp
 from gammagl.data import (InMemoryDataset, download_url,
                           extract_zip)
 import tensorlayerx as tlx
-from gammagl.utils import film_utils
 import numpy as np
+from itertools import product
 from gammagl.data import Graph
 from gammagl.utils import remove_self_loops
 
@@ -39,7 +39,7 @@ class PPI(InMemoryDataset):
     def raw_file_names(self):
         splits = ['train', 'valid', 'test']
         files = ['feats.npy', 'graph_id.npy', 'graph.json', 'labels.npy']
-        return [f'{split}_{name}' for split, name in film_utils.product(splits, files)]
+        return [f'{split}_{name}' for split, name in product(splits, files)]
 
     @property
     def processed_file_names(self):
@@ -78,14 +78,9 @@ class PPI(InMemoryDataset):
                     if mask_index[0] <= edge[0] <= mask_index[-1]:
                         edge_index.append(edge)
 
-                edge_index = np.array(edge_index,dtype=int).T
+                edge_index = np.array(edge_index, dtype=int).T
                 edge_index = edge_index - np.min(edge_index)
-                edge_index = remove_self_loops(edge_index)
+                edge_index, _ = remove_self_loops(edge_index)
                 graph = Graph(edge_index=edge_index, x=x[mask], y=y[mask])
                 graph_list.append(graph)
             self.save_data(self.collate(graph_list), self.processed_paths[s])
-
-
-def remove_self_loops(edge_index):
-    mask = edge_index[0] != edge_index[1]
-    return edge_index[:, mask]

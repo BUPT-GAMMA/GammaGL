@@ -20,7 +20,7 @@ TL_BACKEND="torch" python film_trainer.py --dataset ppi --lr 0.001 --l2_coef 5e-
 TL_BACKEND="paddle" python film_trainer.py --dataset ppi --lr 0.001 --l2_coef 5e-4 --drop_rate 0.1 --hidden_dim 160 --num_layers 4
 ```
 
-| Dataset | Paper    | Our(tf) | Our(torch) | Our(tf) |
-|---------|----------|---------|------------| --------|
-| PPI     | 84.1±0.5 | 70±0.7  | 94±0.7     | 70±0.7  |
+| Dataset | Paper    | Our(tf) | Our(torch) | Our(pd) |
+|---------|----------|---------|------------|--------|
+| PPI     | 84.1±0.5 | 70±0.7  | 94±0.7     | 70±0.7 |
 
