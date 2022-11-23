@@ -10,7 +10,6 @@ from gammagl.models import FILMModel
 from gammagl.loader import DataLoader
 from sklearn.metrics import f1_score
 
-tlx.set_device('GPU', 5)
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
