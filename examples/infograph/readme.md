@@ -13,21 +13,21 @@ Run with following:
 
 ```bash
 # use tensorflow bakcend
-TL_BACKEND="tensorflow" python infograph_trainer.py --dataset=MUTAG 
-TL_BACKEND="tensorflow" python infograph_trainer.py --dataset=IMDB-BINARY
-TL_BACKEND="tensorflow" python infograph_trainer.py --dataset=REDDIT-BINARY
+TL_BACKEND="tensorflow" python infograph_trainer.py --dataset MUTAG 
+TL_BACKEND="tensorflow" python infograph_trainer.py --dataset IMDB-BINARY
+TL_BACKEND="tensorflow" python infograph_trainer.py --dataset REDDIT-BINARY
 ```
 ```bash
 # use pytorch backend
-TL_BACKEND="torch" python infograph_trainer.py --dataset=MUTAG 
-TL_BACKEND="torch" python infograph_trainer.py --dataset=IMDB-BINARY
-TL_BACKEND="torch" python infograph_trainer.py --dataset=REDDIT-BINARY 
+TL_BACKEND="torch" python infograph_trainer.py --dataset MUTAG 
+TL_BACKEND="torch" python infograph_trainer.py --dataset IMDB-BINARY
+TL_BACKEND="torch" python infograph_trainer.py --dataset REDDIT-BINARY 
 ```
 ```bash
 # use paddle backend
-TL_BACKEND="paddle" python infograph_trainer.py --dataset=MUTAG 
-TL_BACKEND="paddle" python infograph_trainer.py --dataset=IMDB-BINARY
-TL_BACKEND="paddle" python infograph_trainer.py --dataset=REDDIT-BINARY
+TL_BACKEND="paddle" python infograph_trainer.py --dataset MUTAG 
+TL_BACKEND="paddle" python infograph_trainer.py --dataset IMDB-BINARY
+TL_BACKEND="paddle" python infograph_trainer.py --dataset REDDIT-BINARY
 ```
 
 Results (accuracy)
