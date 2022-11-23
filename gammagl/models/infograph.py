@@ -112,6 +112,8 @@ class InfoGraph(nn.Module):
         num_feature (int): input feature dimension
         hid_feat (int): hidden dimension
         num_gc_layers (int): number of layers
+        prior (boolean): whether to use prior discriminator
+        gamma (float): tunable hyper-parameter
     """
 
     def __init__(self, num_feature, hid_feat, num_gc_layers, prior, gamma=.1):

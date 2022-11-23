@@ -18,6 +18,7 @@ from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.models.infograph import InfoGraph
 from gammagl.loader import DataLoader
 from infograph_eval import evaluate_embedding
+tlx.set_device("GPU", 4)
 
 
 class Unsupervised_Loss(WithLoss):

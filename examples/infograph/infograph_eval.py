@@ -130,8 +130,9 @@ def evaluate_embedding(embeddings, labels, method, search=True):
         accuracy: the accuracy of model
     """
 
-    labels = preprocessing.LabelEncoder().fit_transform(labels)
-    x, y = np.array(embeddings), np.array(labels)
+    labels = preprocessing.LabelEncoder().fit_transform(labels.cpu())
+    x = np.array(embeddings.cpu())
+    y = np.array(labels)
     if method == 'log':
         classify = logistic_classify
     elif method == 'svc':
