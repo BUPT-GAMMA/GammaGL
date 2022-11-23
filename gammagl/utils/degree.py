@@ -19,6 +19,9 @@ def degree(index, num_nodes: Optional[int] = None, dtype=None):
 	:rtype: :class:`Tensor`
 	"""
 	N = maybe_num_nodes(index, num_nodes)
-	out = tlx.zeros((N, ), dtype=dtype)
+	if dtype is None:
+		out = tlx.zeros((N, ))
+	else:
+		out = tlx.zeros((N,), dtype=dtype)
 	one = tlx.ones((index.shape[0], ), dtype=out.dtype)
 	return tlx.unsorted_segment_sum(one, index, N)
