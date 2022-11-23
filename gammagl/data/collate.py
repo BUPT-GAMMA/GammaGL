@@ -86,7 +86,7 @@ def collate(
             out_store[attr] = value
             if key is not None:
                 slice_dict.setdefault(key, dict())[attr] = slices
-                inc_dict.setdefault(key, dict())[attr] = slices
+                inc_dict.setdefault(key, dict())[attr] = incs
             else:
                 slice_dict[attr] = slices
                 inc_dict[attr] = incs

@@ -13,4 +13,4 @@ def test_film_conv():
 
     conv = FILMConv(4, 32)
     out1 = conv(x1, edge_index)
-    assert out1.size() == (4, 32)
+    assert tlx.convert_to_numpy(out1) == (4, 32)
