@@ -17,6 +17,14 @@ from .simplehgn import SimpleHGNModel
 from .fagcn import FAGCNModel
 from .gprgnn import GPRGNNModel
 from .dgcnn import DGCNNModel
+from .film import FILMModel
+from .pna import PNAModel
+from .mixhop import MIXHOPModel
+from .hardgat import HardGATModel
+from .graphgan_generator import Generator
+from .graphgan_discriminator import Discriminator
+from .graphgan import GraphGAN
+
 
 __all__ = [
     'GCNModel',
@@ -38,7 +46,18 @@ __all__ = [
     'SimpleHGNModel',
     'FAGCNModel',
     'GPRGNNModel',
-    'DGCNNModel'
+    'PNAModel',
+    'MIXHOPModel',
+    'HardGATModel',
+    # 'GraphGAN',
+    # 'Generator',
+    # 'Discriminator',
+    'PNAModel',
+    'HardGATModel',
+    'GPRGNNModel',
+    'DGCNNModel',
+    'FILMModel',
+
 ]
 
 classes = __all__

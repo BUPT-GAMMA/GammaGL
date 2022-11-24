@@ -10,7 +10,8 @@ from .hgb import HGBDataset
 from .wikipedia_network import WikipediaNetwork
 from .webkb import WebKB
 from .modelnet40 import ModelNet40
-
+from .ca_grqc import CA_GrQc
+from .zinc import ZINC
 
 __all__ = [
     'Amazon',
@@ -24,8 +25,9 @@ __all__ = [
     'HGBDataset',
     'WikipediaNetwork',
     'WebKB',
-    'ModelNet40'
-
+    'ModelNet40',
+    'CA_GrQc',
+    'ZINC'
 ]
 
 classes = __all__
