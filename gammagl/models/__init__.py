@@ -23,6 +23,7 @@ from .hardgat import HardGATModel
 from .graphgan_generator import Generator
 from .graphgan_discriminator import Discriminator
 from .graphgan import GraphGAN
+from .gen import GEstimationN
 
 
 __all__ = [
@@ -55,6 +56,7 @@ __all__ = [
     'HardGATModel',
     'GPRGNNModel',
     'FILMModel',
+    'GEstimationN'
 
 ]
 

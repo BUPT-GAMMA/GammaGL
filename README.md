@@ -312,6 +312,7 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [HardGAT [KDD 2019]](./examples/hardgat)         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [MixHop [ICML 2019]](./examples/mixhop)          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [PNA [NeurIPS 2020]](./examples/pna)             | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [GEN [WWW 2021]](./examples/gen)                 | :heavy_check_mark: |                    |                    |           |
 
 | Contrastive Learning                           | TensorFlow         | PyTorch            | Paddle             | MindSpore |
 | ---------------------------------------------- | ------------------ | ------------------ | ------------------ | --------- |
