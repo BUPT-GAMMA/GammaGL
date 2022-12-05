@@ -70,6 +70,22 @@ class MessagePassing(tlx.nn.Module):
         else:
             raise NotImplementedError('Not support for this opearator')
 
+    def message_aggregate(self, x, edge_index, edge_weight=None, aggr='sum'):
+        """
+        try to fuse message and aggregate to reduce expensed edge information.
+        """
+        # use_ext is defined in mpops
+        if use_ext is not None and use_ext:
+            if edge_weight is None:
+                edge_weight = torch.ones(edge_index.shape[1],
+                                         device=x.device, 
+                                         dtype=x.dtype)
+            out = gspmm(edge_index, edge_weight, x, aggr)
+        else:
+            msg = self.message(x, edge_index, edge_weight)
+            out = self.aggregate(msg, edge_index)
+        return out
+
     def update(self, x):
         """
         Function defines how to update node embeddings
@@ -79,13 +95,14 @@ class MessagePassing(tlx.nn.Module):
         """
         return x
 
-    def propagate(self, x, edge_index, aggr='sum', **kwargs):
+    def propagate(self, x, edge_index, aggr='sum', fuse_kernel=False,  **kwargs):
         """
         Function that perform message passing. 
         Args:
             x: input node feature
             edge_index: edges from src to dst
             aggr: aggregation type, default='sum', optional=['sum', 'mean', 'max']
+            fuse_kernel: use fused kernel function to speed up, default = False
             kwargs: other parameters dict
 
         """
@@ -95,8 +112,11 @@ class MessagePassing(tlx.nn.Module):
 
         coll_dict = self.__collect__(x, edge_index, aggr, kwargs)
         msg_kwargs = self.inspector.distribute('message', coll_dict)
-        msg = self.message(**msg_kwargs)
-        x = self.aggregate(msg, edge_index, num_nodes=kwargs['num_nodes'], aggr=aggr)
+        if fuse_kernel:
+            x = self.message_aggregate(**msg_kwargs)
+        else:
+            msg = self.message(**msg_kwargs)
+            x = self.aggregate(msg, edge_index, num_nodes=kwargs['num_nodes'], aggr=aggr)
         x = self.update(x)
         return x
 
