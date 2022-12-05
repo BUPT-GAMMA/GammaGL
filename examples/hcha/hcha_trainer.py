@@ -1,6 +1,6 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES']='1'
-os.environ['TL_BACKEND'] = 'torch'
+os.environ['TL_BACKEND'] = 'tensorflow'
 import sys
 # sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 import argparse
@@ -48,23 +48,20 @@ def main(args):
     graph = dataset[0]
     graph.tensor()
     edge_index = graph.edge_index # Record which nodes have edges
-    edge_weight = tlx.ones((edge_index.shape[1],))  # Record each edge weights
+    # edge_weight = tlx.ones((edge_index.shape[1],))  # Record each edge weights
     x = graph.x  # Record features of each node
-    y = graph.y  # Record label of each node
-
-    '''label type'''
-    label_type = np.array(y)
-    label_type = set(list(label_type))
+    # y = graph.y  # Record label of each node
 
     '''hyper-edge construction'''
     temp = []
     hedge_map = {}
-    for i in range(len(edge_index[0])):
-        if edge_index[0][i] not in temp:
-            temp.append(edge_index[0][i])
-            hedge_map[edge_index[0][i]] = [edge_index[0][i],edge_index[1][i]]
+    edge_index_numpy = tlx.convert_to_numpy(edge_index)
+    for i in range(len(edge_index_numpy[0])):
+        if edge_index_numpy[0][i] not in temp:
+            temp.append(edge_index_numpy[0][i])
+            hedge_map[edge_index_numpy[0][i]] = [edge_index_numpy[0][i],edge_index_numpy[1][i]]
         else:
-            hedge_map[edge_index[0][i]].append(edge_index[1][i])
+            hedge_map[edge_index_numpy[0][i]].append(edge_index_numpy[1][i])
     hyperedge_index = [[],[]]
     hyperedge_attr = []
     for key, value in hedge_map.items():
@@ -73,7 +70,7 @@ def main(args):
         for item in value:
             hyperedge_index[0].append(item) # node index
             hyperedge_index[1].append(key) # hyperedge index
-            m += np.array(x[item])
+            m += tlx.convert_to_numpy(x[int(item)])
             count += 1
         m = m/count
         hyperedge_attr.append(m)
@@ -153,9 +150,9 @@ def main(args):
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lr", type=float, default=0.01, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=50, help="number of epoch")
-    parser.add_argument("--hidden_dim", type=int, default=16, help="dimention of hidden layers")
+    parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
+    parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
+    parser.add_argument("--hidden_dim", type=int, default=64, help="dimention of hidden layers")
     parser.add_argument("--drop_rate", type=float, default=0.5, help="drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
