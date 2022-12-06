@@ -1,7 +1,7 @@
 import tensorlayerx as tlx
 from gammagl.layers.conv import CompConv
 class CompGCN(tlx.nn.Module):
-    """relational graph convoluation nerworks"""
+    """Composition-based Multi-Relational graph convoluation nerworks"""
     def __init__(self, feature_dim, hidden_dim, num_class,op, num_relations,num_entity, name=None):
         super().__init__(name=name)
         self.op = op

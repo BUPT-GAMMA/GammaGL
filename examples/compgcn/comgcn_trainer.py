@@ -1,11 +1,11 @@
 # !/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
-# @Time    : 2022/04/20 13:47
-# @Author  : hanhui
-# @FileName: trainer.py.py
+# @Time    : 2022/11/8 23:47
+# @Author  : yijian
+# @FileName: compgcn_trainer.py
 import os
-os.environ['TL_BACKEND'] = 'torch'  # set your backend here, default `tensorflow`
+os.environ['TL_BACKEND'] = 'torch'  # set your backend here, default `torch`
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 import sys
@@ -65,11 +65,6 @@ def main(args):
     dataset = Entities(path, args.dataset)
     graph = dataset[0]
 
-    graph.numpy()
-
-
-    graph.tensor()
-
     train_y = graph.train_y
     test_y = graph.test_y
     edge_index = graph.edge_index
@@ -94,6 +89,8 @@ def main(args):
     #Preprocess Entity Index and Relation Index,
     #the first half of edge_index and edge_type are output
     #the second half of edge_index and edge_type are inverse
+    #for edge type of initial dataset,even index is out edge, odd index is inverse edge
+    #we must preprocess edge type
     edge_type = tlx.ops.convert_to_numpy(edge_type)
     edge_index = tlx.ops.convert_to_numpy(edge_index)
     edge_in_index = [[], []]
@@ -161,17 +158,17 @@ def main(args):
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lr", type=float, default=0.0001, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=300, help="number of epoch")
+    parser.add_argument("--lr", type=float, default=0.015, help="learnin rate")
+    parser.add_argument("--n_epoch", type=int, default=1000, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=16, help="dimention of hidden layers")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument('--num_bases', type=int, default=None, help='number of bases')
     parser.add_argument('--num_blocks', type=int, default=None, help='numbere of blocks')
     parser.add_argument("--aggregation", type=str, default='mean', help='aggregate type')
-    parser.add_argument('--dataset', type=str, default='bgs', help='dataset')
+    parser.add_argument('--dataset', type=str, default='aifb', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
-    parser.add_argument("--op", type=str, default='sub', help="op between entity and relation")
+    parser.add_argument("--op", type=str, default='sub', help="op between entity and relation,sub or mult")
     args = parser.parse_args()
 
     main(args)

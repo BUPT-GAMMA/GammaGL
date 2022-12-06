@@ -18,13 +18,13 @@ Results
 ```bash
 TL_BACKEND="pytorch" python rgcn_trainer.py --dataset aifb  --l2 5e-5
 TL_BACKEND="pytorch" python rgcn_trainer.py --dataset mutag --l2_coef 5e-2
-
+TL_BACKEND="pytorch" python rgcn_trainer.py --dataset bgs --lr 0.0001 --l2_coef 5e-2
 
 TL_BACKEND="tensorflow" python rgcn_trainer.py --dataset aifb 
 TL_BACKEND="tensorflow" python rgcn_trainer.py --dataset mutag --l2_coef 5e-2
 TL_BACKEND="tensorflow" python rgcn_trainer.py --dataset bgs --l2_coef 5e-2
 
-TL_BACKEND="paddle" python rgcn_traineTL_BACKEND="pytorch" python rgcn_trainer.py --dataset bgs --lr 0.0001 --l2_coef 5e-2r.py --dataset aifb 
+TL_BACKEND="paddle" python rgcn_trainer.py --dataset aifb 
 TL_BACKEND="paddle" python rgcn_trainer.py --dataset mutag --l2_coef 5e-2
 TL_BACKEND="paddle" python rgcn_trainer.py --dataset bgs --l2_coef 5e-2
 ```

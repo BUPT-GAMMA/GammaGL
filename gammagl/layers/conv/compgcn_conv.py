@@ -1,9 +1,9 @@
 # !/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
-# @Time    : 2022/04/10 11:57
-# @Author  : clear
-# @FileName: rgcn_conv.py.py
+# @Time    : 2022/11/8 23:47
+# @Author  : yijian
+# @FileName: compgcn_conv.py.py
 
 import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
@@ -116,13 +116,10 @@ class CompConv(MessagePassing):
         Returns:
 
         """
-        import torch
-       # rel_emb = rel_emb[edge_type]
-        rel_emb = torch.index_select(rel_emb, 0 ,edge_type)
+        rel_emb = rel_emb[edge_type]
         x_emb = x[edge_index[1]]
         if self.op == 'sub': x_rel_emb = x_emb - rel_emb
         elif self.op == 'mult': x_rel_emb = x_emb * rel_emb
-        elif self.op == 'corr': x_rel_emb = self.ccorr(x_emb,rel_emb)
         msg = linear(x_rel_emb)
         if edge_weight is not None:
             edge_weight = tlx.expand_dims(edge_weight, -1)
@@ -153,43 +150,3 @@ class CompConv(MessagePassing):
         else:
             raise NotImplementedError('Not support for this opearator')
 
-
-    def ccorr(self, a, b):
-        """
-        Compute circular correlation of two tensors.
-        Parameters
-        ----------
-        a: Tensor, 1D or 2D
-        b: Tensor, 1D or 2D
-        Notes
-        -----
-        Input a and b should have the same dimensions. And this operation supports broadcasting.
-        Returns
-        -------
-        Tensor, having the same dimension as the input a.
-        """
-
-        def com_mult(a, b):
-            r1, i1 = a[..., 0], a[..., 1]
-            r2, i2 = b[..., 0], b[..., 1]
-            return torch.stack([r1 * r2 - i1 * i2, r1 * i2 + i1 * r2], dim=-1)
-
-        def conj(a):
-            a[..., 1] = -a[..., 1]
-            return a
-
-        try:
-            from torch import irfft
-            from torch import rfft
-        except ImportError:
-            from torch.fft import irfft2
-            from torch.fft import rfft2
-
-            def rfft(x, d):
-                t = rfft2(x, dim=(-d))
-                return torch.stack((t.real, t.imag), -1)
-
-            def irfft(x, d, signal_sizes):
-                return irfft2(torch.complex(x[:, :, 0], x[:, :, 1]), s=signal_sizes, dim=(-d))
-
-        return irfft(com_mult(conj(rfft(a, 1)), rfft(b, 1)), 1, signal_sizes=(a.shape[-1],))
