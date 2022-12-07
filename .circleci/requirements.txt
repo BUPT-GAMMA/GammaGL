@@ -3,5 +3,9 @@ scipy
 cython
 tensorflow
 torch
-paddlepaddle
+torchvision
+paddlepaddle==2.3.2
 pytest
+tqdm
+rich
+django

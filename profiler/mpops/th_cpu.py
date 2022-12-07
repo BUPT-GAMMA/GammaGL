@@ -20,25 +20,27 @@ src = edge_index[0,:]
 dst = edge_index[1,:]
 src = tlx.convert_to_tensor(src, tlx.int64)
 dst = tlx.convert_to_tensor(dst, tlx.int64)
-x = tlx.convert_to_tensor(np.random.randn(num_nodes, 1000), dtype=tlx.float32)
+x = tlx.convert_to_tensor(np.random.randn(num_nodes, 128), dtype=tlx.float32)
 pf = Profiler()
 
 
 pf.start()
-for j in range(1000):
+for j in range(10):
     msg = tlx.gather(x, src)
-    mpops.unsorted_segment_sum(msg, dst, num_nodes)
+    unsorted_segment_sum(msg, dst, num_nodes)
 pf.stop()
 print(pf.output_text(unicode=True, color=True))
 
 
-dst = tlx.convert_to_numpy(dst)
-idx = np.argsort(dst)
-dst = tlx.gather(tlx.convert_to_tensor(dst, dtype=tlx.int64), tlx.convert_to_tensor(idx,dtype=tlx.int64))
 
-pf.start()
-for j in range(1000):
-    msg = tlx.gather(x, src)
-    mpops.segment_sum(msg, dst)
-pf.stop()
-print(pf.output_text(unicode=True, color=True))
+
+# dst = tlx.convert_to_numpy(dst)
+# idx = np.argsort(dst)
+# dst = tlx.gather(tlx.convert_to_tensor(dst, dtype=tlx.int64), tlx.convert_to_tensor(idx,dtype=tlx.int64))
+
+# pf.start()
+# for j in range(10):
+#     msg = tlx.gather(x, src)
+#     segment_sum(msg, dst)
+# pf.stop()
+# print(pf.output_text(unicode=True, color=True))

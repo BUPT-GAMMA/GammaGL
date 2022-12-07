@@ -7,7 +7,7 @@
 """
 
 import os
-# os.environ['CUDA_VISIBLE_DEVICES']='0'
+# os.environ['CUDA_VISIBLE_DEVICES']='1'
 # os.environ['TL_BACKEND'] = 'paddle'
 
 import sys
@@ -16,7 +16,7 @@ import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
 from gammagl.models import GCNModel
-from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
+from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index, set_device
 from tensorlayerx.model import TrainOneStep, WithLoss
 
 
@@ -25,7 +25,7 @@ class SemiSpvzLoss(WithLoss):
         super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
 
     def forward(self, data, y):
-        logits = self.backbone_network(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
+        logits = self.backbone_network(data['x'], data['edge_index'], None, data['num_nodes'])
         train_logits = tlx.gather(logits, data['train_idx'])
         train_y = tlx.gather(data['y'], data['train_idx'])
         loss = self._loss_fn(train_logits, train_y)
@@ -51,12 +51,13 @@ def calculate_acc(logits, y, metrics):
 
 def main(args):
     # load datasets
+    # set_device(5)
     if str.lower(args.dataset) not in ['cora','pubmed','citeseer']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)
     graph = dataset[0]
     edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=args.self_loops)
-    edge_weight = tlx.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
+    # edge_weight = tlx.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
 
     # for mindspore, it should be passed into node indices
     train_idx = mask_to_index(graph.train_mask)
@@ -67,6 +68,8 @@ def main(args):
                    hidden_dim=args.hidden_dim,
                    num_class=dataset.num_classes,
                    drop_rate=args.drop_rate,
+                   num_layers=args.num_layers,
+                   norm = args.norm,
                    name="GCN")
 
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
@@ -80,7 +83,7 @@ def main(args):
         "x": graph.x,
         "y": graph.y,
         "edge_index": edge_index,
-        "edge_weight": edge_weight,
+        # "edge_weight": edge_weight,
         "train_idx": train_idx,
         "test_idx": test_idx,
         "val_idx": val_idx,
@@ -92,7 +95,7 @@ def main(args):
         net.set_train()
         train_loss = train_one_step(data, graph.y)
         net.set_eval()
-        logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
+        logits = net(data['x'], data['edge_index'], None, data['num_nodes'])
         val_logits = tlx.gather(logits, data['val_idx'])
         val_y = tlx.gather(data['y'], data['val_idx'])
         val_acc = calculate_acc(val_logits, val_y, metrics)
@@ -110,7 +113,7 @@ def main(args):
     if tlx.BACKEND == 'torch':
         net.to(data['x'].device)
     net.set_eval()
-    logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
+    logits = net(data['x'], data['edge_index'], None, data['num_nodes'])
     test_logits = tlx.gather(logits, data['test_idx'])
     test_y = tlx.gather(data['y'], data['test_idx'])
     test_acc = calculate_acc(test_logits, test_y, metrics)
@@ -124,6 +127,8 @@ if __name__ == '__main__':
     parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=16, help="dimention of hidden layers")
     parser.add_argument("--drop_rate", type=float, default=0.5, help="drop_rate")
+    parser.add_argument("--num_layers", type=int, default=2, help="number of layers")
+    parser.add_argument("--norm", type=str, default='both', help="how to apply the normalizer.")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")

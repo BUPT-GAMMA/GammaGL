@@ -13,16 +13,19 @@ class HAN(tlx.nn.Module):
                  in_channels,
                  out_channels,
                  metadata,
+                 drop_rate,
                  hidden_channels=128,
-                 heads=8):
-        super().__init__()
+                 heads=8,
+                 name=None):
+        super().__init__(name=name)
         self.han_conv = HANConv(in_channels,
                                 hidden_channels,
                                 metadata,
                                 heads=heads,
-                                dropout_rate=0.6)
+                                dropout_rate=drop_rate)
         self.lin = tlx.nn.Linear(in_features=hidden_channels*heads,
                                  out_features=out_channels)
+
 
     def forward(self, x_dict, edge_index_dict, num_nodes_dict):
         x = self.han_conv(x_dict, edge_index_dict, num_nodes_dict)

@@ -33,15 +33,27 @@ class HeteroGraph(BaseGraph):
         >>> import tensorlayerx as tlx
         >>> data = HeteroGraph()
         # Create two node types "paper" and "author" holding a feature matrix:
+        >>> num_papers = 6
+        >>> num_paper_features = 16
+        >>> num_authors = 3
+        >>> num_authors_features = 8
         >>> data['paper'].x = tlx.random_uniform((num_papers, num_paper_features))
-        >>> data['author'].x =  tlx.random_uniform((num_authors, num_authors_features)))
+        >>> data['author'].x =  tlx.random_uniform((num_authors, num_authors_features))
         # Create an edge type "(author, writes, paper)" and building the
         # graph connectivity:
-        >>> data['author', 'writes', 'paper'].edge_index = ...  # [2, num_edges]
+        >>> edge = tlx.convert_to_tensor([
+        ... [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2],
+        ... [0, 1, 3, 5, 0, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5]
+        ])
+        >>> data['author', 'writes', 'paper'].edge_index = edge
         >>> data['paper'].num_nodes
-        23
+        3
+        >>> data.num_nodes
+        9
         >>> data['author', 'writes', 'paper'].num_edges
-        52
+        15
+        >>> data.num_edges
+        15
         
     Note that there exists multiple ways to create a heterogeneous graph data,
     *e.g.*:
