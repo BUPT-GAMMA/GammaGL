@@ -24,6 +24,7 @@ from .graphgan_generator import Generator
 from .graphgan_discriminator import Discriminator
 from .graphgan import GraphGAN
 from .gen import GEstimationN
+from .rgat import RGAT
 
 
 __all__ = [
@@ -57,7 +58,8 @@ __all__ = [
     'GPRGNNModel',
     'FILMModel',
     'GEstimationN'
-
+    'RGAT'
+    
 ]
 
 classes = __all__
