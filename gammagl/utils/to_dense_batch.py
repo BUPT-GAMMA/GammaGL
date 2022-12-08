@@ -1,5 +1,4 @@
 import tensorlayerx as tlx
-import numpy as np
 
 def to_dense_batch(x, batch=None, fill_value=0, max_num_nodes=None):
     if batch is None and max_num_nodes is None:
@@ -15,7 +14,7 @@ def to_dense_batch(x, batch=None, fill_value=0, max_num_nodes=None):
     if max_num_nodes is None:
         max_num_nodes = tlx.reduce_max(num_nodes)
     
-    idx = tlx.convert_to_tensor(np.arange(batch.shape[0]), dtype=batch.dtype, device=x.device)
+    idx = tlx.arange(0, batch.shape[0], dtype=batch.dtype)
     idx = idx - tlx.gather(cum_nodes, batch) + batch * max_num_nodes
 
     shape = [batch_size * max_num_nodes] + list(x.shape)[1:]
