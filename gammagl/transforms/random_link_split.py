@@ -13,9 +13,6 @@ def sparse_to_tuple(sparse_mx):
 
 
 def mask_test_edges(adj):
-    # Function to build test set with 10% positive links
-    # NOTE: Splits are randomized and results might slightly deviate from reported numbers in the paper.
-    # TODO: Clean up.
 
     # Remove diagonal elements
     adj = adj - sp.dia_matrix((adj.diagonal()[np.newaxis, :], [0]), shape=adj.shape)

@@ -1,6 +1,9 @@
 # 开发时间: 2022/11/2 16:55
 
 import os
+#os.environ['CUDA_VISIBLE_DEVICES']='1'
+#os.environ['TL_BACKEND'] = 'paddle'
+#os.environ['TL_BACKEND'] = 'torch'
 
 import sys
 
@@ -25,23 +28,14 @@ class SemiSpvzLoss(WithLoss):
 
     def forward(self, data, y):
         preds, mu, logstd = self.backbone_network(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
-        #cost = data['norm'] * self._loss_fn(torch.FloatTensor(np.array(preds)), data['labels'], pos_weight=data['pos_weight'])
         #cost = data['norm'] * self._loss_fn(tlx.sigmoid(preds), data['labels'])  #test
-        #KLD = -0.5 / data['num_nodes'] * tlx.reduce_mean(tlx.reduce_sum(
-        #1 + 2 * logstd - tlx.pow(mu, 2) - tlx.pow(tlx.exp(logstd), 2), 1))
         loss = self._loss_fn(data, preds, mu, logstd)
         return loss
 
 
-def weighted_cross_entropy_with_logits(logits, labels, pos_weight):  #带权重的交叉熵,正样本
-    #log_weight = tlx.add(tlx.ones((1, labels.shape[0])), tlx.multiply(pos_weight - tlx.ones((1, pos_weight.shape[1])), labels))
-    #log_weight1 = tlx.ones((labels.shape[0], labels.shape[0]))
-    #log_weight2 = tlx.multiply(pos_weight - 1, labels)
-    #log_weight = log_weight1 + log_weight2
-    #log_weight = 1 + tlx.matmul(pos_weight - 1, labels)
-    '''labels * -log(sigmoid(logits)) * pos_weight +
-          (1 - labels) * -log(1 - sigmoid(logits))
-    '''
+def weighted_cross_entropy_with_logits(logits, labels, pos_weight):
+
+    #labels * -log(sigmoid(logits)) * pos_weight + (1 - labels) * -log(1 - sigmoid(logits))
     log_weight = 1 + (pos_weight - 1) * labels
     return tlx.add((1 - labels) * logits,
         log_weight * (tlx.log(tlx.exp(-tlx.abs(logits)) + 1) +
@@ -50,20 +44,16 @@ def weighted_cross_entropy_with_logits(logits, labels, pos_weight):  #带权重�
 
 def get_loss_vgae(data, preds, mu, logstd):
 
-    #cost = data['norm'] * tlx.losses.binary_cross_entropy(torch.sigmoid(torch.FloatTensor(np.array(preds))), data['labels'])
     #cost = data['norm'] * tlx.losses.sigmoid_cross_entropy(preds, data['labels'])
     cost = data['norm'] * tlx.reduce_mean(weighted_cross_entropy_with_logits(preds, data['labels'], pos_weight=data['pos_weight']))
-    #节点表示向量分布和正态分布的KL散度
     KLD = -0.5 / data['num_nodes'] * tlx.reduce_mean(tlx.reduce_sum(1 + 2 * logstd - tlx.pow(mu, 2) - tlx.pow(tlx.exp(logstd), 2), 1))
     return cost + KLD
 
 
 def get_loss_gae(data, preds, mu, logstd):
 
-    #cost = data['norm'] * tlx.losses.binary_cross_entropy(torch.sigmoid(torch.FloatTensor(np.array(preds))), data['labels'])
     #cost = data['norm'] * tlx.losses.sigmoid_cross_entropy(preds, data['labels'])
     cost = data['norm'] * tlx.reduce_mean(weighted_cross_entropy_with_logits(preds, data['labels'], pos_weight=data['pos_weight']))
-
     return cost
 
 
@@ -115,9 +105,7 @@ def main(args):
     if str.lower(args.dataset) not in ['cora', 'pubmed', 'citeseer']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)
-    #dataset = Planetoid(args.dataset_path, args.dataset, transform=transform)
     graph = dataset[0]
-    #train_data, val_data, test_data = dataset[0]
 
     row = np.array(graph.edge_index[0])
     col = np.array(graph.edge_index[1])
@@ -132,7 +120,7 @@ def main(args):
     adj = adj_train
 
     features = graph.x
-    if args.features == 0:  # 应用论文中无特征输入时的情况，用单位矩阵代替
+    if args.features == 0:  #no feartures
         features = tlx.eye(graph.num_nodes, graph.num_nodes)  # featureless
 
     # Some preprocessing
@@ -141,7 +129,7 @@ def main(args):
 
     pos_weight = float(adj.shape[0] * adj.shape[0] - adj.sum()) / adj.sum()
     norm = adj.shape[0] * adj.shape[0] / float((adj.shape[0] * adj.shape[0] - adj.sum()) * 2)
-    pos_weight_tensor = tlx.convert_to_tensor(pos_weight * np.ones((1, adj.shape[0])), tlx.float32)   # 将pos_weight转化为张量  test
+    pos_weight_tensor = tlx.convert_to_tensor(pos_weight * np.ones((1, adj.shape[0])), tlx.float32)
 
     coords = sparse_to_tuple(adj)[0].T
     coords = tlx.convert_to_tensor(coords, tlx.int64)
@@ -194,14 +182,8 @@ def main(args):
         net.set_train()
         train_loss = train_one_step(data, graph.y)
         net.set_eval()
-        #logits = model(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
-        #val_logits = tlx.gather(logits, data['val_idx'])
-        #val_y = tlx.gather(data['y'], data['val_idx'])
-        #val_acc = calculate_acc(val_logits, val_y, metrics)
 
         mu = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])[1]
-        #hidden_emb = np.array(mu) #test
-        #hidden_emb = mu.data.numpy()
         hidden_emb = tlx.convert_to_numpy(mu)
         roc_curr, ap_curr = get_roc_score(hidden_emb, adj_orig, val_edges, val_edges_false)
 
@@ -219,14 +201,8 @@ def main(args):
         net.to(data['x'].device)
     net.set_eval()
 
-    #logits = model(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
-    #test_logits = tlx.gather(logits, data['test_idx'])
-    #test_y = tlx.gather(data['y'], data['test_idx'])
-    #test_acc = calculate_acc(test_logits, test_y, metrics)
-
     mu = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])[1]
-    #hidden_emb = np.array(mu)  # test
-    #hidden_emb = mu.data.numpy()
+
     hidden_emb = tlx.convert_to_numpy(mu)
     roc_curr, ap_curr = get_roc_score(hidden_emb, adj_orig, test_edges, test_edges_false)
 
@@ -246,7 +222,7 @@ if __name__ == '__main__':
     parser.add_argument("--norm", type=str, default='none', help="how to apply the normalizer.")
     parser.add_argument("--l2_coef", type=float, default=0., help="l2 loss coeficient")  #5e-4
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
-    parser.add_argument("--dataset_path", type=str, default=r'../../../data', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     parser.add_argument("--features", type=int, default=1, help="Whether to use features (1) or not (0)")
