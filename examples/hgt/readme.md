@@ -36,4 +36,3 @@ TL_BACKEND="tensorflow" python hgt_trainer.py --dataset IMDB --lr 0.0001 --n_epo
 | IMDB    | 63.00±1.19 | 54.51(±1.99) | 55.98(±2.09) | 54.93(±1.34) |
 
 The experimental results under IMDB dataset are consistent with [PyG](https://github.com/pyg-team/pytorch_geometric).
-

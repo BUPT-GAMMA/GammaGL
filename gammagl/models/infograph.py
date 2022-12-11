@@ -1,5 +1,4 @@
 """
-
 References
 ----------
 Papers:  https://arxiv.org/pdf/1908.01000
@@ -14,7 +13,15 @@ from gammagl.layers.conv import GINConv
 from gammagl.layers.pool.glob import global_sum_pool
 
 
-class FF(nn.Module):  # graph convolution encoder architect
+class FF(nn.Module):
+    r"""
+    Graph Convolution Encoder Architect
+
+    Parameters
+    ----------
+        in_feat  (int): input feature dimension
+        hid_feat (int): hidden dimension
+    """
     def __init__(self, in_feat, hid_feat):
         super(FF, self).__init__()
         self.block = nn.Sequential(
@@ -46,6 +53,15 @@ class PriorDiscriminator(nn.Module):
 
 
 class GINEncoder(nn.Module):
+    """
+    GIN encoder
+
+    Parameters
+    ----------
+        num_feature (int): input feature dimension
+        hid_feat (int): hidden dimension
+        num_gc_layers (int): number of layers
+    """
     def __init__(self, num_feature, out_feat, num_gc_layers):
         super(GINEncoder, self).__init__()
         self.num_gc_layers = num_gc_layers
@@ -88,20 +104,16 @@ class GINEncoder(nn.Module):
 
 
 class InfoGraph(nn.Module):
-    r"""
-        infograph model for unsupervised setting
+    """
+    infograph model for unsupervised setting
+
     Parameters
-    -----------
-    in_dim: int
-        Input feature size.
-    hid_dim: int
-        Hidden feature size.
-    n_layer: int
-        Number of the GNN encoder layers.
-    Functions
-    -----------
-    forward(graph):
-        graph: DGLGraph
+    ----------
+        num_feature (int): input feature dimension
+        hid_feat (int): hidden dimension
+        num_gc_layers (int): number of layers
+        prior (boolean): whether to use prior discriminator
+        gamma (float): tunable hyper-parameter
     """
 
     def __init__(self, num_feature, hid_feat, num_gc_layers, prior, gamma=.1):
@@ -117,14 +129,20 @@ class InfoGraph(nn.Module):
             self.prior_d = PriorDiscriminator(self.embedding_dim)
 
     def get_embedding(self, dataloader):
-        # get_embedding function for evaluation the learned embeddings
+        """
+        Evaluation the learned embeddings
+
+        Args:
+            dataloader: dataloader of dataset
+        Returns:
+            res (tlx.tensor): concat of x
+            y (tlx.tensor): concat of y
+        """
         res = []
         y = []
-        print()
         for data in dataloader:
             x, edge_index, batch = data.x, data.edge_index, data.batch
             if x is None:
-                # 
                 x = tlx.ones((batch.shape[0], 1), dtype=tlx.float32)
             x, _ = self.encoder(x, edge_index, batch)
             res.append(x)
@@ -137,9 +155,8 @@ class InfoGraph(nn.Module):
         if x is None:
             x = tlx.ones((batch.shape[0], 1), dtype=tlx.float32)
         global_emb, local_emb = self.encoder(x, edge_index, batch)
-
-        global_h = self.global_d(global_emb)  # global hidden representation
-        local_h = self.local_d(local_emb)  # local hidden representation
+        global_h = self.global_d(global_emb)
+        local_h = self.local_d(local_emb)
         loss = local_global_loss_(local_h, global_h, batch)
         if self.prior:
             prior = tlx.random_uniform(len(global_h))

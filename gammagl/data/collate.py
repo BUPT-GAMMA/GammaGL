@@ -39,11 +39,10 @@ def collate(
 
     # Group all storage objects of every data object in the `data_list` by key,
     # i.e. `key_to_store_list = { key: [store_1, store_2, ...], ... }`:
-    key_to_stores = defaultdict(list)
+    key_to_stores = dict()
     for data in data_list:
         for store in data.stores:
-            key_to_stores[store._key].append(store)
-
+            key_to_stores.setdefault(store._key, []).append(store)
     # With this, we iterate over each list of storage objects and recursively
     # collate all its attributes into a unified representation:
 
@@ -56,7 +55,7 @@ def collate(
     #   elements as attributes that got incremented need to be decremented
     #   while separating to obtain original values.
     device = None
-    slice_dict, inc_dict = defaultdict(dict), defaultdict(dict)
+    slice_dict, inc_dict = dict(), dict()
     for out_store in out.stores:
         key = out_store._key
         stores = key_to_stores[key]
@@ -86,8 +85,8 @@ def collate(
 
             out_store[attr] = value
             if key is not None:
-                slice_dict[key][attr] = slices
-                inc_dict[key][attr] = incs
+                slice_dict.setdefault(key, dict())[attr] = slices
+                inc_dict.setdefault(key, dict())[attr] = incs
             else:
                 slice_dict[attr] = slices
                 inc_dict[attr] = incs
@@ -104,7 +103,7 @@ def collate(
         if (add_batch and isinstance(stores[0], NodeStorage)
                 and stores[0].can_infer_num_nodes):
             repeats = [store.num_nodes for store in stores]
-            out_store.batch = repeat_interleave(repeats,)
+            out_store.batch = repeat_interleave(repeats, )
             out_store.ptr = cumsum(repeats)
 
             # Sometimes stores can't get num nodes
@@ -116,11 +115,11 @@ def collate(
 
 
 def _collate(
-    key: str,
-    values: List[Any],
-    data_list: List[BaseGraph],
-    stores: List[BaseStorage],
-    increment: bool,
+        key: str,
+        values: List[Any],
+        data_list: List[BaseGraph],
+        stores: List[BaseStorage],
+        increment: bool,
 ) -> Tuple[Any, Any, Any]:
 
     elem = values[0]
