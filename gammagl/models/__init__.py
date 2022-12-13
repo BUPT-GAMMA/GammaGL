@@ -23,9 +23,14 @@ from .hardgat import HardGATModel
 from .graphgan_generator import Generator
 from .graphgan_discriminator import Discriminator
 from .graphgan import GraphGAN
+<<<<<<< Updated upstream
 from .gen import GEstimationN
 
 
+=======
+from .pna import PNAModel
+from .clustergcn import ClusterGCNModel_ppi,ClusterGCNModel_reddit
+>>>>>>> Stashed changes
 __all__ = [
     'GCNModel',
     'GATModel',
@@ -53,11 +58,16 @@ __all__ = [
     # 'Generator',
     # 'Discriminator',
     'PNAModel',
+<<<<<<< Updated upstream
     'HardGATModel',
     'GPRGNNModel',
     'FILMModel',
     'GEstimationN'
 
+=======
+    'ClusterGCNModel_ppi',
+    'ClusterGCNModel_reddit'
+>>>>>>> Stashed changes
 ]
 
 classes = __all__
