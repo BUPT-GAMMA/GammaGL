@@ -60,7 +60,6 @@ __all__ = [
     'VGAEModel',
     'GAEModel',
     'GEstimationN'
->>>>>>> main
 
 ]
 
