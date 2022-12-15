@@ -40,13 +40,20 @@ def get_graph_feature(x, k=20, idx=None):
     feature = tlx.reshape(feature, (batch_size, num_points, k, num_dims))
     x = tlx.tile(tlx.reshape(x, (batch_size, num_points, 1, num_dims)), [1, 1, k, 1])
     feature = tlx.concat([feature - x, x], axis=3)
-    return copy.copy(feature)
+    return copy.deepcopy(feature)
 
 
 class DGCNNModel(nn.Module):
     r"""The Edge Convolution operator from the `"Dynamic Graph CNN for Learning on Point Clouds"
     <https://arxiv.org/pdf/1801.07829.pdf>`_ paper
 
+    Parameters
+    ----------
+    args: arguments of DGCNN.
+        emb_dims: Dimension of embeddings.
+        dropout: Dropout rate
+        k: Num of nearest neighbors to use
+    output_channels(int, optional): number of category.
     """
     def __init__(self, args, output_channels=40):
         super(DGCNNModel, self).__init__()

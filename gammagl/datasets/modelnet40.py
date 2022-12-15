@@ -17,8 +17,23 @@ class ModelNet40(InMemoryDataset):
 
     Parameters
     ----------
-    root: string
-    Root directory where the dataset should be saved.
+        root: str
+            Root directory where the dataset should be saved.
+        transform: callable, optional
+            A function/transform that takes in an
+            :obj:`gammagl.data.Graph` object and returns a transformed
+            version. The data object will be transformed before every access.
+            (default: :obj:`None`)
+        pre_transform: callable, optional
+            A function/transform that takes in
+            an :obj:`gammagl.data.Graph` object and returns a
+            transformed version. The data object will be transformed before
+            being saved to disk. (default: :obj:`None`)
+        split: string, optional
+            The type of dataset split
+            (:obj:`"train"`, :obj:`"test"`).
+        num_points: int, optional
+            The number of points used to train or test.
 
     """
     url = 'https://shapenet.cs.stanford.edu/media/modelnet40_ply_hdf5_2048.zip'

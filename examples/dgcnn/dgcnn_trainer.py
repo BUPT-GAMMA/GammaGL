@@ -38,6 +38,15 @@ class CalLoss(WithLoss):
         super(CalLoss, self).__init__(backbone=net, loss_fn=None)
 
     def forward(self, x, gold, smoothing=True):
+        """
+        Args:
+            x:point cloud
+            gold:classification
+            smoothing:use smoothing to calculate loss or not
+
+        Returns:
+            loss
+        """
         pred = self.backbone_network(x)
         gold = tlx.reshape(tlx.convert_to_tensor(gold), (-1,))
 
