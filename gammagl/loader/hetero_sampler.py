@@ -72,7 +72,7 @@ class NeighborSampler:
                 self.replace,
                 self.directed,
             )
-            return node_dict, row_dict, col_dict, edge_dict
+            return node_dict, row_dict, col_dict, edge_dict, index.shape[0]
 
 
 class Hetero_Neighbor_Sampler(tlx.dataflow.DataLoader):
@@ -214,10 +214,15 @@ class Hetero_Neighbor_Sampler(tlx.dataflow.DataLoader):
                                 collate_fn=self.neighbor_sampler, **kwargs)
 
     def transform_fn(self, out: Any) -> HeteroGraph:
-
-        node_dict, row_dict, col_dict, edge_dict = out
+        # TODO: 增加一個顯示batch_size大小的東西
+        node_dict, row_dict, col_dict, edge_dict, batch_size = out
         data = filter_hetero_data(self.graph, node_dict, row_dict, col_dict,
                                   edge_dict)
+        # TODO：这里将data的edge_stores 变成tensor!这样就可以省去很多麻烦
+        for values in data.edge_stores:
+            for key in values:
+                values[key] = tlx.convert_to_tensor(values[key], tlx.int64)
+        data[self.neighbor_sampler.input_node_type].batch_size = batch_size
         return data
 
     def _get_iterator(self) -> Iterator:
@@ -293,7 +298,7 @@ def filter_node_store_(store: NodeStorage, out_store: NodeStorage,
         if key == 'num_nodes':
             out_store.num_nodes = len(index)
         elif store.is_node_attr(key):
-            index = index.to(value.device)
+            index = tlx.convert_to_tensor(index).to(value.device)
             out_store[key] = value[index]
     return store
 
@@ -336,7 +341,7 @@ def to_hetero_csc(hetero_graph):
             if size[1] > indptr.shape[0]:
                 cur = size[1] - indptr.shape[0]
                 indptr = np.concatenate((indptr, np.full(shape=(cur + 1,), fill_value=indptr[-1], dtype=np.int64)))
-            colptr_dict[key], row_dict[key] = indptr, edge[0]
+            colptr_dict[key], row_dict[key] = indptr, tlx.convert_to_numpy(edge[0])
             # (row, col) = store.edge_index
             # perm = np.argsort(np.add(col * size[0], row))
             # col = col[perm]

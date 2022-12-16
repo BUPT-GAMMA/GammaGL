@@ -546,4 +546,4 @@ def hetero_sample(list node_types, list edge_types, dict row_index_dict, dict ro
         # print("yici caiyang")
 
     return samples_dict, rows_dict, cols_dict, edges_dict
-# python sss.py build_ext  --inplace
+# python setup.py build_ext  --inplace
