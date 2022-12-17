@@ -115,7 +115,7 @@ if __name__ == '__main__':
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--lr", type=float, default=0.05, help="learning rate")
-    parser.add_argument("--n_epoch", type=int, default=5, help="number of epoch")
+    parser.add_argument("--n_epoch", type=int, default=100, help="number of epoch")
     parser.add_argument("--embedding_dim", type=int, default=128)
     parser.add_argument("--walk_length", type=int, default=10)
     parser.add_argument("--p", type=float, default=0.5)
