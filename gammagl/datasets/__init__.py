@@ -9,13 +9,9 @@ from .flickr import Flickr
 from .hgb import HGBDataset
 from .wikipedia_network import WikipediaNetwork
 from .webkb import WebKB
-<<<<<<< HEAD
 from .dblp import DBLP
-
-=======
 from .ca_grqc import CA_GrQc
 from .zinc import ZINC
->>>>>>> 7468ee0fb1408ba047a7f0dce289b33e88297c41
 
 __all__ = [
     'Amazon',
@@ -29,13 +25,9 @@ __all__ = [
     'HGBDataset',
     'WikipediaNetwork',
     'WebKB',
-<<<<<<< HEAD
-    'DBLP'
-
-=======
+    'DBLP',
     'CA_GrQc',
     'ZINC'
->>>>>>> 7468ee0fb1408ba047a7f0dce289b33e88297c41
 ]
 
 classes = __all__

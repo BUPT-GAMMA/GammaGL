@@ -326,7 +326,7 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | -------------------------------------------- | ------------------ | ------------------ | ------------------ | --------- |
 | [RGCN [ESWC2018]](./examples/rgcn)           | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [HAN [WWW 2019]](./examples/han)             | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
-| HGT [WWW 2020]                               |                    |                    |                    |           |
+| [HGT [WWW 2020]](./examples/hgt/)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [SimpleHGN [KDD 2021]](./examples/simplehgn) | :heavy_check_mark: |                    |                    |           |
 
 > Note
