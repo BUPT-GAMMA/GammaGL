@@ -25,6 +25,7 @@ from .graphgan_generator import Generator
 from .graphgan_discriminator import Discriminator
 from .graphgan import GraphGAN
 from .gen import GEstimationN
+from .node2vec import Node2vecModel
 
 
 __all__ = [
@@ -58,7 +59,8 @@ __all__ = [
     'HardGATModel',
     'GPRGNNModel',
     'FILMModel',
-    'GEstimationN'
+    'GEstimationN',
+    'Node2vecModel'
 
 ]
 
