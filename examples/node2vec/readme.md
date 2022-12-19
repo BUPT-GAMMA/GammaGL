@@ -23,21 +23,21 @@ Refer to [Planetoid](https://gammagl.readthedocs.io/en/latest/api/gammagl.datase
 ## Results
 
 ```bash
-TL_BACKEND="tensorflow" python node2vec_trainer.py --lr 0.05 --embedding_dim 128 --p 0.5 --q 2.0 --walk_length 20 --window_size 10 --num_walks 10 --n_epoch 100 --dataset cora
-TL_BACKEND="tensorflow" python node2vec_trainer.py --lr 0.05 --embedding_dim 128 --p 0.5 --q 2.0 --walk_length 20 --window_size 10 --num_walks 10 --n_epoch 100 --dataset citeseer
-TL_BACKEND="tensorflow" python node2vec_trainer.py --lr 0.05 --embedding_dim 128 --p 0.5 --q 2.0 --walk_length 10 --window_size 5 --num_walks 10 --n_epoch 100 --dataset pubmed
-TL_BACKEND="torch" python node2vec_trainer.py --lr 0.05 --embedding_dim 64 --p 0.5 --q 2.0 --walk_length 20 --window_size 10 --num_walks 10 --n_epoch 100 --dataset cora
-TL_BACKEND="torch" python node2vec_trainer.py --lr 0.05 --embedding_dim 64 --p 0.5 --q 2.0 --walk_length 20 --window_size 10 --num_walks 10 --n_epoch 100 --dataset citeseer
-TL_BACKEND="torch" python node2vec_trainer.py --lr 0.05 --embedding_dim 128 --p 0.5 --q 2.0 --walk_length 10 --window_size 5 --num_walks 10 --n_epoch 100 --dataset pubmed
-TL_BACKEND="paddle" python node2vec_trainer.py --lr 0.05 --embedding_dim 64 --p 0.5 --q 2.0 --walk_length 20 --window_size 10 --num_walks 10 --n_epoch 100 --dataset cora
-TL_BACKEND="paddle" python node2vec_trainer.py --lr 0.05 --embedding_dim 64 --p 0.5 --q 2.0 --walk_length 15 --window_size 10 --num_walks 10 --n_epoch 100 --dataset citeseer
-TL_BACKEND="paddle" python node2vec_trainer.py --lr 0.05 --embedding_dim 128 --p 0.5 --q 2.0 --walk_length 10 --window_size 5 --num_walks 10 --n_epoch 100 --dataset pubmed
+TL_BACKEND="tensorflow" python node2vec_trainer.py --lr 0.05 --embedding_dim 128 --p 4.0 --q 0.25 --walk_length 20 --window_size 10 --num_walks 10 --n_epoch 100 --dataset cora
+TL_BACKEND="tensorflow" python node2vec_trainer.py --lr 0.05 --embedding_dim 128 --p 4.0 --q 0.25 --walk_length 20 --window_size 10 --num_walks 10 --n_epoch 100 --dataset citeseer
+TL_BACKEND="tensorflow" python node2vec_trainer.py --lr 0.05 --embedding_dim 64 --p 2.0 --q 0.5 --walk_length 10 --window_size 5 --num_walks 10 --n_epoch 100 --dataset pubmed
+TL_BACKEND="torch" python node2vec_trainer.py --lr 0.05 --embedding_dim 128 --p 4.0 --q 0.25 --walk_length 20 --window_size 10 --num_walks 10 --n_epoch 100 --dataset cora
+TL_BACKEND="torch" python node2vec_trainer.py --lr 0.05 --embedding_dim 128 --p 4.0 --q 0.25 --walk_length 20 --window_size 10 --num_walks 10 --n_epoch 100 --dataset citeseer
+TL_BACKEND="torch" python node2vec_trainer.py --lr 0.05 --embedding_dim 64 --p 4.0 --q 0.25 --walk_length 10 --window_size 5 --num_walks 10 --n_epoch 100 --dataset pubmed
+TL_BACKEND="paddle" python node2vec_trainer.py --lr 0.05 --embedding_dim 128 --p 4.0 --q 0.25 --walk_length 20 --window_size 10 --num_walks 10 --n_epoch 100 --dataset cora
+TL_BACKEND="paddle" python node2vec_trainer.py --lr 0.05 --embedding_dim 128 --p 4.0 --q 0.25 --walk_length 20 --window_size 10 --num_walks 10 --n_epoch 100 --dataset citeseer
+TL_BACKEND="paddle" python node2vec_trainer.py --lr 0.05 --embedding_dim 64 --p 2.0 --q 0.5 --walk_length 10 --window_size 5 --num_walks 10 --n_epoch 100 --dataset pubmed
 ```
 
+| Dataset  | pyg          | Our(pd)      | Our(torch)   | Our(tf)      |
+| -------- | ------------ | ------------ | ------------ | ------------ |
+| cora     | 71.06(±0.62) | 72.33(±1.65) | 71.91(±0.74) | 71.61(±0.96) |
+| citeseer | 48.20(±1.01) | 48.55(±1.32) | 48.76(±0.91) | 48.23(±1.35) |
+| pubmed   | 61.60(±1.83) | 62.28(±1.33) | 61.82(±2.48) | 62.89(±2.45) |
 
-
-| Dataset  | Our(pd)      | Our(torch)   | Our(tf)      |
-| -------- | ------------ | ------------ | ------------ |
-| cora     | 68.36(±1.41) | 68.28(±1.18) | 67.63(±1.46) |
-| citeseer | 43.41(±1.66) | 43.75(±1.41) | 42.94(±1.80) |
-| pubmed   | 59.14(±0.96) | 59.04(±1.33) | 58.69(±1.57) |
+Note: The hyperparameter settings for the results in pyg are the same as in GammaGL.
