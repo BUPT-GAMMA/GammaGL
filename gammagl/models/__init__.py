@@ -16,6 +16,7 @@ from .chebnet import ChebNetModel
 from .simplehgn import SimpleHGNModel
 from .fagcn import FAGCNModel
 from .gprgnn import GPRGNNModel
+from .hgt import HGTModel
 from .film import FILMModel
 from .pna import PNAModel
 from .mixhop import MIXHOPModel
@@ -47,6 +48,7 @@ __all__ = [
     'SimpleHGNModel',
     'FAGCNModel',
     'GPRGNNModel',
+    'HGTModel',
     'PNAModel',
     'MIXHOPModel',
     'HardGATModel',

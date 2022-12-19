@@ -116,7 +116,7 @@ class AddMetaPaths(BaseTransform):
 
             adj_coo = adj.tocoo()
             new_edge_type = (metapath[0][0], f'metapath_{j}', metapath[-1][-1])
-            data[new_edge_type].edge_index = tlx.stack([adj_coo.row, adj_coo.col])
+            data[new_edge_type].edge_index = tlx.stack([tlx.ops.convert_to_tensor(adj_coo.row), tlx.ops.convert_to_tensor(adj_coo.col)])
             data.metapath_dict[new_edge_type] = metapath
 
         if self.drop_orig_edges:
