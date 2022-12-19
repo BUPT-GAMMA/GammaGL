@@ -4,11 +4,11 @@ import time
 import argparse
 import numpy as np
 # os.environ['CUDA_VISIBLE_DEVICES']='1'
-os.environ['TL_BACKEND'] = 'paddle'
+# os.environ['TL_BACKEND'] = 'paddle'
 
 sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import tensorlayerx as tlx
-# tlx.set_device('GPU', 0)
+tlx.set_device('GPU', 0)
 from gammagl.layers.conv import GCNConv
 from gammagl.datasets import Planetoid
 from gammagl.models import GEstimationN
@@ -131,7 +131,7 @@ def main(args):
                     net.save_weights(args.best_model_path + net.name + ".npz", format='npz_dict')
 
         estimator.reset_obs()
-        estimator.update_obs(knn(graph.num_nodes, graph.x, args.k))
+        estimator.update_obs(knn(graph.num_nodes, tlx.convert_to_numpy(graph.x), args.k))
         estimator.update_obs(knn(graph.num_nodes, tlx.convert_to_numpy(global_hidden), args.k))
         estimator.update_obs(knn(graph.num_nodes, tlx.convert_to_numpy(global_output), args.k))
 
@@ -178,7 +178,7 @@ if __name__ == '__main__':
     parser.add_argument('--hidden', type=int, default=16, help='hidden size')
     parser.add_argument('--dropout', type=float, default=0.5, help='dropout rate')
     parser.add_argument('--activation', type=str, default='relu', choices=['relu', 'leaky_relu', 'elu'])
-    parser.add_argument('--dataset', type=str, default='cora',
+    parser.add_argument('--dataset', type=str, default='citeseer',
                         choices=['cora', 'citeseer', 'pubmed'])
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to"
                                                                          " save dataset")
