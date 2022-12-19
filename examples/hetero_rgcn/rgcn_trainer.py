@@ -1,10 +1,12 @@
 import os
 
+
+
 os.environ['TL_BACKEND'] = 'torch'  # set your backend here, default `tensorflow`
-# os.environ["CUDA_VISIBLE_DEVICES"] = "6"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-import sys
 
+from gammagl.datasets.alircd import AliRCD_Train
 import argparse
 import tensorlayerx as tlx
 from gammagl.layers.conv import RGCNConv
@@ -83,15 +85,15 @@ def calculate_acc(logits, y, metrics):
     return rst
 
 def main(args):
-
+    data = AliRCD_Train(args.dataset)
+    hgraph = data[0]
     if tlx.BACKEND == 'torch':
         import torch
         device = torch.device(args.device_id if torch.cuda.is_available() else 'cpu')
-        # Load dataset
-        hgraph = torch.load(args.dataset+"_torch.pt")
     labeled_class = args.labeled_class
 
     if args.inference == False:
+
         train_idx = hgraph[labeled_class].pop('train_idx')
         if args.validation:
             val_idx = hgraph[labeled_class].pop('val_idx')
@@ -220,7 +222,7 @@ if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
-    parser.add_argument('--dataset', type=str, default='./zsy_test/icdm2022')
+    parser.add_argument('--dataset', type=str, default='../../icdm_train')
     parser.add_argument('--labeled-class', type=str, default='item')
     parser.add_argument("--batch-size", type=int, default=500,
                         help="Mini-batch size. If -1, use full graph training.")
@@ -237,7 +239,8 @@ if __name__ == '__main__':
     parser.add_argument("--validation", type=bool, default=True)
     parser.add_argument("--early_stopping", type=int, default=10)
     parser.add_argument("--n-epoch", type=int, default=20)
-    parser.add_argument("--test-file", type=str, default="/home/icdm/icdm2022_large/test_session1_ids.csv")
+    # test部分后续再增加
+    parser.add_argument("--test-file", type=str, default="")
 
     parser.add_argument("--inference", type=bool, default=False)
     # parser.add_argument("--record-file", type=str, default="record.txt")
