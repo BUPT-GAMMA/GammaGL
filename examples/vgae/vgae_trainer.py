@@ -1,5 +1,3 @@
-# 开发时间: 2022/11/2 16:55
-
 import os
 #os.environ['CUDA_VISIBLE_DEVICES']='1'
 #os.environ['TL_BACKEND'] = 'paddle'

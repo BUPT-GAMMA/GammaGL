@@ -1,4 +1,3 @@
-# 开发时间: 2022/11/9 18:07
 import numpy as np
 import scipy.sparse as sp
 

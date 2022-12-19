@@ -8,9 +8,10 @@ from gammagl.layers.conv import FILMConv
 
 def test_film_conv():
     x1 = tlx.random_normal((4, 4))
-    x2 = tlx.random_normal((2, 16))
+    # x2 = tlx.random_normal((2, 16))
     edge_index = tlx.convert_to_tensor([[0, 1, 1, 2, 2, 3], [0, 0, 1, 0, 1, 1]])
 
     conv = FILMConv(4, 32)
     out1 = conv(x1, edge_index)
+
     assert tlx.convert_to_numpy(out1) == (4, 32)

@@ -1,5 +1,3 @@
-# 开发时间: 2022/11/1 17:49
-
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
 
@@ -57,6 +55,23 @@ class VGAEModel(tlx.nn.Module):
 
 
 class GAEModel(tlx.nn.Module):
+    r"""
+            Applications of Auto-Encoders on Graphs proposed in `Variational Graph Auto-Encoders`_.
+
+            .. _Variational Graph Auto-Encoders:
+                 https://arxiv.org/pdf/1611.07308.pdf
+
+            Parameters
+            ----------
+                feature_dim (int): input feature dimension
+                hidden1_dim (int): hidden dimension
+                hidden2_dim (int): output dimension
+                drop_rate (float): dropout rate
+                num_layers (int): number of layers
+                norm (str): apply the normalizer
+                name (str): model name
+            """
+
     def __init__(self, feature_dim, hidden1_dim, hidden2_dim, drop_rate=0., num_layers=2, norm='none', name=None):
         super().__init__(name=name)
 
