@@ -26,6 +26,7 @@ from .graphgan_discriminator import Discriminator
 from .graphgan import GraphGAN
 from .gen import GEstimationN
 from .node2vec import Node2vecModel
+from .deepwalk import DeepWalkModel
 
 
 __all__ = [
@@ -60,7 +61,8 @@ __all__ = [
     'GPRGNNModel',
     'FILMModel',
     'GEstimationN',
-    'Node2vecModel'
+    'Node2vecModel',
+    'DeepWalkModel'
 
 ]
 
