@@ -1,6 +1,6 @@
 # SEAL
 
-- Paper link: [https://arxiv.org/abs/1606.09375](https://arxiv.org/abs/1606.09375)
+- Paper link: [https://arxiv.org/abs/1802.09691](https://arxiv.org/abs/1802.09691)
 
 
 # Dataset Statics
@@ -18,18 +18,12 @@ Results
 
 ```bash
 # k=2, available dataset: "cora", "citeseer", "pubmed"
-TL_BACKEND="paddle" python chebnet_trainer.py --k 2 --dataset cora --lr 0.01 --hidden_dim 64 --drop_rate 0.8 --l2_coef 0.0005
-TL_BACKEND="tensorflow" python chebnet_trainer.py --k 2 --dataset cora --lr 0.01 --hidden_dim 64 --drop_rate 0.7 --l2_coef 0.0005
-TL_BACKEND="torch" python chebnet_trainer.py --k 2 --dataset cora --lr 0.01 --hidden_dim 64 --drop_rate 0.7 --l2_coef 0.0005
-TL_BACKEND="paddle" python chebnet_trainer.py --k 2 --dataset citeseer --lr 0.01 --hidden_dim 32 --drop_rate 0.9 --l2_coef 0.0005
-TL_BACKEND="tensorflow" python chebnet_trainer.py --k 2 --dataset citeseer --lr 0.01 --hidden_dim 64 --drop_rate 0.9 --l2_coef 0.0005
-TL_BACKEND="torch" python chebnet_trainer.py --k 2 --dataset citeseer --lr 0.01 --hidden_dim 64 --drop_rate 0.9 --l2_coef 0.0005
-TL_BACKEND="paddle" python chebnet_trainer.py --k 2 --dataset pubmed --lr 0.01 --hidden_dim 64 --drop_rate 0.6 --l2_coef 0.0005
-TL_BACKEND="tensorflow" python chebnet_trainer.py --k 2 --dataset pubmed --lr 0.01 --hidden_dim 64 --drop_rate 0.6 --l2_coef 0.0005
+TL_BACKEND='tensorflow' python -W ignore seal.py --data_dir /home/dhr/data --model gin --gpu_id 0
+TL_BACKEND='torch' python -W ignore seal.py --data_dir /home/dhr/data --model gin --gpu_id 0 
 
 
 | Dataset  | Paper | Our(pd)    | Our(tf)    | Our(torch) |
 | -------- | ----- | ---------- | ---------- | ---------- |
-| cora     | 81.2  | 80.78±1.12 | 93.28±0.58 | 80.42±1.18 |
-| citeseer | 69.6  | 69.45±1.75 | 70.34±1.46 | 70.58±0.62 |
-| pubmed   | 73.8  | 76.90±1.40 | 75.68±1.42 | OOM        |
+| cora     |   |  | 93.28±0.58 | 83.52±1.18 |
+| citeseer |  |  |  |  |
+| pubmed   |  | |  |  |

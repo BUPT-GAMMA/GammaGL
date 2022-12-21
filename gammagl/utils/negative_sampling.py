@@ -7,6 +7,27 @@ from gammagl.utils import coalesce, degree, remove_self_loops
 from .num_nodes import maybe_num_nodes
 
 def negative_sampling(edge_index, num_nodes = None, num_neg_samples = None, method = 'sparse', force_undirected = False):
+    r"""Samples random negative edges of a graph given by :attr:`edge_index`.
+    Args:
+        edge_index: The edge indices.
+        num_nodes (int or Tuple[int, int], optional): The number of nodes,
+            *i.e.* :obj:`max_val + 1` of :attr:`edge_index`.
+            If given as a tuple, then :obj:`edge_index` is interpreted as a
+            bipartite graph with shape :obj:`(num_src_nodes, num_dst_nodes)`.
+            (default: :obj:`None`)
+        num_neg_samples (int, optional): The (approximate) number of negative
+            samples to return.
+            If set to :obj:`None`, will try to return a negative edge for every
+            positive edge. (default: :obj:`None`)
+        method (string, optional): The method to use for negative sampling,
+            *i.e.*, :obj:`"sparse"` or :obj:`"dense"`.
+            This is a memory/runtime trade-off.
+            :obj:`"sparse"` will work on any graph of any size, while
+            :obj:`"dense"` can perform faster true-negative checks.
+            (default: :obj:`"sparse"`)
+        force_undirected (bool, optional): If set to :obj:`True`, sampled
+            negative edges will be undirected. (default: :obj:`False`)
+    """
     assert method in ['sparse', 'dense']
 
     bipartite = isinstance(num_nodes, (tuple, list))
