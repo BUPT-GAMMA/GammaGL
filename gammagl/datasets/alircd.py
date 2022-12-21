@@ -24,7 +24,6 @@ class AliRCD_Train(InMemoryDataset):
     @property
     def raw_file_names(self):
         return ['AliRCD_session1_edges.csv', 'AliRCD_session1_nodes.csv', 'AliRCD_session1_train_labels.csv']
-        # return  ['AliRCD_edges.csv', 'icdm2022_nodes.csv', 'icdm2022_labels.csv']
     @property
     def processed_file_names(self):
         return tlx.BACKEND + 'data.pt'
@@ -110,25 +109,26 @@ class AliRCD_Train(InMemoryDataset):
             graph[node_type].x = np.zeros((len(node_maps[node_type]), 256))
             # graph[node_type].x = tlx.convert_to_tensor(node_embeds[node_type].items())
             for nid, embedding in tqdm(node_embeds[node_type].items()):
-                # graph[node_type].x = tlx.tensor_scatter_nd_update(graph[node_type].x,
-                #                                                   tlx.convert_to_tensor([[nid]]), tlx.reshape(tlx.convert_to_tensor(embedding), (1, -1)))
                 graph[node_type].x[nid] = embedding
             graph[node_type].x = tlx.convert_to_tensor(graph[node_type].x, tlx.float32)
             graph[node_type].num_nodes = len(node_maps[node_type])
             graph[node_type].maps = node_maps[node_type]
 
+        # This part is to divide nodes into three parts.
         if label_file is not None:
             graph['item'].y = np.zeros((len(node_maps['item']),), dtype=np.int64) - 1
             for index, label in tqdm(labels, desc="Node labels"):
                 graph['item'].y[index] = label
-            # graph['item'].y = tlx.convert_to_tensor(graph['item'].y)
+
             indices = (graph['item'].y != -1).nonzero()[0]
             print("Num of true labeled nodes:{}".format(indices.shape[0]))
             train_val_random = np.random.permutation(indices.shape[0])
             train_idx = indices[train_val_random][:int(indices.shape[0] * 0.8)]
-            val_idx = indices[train_val_random][int(indices.shape[0] * 0.8):]
+            val_idx = indices[train_val_random][int(indices.shape[0] * 0.8):int(indices.shape[0] * 0.9)]
+            test_idx = indices[train_val_random][int(indices.shape[0] * 0.9):]
             graph['item'].train_idx = tlx.convert_to_tensor(train_idx, tlx.int64)
             graph['item'].val_idx = tlx.convert_to_tensor(val_idx, tlx.int64)
+            graph['item'].test_idx = tlx.convert_to_tensor(test_idx, tlx.int64)
             graph['item'].y = tlx.convert_to_tensor(graph['item'].y)
         for ntype in graph.node_types:
             graph[ntype].n_id = tlx.arange(0, graph[ntype].num_nodes)
@@ -137,8 +137,9 @@ class AliRCD_Train(InMemoryDataset):
         return graph
 
     def generate_ggl_graph(self, edge_file, node_file, label_file=None):
+        print()
         print("##########################################")
-        print("### Start generating GammaGL torch graph")
+        print(f"### Start generating GammaGL {tlx.BACKEND} graph")
         print("##########################################\n")
         graph = self.read_node_atts(node_file, label_file)
 
@@ -193,13 +194,16 @@ class AliRCD_Train(InMemoryDataset):
             del graph[edge_type]
             graph[edge_type].edge_index = temp
 
+        for ntype in graph.node_types:
+            del graph[ntype].maps
+
         print('Complete converting edge information\n')
         print('Start saving into gammagl data')
         # 这加一个判断backend，然后对应生成.pt类的文件
         print('Complete saving into ggl data\n')
 
         print("##########################################")
-        print("### Complete generating GammaGL torch graph")
+        print(f"### Complete generating GammaGL {tlx.BACKEND} graph")
         print("##########################################")
         return graph
     def process(self):

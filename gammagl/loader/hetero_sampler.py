@@ -258,7 +258,7 @@ def get_input_node_indices(graph: HeteroGraph,
         input_nodes = input_nodes[1]
 
     if not isinstance(input_nodes, np.ndarray):
-        input_nodes = input_nodes.tolist()
+        input_nodes = tlx.convert_to_numpy(input_nodes).tolist()
 
 
     return input_nodes
@@ -298,8 +298,11 @@ def filter_node_store_(store: NodeStorage, out_store: NodeStorage,
         if key == 'num_nodes':
             out_store.num_nodes = len(index)
         elif store.is_node_attr(key):
-            index = tlx.convert_to_tensor(index).to(value.device)
-            out_store[key] = value[index]
+            if tlx.BACKEND == 'torch':
+                index = tlx.convert_to_tensor(index, tlx.int64).to(value.device)
+            else:
+                index = tlx.convert_to_tensor(index, tlx.int64)
+            out_store[key] = tlx.gather(value, index)
     return store
 
 
@@ -336,7 +339,7 @@ def to_hetero_csc(hetero_graph):
             size = store.size()
             edge = store.edge_index
             perm = np.argsort(np.add(edge[1] * size[0], edge[0]))
-            edge = edge[:, perm]
+            edge = tlx.gather(edge, perm, 1)
             indptr = np.concatenate(([0], np.bincount(edge[1]).cumsum()))
             if size[1] > indptr.shape[0]:
                 cur = size[1] - indptr.shape[0]
