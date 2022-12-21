@@ -6,7 +6,6 @@ import tensorlayerx as tlx
 import numpy as np
 
 from gammagl.data import Graph, HeteroGraph
-from gammagl.data.storage import EdgeStorage
 from gammagl.transforms import BaseTransform
 from gammagl.typing import EdgeType
 from gammagl.utils import negative_sampling
@@ -88,11 +87,10 @@ class RandomLinkSplit(BaseTransform):
                 mask = edge_index[0] <= edge_index[1]
                 perm = tlx.mask_select(tlx.arange(0, edge_index.shape[1]), mask)
                 numel = perm.shape[0]
-                perm = tlx.gather(perm, tlx.convert_to_tensor(np.random.permutation(numel), device=edge_index.device))
+                perm = tlx.gather(perm, tlx.convert_to_tensor(np.random.permutation(numel)))
             else:
                 numel = edge_index.shape[1]
-                device = edge_index.device
-                perm = tlx.convert_to_tensor(np.random.permutation(numel), device=edge_index.device)
+                perm = tlx.convert_to_tensor(np.random.permutation(numel))
 
             num_val = self.num_val
             if isinstance(num_val, float):
@@ -186,14 +184,14 @@ class RandomLinkSplit(BaseTransform):
                 continue
 
             if store.is_edge_attr(key):
-                value = value[index]
+                value = tlx.gather(value, index)
                 if is_undirected:
                     value = tlx.concat([value, value], axis=0)
                 store[key] = value
 
         edge_index = tlx.gather(store.edge_index, index, axis=1)
         if is_undirected:
-            edge_index = tlx.concat([edge_index, tlx.gather(edge_index, [1,0], axis=0)], axis=-1)
+            edge_index = tlx.concat([edge_index, tlx.gather(edge_index, tlx.convert_to_tensor([1,0]), axis=0)], axis=-1)
         store.edge_index = edge_index
 
         if rev_edge_type is not None:
@@ -210,7 +208,7 @@ class RandomLinkSplit(BaseTransform):
 
     def _create_label(self, store, index, neg_edge_index, out):
 
-        edge_index = store.edge_index[:, index]
+        edge_index = tlx.gather(store.edge_index, index, axis=1)
 
         if hasattr(store, self.key):
             edge_label = store[self.key]
@@ -221,10 +219,10 @@ class RandomLinkSplit(BaseTransform):
             if hasattr(out, self.key):
                 delattr(out, self.key)
         else:
-            edge_label = tlx.ones((index.shape[0],), device=index.device)
+            edge_label = tlx.ones((index.shape[0],))
 
         if neg_edge_index.shape[1] > 0:
-            neg_edge_label = tlx.zeros((neg_edge_index.shape[1],) + edge_label.shape[1:], dtype=edge_label.dtype, device=edge_label.device)
+            neg_edge_label = tlx.zeros((neg_edge_index.shape[1],) + tuple(edge_label.shape[1:]), dtype=edge_label.dtype)
 
         if self.split_labels:
             out[f'pos_{self.key}'] = edge_label

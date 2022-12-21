@@ -7,7 +7,6 @@ from tqdm import tqdm
 import warnings
 warnings.filterwarnings('ignore')
 
-os.environ['TL_BACKEND']='torch'
 import tensorlayerx as tlx
 from sklearn.metrics import roc_auc_score
 import numpy as np
@@ -24,7 +23,7 @@ class WithLoss(tlx.model.WithLoss):
 
     def forward(self, x, y):
         out = self._backbone(x.x, x.edge_index, x.batch)
-        loss = self._loss_fn(tlx.squeeze(out, -1), y * 1.)
+        loss = self._loss_fn(tlx.squeeze(out, -1), y)
         return loss
 
 
@@ -43,16 +42,15 @@ def main(args):
 
     # data.
     path = osp.join(args.data_dir, 'Planetoid')
-    dataset = Planetoid(path, name='Cora')
+    dataset = Planetoid(path, name=args.dataset)
     data = dataset[0]
-    train_dataset = SEALDataset(dataset, num_hops=args.hop, neg_sampling_ratio=args.neg_sampling_ratio, split='train')
-    val_dataset = SEALDataset(dataset, num_hops=args.hop, neg_sampling_ratio=args.neg_sampling_ratio, split='val')
-    test_dataset = SEALDataset(dataset, num_hops=args.hop, neg_sampling_ratio=args.neg_sampling_ratio, split='test')
+    train_dataset = SEALDataset(dataset, num_hops=args.hop, neg_sampling_ratio=args.neg_sampling_ratio, split='train', env=f'{tlx.BACKEND}_{args.dataset}')
+    val_dataset = SEALDataset(dataset, num_hops=args.hop, neg_sampling_ratio=args.neg_sampling_ratio, split='val', env=f'{tlx.BACKEND}_{args.dataset}')
+    test_dataset = SEALDataset(dataset, num_hops=args.hop, neg_sampling_ratio=args.neg_sampling_ratio, split='test', env=f'{tlx.BACKEND}_{args.dataset}')
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size)
-
 
     # model setting.
     if args.model == 'dgcnn':
@@ -116,7 +114,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="SEAL")
     # data
     parser.add_argument("--data_dir", type=str, default="../data")
-    parser.add_argument("--dataset", type=str, default="cora")
+    parser.add_argument("--dataset", type=str, default="Cora")
 
     # seal preprocess
     parser.add_argument("--hop", type=int, default=2)
@@ -152,7 +150,7 @@ if __name__ == '__main__':
     logging.basicConfig(
         level=logging.INFO,
         format='[%(asctime)s %(levelname)s] %(message)s',
-        handlers=[logging.FileHandler('log/1.log', mode='w'), logging.StreamHandler()]
+        handlers=[logging.FileHandler('1.log', mode='w'), logging.StreamHandler()]
     )
 
     main(args)
