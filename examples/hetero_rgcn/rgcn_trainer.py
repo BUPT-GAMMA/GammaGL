@@ -3,7 +3,7 @@ import os
 # os.environ['TL_BACKEND'] = 'torch'  # set your backend here, default `tensorflow`
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-from gammagl.datasets.alircd import AliRCD_Train
+from gammagl.datasets.alircd import AliRCD
 import argparse
 import tensorlayerx as tlx
 from gammagl.layers.conv import RGCNConv
@@ -82,7 +82,7 @@ def calculate_acc(logits, y, metrics):
 
 
 def main(args):
-    data = AliRCD_Train(args.dataset)
+    data = AliRCD(args.dataset)
     hgraph = data[0]
     if tlx.BACKEND == 'torch':
         import torch

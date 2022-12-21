@@ -11,7 +11,7 @@ from gammagl.data import extract_zip, download_url, InMemoryDataset, HeteroGraph
 
 
 
-class AliRCD_Train(InMemoryDataset):
+class AliRCD(InMemoryDataset):
     r"""
     """
     url = "https://s3.cn-north-1.amazonaws.com.cn/dgl-data/dataset/openhgnn/AliRCD_session1.zip"
