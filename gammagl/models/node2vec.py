@@ -2,6 +2,9 @@ import tensorlayerx as tlx
 from collections import defaultdict
 import numpy as np
 from ..utils.num_nodes import maybe_num_nodes
+from gammagl.transforms import RandomWalk
+
+random_walk = RandomWalk("node2vec")
 
 EPS = 1e-15
 
@@ -70,7 +73,8 @@ class Node2vecModel(tlx.nn.Module):
         self.window_size = window_size
         self.num_negatives = num_negatives
 
-        self.random_walks = self.generate_random_walks()
+        self.random_walks = random_walk(self.edge_index, self.num_walks, self.walk_length, edge_weight=self.edge_weight,
+                                        p=self.p, q=self.q, num_nodes=self.N)
 
         self.embedding = tlx.nn.Embedding(self.N, embedding_dim)
 
@@ -131,84 +135,3 @@ class Node2vecModel(tlx.nn.Module):
     def campute(self):
         emb = self.embedding.all_weights
         return emb
-
-    def get_neighbors(self):
-        edge_index = self.edge_index
-        src, dst = edge_index[0], edge_index[1]
-        src = np.array(src)
-        dst = np.array(dst)
-        node_neighbor = {}
-        self.nodes_weight = {}
-        index = 0
-        for src_node in src:
-            if src_node not in node_neighbor.keys():
-                node_neighbor[src_node] = list()
-
-            node_neighbor[src_node].append(dst[index])
-            self.nodes_weight[(src_node, dst[index])] = self.edge_weight[index]
-            index += 1
-
-        return node_neighbor
-
-    def compute_probabilities(self):
-        neighbor = self.neighbor
-
-        src = self.edge_index[0]
-        src = tlx.convert_to_numpy(src)
-        node = set(src)
-
-        for source_node in node:
-            for current_node in neighbor[source_node]:
-                probs_ = list()
-                for destination in neighbor[current_node]:
-                    weight = tlx.convert_to_numpy(self.nodes_weight[(current_node, destination)])
-                    if source_node == destination:
-                        prob_ = (1 / self.p) * weight
-                    elif destination in neighbor[source_node]:
-                        prob_ = 1 * weight
-                    else:
-                        prob_ = (1 / self.q) * weight
-
-                    probs_.append(prob_)
-
-                self.probs[source_node]['probabilities'][current_node] = probs_ / np.sum(probs_)
-
-    def generate_random_walks(self):
-        self.neighbor = self.get_neighbors()
-        neighbor = self.neighbor
-
-        self.probs = defaultdict(dict)
-        for node in range(self.N):
-            self.probs[node]['probabilities'] = dict()
-        self.compute_probabilities()
-
-        src = self.edge_index[0]
-        src = tlx.convert_to_numpy(src)
-        node = set(src)
-
-        walks = list()
-        for start_node in node:
-            for i in range(self.num_walks):
-
-                walk = [int(start_node)]
-                walk_options = neighbor[walk[-1]]
-                if len(walk_options) == 0:
-                    break
-                first_step = np.random.choice(walk_options)
-                walk.append(int(first_step))
-
-                for k in range(self.walk_length - 2):
-                    walk_options = neighbor[walk[-1]]
-                    if len(walk_options) == 0:
-                        break
-                    probabilities = self.probs[walk[-2]]['probabilities'][walk[-1]]
-                    if tlx.BACKEND == 'paddle':
-                        probabilities = np.concatenate(probabilities, axis=0)
-                    next_step = np.random.choice(walk_options, p=probabilities)
-                    walk.append(int(next_step))
-
-                walks.append(walk)
-
-        np.random.shuffle(walks)
-
-        return walks

@@ -5,6 +5,7 @@ from .compose import Compose
 from .sign import SIGN
 from .normalize_features import NormalizeFeatures
 from .drop_edge import DropEdge
+from .random_walk import RandomWalk
 
 __all__ = [
     'BaseTransform',
@@ -12,7 +13,8 @@ __all__ = [
     'Compose',
     'SIGN',
     'NormalizeFeatures',
-    'DropEdge'
+    'DropEdge',
+    'RandomWalk'
 ]
 
 classes = __all__
