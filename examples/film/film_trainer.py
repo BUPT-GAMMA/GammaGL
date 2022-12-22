@@ -11,7 +11,6 @@ from gammagl.loader import DataLoader
 from sklearn.metrics import f1_score
 
 
-
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
         super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
@@ -70,9 +69,7 @@ def main(args):
             val_y = batch['y']
             pred = tlx.where(val_logits > 0, 1, 0)
 
-
             val_f1 = f1_score(val_y.cpu(), pred.cpu(), average='micro')
-
 
             print("Epoch [{:0>3d}] ".format(epoch + 1) \
                   + "  train loss: {:.4f}".format(train_loss.item()) \
@@ -92,7 +89,6 @@ def main(args):
 
         test_f1 = f1_score(test_y.cpu(), pred.cpu(), average='micro')
         print("Test f1-micro:  {:.4f}".format(test_f1))
-
 
 
 if __name__ == '__main__':

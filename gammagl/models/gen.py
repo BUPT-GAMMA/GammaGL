@@ -22,6 +22,9 @@ class GEstimationN():
 		row = graph.edge_index[0]
 		col = graph.edge_index[1]
 		data = np.ones(len(row))
+		if tlx.BACKEND == 'torch':
+			row = tlx.convert_to_numpy(row)
+			col = tlx.convert_to_numpy(col)
 		self.adj = coo_matrix((data, (row, col)), shape=(self.num_node, self.num_node)).toarray()
 
 		self.output = None

@@ -18,19 +18,15 @@ Results
 
 ```bash
 # available dataset: "cora", "citeseer", "pubmed"
-TL_BACKEND="paddle" python gcn_trainer.py --dataset cora
-TL_BACKEND="paddle" python gcn_trainer.py --dataset citeseer
-TL_BACKEND="paddle" python gcn_trainer.py --dataset pubmed
-TL_BACKEND="tensorflow" python gcn_trainer.py --dataset cora 
-TL_BACKEND="tensorflow" python gcn_trainer.py --dataset citeseer
-TL_BACKEND="tensorflow" python gcn_trainer.py --dataset pubmed
-TL_BACKEND="torch" python gn_trainer.py --dataset cora
-TL_BACKEND="torch" python gcn_trainer.py --dataset citeseer
-TL_BACKEND="torch" python gcn_trainer.py --dataset pubmed
+TL_BACKEND="paddle" python gen_trainer.py --dataset cora
+TL_BACKEND="paddle" python gen_trainer.py --dataset citeseer
+TL_BACKEND="tensorflow" python gen_trainer.py --dataset cora 
+TL_BACKEND="tensorflow" python gen_trainer.py --dataset citeseer
+TL_BACKEND="torch" python gen_trainer.py --dataset cora
+TL_BACKEND="torch" python gen_trainer.py --dataset citeseer
 ```
 
 | Dataset  | Paper    | Our(pd) | Our(tf) | Our(th) |
 | -------- | -------- | ------- | ------- | ------- |
 | cora     | 83.6±0.4 |         | 82.60   | 82.50   |
-| citeseer | 73.8±0.6 |         | 71.50   |         |
-| pubmed   | 80.9±0.9 |         |         |         |
+| citeseer | 73.8±0.6 |         | 71.50   | 69.50   |
