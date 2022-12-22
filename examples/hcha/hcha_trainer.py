@@ -1,17 +1,15 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES']='1'
-os.environ['TL_BACKEND'] = 'tensorflow'
+# os.environ['TL_BACKEND'] = 'tensorflow'
 import sys
 # sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
 import numpy as np
 from gammagl.datasets import Planetoid
-# from gammagl.models import HCHA
 from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index, set_device
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.models import HCHA
-
 # tlx.set_device("GPU", 1)
 
 class SemiSpvzLoss(WithLoss):
@@ -63,7 +61,7 @@ def main(args):
         else:
             hedge_map[edge_index_numpy[0][i]].append(edge_index_numpy[1][i])
     hyperedge_index = [[],[]]
-    hyperedge_attr = []
+    hyperedge_attr = np.zeros((max(edge_index[0])+1,len(x[0])))
     for key, value in hedge_map.items():
         m = np.zeros(len(x[0]))
         count = 0
@@ -73,19 +71,12 @@ def main(args):
             m += tlx.convert_to_numpy(x[int(item)])
             count += 1
         m = m/count
-        hyperedge_attr.append(m)
+        edge_id = item
+        hyperedge_attr[edge_id] = m
+
     hyperedge_attr = tlx.ops.convert_to_tensor(hyperedge_attr, dtype = tlx.float32)
     hyperedge_weight = tlx.ones((len(hyperedge_index[1]),))
-
-    '''training'''
-    # lr = 0.01
-    # n_epoch = 100
-    # hidden_dim = 16
-    # drop_rate = 0.5
-    # l2_coef = 5e-4
-    # best_model_path = r'./'
-
-    # for mindspore, it should be passed into node indices
+    
     train_idx = mask_to_index(graph.train_mask)
     test_idx = mask_to_index(graph.test_mask)
     val_idx = mask_to_index(graph.val_mask)
@@ -123,7 +114,8 @@ def main(args):
         net.set_train()
         train_loss = train_one_step(data, graph.y)
         net.set_eval()
-        logits = net(x=data['x'], hyperedge_index=data['edge_index'], hyperedge_weight=data['edge_weight'], hyperedge_attr=data['edge_attr'])
+        logits = net(x = data['x'], hyperedge_index = data['edge_index'], 
+                     hyperedge_weight = data['edge_weight'], hyperedge_attr = data['edge_attr'])
         val_logits = tlx.gather(logits, data['val_idx'])
         val_y = tlx.gather(data['y'], data['val_idx'])
         val_acc = calculate_acc(val_logits, val_y, metrics)
@@ -155,15 +147,9 @@ if __name__ == '__main__':
     parser.add_argument("--hidden_dim", type=int, default=64, help="dimention of hidden layers")
     parser.add_argument("--drop_rate", type=float, default=0.5, help="drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
-    parser.add_argument('--dataset', type=str, default='cora', help='dataset')
+    parser.add_argument('--dataset', type=str, default='citeseer', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
-    parser.add_argument("--use_attention", type=bool, default=False, help="use attention or not")
+    parser.add_argument("--use_attention", type=bool, default=True, help="use attention or not")
     args = parser.parse_args()
-    # lr = 0.01
-    # n_epoch = 100
-    # hidden_dim = 16
-    # drop_rate = 0.5
-    # l2_coef = 5e-4
-    # best_model_path = r'./
     main(args)
