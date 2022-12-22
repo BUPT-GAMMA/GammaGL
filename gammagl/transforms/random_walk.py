@@ -16,8 +16,8 @@ class RandomWalk:
             num_nodes = maybe_num_nodes(edge_index)
 
         src, dst = edge_index[0], edge_index[1]
-        src = np.array(src)
-        dst = np.array(dst)
+        src = tlx.convert_to_numpy(src)
+        dst = tlx.convert_to_numpy(dst)
 
         # get source node neighbors.
         node_neighbor = {}

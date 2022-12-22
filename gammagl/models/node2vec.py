@@ -64,7 +64,10 @@ class Node2vecModel(tlx.nn.Module):
         self.edge_index = edge_index
         self.edge_weight = edge_weight
 
-        self.N = maybe_num_nodes(edge_index, num_nodes)
+        if tlx.BACKEND == 'mindspore':
+            self.N = maybe_num_nodes(tlx.convert_to_numpy(edge_index), num_nodes)
+        else:
+            self.N = maybe_num_nodes(edge_index, num_nodes)
         self.embedding_dim = embedding_dim
         self.walk_length = walk_length
         self.p = p
@@ -110,7 +113,7 @@ class Node2vecModel(tlx.nn.Module):
     def loss(self, pos_rw, neg_rw):
         # Positive loss.
         start = pos_rw[:, 0]
-        rest = tlx.convert_to_tensor(np.array(pos_rw[:, 1:]))
+        rest = tlx.convert_to_tensor(tlx.convert_to_numpy(pos_rw[:, 1:]))
 
         h_start = tlx.reshape(self.embedding(start), (pos_rw.shape[0], 1, self.embedding_dim))
         h_rest = tlx.reshape(self.embedding(tlx.reshape(rest, (-1, 1))), (pos_rw.shape[0], -1, self.embedding_dim))
@@ -121,7 +124,7 @@ class Node2vecModel(tlx.nn.Module):
 
         # Negative loss.
         start = neg_rw[:, 0]
-        rest = tlx.convert_to_tensor(np.array(neg_rw[:, 1:]))
+        rest = tlx.convert_to_tensor(tlx.convert_to_numpy(neg_rw[:, 1:]))
 
         h_start = tlx.reshape(self.embedding(start), (neg_rw.shape[0], 1, self.embedding_dim))
         h_rest = tlx.reshape(self.embedding(tlx.reshape(rest, (-1, 1))), (neg_rw.shape[0], -1, self.embedding_dim))
