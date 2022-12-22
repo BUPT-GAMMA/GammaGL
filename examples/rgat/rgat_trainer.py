@@ -6,7 +6,7 @@
 # @FileName: trainer.py.py
 
 import os
-os.environ['TL_BACKEND'] = 'torch'  # set your backend here, default `tensorflow`
+os.environ['TL_BACKEND'] = 'tensorflow'  # set your backend here, default `tensorflow`
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 import sys
@@ -25,7 +25,7 @@ class SemiSpvzLoss(WithLoss):
         super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
 
     def forward(self, data, y):
-        logits = self._backbone(data['edge_index'], data['edge_type'])
+        logits = self._backbone(data['x'], data['edge_index'], data['edge_type'])
         train_logits = tlx.gather(logits, data['train_idx'])
         # train_y = y # tlx.gather(y, data['train_idx'])
         loss = self._loss_fn(train_logits, data['train_y'])
@@ -59,45 +59,45 @@ def calculate_acc(logits, y, metrics):
     return rst
 
 # not use , perform on full graph
-def k_hop_subgraph(node_idx, num_hops, edge_index, num_nodes, relabel_nodes=False, flow='source_to_target'):
-    assert flow in ['source_to_target', 'target_to_source']
-    if flow == 'target_to_source':
-        row, col = edge_index
-    else:
-        col, row = edge_index
+# def k_hop_subgraph(node_idx, num_hops, edge_index, num_nodes, relabel_nodes=False, flow='source_to_target'):
+#     assert flow in ['source_to_target', 'target_to_source']
+#     if flow == 'target_to_source':
+#         row, col = edge_index
+#     else:
+#         col, row = edge_index
 
-    node_mask = np.zeros(num_nodes, dtype=np.bool)
-    edge_mask = np.zeros(row.shape[0], dtype=np.bool)
+#     node_mask = np.zeros(num_nodes, dtype=np.bool)
+#     edge_mask = np.zeros(row.shape[0], dtype=np.bool)
 
-    if isinstance(node_idx, (int, list, tuple)):
-        node_idx = node_idx.flatten()
-    else:
-        node_idx = node_idx
-    subsets = [node_idx]
-    for _ in range(num_hops):
-        node_mask.fill(False)
-        node_mask[subsets[-1]] = True
-        edge_mask = node_mask[row]
-        subsets.append(col[edge_mask])
+#     if isinstance(node_idx, (int, list, tuple)):
+#         node_idx = node_idx.flatten()
+#     else:
+#         node_idx = node_idx
+#     subsets = [node_idx]
+#     for _ in range(num_hops):
+#         node_mask.fill(False)
+#         node_mask[subsets[-1]] = True
+#         edge_mask = node_mask[row]
+#         subsets.append(col[edge_mask])
 
-    subset, inv = np.unique(np.concatenate(subsets), return_inverse=True)
-    numel = 1
-    for n in node_idx.shape:
-        numel *= n
-    inv = inv[:numel]
+#     subset, inv = np.unique(np.concatenate(subsets), return_inverse=True)
+#     numel = 1
+#     for n in node_idx.shape:
+#         numel *= n
+#     inv = inv[:numel]
 
-    node_mask.fill(False)
-    node_mask[subset] = True
-    edge_mask = node_mask[row] & node_mask[col]
+#     node_mask.fill(False)
+#     node_mask[subset] = True
+#     edge_mask = node_mask[row] & node_mask[col]
 
-    edge_index = edge_index[:, edge_mask]
+#     edge_index = edge_index[:, edge_mask]
 
-    if relabel_nodes:
-        node_idx = -np.ones((num_nodes, ))
-        node_idx[subset] = np.arange(subset.shape[0])
-        edge_index = node_idx[edge_index]
+#     if relabel_nodes:
+#         node_idx = -np.ones((num_nodes, ))
+#         node_idx[subset] = np.arange(subset.shape[0])
+#         edge_index = node_idx[edge_index]
 
-    return subset, edge_index, inv, edge_mask
+#     return subset, edge_index, inv, edge_mask
 
 
 def main(args):
@@ -107,19 +107,20 @@ def main(args):
     path = osp.join(osp.dirname(osp.realpath(__file__)), '../Entities')
     dataset = Entities(path, args.dataset)
     graph = dataset[0]
+    
 
-    graph.numpy()
-    node_idx = np.concatenate([graph.train_idx, graph.test_idx])
-    node_idx, edge_index, mapping, edge_mask = k_hop_subgraph(
-        node_idx, 2, graph.edge_index, graph.num_nodes, relabel_nodes=True)
+    # graph.numpy()
+    # node_idx = np.concatenate([graph.train_idx, graph.test_idx])
+    # node_idx, edge_index, mapping, edge_mask = k_hop_subgraph(
+    #     node_idx, 2, graph.edge_index, graph.num_nodes, relabel_nodes=True)
 
-    graph.num_nodes = node_idx.shape[0]
-    graph.edge_index = edge_index
-    graph.edge_type = graph.edge_type[edge_mask]
-    graph.train_idx = mapping[:graph.train_idx.shape[0]]
-    graph.test_idx = mapping[graph.train_idx.shape[0]:]
-    graph.tensor()
-
+    # graph.num_nodes = node_idx.shape[0]
+    # graph.edge_index = edge_index
+    # graph.edge_type = graph.edge_type[edge_mask]
+    # graph.train_idx = mapping[:graph.train_idx.shape[0]]
+    # graph.test_idx = mapping[graph.train_idx.shape[0]:]
+    # graph.tensor()
+    x = tlx.random_normal(shape = (graph.num_nodes, args.hidden_dim), dtype = tlx.float32)
     train_y = graph.train_y
     test_y = graph.test_y
     edge_index = graph.edge_index
@@ -127,7 +128,7 @@ def main(args):
 
     net = RGAT(
                dim = args.dim,
-               in_channels=graph.num_nodes,
+               in_channels=args.hidden_dim,
                hidden_channels=args.hidden_dim,
                out_channels=int(dataset.num_classes),
                num_relations=dataset.num_relations,
@@ -146,6 +147,7 @@ def main(args):
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
     data = {
+        'x': x,
         'edge_index': edge_index,
         'edge_type': edge_type,
         'train_idx': graph.train_idx,
@@ -159,7 +161,7 @@ def main(args):
         net.set_train()
         train_loss = train_one_step(data, train_y)
         net.set_eval()
-        logits = net(data['edge_index'], data['edge_type'])
+        logits = net(data['x'], data['edge_index'], data['edge_type'])
         val_logits = tlx.gather(logits, data['test_idx'])
         val_acc = calculate_acc(val_logits, data['test_y'], metrics)
         # val_acc = evaluate(net, data, test_y, metrics)
@@ -177,7 +179,7 @@ def main(args):
     if tlx.BACKEND == 'torch':
         net.to(data['edge_index'].device)
     net.set_eval()
-    logits = net(data['edge_index'], data['edge_type'])
+    logits = net(data['x'], data['edge_index'], data['edge_type'])
     test_logits = tlx.gather(logits, data['test_idx'])
     test_acc = calculate_acc(test_logits, data['test_y'], metrics)
     print("Test acc:  {:.4f}".format(test_acc))
@@ -188,7 +190,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.01, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=50, help="number of epoch")
-    parser.add_argument("--hidden_dim", type=int, default=16, help="dimention of hidden layers")
+    parser.add_argument("--hidden_dim", type=int, default=16, help="dimension of hidden layers")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument("--aggregation", type=str, default='sum', help='aggregate type')
     parser.add_argument('--dataset', type=str, default='aifb', help='dataset')
@@ -197,11 +199,11 @@ if __name__ == '__main__':
 
     parser.add_argument('--attention_mechanism', type=str, default='within-relation', help='attention_mechanism')
     parser.add_argument('--attention_mode', type=str, default='additive-self-attention', help='attention_mode')
-    parser.add_argument('--heads', type=int, default=1, help='heads')
+    parser.add_argument('--heads', type=int, default=8, help='heads')
     parser.add_argument('--dim', type=int, default=1, help='dim')
     parser.add_argument('--concat', type=bool, default=False, help='concat')
     parser.add_argument('--negative_slope', type=float, default=0.01, help='negative_slope')
-    parser.add_argument('--bias', type=float, default=None, help='bias')
+    parser.add_argument('--bias', type=bool, default=True, help='bias')
     args = parser.parse_args()
 
     main(args)

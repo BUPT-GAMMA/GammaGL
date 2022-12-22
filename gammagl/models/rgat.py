@@ -24,9 +24,8 @@ class RGAT(tlx.nn.Module):
         self.lin = tlx.nn.Linear(hidden_channels, out_channels)
         self.relu = tlx.ReLU()
         #self.log_softmax = tlx.ops.log(tlx.nn.Softmax())
-        self.log_softmax = tlx.nn.Softmax()
-    def forward(self, edge_index, edge_type):
-        x = self.relu(self.conv1(None, edge_index, edge_type))
+    def forward(self, x, edge_index, edge_type):
+        x = self.relu(self.conv1(x, edge_index, edge_type))
         x = self.relu(self.conv2(x, edge_index, edge_type))
         #x = self.lin(x)
-        return  self.log_softmax(x,dim=-1)
+        return tlx.log(tlx.softmax(x, axis=-1))

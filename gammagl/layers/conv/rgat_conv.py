@@ -79,11 +79,11 @@ class RGATConv(MessagePassing):
         
         if bias and concat:
             self.bias = self._get_weights(var_name="bias",
-                        shape=(self.heads * self.dim * self.out_channels),
+                        shape=(self.heads * self.dim * self.out_channels,),
                         init=initor, order=True)
         elif bias and not concat:
             self.bias = self._get_weights(var_name="bias",
-                        shape=(self.dim * self.out_channels),
+                        shape=(self.dim * self.out_channels,),
                         init=initor, order=True)
         #else:
         #    tlx.nn.Parameter(None, 'bias')
@@ -103,38 +103,18 @@ class RGATConv(MessagePassing):
                                      init=initor, order=True)
 
     def forward(self, x , edge_index, edge_type = None):
-        
-        weight = self.weight
-        print('weight',weight.shape)
-        inchannels_l = self.in_channels
-        x_l = None
-        if isinstance(x, tuple):
-            x_l = x[0]
-        else:
-            x_l = x
-        if x_l is None:
-            x_l = tlx.arange(0, inchannels_l, dtype=tlx.int64)
-        x_r = x_l
-        if isinstance(x, tuple):
-            x_r = x[1]
-        print("x_r",x_r.shape)
-        size = (x_l.shape[0], x_r.shape[0])
 
-        x = tlx.zeros(shape=(x_l.shape[0], self.out_channels), dtype=tlx.float32)
         out = self.propagate(edge_index=edge_index, edge_type=edge_type, x=x)
         return out
     
     def message(self, x, edge_type, edge_index):
         row, col = edge_index
         #x = self.lin(x)
-        x_i = x[row]
-        x_j = x[col]
+        x_i = tlx.gather(x, row)
+        x_j = tlx.gather(x, col)
         alpha_edge, alpha = 0, 0  #???
         w = self.weight
-        w = torch.index_select(w, 0, edge_type) #???
-        print('w',w.shape)
-        print('x',x.shape)
-        print('xi',x_i.shape)
+        w = tlx.gather(w, edge_type, 0)
         #x_i = tlx.nn.Transpose(perm=[1,0], conjugate=False, name='trans')(x_i)
         #outi = tlx.squeeze(tlx.bmm(x_i.unqueeze(1),w), axis=-2)
         #a = tlx.ops.expand_dims(x_i,axis=2)
@@ -145,17 +125,19 @@ class RGATConv(MessagePassing):
         kj = tlx.matmul(outj,self.k)
         if self.attention_mode == "additive-self-attention":
             alpha = tlx.add(qi,kj)
-            alpha = self.leaky_relu(alpha,self.negative_slope)
+            alpha = tlx.leaky_relu(alpha,self.negative_slope)
         elif self.attention_mode == "multiplicate-self-attention":
             alpha = qi * kj
         self._alpha = alpha
         if self.attention_mechanism == "within-relation":
             across_out = tlx.zeros_like(alpha)
             for r in range(self.num_relations):
-                mask = edge_type == r
-                across_out[mask] = tlx.nn.activation.Softmax(alpha[mask], edge_index[mask])
+                mask = (edge_type == r)
+                across_out[mask] = tlx.softmax(alpha[mask])
+                # across_out[mask] = tlx.nn.activation.Softmax(alpha[mask], edge_index[mask])
+            alpha = across_out
         elif self.attention_mechanism == "across-relation":
-            alpha = tlx.nn.activation.Softmax(alpha, edge_index)
+            alpha = tlx.softmax(alpha)
         if self.attention_mode == "additive-self-attention":
             return tlx.reshape(alpha, [-1, self.heads, 1]) * tlx.reshape(outj, [-1, self.heads, self.out_channels])
         else:
