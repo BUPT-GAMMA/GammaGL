@@ -20,9 +20,6 @@ Refer to [Planetoid](https://gammagl.readthedocs.io/en/latest/api/gammagl.datase
 TL_BACKEND="paddle" python hcha_trainer.py --dataset cora --lr 0.01 --l2_coef 0.01 --drop_rate 0.9  
 TL_BACKEND="paddle" python hcha_trainer.py --dataset citeseer --lr 0.01 --l2_coef 0.01 --drop_rate 0.7 
 TL_BACKEND="paddle" python hcha_trainer.py --dataset pubmed --lr 0.01 --l2_coef 0.005 --drop_rate 0.6 
-TL_BACKEND="tensorflow" python hcha_trainer.py --dataset cora --lr 0.005 --l2_coef 0.01 --drop_rate 0.6 
-TL_BACKEND="tensorflow" python hcha_trainer.py --dataset citeseer --lr 0.01 --l2_coef 0.001 --drop_rate 0.8 
-TL_BACKEND="tensorflow" python hcha_trainer.py --dataset pubmed --lr 0.01 --l2_coef 0.001 --drop_rate 0.9 
 TL_BACKEND="torch" python hcha_trainer.py --dataset cora --lr 0.005 --l2_coef 0.01 --drop_rate 0.8 
 TL_BACKEND="torch" python hcha_trainer.py --dataset citeseer --lr 0.01 --l2_coef 0.01 --drop_rate 0.7 
 TL_BACKEND="torch" python hcha_trainer.py --dataset pubmed --lr 0.01 --l2_coef 0.002 --drop_rate 0.5 
@@ -43,6 +40,6 @@ TL_BACKEND="mindspore" python hcha_trainer.py --dataset pubmed --lr 0.01 --l2_co
 
 | Dataset  | Paper |  Our(pd)   |  Our(th)   |  Our(ms)   |
 | -------- | ----- | ---------- | ---------- | ---------- |
-| cora     | 82.61 | 77.98±0.83 | 78.16±0.99 | 78.68±0.80 |
-| citeseer | 70.88 | 62.74±1.24 | 64.04±1.44 | 63.30±0.60 |
-| pubmed   | 78.4  | 76.44±0.29 | 76.18±0.35 | 76.58±0.25 |
+| cora     | 82.61 | 77.40±0.93 | 76.84±2.25 |     Err    |
+| citeseer | 70.88 | 63.44±1.05 | 62.22±3.02 |     Err    |
+| pubmed   | 78.4  | 75.36±0.92 | 74.76±0.42 |     Err    |

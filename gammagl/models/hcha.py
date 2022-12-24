@@ -9,19 +9,25 @@ from gammagl.layers.conv import HypergraphConv
 # from gammagl.layers.conv import HypergraphConv
 class HCHA(tlx.nn.Module):
     def __init__(self,
-                 in_channels, out_channels, hidden_channels, ea_len, use_attention=False, heads=1,
-                 concat=True, negative_slope=0.2, dropout=0.2, bias=True,num_layers = 2,name=None):
+                 in_channels, out_channels, hidden_channels, ea_len, use_attention=False, heads=2,
+                 concat=True, negative_slope=0.2, dropout=0.2, bias=True, num_layers = 2, name=None):
         super().__init__(name=name)
         # self.conv1 = HypergraphConv(in_channels, hidden_channels)
         # self.conv2 = HypergraphConv(hidden_channels, out_channels)
+        if not use_attention:
+            heads = 1
         self.num_layers = num_layers
         if num_layers == 1:
-            self.conv = nn.ModuleList([HypergraphConv(in_channels, out_channels, ea_len)])
+            self.conv = nn.ModuleList([HypergraphConv(in_channels, out_channels, ea_len, 
+                                                      heads=heads, use_attention=use_attention)])
         else:
-            self.conv = nn.ModuleList([HypergraphConv(in_channels, hidden_channels, ea_len)])
+            self.conv = nn.ModuleList([HypergraphConv(in_channels, hidden_channels, ea_len, 
+                                                      heads=heads, use_attention=use_attention)])
             for _ in range(1, num_layers - 1):
-                self.conv.append(HypergraphConv(in_channels, hidden_channels, ea_len))
-            self.conv.append(HypergraphConv(hidden_channels, out_channels, ea_len))
+                self.conv.append(HypergraphConv(heads * hidden_channels, hidden_channels, ea_len, 
+                                                      heads=heads, use_attention=use_attention))
+            self.conv.append(HypergraphConv(heads * hidden_channels, out_channels, ea_len, 
+                                                      use_attention=use_attention))
             # self.conv1 = GCNConv(feature_dim, hidden_dim, norm = 'both')
             # self.conv2 = GCNConv(hidden_dim, num_class, norm = 'both')
             self.relu = tlx.ReLU()

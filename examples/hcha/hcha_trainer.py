@@ -87,7 +87,7 @@ def main(args):
                     ea_len=ea_len,
                     name="HCHA",
                     use_attention=args.use_attention, 
-                    heads=1,
+                    heads=2,
                     negative_slope=0.2, dropout=args.drop_rate, bias=True)
 
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
@@ -143,13 +143,13 @@ if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
+    parser.add_argument("--n_epoch", type=int, default=50, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=64, help="dimention of hidden layers")
     parser.add_argument("--drop_rate", type=float, default=0.5, help="drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
-    parser.add_argument('--dataset', type=str, default='citeseer', help='dataset')
+    parser.add_argument('--dataset', type=str, default='cora', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
-    parser.add_argument("--use_attention", type=bool, default=True, help="use attention or not")
+    parser.add_argument("--use_attention", type=bool, default=False, help="use attention or not")
     args = parser.parse_args()
     main(args)

@@ -7,7 +7,7 @@ from gammagl.mpops import *
 
 class HypergraphConv(MessagePassing):
     def __init__(self, in_channels, out_channels, ea_len, use_attention=False, heads=1,
-                 concat=True, negative_slope=0.2, dropout=0, bias=True,
+                 concat=True, negative_slope=0.2, dropout=0., bias=True,
                  **kwargs):
         kwargs.setdefault('aggr', 'add')
         super().__init__()
@@ -23,11 +23,11 @@ class HypergraphConv(MessagePassing):
             self.dropout = dropout
             W_init = tlx.nn.initializers.XavierUniform(gain=1.0)  
             b_init = tlx.nn.initializers.constant(value=0.1)
-            self.lin = tlx.layers.Linear(in_features=in_channels, out_features=out_channels, W_init=W_init, b_init=b_init) 
-            self.lin_ea = tlx.layers.Linear(in_features=ea_len, out_features=self.out_channels, W_init=W_init, b_init=b_init)                                                          
+            self.lin = tlx.layers.Linear(in_features=in_channels, out_features=out_channels * heads, W_init=W_init, b_init=b_init) 
+            self.lin_ea = tlx.layers.Linear(in_features=ea_len, out_features=self.out_channels * heads, W_init=W_init, b_init=b_init)                                                          
             # self.att = tlx.nn.Parameter(data=tlx.zeros(1, heads, 2 * out_channels))
-            initor = tlx.initializers.Zeros()
-            self.att = self._get_weights('att', init=initor, shape=(1, heads, 2 * out_channels))
+            initor = tlx.initializers.Ones()
+            self.att = self._get_weights('att', init=initor, shape=(2 * out_channels, heads, 1))
         else:
             self.heads = 1
             self.concat = True
@@ -47,7 +47,7 @@ class HypergraphConv(MessagePassing):
         else:
             self.register_parameter('bias', None)
 
-        self.reset_parameters()
+        # self.reset_parameters()
 
     def reset_parameters(self):
         if self.use_attention:
@@ -63,15 +63,16 @@ class HypergraphConv(MessagePassing):
 
         if self.use_attention:
             assert hyperedge_attr is not None
-            x = tlx.reshape(x, (-1,self.heads, self.out_channels))
-            hyperedge_attr = self.lin(hyperedge_attr)
-            hyperedge_attr = tlx.reshape(hyperedge_attr, (-1,self.heads,self.out_channels))
+            x = tlx.reshape(x, (-1, self.heads, self.out_channels))
+            hyperedge_attr = tlx.reshape(hyperedge_attr, (-1, self.heads, self.out_channels))
             x_i = tlx.gather(x, hyperedge_index[0])
             x_j = tlx.gather(hyperedge_attr, hyperedge_index[1])
-            alpha = tlx.reduce_sum((tlx.ops.concat([x_i, x_j],-1) * self.att), axis=-1)
+            
+            # self.att = tlx.reshape(self.att, shape=(1, self.heads, 2 * self.out_channels))
+            alpha = tlx.reduce_sum(((tlx.ops.concat([x_i, x_j],-1)) * self.att), axis=-1)
             alpha = tlx.nn.LeakyReLU(self.negative_slope)(alpha)
-            alpha = segment_softmax(alpha, hyperedge_index[0], num_nodes=x.size(0)) 
-            alpha = tlx.nn.dropout(self.dropout)(alpha)
+            alpha = segment_softmax(alpha, hyperedge_index[0], num_segments=max(hyperedge_index[0])+1) 
+            alpha = tlx.nn.Dropout(self.dropout)(alpha)
         else: 
             assert hyperedge_attr is not None
             x_j = tlx.gather(hyperedge_attr, hyperedge_index[1])
