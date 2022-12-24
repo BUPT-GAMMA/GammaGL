@@ -40,33 +40,27 @@ def get_graph_feature(x, k=20, idx=None):
     feature = tlx.reshape(feature, (batch_size, num_points, k, num_dims))
     x = tlx.tile(tlx.reshape(x, (batch_size, num_points, 1, num_dims)), [1, 1, k, 1])
     feature = tlx.concat([feature - x, x], axis=3)
-    return copy.deepcopy(feature)
+    return feature
 
 
 class DGCNNModel(nn.Module):
     r"""The Edge Convolution operator from the `"Dynamic Graph CNN for Learning on Point Clouds"
     <https://arxiv.org/pdf/1801.07829.pdf>`_ paper
 
-    Parameters
-    ----------
-    args: arguments of DGCNN.
-        emb_dims: Dimension of embeddings.
-        dropout: Dropout rate
-        k: Num of nearest neighbors to use
-    output_channels(int, optional): number of category.
     """
-    def __init__(self, args, output_channels=40):
+    def __init__(self, in_channels, k, emb_dims, num_points, dropout, output_channels=40):
         super(DGCNNModel, self).__init__()
-        self.args = args
-        self.k = args.k
+        self.k = k
+        self.in_channels = in_channels
+        self.num_points = num_points
 
         self.bn1 = nn.BatchNorm2d(num_features=64, momentum=0.1)
         self.bn2 = nn.BatchNorm2d(num_features=64, momentum=0.1)
         self.bn3 = nn.BatchNorm2d(num_features=128, momentum=0.1)
         self.bn4 = nn.BatchNorm2d(num_features=256, momentum=0.1)
-        self.bn5 = nn.BatchNorm1d(num_features=args.emb_dims, momentum=0.1)
+        self.bn5 = nn.BatchNorm1d(num_features=emb_dims, momentum=0.1)
 
-        self.conv1 = nn.Sequential(nn.Conv2d(in_channels=6, out_channels=64, kernel_size=1, b_init=None),
+        self.conv1 = nn.Sequential(nn.Conv2d(in_channels=2 * in_channels, out_channels=64, kernel_size=1, b_init=None),
                                    self.bn1,
                                    nn.LeakyReLU(negative_slope=0.2),
                                    nn.Transpose(perm=[0, 3, 1, 2]))
@@ -82,20 +76,20 @@ class DGCNNModel(nn.Module):
                                    self.bn4,
                                    nn.LeakyReLU(negative_slope=0.2),
                                    nn.Transpose(perm=[0, 3, 1, 2]))
-        self.conv5 = nn.Sequential(nn.Conv1d(in_channels=512, out_channels=args.emb_dims, kernel_size=1, b_init=None),
+        self.conv5 = nn.Sequential(nn.Conv1d(in_channels=512, out_channels=emb_dims, kernel_size=1, b_init=None),
                                    self.bn5,
                                    nn.LeakyReLU(negative_slope=0.2),
                                    nn.Transpose(perm=[0, 1, 2]))
-        self.linear1 = nn.Linear(in_features=args.emb_dims*2, out_features=512, b_init=None)
+        self.linear1 = nn.Linear(in_features=emb_dims*2, out_features=512, b_init=None)
         self.bn6 = nn.BatchNorm1d(num_features=512, momentum=0.1)
-        self.dp1 = nn.Dropout(p=args.dropout)
+        self.dp1 = nn.Dropout(p=dropout)
         self.linear2 = nn.Linear(in_features=512, out_features=256)
         self.bn7 = nn.BatchNorm1d(num_features=256, momentum=0.1)
-        self.dp2 = nn.Dropout(p=args.dropout)
+        self.dp2 = nn.Dropout(p=dropout)
         self.linear3 = nn.Linear(in_features=256, out_features=output_channels)
 
     def forward(self, x):
-        x = tlx.reshape(x, (-1, self.args.num_points, 3))
+        x = tlx.reshape(x, (-1, self.num_points, self.in_channels))
         x = tlx.transpose(x, perm=(0, 2, 1))
         batch_size = x.shape[0]
         x = get_graph_feature(x, k=self.k)

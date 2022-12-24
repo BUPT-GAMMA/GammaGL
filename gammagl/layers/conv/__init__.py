@@ -19,6 +19,7 @@ from .mixhop_conv import MixHopConv
 from .hardgat_conv import HardGATConv
 from .pna_conv import PNAConv
 from .film_conv import FILMConv
+from .edgeconv import EdgeConv
 
 __all__ = [
     'MessagePassing',
@@ -40,7 +41,8 @@ __all__ = [
     'MixHopConv',
     'HardGATConv',
     'PNAConv',
-    'HardGATConv'
+    'HardGATConv',
+    'EdgeConv'
 ]
 
 classes = __all__

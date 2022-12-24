@@ -9,7 +9,7 @@ import copy
 import os
 
 # os.environ['CUDA_VISIBLE_DEVICES']='0'
-# os.environ['TL_BACKEND'] = 'torch'
+os.environ['TL_BACKEND'] = 'paddle'
 
 import sys
 
@@ -23,14 +23,13 @@ from gammagl.models import DGCNNModel
 from gammagl.loader import DataLoader
 from tensorlayerx.model import TrainOneStep, WithLoss
 import sklearn.metrics as metrics
-import torch
-import torch.nn.functional as F
+tlx.set_device("GPU", 2)
 
-if tlx.BACKEND == 'torch':  # when the backend is torch and you want to use GPU
-    try:
-        tlx.set_device(device='GPU', id=0)
-    except:
-        print("GPU is not available")
+# if tlx.BACKEND == 'torch':  # when the backend is torch and you want to use GPU
+#     try:
+#         tlx.set_device(device='GPU', id=0)
+#     except:
+#         print("GPU is not available")
 
 
 class CalLoss(WithLoss):
@@ -38,15 +37,6 @@ class CalLoss(WithLoss):
         super(CalLoss, self).__init__(backbone=net, loss_fn=None)
 
     def forward(self, x, gold, smoothing=True):
-        """
-        Args:
-            x:point cloud
-            gold:classification
-            smoothing:use smoothing to calculate loss or not
-
-        Returns:
-            loss
-        """
         pred = self.backbone_network(x)
         gold = tlx.reshape(tlx.convert_to_tensor(gold), (-1,))
 
@@ -85,7 +75,7 @@ def main(args):
     tlx.set_device("CPU" if args.no_cuda else "GPU")
     print(tlx.get_device())
 
-    net = DGCNNModel(args)
+    net = DGCNNModel(args.in_channel, args.k, args.emb_dims, args.num_points, args.dropout, args.out_channel)
     try:
         net.load_weights(args.best_model_path + "DGCNN.npz", format='npz_dict')
     except:
@@ -93,7 +83,7 @@ def main(args):
     print(str(net))
 
     if args.use_sgd is True:
-        scheduler = tlx.optimizers.lr.CosineAnnealingDecay(learning_rate=args.lr*100, T_max=args.epochs, eta_min=args.lr)
+        scheduler = tlx.optimizers.lr.CosineAnnealingDecay(learning_rate=args.lr, T_max=args.epochs, eta_min=args.lr)
         print("Use SGD")
         opt = tlx.optimizers.SGD(lr=scheduler, momentum=args.momentum, weight_decay=1e-4)
     else:
@@ -149,6 +139,9 @@ def main(args):
         print(f'Test {epoch}, loss: {test_loss / count}, test acc: {test_acc}, test avg acc: {avg_per_class_acc}')
 
         if test_acc >= best_test_acc:
+            ofile = open('best.txt', 'a+')
+            print(f'Test {epoch}, loss: {test_loss / count}, test acc: {test_acc}, test avg acc: {avg_per_class_acc}', file=ofile)
+            ofile.close()
             best_test_acc = test_acc
             print('save weights...')
             net.save_weights(args.best_model_path + "DGCNN.npz", format='npz_dict')
@@ -157,13 +150,15 @@ def main(args):
 if __name__ == "__main__":
     # Training settings
     parser = argparse.ArgumentParser()
-    parser.add_argument('--use_sgd', type=bool, default=True, help='Use SGD')
+    parser.add_argument('--use_sgd', type=bool, default=False, help='Use SGD')
     parser.add_argument('--exp_name', type=str, default='exp', metavar='N', help='Name of the experiment')
-    parser.add_argument('--batch_size', type=int, default=32, metavar='batch_size', help='Size of batch)')
-    parser.add_argument('--test_batch_size', type=int, default=16, metavar='batch_size', help='Size of batch)')
+    parser.add_argument('--batch_size', type=int, default=32, metavar='batch_size', help='Size of batch')
+    parser.add_argument('--test_batch_size', type=int, default=16, metavar='batch_size', help='Size of batch')
     parser.add_argument('--epochs', type=int, default=250, metavar='N', help='number of episode to train ')
     parser.add_argument('--lr', type=float, default=0.001, metavar='LR', help='learning rate (default: 0.001, 0.1 if '
                                                                               'using sgd)')
+    parser.add_argument('--in_channel', type=int, default=3, help='input feature dimension')
+    parser.add_argument('--out_channel', type=int, default=40, help='output feature dimension')
     parser.add_argument('--momentum', type=float, default=0.9, metavar='M', help='SGD momentum (default: 0.9)')
     parser.add_argument('--no_cuda', type=bool, default=False, help='enables CUDA training')
     parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')
