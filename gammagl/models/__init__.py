@@ -61,8 +61,8 @@ __all__ = [
     'FILMModel',
     'VGAEModel',
     'GAEModel',
-    'GEstimationN'
-
+    'GEstimationN',
+'GraphSAINTModel'
 ]
 
 classes = __all__
