@@ -13,7 +13,7 @@ class GraphSAINTSampler(DataLoader):
         self.E=data.num_edges
         self.data=data
         self.adj=csr_matrix((tlx.arange(self.E),(data.edge_index[0],data.edge_index[1])),shape=(N,N))
-        
+        # 
 #         csr_matrix((data, (row_ind, col_ind)), [shape=(M, N)])
 #  |          where ``data``, ``row_ind`` and ``col_ind`` satisfy the
 #  |          relationship ``a[row_ind[k], col_ind[k]] = data[k]``.
