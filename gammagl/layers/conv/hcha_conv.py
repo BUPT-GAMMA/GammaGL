@@ -27,8 +27,9 @@ class HypergraphConv(MessagePassing):
             self.lin_ea = tlx.layers.Linear(in_features=ea_len, out_features=self.out_channels * heads, W_init=W_init, b_init=b_init)                                                          
             # self.att = tlx.nn.Parameter(data=tlx.zeros(1, heads, 2 * out_channels))
             initor = tlx.initializers.Ones()
-            # self.att = tlx.nn.Parameter(data = tlx.ones(shape = (1, heads, 2 * out_channels)))
+            # self.att = tlx.nn.Parameter(data = tlx.ones(shape = (1, heads, 2 * out_channels)), name = "att")
             self.att = self._get_weights('att', init=initor, shape=(1, heads, 2 * out_channels))
+            print(tlx.get_tensor_shape(self.att))
         else:
             self.heads = 1
             self.concat = True
@@ -70,7 +71,6 @@ class HypergraphConv(MessagePassing):
             x_j = tlx.gather(hyperedge_attr, hyperedge_index[1])
             
             # self.att = tlx.reshape(self.att, shape=(1, self.heads, 2 * self.out_channels))
-            print(tlx.get_tensor_shape(self.att))
             alpha = tlx.reduce_sum(((tlx.ops.concat([x_i, x_j],-1)) * self.att), axis=-1)
             alpha = tlx.nn.LeakyReLU(self.negative_slope)(alpha)
             alpha = segment_softmax(alpha, hyperedge_index[0], num_segments=max(hyperedge_index[0])+1) 
