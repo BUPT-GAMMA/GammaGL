@@ -27,7 +27,8 @@ class HypergraphConv(MessagePassing):
             self.lin_ea = tlx.layers.Linear(in_features=ea_len, out_features=self.out_channels * heads, W_init=W_init, b_init=b_init)                                                          
             # self.att = tlx.nn.Parameter(data=tlx.zeros(1, heads, 2 * out_channels))
             initor = tlx.initializers.Ones()
-            self.att = self._get_weights('att', init=initor, shape=(2 * out_channels, heads, 1))
+            # self.att = tlx.nn.Parameter(data = tlx.ones(shape = (1, heads, 2 * out_channels)))
+            self.att = self._get_weights('att', init=initor, shape=(1, heads, 2 * out_channels))
         else:
             self.heads = 1
             self.concat = True
@@ -69,6 +70,7 @@ class HypergraphConv(MessagePassing):
             x_j = tlx.gather(hyperedge_attr, hyperedge_index[1])
             
             # self.att = tlx.reshape(self.att, shape=(1, self.heads, 2 * self.out_channels))
+            print(tlx.get_tensor_shape(self.att))
             alpha = tlx.reduce_sum(((tlx.ops.concat([x_i, x_j],-1)) * self.att), axis=-1)
             alpha = tlx.nn.LeakyReLU(self.negative_slope)(alpha)
             alpha = segment_softmax(alpha, hyperedge_index[0], num_segments=max(hyperedge_index[0])+1) 
@@ -77,10 +79,10 @@ class HypergraphConv(MessagePassing):
             assert hyperedge_attr is not None
             x_j = tlx.gather(hyperedge_attr, hyperedge_index[1])
 
-        out = self.propagate(x=x, edge_index=hyperedge_index,aggr='sum',
-                            alpha=alpha,y=hyperedge_attr)
+        out = self.propagate(x=x, edge_index=hyperedge_index, aggr='sum',
+                            alpha=alpha, y=hyperedge_attr)
         hyperedge_index_r  = tlx.gather(hyperedge_index, tlx.convert_to_tensor([1, 0]), axis = 0)
-        out = self.propagate(x=out, edge_index=hyperedge_index_r ,aggr='sum',
+        out = self.propagate(x=out, edge_index=hyperedge_index_r, aggr='sum',
                             alpha=alpha, y=None)
         
         if self.concat is True:
@@ -106,11 +108,12 @@ class HypergraphConv(MessagePassing):
     
     def aggregate(self, msg, edge_index, num_nodes=None, aggr='sum'):
         dst_index = edge_index[1, :]
+        num_segments = max(dst_index) + 1
         if aggr == 'sum':
-            return unsorted_segment_sum(msg, dst_index, num_nodes)
+            return unsorted_segment_sum(msg, dst_index, num_segments)
         elif aggr == 'mean':
-            return unsorted_segment_mean(msg, dst_index, num_nodes)
+            return unsorted_segment_mean(msg, dst_index, num_segments)
         elif aggr == 'max':
-            return unsorted_segment_max(msg, dst_index, num_nodes)
+            return unsorted_segment_max(msg, dst_index, num_segments)
         else:
             raise NotImplementedError('Not support for this opearator')

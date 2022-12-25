@@ -7,7 +7,7 @@ def test_hypergraph_conv_with_more_nodes_than_edges():
     in_channels, out_channels = (16, 32)
     hyperedge_index = tlx.convert_to_tensor([[0, 0, 1, 1, 2, 3], [0, 1, 0, 1, 0, 1]])
     hyperedge_weight = tlx.ones((len(hyperedge_index[1]),))
-    num_nodes = hyperedge_index[0].max().item() + 1
+    num_nodes = max(hyperedge_index[0]) + 1
     x = tlx.random_normal(shape=(num_nodes, in_channels))
     hyperedge_attr = tlx.random_normal(shape=(max(hyperedge_index[0]) + 1, in_channels))
     ea_len = len(hyperedge_attr[0])
@@ -30,9 +30,9 @@ def test_hypergraph_conv_with_more_nodes_than_edges():
 def test_hypergraph_conv_with_more_edges_than_nodes():
     in_channels, out_channels = (16, 32)
     hyperedge_index = tlx.convert_to_tensor([[0, 0, 1, 1, 2, 3, 3, 3, 2, 1, 2],
-                                             [0, 1, 2, 1, 2, 1, 0, 3, 3, 4, 4]])
+                                             [0, 1, 2, 1, 2, 1, 0, 3, 3, 4, 5]])
     hyperedge_weight = tlx.ones((len(hyperedge_index[1]),))
-    num_nodes = hyperedge_index[0].max().item() + 1
+    num_nodes = max(hyperedge_index[0]) + 1
     x = tlx.random_normal(shape=(num_nodes, in_channels))
     hyperedge_attr = tlx.random_normal(shape=(max(hyperedge_index[1]) + 1, in_channels))
     ea_len = len(hyperedge_attr[0])
@@ -40,5 +40,3 @@ def test_hypergraph_conv_with_more_edges_than_nodes():
     conv = HypergraphConv(in_channels, out_channels, ea_len)
     out = conv(x, hyperedge_index, hyperedge_weight, hyperedge_attr)
     assert tlx.get_tensor_shape(out) == [num_nodes, out_channels]
-    
-test_hypergraph_conv_with_more_nodes_than_edges()
