@@ -1,7 +1,7 @@
 from .dataloader import DataLoader
 from .Neighbour_sampler import Neighbor_Sampler
 from .Neighbour_sampler import Neighbor_Sampler_python
-from .random_walk import RandomWalk
+from .random_walk_sampler import RandomWalk
 
 __all__ = [
     'DataLoader',
