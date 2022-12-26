@@ -39,7 +39,7 @@ __all__ = [
     'SimpleHGNConv',
     'FAGCNConv',
     'GPRConv',
-    'HyperGraphConv'
+    'HyperGraphConv',
     'HGTConv',
     'MixHopConv',
     'HardGATConv',
