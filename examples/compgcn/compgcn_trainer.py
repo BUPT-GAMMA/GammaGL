@@ -5,7 +5,7 @@
 # @Author  : yijian
 # @FileName: compgcn_trainer.py
 import os
-os.environ['TL_BACKEND'] = 'torch'  # set your backend here, default `torch`
+os.environ['TL_BACKEND'] = 'tensorflow'  # set your backend here, default `torch`
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 import sys
@@ -114,7 +114,7 @@ def main(args):
     edge_type = edge_in_type + edge_out_type
 
     edge_index = tlx.ops.convert_to_tensor(edge_index)
-    edge_type = tlx.ops.convert_to_tensor(edge_type)
+    edge_type = tlx.ops.convert_to_tensor(edge_type, dtype = tlx.int64)
 
 
     data = {
