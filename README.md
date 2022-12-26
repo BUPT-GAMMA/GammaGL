@@ -212,8 +212,7 @@ class EdgeConv(MessagePassing):
 1. **Python environment** (Optional): We recommend using Conda package manager
    
    ```bash
-   # python=3.7.5 or 3.9.0 is suitable for mindspore.
-   conda create -n ggl python=3.7.5
+   conda create -n ggl python=3.7
    source activate ggl
    ```
 
@@ -232,9 +231,9 @@ class EdgeConv(MessagePassing):
    # https://www.paddlepaddle.org.cn/
    python -m pip install paddlepaddle-gpu
    
-   # For mindspore, GammaGL only supports version1.6.1, GPU-CUDA 11.1 and python 3.7.5
+   # For mindspore, GammaGL only supports version 1.8.1, GPU-CUDA 11.1
    # https://www.mindspore.cn/install
-   pip install https://ms-release.obs.cn-north-4.myhuaweicloud.com/1.6.1/MindSpore/gpu/x86_64/cuda-11.1/mindspore_gpu-1.6.1-cp37-cp37m-linux_x86_64.whl --trusted-host ms-release.obs.cn-north-4.myhuaweicloud.com -i https://pypi.tuna.tsinghua.edu.cn/simple
+   pip install https://ms-release.obs.cn-north-4.myhuaweicloud.com/1.8.1/MindSpore/gpu/x86_64/cuda-11.1/mindspore_gpu-1.8.1-cp37-cp37m-linux_x86_64.whl --trusted-host ms-release.obs.cn-north-4.myhuaweicloud.com -i https://pypi.tuna.tsinghua.edu.cn/simple
    ```
    
    For other backend with specific version, [please check whether TLX supports](https://tensorlayerx.readthedocs.io/en/latest/user/installation.html#install-backend).

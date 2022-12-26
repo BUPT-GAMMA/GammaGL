@@ -9,6 +9,8 @@ from .loop import add_self_loops, remove_self_loops, contains_self_loops
 from .mask import mask_to_index, index_to_mask
 from .inspector import Inspector
 from .device import set_device
+from .read_embeddings import read_embeddings
+from .homophily import homophily
 
 __all__ = [
     'calc_A_norm_hat',
@@ -23,7 +25,9 @@ __all__ = [
     'remove_self_loops',
     'mask_to_index',
     'index_to_mask',
-    'set_device'
+    'set_device',
+    'read_embeddings',
+    'homophily'
 ]
 
 classes = __all__

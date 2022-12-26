@@ -31,7 +31,7 @@ If need to support cuda, create two other files:
     }
     ```
 
-    * Device dispatching function (CPU, GPU, ROCm ...):   
+    * Device dispatching function (CPU, CUDA, ROCm ...):   
     ```c++
     torch::Tensor device_dispatch_forward(
         torch::Tensor& x) {
@@ -42,7 +42,7 @@ If need to support cuda, create two other files:
             return segment_sum_cuda_forward(x, index, n);
     #endif
         } else {
-            TORCH_CHECK(false, "Device type error.");
+            AT_ERROR("Tensor device inconsistent error.");
         }
     }
     ```
@@ -52,12 +52,12 @@ If need to support cuda, create two other files:
     torch::Tensor segment_max_cpu_forward(torch::Tensor& x) {
         TORCH_CHECK(x.device().is_cpu(), "x must be CPU tensor");
         x = x.contiguous(); // torch Tensor my not be contiguous.
-        auto out = torch::empty(x.sizes(), x.options());
+        auto out = torch::zeros(x.sizes(), x.options());
         auto E = x.size(0); // edge num
         auto K = x.size(1); // feature dim
         for (auto e = 0; e < E; ++e) {
             for (auto k = 0; k < K; ++k) {
-                out[e * K + k] = op_func(out[e * K + k], x[e * K + k])
+                out[e * K + k] = op_func(out[e * K + k], x[e * K + k]);
             }
         }
         return out;
@@ -69,12 +69,12 @@ If need to support cuda, create two other files:
     torch::Tensor segment_max_cpu_forward(torch::Tensor& x,
                                           torch::Tensor& grad_out) {
         TORCH_CHECK(x.device().is_cpu(), "x must be CPU tensor");
-        auto grad_x = torch::empty(x.sizes(), x.options());
+        auto grad_x = torch::zeros(x.sizes(), x.options());
         auto E = x.size(0);
         auto K = x.size(1);
         for (auto e = 0; e < E; ++e) {
             for (auto k = 0; k < K; ++k) {
-                grad_x[e * K + k] = jvp_func(grad_out[e * K + k])
+                grad_x[e * K + k] = jvp_func(grad_out[e * K + k]);
             }
         }
         return grad_x;
