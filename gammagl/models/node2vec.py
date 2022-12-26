@@ -2,7 +2,7 @@ import tensorlayerx as tlx
 from collections import defaultdict
 import numpy as np
 from ..utils.num_nodes import maybe_num_nodes
-from gammagl.transforms import RandomWalk
+from gammagl.loader import RandomWalk
 
 random_walk = RandomWalk("node2vec")
 

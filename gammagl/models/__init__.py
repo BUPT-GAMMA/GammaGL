@@ -61,10 +61,9 @@ __all__ = [
     'GPRGNNModel',
     'FILMModel',
     'GEstimationN',
-    'Node2vecModel'
+    'Node2vecModel',
     'VGAEModel',
     'GAEModel',
-    'GEstimationN'
 ]
 
 classes = __all__

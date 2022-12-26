@@ -15,9 +15,9 @@ from tensorlayerx.model import TrainOneStep, WithLoss
 from sklearn.linear_model import LogisticRegression
 
 
-class SemiSpvzLoss(WithLoss):
+class Unsupervised_Loss(WithLoss):
     def __init__(self, net, loss_fn):
-        super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
+        super(Unsupervised_Loss, self).__init__(backbone=net, loss_fn=loss_fn)
 
     def forward(self, data, label):
         logits = self.backbone_network(data["edge_index"])
@@ -63,7 +63,7 @@ def main(args):
     optimizer = tlx.optimizers.Adam(lr=args.lr)
     train_weights = model.trainable_weights
 
-    loss_func = SemiSpvzLoss(net=model, loss_fn=tlx.losses.absolute_difference_error)
+    loss_func = Unsupervised_Loss(net=model, loss_fn=tlx.losses.absolute_difference_error)
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
     data = {
