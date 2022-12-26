@@ -116,8 +116,8 @@ class CompConv(MessagePassing):
         Returns:
 
         """
-        rel_emb = rel_emb[edge_type]
-        x_emb = x[edge_index[1]]
+        rel_emb = tlx.gather(rel_emb, edge_type)
+        x_emb = tlx.gather(x, edge_index[1])
         if self.op == 'sub': x_rel_emb = x_emb - rel_emb
         elif self.op == 'mult': x_rel_emb = x_emb * rel_emb
         msg = linear(x_rel_emb)
