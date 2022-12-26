@@ -39,7 +39,8 @@ __all__ = [
     'SimpleHGNModel',
     'FAGCNModel',
     'GPRGNNModel',
-    'MIXHOPModel'
+    'MIXHOPModel',
+    'HCHA'
 ]
 
 classes = __all__

@@ -28,8 +28,7 @@ class HypergraphConv(MessagePassing):
             # self.att = tlx.nn.Parameter(data=tlx.zeros(1, heads, 2 * out_channels))
             initor = tlx.initializers.Ones()
             # self.att = tlx.nn.Parameter(data = tlx.ones(shape = (1, heads, 2 * out_channels)), name = "att")
-            self.att = self._get_weights('att', init=initor, shape=(1, heads, 2 * out_channels))
-            print(tlx.get_tensor_shape(self.att))
+            self.att = self._get_weights('att', init=initor, shape=(1, heads, 2 * out_channels), order = True)
         else:
             self.heads = 1
             self.concat = True

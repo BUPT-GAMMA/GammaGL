@@ -35,7 +35,8 @@ __all__ = [
     'SimpleHGNConv',
     'FAGCNConv',
     'GPRConv',
-    'MixHopConv'
+    'MixHopConv',
+    'HyperGraphConv'
 ]
 
 classes = __all__
