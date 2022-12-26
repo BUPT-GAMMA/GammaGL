@@ -1,37 +1,63 @@
 import numpy as np
 import tensorlayerx as tlx
 from tensorlayerx.model import TrainOneStep,WithLoss
-from gammagl.loader import GraphSAINTRandomWalkSampler
+from gammagl.loader import DataLoader,GraphSAINT_Sampler
 from gammagl.models import GraphSAINTModel
 from gammagl.datasets import Flickr
+from tqdm import tqdm
+from gammagl.utils import degree,add_self_loops, mask_to_index
 import argparse
-
+from scipy.sparse import csr_matrix
+from sklearn.metrics import f1_score
 class SAINTLoss(WithLoss):
-    def __init__(self,net,loss_fn):
-        super(WithLoss,self).__init__(backbone=net,loss_fn=loss_fn)
+    def __init__(self,net,loss_fn=None):
+        super(SAINTLoss,self).__init__(backbone=net,loss_fn=loss_fn)
+        self.net=net
     def forward(self,data,y):
-        train_logits = self.backbone_network(data.x,data.edge_index,data.batch)
-        loss = self._loss_fn(train_logits,data.y)
+        train_logits = self.backbone_network(data['x'],data['edge_index'])
+        loss = self._loss_fn(train_logits,data['y'])
         return loss
 
+def rename_index(edge_index):
+    edge_index = edge_index.numpy()
+    unique_values, indices = np.unique(edge_index, return_inverse=True)
+    sorted_values = np.sort(unique_values)
+    renamed_matrix = sorted_values.searchsorted(unique_values[indices]).reshape(edge_index.shape)
+    return tlx.convert_to_tensor(renamed_matrix)
 
 def main(args):
 
     # load datasets
     path = args.dataset_path
+    # dataset = Flickr("../../../data")
     dataset = Flickr(path)
-    dataset_num = len(dataset)
-    train_dataset = dataset[:int(dataset_num*0.6)]
-    val_dataset = dataset[int(dataset_num*0.6):int(dataset_num*0.8)]
-    test_dataset = dataset[int(dataset_num*0.8):]
-    
-    # add args
-    train_loader = GraphSAINTRandomWalkSampler()
-    val_loader = GraphSAINTRandomWalkSampler()
-    test_loader = GraphSAINTRandomWalkSampler()
+    # train_dataset = dataset[:int(dataset_num*0.6)]
+    # val_dataset = dataset[int(dataset_num*0.6):int(dataset_num*0.8)]
+    # test_dataset = dataset[int(dataset_num*0.8):]
 
-    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    tlx.set_device('GPU', 5)
+    graph = dataset[0]
+    train_idx = mask_to_index(graph.train_mask)
+    test_idx = mask_to_index(graph.test_mask)
+    val_idx = mask_to_index(graph.val_mask)
+    # add args
+    # train_loader = GraphSAINTRandomWalkSampler()
+    # val_loader = GraphSAINTRandomWalkSampler()
+    # test_loader = GraphSAINTRandomWalkSampler()
+    # loader = DataLoader(dataset, batch_size=args.batch_size)
+   
+    data = {
+        "x": graph.x,
+        "y":graph.y,
+        "edge_index":graph.edge_index,
+        "train_idx": train_idx,
+        "test_idx": test_idx,
+        "val_idx": val_idx,
+        "num_nodes": graph.num_nodes,
+        "num_edges": graph.num_edges
+    }
+    
+    data['edge_weight'] = 1. / degree(data['edge_index'][1],data['num_nodes'])
+    loader = GraphSAINT_Sampler(data,num_steps=5,sample_coverage=100,batch_size=2048,num_workers=0)
     model = GraphSAINTModel(in_channels=max(dataset.num_node_features,1),
                             n_hiddens=args.hidden_dim,
                             out_channels=dataset.num_classes,
@@ -48,76 +74,53 @@ def main(args):
     print("loading dataset...")
     
     # train
-    for epoch in args.n_epoch:
+    for epoch in range(args.n_epoch):
+        print("epoch ",epoch," / ",args.n_epoch)
         model.set_train()
         model.set_aggr('add' if args.use_normalization else 'mean')
-        for data in train_loader:
-            train_loss = train_one_step(data, data.y)
-
-        model.set_eval()
-        model.set_aggr('mean')
-        total_correct = 0
-        best_val_acc = 0
-        for data in val_loader:
-            val_logits = model(data.x,data.edge_index,None,data.num_nodes)
-            pred = tlx.argmax(val_logits,axis=-1)
-            total_correct += int((np.sum(tlx.convert_to_numpy(pred == data['y']).astype(int))))  
-        val_acc = total_correct/len(val_dataset)
-        
-        print("Epoch [{:0>3d}] ".format(epoch + 1) \
-              + "  train loss: {:.4f}".format(train_loss.item()) \
-              + "  val acc: {:.4f}".format(val_acc))
-        if val_acc > best_val_acc:
-            best_val_acc = val_acc
-            model.save_weights(args.best_model_path + model.name + ".npz", format='npz_dict')
-        #print(f'Epoch: {epoch:02d}, Loss: {loss:.4f}, Train: {accs[0]:.4f}, 'f'Val: {accs[1]:.4f}, Test: {accs[2]:.4f}')
+        for batch in range(args.batch_size):
+            for indptr,indices,value,subg_nodes,subg_edge_index in loader:
+                traindata={
+                "x":tlx.gather(tlx.convert_to_tensor(graph.x),tlx.convert_to_tensor(subg_nodes)),
+                "y":tlx.gather(tlx.convert_to_tensor(graph.y),tlx.convert_to_tensor(subg_nodes)),
+                #"edge_index":graph.edge_index 
+                "edge_index":rename_index(tlx.gather(tlx.convert_to_tensor(graph.edge_index),tlx.convert_to_tensor(subg_edge_index),axis=1))
+                }
+                # rename edge_index
+                # train_loss = train_one_step(data, data['y'])
+                train_logits = model(traindata["x"],traindata["edge_index"])
+                train_loss = train_one_step(traindata, tlx.convert_to_tensor([0]))
+        print("train_loss : ",train_loss)
+    model.save_weights(args.best_model_path + model.name + ".npz", format='npz_dict')
+      
 
     # test
     model.load_weights(args.best_model_path + model.name + ".npz", format='npz_dict')
     model.set_eval()
     total_correct = 0
-    for data in test_loader:
-        test_logits = model(data.x, data.edge_index, data.batch)
-        # test_logits = net(data.x, data.edge_index, None, data.batch.shape[0], data.batch)
-        pred = tlx.argmax(test_logits, axis=-1)
-        total_correct += int((np.sum(tlx.convert_to_numpy(pred == data['y']).astype(int))))
-    test_acc = total_correct / len(test_dataset)
-
-    print("Test acc:  {:.4f}".format(test_acc))
-
-
-def train(dataloader):
-    model.set_train()
-    model.set_aggr('add' if args.use_normalization else 'mean')
-    for data in dataloader:
-        train_loss = train_one_step(data,data.y)
-    #     data = data.to(device)
-    #     optimizer.zero_grad()
-    #     if args.use_normalization:
-    #         edge_weight=data.edge_norm * data.edge_weight
-    #         output = model(data.x,data.edge_index,edge_weight)
-    #         loss = 
-
-def val(test_loader):
-    model.set_eval()
-    model.set_aggr('mean')
-    total_correct = 0
-    for data in test_loader:
-        test_logits = model(data.x,data.edge_index,None,data.num_nodes)
-        pred = tlx.argmax(test_logits,axis=-1)
-        total_correct += int((np.sum(tlx.convert_to_numpy(pred == data['y']).astype(int))))  
-    test_acc = total_correct/len(test_dataset)
-    return test_acc
-
+    total_num = 0
+    for indptr,indices,value,subg_nodes,subg_edge_index in loader:
+        testdata={
+            "x":tlx.gather(tlx.convert_to_tensor(graph.x),tlx.convert_to_tensor(subg_nodes)),
+            "y":tlx.gather(tlx.convert_to_tensor(graph.y),tlx.convert_to_tensor(subg_nodes)),
+            #"edge_index":graph.edge_index 
+            "edge_index":rename_index(tlx.gather(tlx.convert_to_tensor(graph.edge_index),tlx.convert_to_tensor(subg_edge_index),axis=1))
+        }
+        test_logits = model(testdata["x"],testdata["edge_index"])
+        y_pred = tlx.argmax(test_logits, axis=-1)
+        y_true = testdata['y']
+        F1_score = f1_score(y_true,y_pred,average='micro')
+        
+    print("F1_score:  {:.4f}".format(F1_score))
 
 
 
 if __name__ == '__main__':
     # parameters setting
+    tlx.set_device('GPU', 5)
     parser = argparse.ArgumentParser()
-
     parser.add_argument("--lr", type=float, default=0.001, help="learning rate")
-    parser.add_argument("--n_epoch", type=int, default=100, help="number of epoch")
+    parser.add_argument("--n_epoch", type=int, default=20, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=32, help="dimention of hidden layers")
     parser.add_argument("--drop_rate", type=float, default=0.1, help="drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
