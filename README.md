@@ -299,7 +299,7 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [JKNet [ICML 2018]](./examples/jknet)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [DiffPool [NeurIPS 2018]](./examples/diffpool)   |                    |                    |                    |                    |
 | [SGC [ICML 2019]](./examples/sgc)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
-| [GIN [ICLR 2019]](./examples/gin)                |                    |                    |                    |                    |
+| [GIN [ICLR 2019]](./examples/gin)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [APPNP [ICLR 2019]](./examples/appnp)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [AGNN [arxiv]](./examples/agnn)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [SIGN [ICML 2020 Workshop]](./examples/sign)     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
@@ -315,6 +315,7 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [GEN [WWW 2021]](./examples/gen)                 | :heavy_check_mark: | :heavy_check_mark: |                    |                    |
 | [GAE [NeurIPS 2016]](./examples/vgae)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [VGAE [NeurIPS 2016]](./examples/vgae)           | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [HCHA [PR 2021]](./examples/hcha)                |                    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 
 
 | Contrastive Learning                           | TensorFlow         | PyTorch            | Paddle             | MindSpore |

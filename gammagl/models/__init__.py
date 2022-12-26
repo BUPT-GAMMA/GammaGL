@@ -20,11 +20,12 @@ from .hgt import HGTModel
 from .film import FILMModel
 from .pna import PNAModel
 from .mixhop import MIXHOPModel
+from .hcha import HCHA
 from .hardgat import HardGATModel
 from .graphgan_generator import Generator
 from .graphgan_discriminator import Discriminator
 from .graphgan import GraphGAN
-from .vgae import VGAEModel,GAEModel
+from .vgae import VGAEModel, GAEModel
 from .gen import GEstimationN
 
 
@@ -48,16 +49,14 @@ __all__ = [
     'SimpleHGNModel',
     'FAGCNModel',
     'GPRGNNModel',
+    'MIXHOPModel',
+    'HCHA',
     'HGTModel',
     'PNAModel',
-    'MIXHOPModel',
     'HardGATModel',
     # 'GraphGAN',
     # 'Generator',
     # 'Discriminator',
-    'PNAModel',
-    'HardGATModel',
-    'GPRGNNModel',
     'FILMModel',
     'VGAEModel',
     'GAEModel',
