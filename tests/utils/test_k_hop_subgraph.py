@@ -2,7 +2,6 @@ import tensorlayerx as tlx
 from gammagl.utils import k_hop_subgraph
 
 def test_k_hop_subgraph():
-    tlx.set_device()
     edge_index = tlx.convert_to_tensor([[0, 1, 2, 3, 4, 5], [2, 2, 4, 4, 6, 6]])
     subset, edge_index, mapping, edge_mask = k_hop_subgraph(6, 2, edge_index, relabel_nodes=True)
     assert tlx.convert_to_numpy(subset).tolist() == [2, 3, 4, 5, 6]
