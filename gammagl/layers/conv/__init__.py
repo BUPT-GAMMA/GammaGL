@@ -45,7 +45,8 @@ __all__ = [
     'MixHopConv',
     'HardGATConv',
     'PNAConv',
-    'FILMConv'
+    'FILMConv',
+    'CompConv'
 
 ]
 
