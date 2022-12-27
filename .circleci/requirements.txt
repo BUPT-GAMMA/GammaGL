@@ -4,6 +4,10 @@ cython
 tensorflow
 torch
 torchvision
-paddlepaddle
+paddlepaddle==2.3.2
 pytest
 tqdm
+rich
+django
+pyparsing
+paddlenlp

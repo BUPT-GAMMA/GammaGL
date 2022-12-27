@@ -122,6 +122,11 @@ class Dataset(Dataset):
         if tlx.BACKEND == 'paddle':
             # with open(file_name, 'rb') as f:
             #     obj = pickle.load(f)
+            #     obj[0].tensor()
+            #     if obj[1]:
+            #         obj = [obj[0], {item: obj[1][item][1] for item in obj[1]}]
+            # with open(file_name, 'rb') as f:
+            #     obj = pickle.load(f)
             import paddle
             obj = paddle.load(file_name, return_numpy=True)
             obj[0].tensor()
