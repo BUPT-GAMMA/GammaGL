@@ -2,6 +2,9 @@ import tensorlayerx as tlx
 from collections import defaultdict
 import numpy as np
 from ..utils.num_nodes import maybe_num_nodes
+from gammagl.loader import RandomWalk
+
+random_walk = RandomWalk("deepwalk")
 
 EPS = 1e-15
 
@@ -36,6 +39,7 @@ class DeepWalkModel(tlx.nn.Module):
         name: str
             model name
     """
+
     def __init__(
             self,
             edge_index,
@@ -61,12 +65,12 @@ class DeepWalkModel(tlx.nn.Module):
         self.window_size = window_size
         self.num_negatives = num_negatives
 
-        self.random_walks = self.generate_random_walks()
+        self.random_walks = random_walk(self.edge_index, self.num_walks, self.walk_length, num_nodes=self.N)
 
         self.embedding = tlx.nn.Embedding(self.N, embedding_dim)
 
     def forward(self, edge_index):
-        return self.loss(self.pos_sample(), self.neg_samples())
+        return self.loss(self.pos_sample(), self.neg_sample())
 
     def pos_sample(self):
         rw = self.random_walks
@@ -79,7 +83,7 @@ class DeepWalkModel(tlx.nn.Module):
         walks = tlx.convert_to_tensor(walks)
         return tlx.concat([walks[i] for i in range(len(walks))], axis=0)
 
-    def neg_samples(self):
+    def neg_sample(self):
         rw = np.random.randint(low=0, high=self.N,
                                size=(self.N * self.num_walks * self.num_negatives, self.walk_length))
 
@@ -122,42 +126,3 @@ class DeepWalkModel(tlx.nn.Module):
     def campute(self):
         emb = self.embedding.all_weights
         return emb
-
-    def get_neighbors(self):
-        edge_index = self.edge_index
-        src, dst = edge_index[0], edge_index[1]
-        src = np.array(src)
-        dst = np.array(dst)
-        node_neighbor = {}
-        index = 0
-        for src_node in src:
-            if src_node not in node_neighbor.keys():
-                node_neighbor[src_node] = list()
-
-            node_neighbor[src_node].append(dst[index])
-            index += 1
-
-        return node_neighbor
-
-    def generate_random_walks(self):
-        neighbor = self.get_neighbors()
-
-        src = self.edge_index[0]
-        src = tlx.convert_to_numpy(src)
-        node = set(src)
-
-        walks = list()
-        for i in range(self.num_walks):
-            for start_node in node:
-                walk = [start_node]
-                for k in range(self.walk_length - 1):
-                    walk_options = neighbor[walk[-1]]
-                    if len(walk_options) == 0:
-                        break
-                    next_step = np.random.choice(walk_options)
-                    walk.append(next_step)
-                walks.append(walk)
-
-        np.random.shuffle(walks)
-
-        return walks
