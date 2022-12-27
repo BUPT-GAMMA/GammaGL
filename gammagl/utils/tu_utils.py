@@ -22,17 +22,16 @@ def linearsvc(embeds, labels):
         accuracies.append(accuracy_score(y_test, classifier.predict(x_test)))
     return np.mean(accuracies), np.std(accuracies)
 
-
 def get_positive_expectation(p_samples, average=True):
     """Computes the positive part of a JS Divergence.
     Args:
         p_samples: Positive samples.
         average: Average the result over samples.
     Returns:
-        th.Tensor
+        Ep: mean of positive expectation
     """
     log_2 = math.log(2.)
-    Ep = log_2 - tlx.softplus(- p_samples)
+    Ep = log_2 - tlx.softplus(-p_samples)
 
     if average:
         return Ep.mean()
@@ -46,18 +45,28 @@ def get_negative_expectation(q_samples, average=True):
         q_samples: Negative samples.
         average: Average the result over samples.
     Returns:
-        th.Tensor
+        Ep: Mean of negative expectation
     """
     log_2 = math.log(2.)
     Eq = tlx.softplus(-q_samples) + q_samples - log_2
-
     if average:
         return Eq.mean()
     else:
         return Eq
 
 
+
 def local_global_loss_(l_enc, g_enc, batch):
+    """
+    Computes the loss of the model.
+    Args:
+        l_enc: Local feature map
+        g_enc: global features
+        batch: the batch size of dataset
+    Returns:
+        loss:the loss of model
+    """
+
     num_graphs = g_enc.shape[0]
     num_nodes = l_enc.shape[0]
 
@@ -76,12 +85,13 @@ def local_global_loss_(l_enc, g_enc, batch):
     else:
         pos_mask = tlx.convert_to_tensor(pos_mask)
         neg_mask = tlx.convert_to_tensor(neg_mask)
-    E_pos = tlx.reduce_sum(get_positive_expectation(res * pos_mask, average=False))
+
+    E_pos = tlx.reduce_sum(get_positive_expectation(res * tlx.convert_to_tensor(pos_mask), average=False))
     E_pos = E_pos / num_nodes
-    E_neg = tlx.reduce_sum(get_negative_expectation(res * neg_mask, average=False))
+    E_neg = tlx.reduce_sum(get_negative_expectation(res * tlx.convert_to_tensor(neg_mask), average=False))
     E_neg = E_neg / (num_nodes * (num_graphs - 1))
+    loss = E_neg - E_pos
 
-    return E_neg - E_pos
-
+    return loss
 
 

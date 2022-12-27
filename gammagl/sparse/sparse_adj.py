@@ -4,7 +4,6 @@ import numpy as np
 import tensorlayerx as tlx
 from gammagl.utils.check import check_is_numpy
 from gammagl.utils.ops import get_index_from_counts
-from gammagl.layers.kernel.segment import segment_softmax
 
 """
 Sparse Adj for Computation
