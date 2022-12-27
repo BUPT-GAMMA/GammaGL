@@ -1,6 +1,8 @@
 from typing import Optional, Tuple, Union
 import tensorlayerx as tlx
 import numpy as np
+
+from gammagl.utils.check import check_is_numpy
 from .num_nodes import maybe_num_nodes
 
 
@@ -23,18 +25,21 @@ def remove_self_loops(edge_index, edge_attr=None):
         edge_index (LongTensor): The edge indices.
         edge_attr (Tensor, optional): Edge weights or multi-dimensional
             edge features. (default: :obj:`None`)
-    :rtype: (:class:`LongTensor`, :class:`Tensor`)
+    :rtype: edge_index(Tensor if edge_index inputted is Tensor
+            || np.ndarray if edge_index inputted is np.ndarray)
     """
     mask = edge_index[0] != edge_index[1]
     if tlx.is_tensor(edge_index):
         edge_index = tlx.convert_to_numpy(edge_index)
-    edge_index = tlx.convert_to_tensor(edge_index[:, mask], dtype=tlx.int64)
+        edge_index = tlx.convert_to_tensor(edge_index[:, mask], dtype=tlx.int64)
+    elif check_is_numpy(edge_index):
+        edge_index = edge_index[:, mask]
     if edge_attr is None:
         return edge_index, None
     else:
         return edge_index, edge_attr[mask]
 
-      
+
 def add_self_loops(
         edge_index, edge_attr=None, n_loops=1,
         fill_value: Union[float, str] = None,

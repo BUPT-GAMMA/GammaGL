@@ -17,6 +17,7 @@ from .gpr_conv import GPRConv
 from .gin_conv import GINConv
 from .hgt_conv import HGTConv
 from .mixhop_conv import MixHopConv
+from .hcha_conv import HypergraphConv
 from .hardgat_conv import HardGATConv
 from .pna_conv import PNAConv
 from .film_conv import FILMConv
@@ -38,11 +39,13 @@ __all__ = [
     'SimpleHGNConv',
     'FAGCNConv',
     'GPRConv',
+    'HyperGraphConv',
     'HGTConv',
     'MixHopConv',
     'HardGATConv',
     'PNAConv',
-    'HardGATConv'
+    'FILMConv'
+
 ]
 
 classes = __all__

@@ -10,3 +10,4 @@ tqdm
 rich
 django
 pyparsing
+paddlenlp
