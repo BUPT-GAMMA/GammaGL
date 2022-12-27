@@ -27,6 +27,7 @@ from .graphgan_discriminator import Discriminator
 from .graphgan import GraphGAN
 from .vgae import VGAEModel, GAEModel
 from .gen import GEstimationN
+from .node2vec import Node2vecModel
 
 
 __all__ = [
@@ -58,10 +59,10 @@ __all__ = [
     # 'Generator',
     # 'Discriminator',
     'FILMModel',
+    'GEstimationN',
+    'Node2vecModel',
     'VGAEModel',
     'GAEModel',
-    'GEstimationN'
-
 ]
 
 classes = __all__

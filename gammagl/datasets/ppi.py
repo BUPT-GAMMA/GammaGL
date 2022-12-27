@@ -67,7 +67,7 @@ class PPI(InMemoryDataset):
 
             graph_list = []
             path = osp.join(self.raw_dir, f'{split}_graph_id.npy')
-            idx = np.load(path).astype(np.long)
+            idx = np.load(path).astype(np.int64)
             idx = idx - idx.min()
 
             for i in range(idx.max() + 1):
