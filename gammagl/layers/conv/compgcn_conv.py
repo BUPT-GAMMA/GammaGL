@@ -18,6 +18,25 @@ def masked_edge_index(edge_index, edge_mask):
 
 
 class CompConv(MessagePassing):
+    '''
+    Paper: Composition-based Multi-Relational Graph Convolutional Networks
+    
+    Code: https://github.com/MichSchli/RelationPrediction
+    
+    Parameters
+    ----------
+    in_channels: int
+        the input dimension of the features.
+    out_channels: int
+        the output dimension of the features.
+    num_relations: int
+        the number of relations in the graph.
+    op: str
+        the operation used in message creation.
+    add_bias: boolean
+        whether to add bias.
+    
+    '''
     def __init__(self, in_channels, out_channels, num_relations, op='sub', add_bias=True):
         super().__init__()
         self.in_channels = in_channels
