@@ -12,7 +12,6 @@ def not_negative(edge_index, neg_edge_index, size, bipartite):
     return not any(x in b for x in a)
 
 def test_negative_sampling():
-    tlx.set_device()
     edge_index = tlx.convert_to_tensor([[0, 0, 1, 2], [0, 1, 2, 3]])
     neg_edge_index = negative_sampling(edge_index)
     assert neg_edge_index.shape[1] == edge_index.shape[1]

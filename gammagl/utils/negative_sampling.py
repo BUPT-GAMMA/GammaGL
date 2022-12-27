@@ -89,7 +89,7 @@ def negative_sampling(edge_index, num_nodes = None, num_neg_samples = None, meth
             if tlx.convert_to_numpy(neg_idx).size >= num_neg_samples:
                 neg_idx = neg_idx[:num_neg_samples]
                 break
-        neg_idx = tlx.convert_to_tensor(tlx.convert_to_numpy(neg_idx))
+        neg_idx = tlx.convert_to_tensor(tlx.convert_to_numpy(neg_idx), dtype = tlx.int64)
     return vector_to_edge_index(neg_idx, num_nodes, bipartite, force_undirected)
 
 

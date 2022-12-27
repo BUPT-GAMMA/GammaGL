@@ -135,7 +135,7 @@ def global_sort_pool(x, batch, k):
     perm = perm + tlx.reshape(arange, (-1, 1))
 
     x = tlx.reshape(x, (B * N, -1))
-    x = tlx.gather(x, perm)
+    x = tlx.gather(x, tlx.reshape(perm, (-1, 1)))
     x = tlx.reshape(x, (B, N, -1))
 
     if N >= k:

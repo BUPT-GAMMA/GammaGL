@@ -11,14 +11,14 @@ def test_homophily():
     method = 'edge'
     assert pytest.approx(homophily(edge_index, y, method=method)) == 0.75
     # assert pytest.approx(homophily(adj, y, method=method)) == 0.75
-    assert tlx.convert_to_numpy(homophily(edge_index, y, batch, method)).tolist() == [1., 0.]
+    assert pytest.approx(homophily(edge_index, y, batch, method)[0]) == 1.0
 
     method = 'node'
     assert pytest.approx(homophily(edge_index, y, method=method)) == 0.6
     # assert pytest.approx(homophily(adj, y, method=method)) == 0.6
-    assert tlx.convert_to_numpy(homophily(edge_index, y, batch, method)).tolist() == [1., 0.]
+    assert pytest.approx(homophily(edge_index, y, batch, method)[0]) == 1.0
 
     method = 'edge_insensitive'
     assert pytest.approx(homophily(edge_index, y, method=method)) == 0.1999999
     # assert pytest.approx(homophily(adj, y, method=method)) == 0.1999999
-    assert homophily(edge_index, y, batch, method).tolist() == [0., 0.]
+    assert pytest.approx(homophily(edge_index, y, batch, method)[0]) == 0.0

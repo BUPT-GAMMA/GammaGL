@@ -266,7 +266,7 @@ class RandomLinkSplit(BaseTransform):
                 if key not in store:
                     del rev_store[key]  # We delete all outdated attributes.
                 elif key == 'edge_index':
-                    rev_store.edge_index = tlx.gather(store.edge_index, [1,0], axis=0)
+                    rev_store.edge_index = tlx.gather(store.edge_index, tlx.convert_to_tensor([1,0]), axis=0)
                 else:
                     rev_store[key] = store[key]
 
