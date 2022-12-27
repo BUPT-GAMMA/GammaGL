@@ -16,6 +16,7 @@ from .chebnet import ChebNetModel
 from .simplehgn import SimpleHGNModel
 from .fagcn import FAGCNModel
 from .gprgnn import GPRGNNModel
+from .dgcnn import DGCNNModel
 from .hgt import HGTModel
 from .film import FILMModel
 from .pna import PNAModel
@@ -50,6 +51,7 @@ __all__ = [
     'SimpleHGNModel',
     'FAGCNModel',
     'GPRGNNModel',
+    'DGCNNModel'
     'MIXHOPModel',
     'HCHA',
     'HGTModel',
@@ -63,6 +65,7 @@ __all__ = [
     'Node2vecModel',
     'VGAEModel',
     'GAEModel',
+    
 ]
 
 classes = __all__
