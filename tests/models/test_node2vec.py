@@ -1,5 +1,4 @@
 import os
-os.environ['TL_BACKEND'] = 'torch'
 import tensorlayerx as tlx
 from gammagl.models import Node2vecModel
 
@@ -16,4 +15,3 @@ def test_node2vec():
     neg_rw = model.neg_sample()
     assert model.loss(pos_rw, neg_rw) >= 0
 
-test_node2vec()
