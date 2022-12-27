@@ -82,7 +82,7 @@ class Node2vecModel(tlx.nn.Module):
         self.embedding = tlx.nn.Embedding(self.N, embedding_dim)
 
     def forward(self, edge_index):
-        return self.loss(self.pos_sample(), self.neg_samples())
+        return self.loss(self.pos_sample(), self.neg_sample())
 
     def pos_sample(self):
         rw = self.random_walks
@@ -95,7 +95,7 @@ class Node2vecModel(tlx.nn.Module):
         walks = tlx.convert_to_tensor(walks)
         return tlx.concat([walks[i] for i in range(len(walks))], axis=0)
 
-    def neg_samples(self):
+    def neg_sample(self):
         rw = np.random.randint(low=0, high=self.N,
                                size=(self.N * self.num_walks * self.num_negatives, self.walk_length))
 

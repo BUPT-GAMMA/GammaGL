@@ -11,7 +11,7 @@ class RandomWalk:
     def __call__(self, edge_index, num_walks, walk_length, edge_weight=None, p=1.0, q=1.0, num_nodes=None):
 
         if edge_weight == None:
-            edge_weight = tlx.ops.ones(shape=(edge_index[1],))
+            edge_weight = tlx.ops.ones(shape=(edge_index.shape[1],), dtype=tlx.float32)
         if num_nodes == None:
             num_nodes = maybe_num_nodes(edge_index)
 
