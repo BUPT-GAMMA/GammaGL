@@ -5,8 +5,8 @@
 # @Author  : yijian
 # @FileName: compgcn_trainer.py
 import os
-os.environ['TL_BACKEND'] = 'tensorflow'  # set your backend here, default `torch`
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
+# os.environ['TL_BACKEND'] = 'mindspore'  # set your backend here, default `torch`
+# os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 import sys
 sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
@@ -17,6 +17,7 @@ from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.datasets import Entities
 import os.path as osp
 import numpy as np
+# tlx.set_device("GPU", 1)
 
 
 class SemiSpvzLoss(WithLoss):
@@ -159,7 +160,7 @@ if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.015, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=1000, help="number of epoch")
+    parser.add_argument("--n_epoch", type=int, default=500, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=16, help="dimention of hidden layers")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument('--num_bases', type=int, default=None, help='number of bases')

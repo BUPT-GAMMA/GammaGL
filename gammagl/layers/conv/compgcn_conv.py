@@ -8,7 +8,6 @@
 import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
 from gammagl.mpops import *
-import torch
 
 def masked_edge_index(edge_index, edge_mask):
     if tlx.BACKEND == 'mindspore':
