@@ -7,7 +7,7 @@
 """
 import os
 
-os.environ['TL_BACKEND'] = 'paddle'
+# os.environ['TL_BACKEND'] = 'paddle'
 # os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 # set your backend here, default `tensorflow`, you can choose 'paddle'、'tensorflow'、'torch'
 from gammagl.datasets import TUDataset
