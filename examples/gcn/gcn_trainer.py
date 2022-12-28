@@ -10,7 +10,6 @@ import os
 # os.environ['CUDA_VISIBLE_DEVICES']='1'
 # os.environ['TL_BACKEND'] = 'paddle'
 
-
 import sys
 sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 import argparse
