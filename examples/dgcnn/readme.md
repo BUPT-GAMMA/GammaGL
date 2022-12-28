@@ -12,11 +12,11 @@
 
 refer to [ModelNet40](https://gammagl.readthedocs.io/en/latest/api/gammagl.datasets.html#gammagl.datasets.ModelNet40)
 
-# results
+# Results
 
-|  Backend   |      accuracy      |    avg accuracy    |
-|:----------:|:------------------:|:------------------:|
-| tensorflow | 0.8893841166936791 | 0.8394360465116278 |
-|   torch    | 0.880064829821718  | 0.8215581395348837 |
-|   paddle   |                    |                    |
+|  Dataset   | Paper | Paper(avg) | Our(tf) | Our(tf,avg) | Our(th) | Our(th,avg) |
+|:----------:|:-----:|:----------:|:-------:|:-----------:|:-------:|:-----------:|
+| ModelNet40 | 91.7  |    88.9    |  88.94  |    83.94    |  88.01  |    82.16    |
 
+Notes: accuracy with 'avg' refers to 'average accuracy', which calls the method of 
+[balanced_accuracy_score](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.balanced_accuracy_score.html); accuracy without 'avg' refers to 'overall accuracy', which calls the method of [accuracy_score](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.accuracy_score.html).
