@@ -16,7 +16,8 @@ from .chebnet import ChebNetModel
 from .simplehgn import SimpleHGNModel
 from .fagcn import FAGCNModel
 from .gprgnn import GPRGNNModel
-from .seal import DGCNNModel
+from .dgcnn import DGCNNModel
+from .seal import DGCNN
 from .hgt import HGTModel
 from .film import FILMModel
 from .pna import PNAModel
@@ -52,7 +53,7 @@ __all__ = [
     'SimpleHGNModel',
     'FAGCNModel',
     'GPRGNNModel',
-    'DGCNNModel'
+    'DGCNN',
     'MIXHOPModel',
     'HCHA',
     'HGTModel',
@@ -61,6 +62,7 @@ __all__ = [
     # 'GraphGAN',
     # 'Generator',
     # 'Discriminator',
+    'DGCNNModel',
     'FILMModel',
     'GEstimationN',
     'DeepWalkModel',

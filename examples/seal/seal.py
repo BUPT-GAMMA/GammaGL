@@ -13,7 +13,7 @@ import numpy as np
 
 from gammagl.datasets import Planetoid
 from gammagl.loader import DataLoader
-from gammagl.models import DGCNNModel, GINModel
+from gammagl.models import DGCNN, GINModel
 
 from data import SEALDataset
 
@@ -54,7 +54,7 @@ def main(args):
 
     # model setting.
     if args.model == 'dgcnn':
-        model = DGCNNModel(
+        model = DGCNN(
             feature_dim=train_dataset.num_features,
             hidden_dim=args.hidden_dim,
             num_layers=args.num_layers,
