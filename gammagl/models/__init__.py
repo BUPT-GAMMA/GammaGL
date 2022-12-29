@@ -28,6 +28,7 @@ from .graphgan_discriminator import Discriminator
 from .graphgan import GraphGAN
 from .vgae import VGAEModel, GAEModel
 from .gen import GEstimationN
+from .deepwalk import DeepWalkModel
 from .node2vec import Node2vecModel
 
 
@@ -62,6 +63,7 @@ __all__ = [
     # 'Discriminator',
     'FILMModel',
     'GEstimationN',
+    'DeepWalkModel',
     'Node2vecModel',
     'VGAEModel',
     'GAEModel',
