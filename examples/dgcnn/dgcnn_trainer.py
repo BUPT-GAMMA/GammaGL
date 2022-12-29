@@ -9,7 +9,7 @@ import copy
 import os
 
 # os.environ['CUDA_VISIBLE_DEVICES']='0'
-os.environ['TL_BACKEND'] = 'paddle'
+# os.environ['TL_BACKEND'] = 'paddle'
 
 import sys
 
@@ -23,7 +23,7 @@ from gammagl.models import DGCNNModel
 from gammagl.loader import DataLoader
 from tensorlayerx.model import TrainOneStep, WithLoss
 import sklearn.metrics as metrics
-tlx.set_device("GPU", 2)
+# tlx.set_device("GPU", 2)
 
 # if tlx.BACKEND == 'torch':  # when the backend is torch and you want to use GPU
 #     try:
