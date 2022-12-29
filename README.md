@@ -290,29 +290,30 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 
 ## Supported Models
 
-|                                                  | TensorFlow         | PyTorch            | Paddle             | MindSpore |
-|--------------------------------------------------| ------------------ | ------------------ | ------------------ | --------- |
-| [GCN [ICLR 2017]](./examples/gcn)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
-| [GAT [ICLR 2018]](./examples/gat)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
-| [GraphSAGE [NeurIPS 2017]](./examples/graphsage) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
-| [ChebNet [NeurIPS 2016]](./examples/chebnet)     | :heavy_check_mark: | :heavy_check_mark: |                    |           |
-| [GCNII [ICLR 2017]](./examples/gcnii)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
-| [JKNet [ICML 2018]](./examples/jknet)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
-| [DiffPool [NeurIPS 2018]](./examples/diffpool)   |                    |                    |                    |           |
-| [SGC [ICML 2019]](./examples/sgc)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
-| [GIN [ICLR 2019]](./examples/gin)                |                    |                    |                    |           |
-| [APPNP [ICLR 2019]](./examples/appnp)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
-| [AGNN [arxiv]](./examples/agnn)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
-| [SIGN [ICML 2020 Workshop]](./examples/sign)     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
-| [DropEdge [ICLR 2020]](./examples/dropedge)      | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
-| [GATv2 [ICLR 2021]](./examples/gatv2)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
-| [GPRGNN [ICLR 2021]](./examples/gprgnn)          | :heavy_check_mark: |                    |                    |           |
-| [FAGCN [AAAI 2021]](./examples/fagcn)            | :heavy_check_mark: | :heavy_check_mark: |                    |           |
-| [GNN-Film [PMLR 2020]](./examples/film)          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
-| [GraphGAN [AAAI 2018]](./examples/graphgan)      | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
-| [HardGAT [KDD 2019]](./examples/hardgat)         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
-| [MixHop [ICML 2019]](./examples/mixhop)          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
-| [PNA [NeurIPS 2020]](./examples/pna)             | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+|                                                               | TensorFlow         | PyTorch            | Paddle             | MindSpore |
+|---------------------------------------------------------------| ------------------ | ------------------ | ------------------ | --------- |
+| [GCN [ICLR 2017]](./examples/gcn)                             | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [GAT [ICLR 2018]](./examples/gat)                             | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [GraphSAGE [NeurIPS 2017]](./examples/graphsage)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [ChebNet [NeurIPS 2016]](./examples/chebnet)                  | :heavy_check_mark: | :heavy_check_mark: |                    |           |
+| [GCNII [ICLR 2017]](./examples/gcnii)                         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [JKNet [ICML 2018]](./examples/jknet)                         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [DiffPool [NeurIPS 2018]](./examples/diffpool)                |                    |                    |                    |           |
+| [SGC [ICML 2019]](./examples/sgc)                             | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [GIN [ICLR 2019]](./examples/gin)                             |                    |                    |                    |           |
+| [APPNP [ICLR 2019]](./examples/appnp)                         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [AGNN [arxiv]](./examples/agnn)                               | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [SIGN [ICML 2020 Workshop]](./examples/sign)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [DropEdge [ICLR 2020]](./examples/dropedge)                   | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [GATv2 [ICLR 2021]](./examples/gatv2)                         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [GPRGNN [ICLR 2021]](./examples/gprgnn)                       | :heavy_check_mark: |                    |                    |           |
+| [FAGCN [AAAI 2021]](./examples/fagcn)                         | :heavy_check_mark: | :heavy_check_mark: |                    |           |
+| [GNN-Film [PMLR 2020]](./examples/film)                       | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [GraphGAN [AAAI 2018]](./examples/graphgan)                   | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [HardGAT [KDD 2019]](./examples/hardgat)                      | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [MixHop [ICML 2019]](./examples/mixhop)                       | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [PNA [NeurIPS 2020]](./examples/pna)                          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [DGCNN [ACM Transactions on Graphics 2019]](./examples/dgcnn) | :heavy_check_mark: | :heavy_check_mark: |                    |           |
 
 | Contrastive Learning                           | TensorFlow         | PyTorch            | Paddle             | MindSpore |
 | ---------------------------------------------- | ------------------ | ------------------ | ------------------ | --------- |
