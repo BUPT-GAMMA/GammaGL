@@ -14,5 +14,3 @@ def test_edge_conv_conv():
     out1 = conv(x1, edge_index)
     assert tlx.get_tensor_shape(out1) == [4, 32]
     assert tlx.convert_to_numpy(conv((x1, x1), edge_index)).tolist() == tlx.convert_to_numpy(out1).tolist()
-
-test_edge_conv_conv()
