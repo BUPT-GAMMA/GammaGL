@@ -16,7 +16,7 @@ from .chebnet import ChebNetModel
 from .simplehgn import SimpleHGNModel
 from .fagcn import FAGCNModel
 from .gprgnn import GPRGNNModel
-from .dgcnn import DGCNNModel
+from .seal import DGCNNModel
 from .hgt import HGTModel
 from .film import FILMModel
 from .pna import PNAModel
