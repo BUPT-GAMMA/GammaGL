@@ -1,6 +1,3 @@
-import os
-
-os.environ['TL_BACKEND'] = 'tensorflow'
 import tensorlayerx as tlx
 from gammagl.models import DeepWalkModel
 
@@ -16,6 +13,3 @@ def test_deepwalk():
     pos_rw = model.pos_sample()
     neg_rw = model.neg_sample()
     assert model.loss(pos_rw, neg_rw) >= 0
-
-
-test_deepwalk()
