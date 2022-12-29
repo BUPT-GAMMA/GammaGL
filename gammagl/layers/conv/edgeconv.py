@@ -15,22 +15,30 @@ class EdgeConv(MessagePassing):
 
     Parameters
     ----------
-    in_channels(int): int
-        Size of each input sample.
-    out_channels(int): int
-        Size of each output sample.
+    nn (tlx.nn.Module): A neural network :math:`h_{\mathbf{\Theta}}` that
+        maps pair-wise concatenated node features :obj:`x` of shape
+        :obj:`[-1, 2 * in_channels]` to shape :obj:`[-1, out_channels]`,
+        *e.g.*, defined by :class:`tlx.nn.Sequential`.
+    aggr (string, optional): The aggregation scheme to use
+        (:obj:`"add"`, :obj:`"mean"`, :obj:`"max"`).
+        (default: :obj:`"sum"`)
+    **kwargs (optional): Additional arguments of
+        :class:`gammagl.layers.conv.MessagePassing`.
     """
-    def __init__(self, in_channels, out_channels, kernel_size = 1, negative_slope = 0.2):
-        super(EdgeConv, self).__init__()
-        self.nn = tlx.nn.Sequential(
-            tlx.layers.Conv2d(2 * in_channels, out_channels, kernel_size=kernel_size, b_init=None),
-            tlx.layers.BatchNorm2d(out_channels),
-            tlx.LeakyReLU(negative_slope=negative_slope)
-        )
-
-    def message(self, x_i, x_j, edge_weight=None):
-        tmp = tlx.concat([x_i, x_j - x_i], axis=-1)
-        return self.nn(tmp)
+    def __init__(self, nn, aggr = 'max', **kwargs):
+        super().__init__(**kwargs)
+        self.aggr = aggr
+        self.nn = nn
 
     def forward(self, x, edge_index):
-        return self.propagate(x, edge_index, aggr='max')
+        """"""
+        if not isinstance(x, tuple):
+            x = (x, x)
+        # propagate_type: (x: PairTensor)
+        return self.propagate(x=x, edge_index = edge_index, num_nodes = int(tlx.get_tensor_shape(x[0])[0]))
+
+    def message(self, x):
+        x_i = x[0]
+        x_j = x[1]
+        return self.nn(tlx.concat([x_i, x_j - x_i], axis=-1))
+
