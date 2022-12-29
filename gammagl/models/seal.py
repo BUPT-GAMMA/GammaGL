@@ -4,7 +4,7 @@ from gammagl.layers.pool import global_sort_pool
 import math
 
 
-class DGCNNModel(tlx.nn.Module):
+class DGCNN(tlx.nn.Module):
     r"""
     DGCNN proposed in `An End-to-End Deep Learning Architecture for Graph Classiﬁcation`_.
 
