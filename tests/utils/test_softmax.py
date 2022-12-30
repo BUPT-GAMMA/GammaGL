@@ -5,13 +5,6 @@
 # @Author  : clear
 # @FileName: test_softmax.py
 
-import os
-# os.environ['TL_BACKEND'] = 'torch'
-# os.environ['TL_BACKEND'] = 'tensorflow'
-# os.environ['TL_BACKEND'] = 'paddle'
-# os.environ['TL_BACKEND'] = 'mindspore'
-# os.environ["CUDA_VISIBLE_DEVICES"] = "6"
-
 import tensorlayerx as tlx
 import numpy as np
 from gammagl.utils.softmax import segment_softmax
@@ -26,4 +19,3 @@ def test_softmax():
 
     assert abs(sum(tlx.convert_to_numpy(score[2]) - np.array([0.7311, 0.9526]))) < 1e-4
 
-#test_softmax()

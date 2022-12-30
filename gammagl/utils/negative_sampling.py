@@ -53,14 +53,19 @@ def negative_sampling(edge_index, num_nodes = None, num_neg_samples = None, meth
 
     neg_idx = None
     if method == 'dense':
-        mask = tlx.ones((population,), dtype=tlx.bool)
         if tlx.BACKEND == 'paddle':
-            mask[idx] = False
+            mask = tlx.ones((population,), dtype=tlx.int64)
+            mask[idx] = 0
         else:
+            mask = tlx.ones((population,), dtype=tlx.bool)
             mask = tlx.scatter_update(mask, idx, tlx.zeros((idx.shape[0],), dtype=tlx.bool))
         for _ in range(3):
             rnd = sample(population, sample_size)
-            rnd = tlx.mask_select(rnd, tlx.gather(mask, rnd))
+            if tlx.BACKEND == 'paddle':
+                indices = tlx.convert_to_tensor(tlx.convert_to_numpy(tlx.gather(mask, rnd)), dtype = tlx.bool)
+            else:
+                indices = tlx.gather(mask, rnd)
+            rnd = tlx.mask_select(rnd, indices)
             if neg_idx is None:
                 neg_idx = rnd
             else:
@@ -69,7 +74,7 @@ def negative_sampling(edge_index, num_nodes = None, num_neg_samples = None, meth
                 neg_idx = neg_idx[:num_neg_samples]
                 break
             if tlx.BACKEND == 'paddle':
-                mask[neg_idx] = False
+                mask[neg_idx] = 0
             else:
                 mask = tlx.scatter_update(mask, neg_idx, tlx.zeros((neg_idx.shape[0],), dtype=tlx.bool))
 
