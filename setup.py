@@ -37,12 +37,14 @@ extensions = [
         extra_link_args=link_extra_args, ),
 ]
 
-install_requires = ['numpy', 'scipy', 'pytest', 'cython', 'tensorflow', 'tensorlayerx']
+install_requires = ['numpy', 'scipy', 'pytest', 'cython', 'tensorlayerx']
 
 classifiers = [
     'Development Status :: 3 - Alpha',
     'License :: OSI Approved :: Apache Software License',
 ]
+
+package_data_list = ['gammagl/datasets/OgbNodeData.csv', 'gammagl/datasets/OgbLinkData.csv', 'gammagl/datasets/OgbGraphData.csv']
 
 setup(
     name="gammagl",
@@ -63,7 +65,7 @@ setup(
     python_requires='>=3.7',
 
     packages=find_packages(),
-
+    package_data={'gammagl': package_data_list},
     install_requires=install_requires,
     include_package_data=True,
 
