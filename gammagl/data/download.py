@@ -47,4 +47,5 @@ def download_url(url: str, folder: str, log: bool = True,
                 break
             f.write(chunk)
 
-    return 
+    return path
+
