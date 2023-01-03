@@ -1,7 +1,7 @@
 # 采样速度测试
 
 ##如何运行测试文件
-直接运行文件即可，在ggl的gpu测试中，需要额外安装第三方库，可以在，[README.md](..\..examples\gpu_sage\README.md)，遇到的问题，可以在[bug_file](..\..\examples\gpu_sage\demo\bug_and_some_question.md)中查找
+直接运行文件即可，在ggl的gpu测试中，需要额外安装第三方库，可以在[README.md](..\..examples\gpu_sage\README.md)找到，在运行时遇到的问题，可以在[bug_file](..\..\examples\gpu_sage\demo\bug_and_some_question.md)中查找
 
 
 
