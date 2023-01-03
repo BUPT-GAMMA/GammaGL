@@ -108,9 +108,9 @@ class HANConv(MessagePassing):
         for edge_type, edge_index in edge_index_dict.items():
             src_type, _, dst_type = edge_type
             edge_type = '__'.join(edge_type)
-            out = self.gat_dict[edge_type](x_dict[dst_type],
+            out = self.gat_dict[edge_type](x_dict[src_type],
                                            edge_index,
-                                           num_nodes_dict[dst_type])
+                                           num_nodes = num_nodes_dict[dst_type])
             out = tlx.relu(out)
             out_dict[dst_type].append(out)
 

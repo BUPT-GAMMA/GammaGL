@@ -24,6 +24,7 @@ from .pna import PNAModel
 from .mixhop import MIXHOPModel
 from .hcha import HCHA
 from .hardgat import HardGATModel
+from .mlp import MLP
 from .graphgan_generator import Generator
 from .graphgan_discriminator import Discriminator
 from .graphgan import GraphGAN

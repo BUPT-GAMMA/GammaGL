@@ -14,4 +14,4 @@ def test_film_conv():
     conv = FILMConv(4, 32)
     out1 = conv(x1, edge_index)
 
-    assert tlx.convert_to_numpy(out1).shape == (4, 32)
+    assert tlx.get_tensor_shape(out1) == [4, 32]
