@@ -1,6 +1,12 @@
 # 采样速度测试
-包括对train_idx的[25, 10] 的采样，以及一层的全采样操作的时间对比
 
+##如何运行测试文件
+直接运行文件即可，在ggl的gpu测试中，需要额外安装第三方库，可以在，[README.md](..\..examples\gpu_sage\README.md)，遇到的问题，可以在[bug_file](..\..\examples\gpu_sage\demo\bug_and_some_question.md)中查找
+
+
+
+## 测试结果
+包括对train_idx的[25, 10] 的采样，以及一层的全采样操作的时间对比
 
 |框架|采样数量|batch-size|时间|
 | :---: |:---:|:---:|:---:|

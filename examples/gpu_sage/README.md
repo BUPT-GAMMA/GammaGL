@@ -10,9 +10,7 @@ you need install CuPy 、Numba、CURandRTC
 pip install CuPy
 conda install Numba
 pip install CURandRTC
-git clone https://github.com/zsy0828/GPU_Muliti.git
-cd gglspeedup 
-python setup.py install
+
 ```
 
 # Designed For GammaGL
