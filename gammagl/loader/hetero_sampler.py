@@ -338,8 +338,8 @@ def to_hetero_csc(hetero_graph):
             # edge_index = np.array(edge_index.T[ind]).T
             size = store.size()
             edge = store.edge_index
-            perm = np.argsort(np.add(edge[1] * size[0], edge[0]))
-            edge = tlx.gather(edge, perm, 1)
+            perm = np.argsort(np.add(tlx.convert_to_numpy(edge[1]) * size[0], tlx.convert_to_numpy(edge[0])))
+            edge = tlx.gather(edge, tlx.convert_to_tensor(perm), 1)
             indptr = np.concatenate(([0], np.bincount(edge[1]).cumsum()))
             if size[1] > indptr.shape[0]:
                 cur = size[1] - indptr.shape[0]
