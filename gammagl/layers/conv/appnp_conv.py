@@ -29,7 +29,8 @@ class APPNPConv(MessagePassing):
         h0 = x
         x = self.dropout(x)
         for _ in range(self.iter_K):
-            edge_weight = self.dropout_e(edge_weight)
+            if edge_weight is not None:
+                edge_weight = self.dropout_e(edge_weight)
             x = self.propagate(x, edge_index, edge_weight=edge_weight, num_nodes=num_nodes)
             x = x * (1 - self.alpha)
             x += self.alpha * h0

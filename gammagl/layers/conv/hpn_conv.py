@@ -1,13 +1,10 @@
 # !/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
-# @Time    : 2022/04/21 20:30
-# @Author  : clear
-# @FileName: hanconv.py
 import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
 from gammagl.utils import segment_softmax
-from gammagl.layers.conv import GATConv
+from gammagl.layers.conv import APPNPConv
 from tensorlayerx.nn import Module, Sequential, ModuleDict, Linear, Tanh
 
 
@@ -28,16 +25,16 @@ class SemAttAggr(Module):
         return tlx.reduce_sum(beta * z, axis=0) # (N, H)
 
 
-class HANConv(MessagePassing):
+class HPNConv(MessagePassing):
     r"""
-        The Heterogenous Graph Attention Operator from the
-        `"Heterogenous Graph Attention Network"
-        <https://arxiv.org/pdf/1903.07293.pdf>`_ paper.
+        The Heterogeneous Graph Propagation Operator from the
+        `"Heterogeneous Graph Propagation Network"
+        <https://ieeexplore.ieee.org/abstract/document/9428609>`_ paper.
 
         .. note::
 
-            For an example of using HANConv, see `examples/han_trainer.py
-            <https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/han>`_.
+            For an example of using HPNConv, see `examples/hpn_trainer.py
+            <https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/hpn>`_.
 
         Parameters
         ----------
@@ -53,9 +50,11 @@ class HANConv(MessagePassing):
             by a list of strings and a list of string triplets, respectively.
             See :meth:`gammagl.data.HeteroGraph.metadata` for more
             information.
-        heads: int, optional
-            Number of multi-head-attentions.
-            (default: :obj:`1`)
+        iter_K: int
+            Number of iterations used in APPNPConv.
+        alpha: float, optional
+            Parameters used in APPNPConv.
+            (default: :obj:`0.1`)
         negative_slope: float, optional
             LeakyReLU angle of the negative
             slope. (default: :obj:`0.2`)
@@ -63,39 +62,37 @@ class HANConv(MessagePassing):
             Dropout probability of the normalized
             attention coefficients which exposes each node to a stochastically
             sampled neighborhood during training. (default: :obj:`0`)
-        **kwargs: optional
-            Additional arguments of
-            :class:`gammagl.layers.conv.MessagePassing`.
         """
     def __init__(self,
                  in_channels,
                  out_channels,
                  metadata,
-                 heads=1,
+                 iter_K,
+                 alpha=0.1,
                  negative_slope=0.2,
-                 dropout_rate=0.5):
+                 drop_rate=0.5):
         super().__init__()
         if not isinstance(in_channels, dict):
             in_channels = {node_type: in_channels for node_type in metadata[0]}
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.metadata = metadata
-        self.heads = heads
         self.negetive_slop = negative_slope
-        self.dropout_rate = dropout_rate
+        self.drop_rate = drop_rate
 
 
-        self.gat_dict = ModuleDict({})
+        self.appnp_dict = ModuleDict({})
         for edge_type in metadata[1]:
             src_type, _, dst_type = edge_type
             edge_type = '__'.join(edge_type)
-            self.gat_dict[edge_type] = GATConv(in_channels=in_channels[src_type],
+            self.appnp_dict[edge_type] = APPNPConv(in_channels=in_channels[src_type],
                                                out_channels=out_channels,
-                                               heads=heads,
-                                               dropout_rate=dropout_rate,
-                                               concat=True)
+                                               iter_K=iter_K,
+                                               alpha=alpha,
+                                               drop_rate=drop_rate
+                                               )
 
-        self.sem_att_aggr = SemAttAggr(in_size=out_channels*heads,
+        self.sem_att_aggr = SemAttAggr(in_size=out_channels,
                                        hidden_size=out_channels)
 
     def forward(self, x_dict, edge_index_dict, num_nodes_dict):
@@ -108,7 +105,7 @@ class HANConv(MessagePassing):
         for edge_type, edge_index in edge_index_dict.items():
             src_type, _, dst_type = edge_type
             edge_type = '__'.join(edge_type)
-            out = self.gat_dict[edge_type](x_dict[src_type],
+            out = self.appnp_dict[edge_type](x_dict[src_type],
                                            edge_index,
                                            num_nodes = num_nodes_dict[dst_type])
             out = tlx.relu(out)

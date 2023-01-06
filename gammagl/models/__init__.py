@@ -32,6 +32,7 @@ from .vgae import VGAEModel, GAEModel
 from .gen import GEstimationN
 from .deepwalk import DeepWalkModel
 from .node2vec import Node2vecModel
+from .hpn import HPN
 
 
 __all__ = [
@@ -70,6 +71,7 @@ __all__ = [
     'Node2vecModel',
     'VGAEModel',
     'GAEModel',
+    'HPN'
     
 ]
 

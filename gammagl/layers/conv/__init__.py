@@ -22,6 +22,7 @@ from .hardgat_conv import HardGATConv
 from .pna_conv import PNAConv
 from .film_conv import FILMConv
 from .edgeconv import EdgeConv
+from .hpn_conv import HPNConv
 
 __all__ = [
     'MessagePassing',
@@ -46,7 +47,8 @@ __all__ = [
     'HardGATConv',
     'PNAConv',
     'FILMConv',
-    'EdgeConv'
+    'EdgeConv',
+    'HPNConv'
 
 ]
 
