@@ -2,7 +2,7 @@
 #include <vector>
 #include "cpu/segment_sum_cpu.h"
 
-#ifdef PADDLE_WITH_CUDA
+#ifdef COMPLIE_WITH_CUDA
 #include "cuda/segment_sum_cuda.h"
 #endif
 
@@ -13,7 +13,7 @@ std::vector<paddle::Tensor> SegmentSumForward(const paddle::Tensor& x,
   // if (paddle::platform::is_cpu_place(x.place()) && paddle::platform::is_cpu_place(x.place())) { // is_xpu() may not support
   if (x.is_cpu() && index.is_cpu()) {  
     return segment_sum_cpu_forward(x, index, n);
-#ifdef PADDLE_WITH_CUDA
+#ifdef COMPLIE_WITH_CUDA
   // } else if (paddle::platform::is_gpu_place(x.place()) && paddle::platform::is_gpu_place(x.place())) {
   } else if (x.is_gpu() && index.is_gpu()) {
     return segment_sum_cuda_forward(x, index, n);
