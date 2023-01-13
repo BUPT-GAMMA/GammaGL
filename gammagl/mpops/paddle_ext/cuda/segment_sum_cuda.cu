@@ -12,10 +12,8 @@ __global__ void segment_sum_cuda_forward_kernel(const data_t *x_data, const int6
   int64_t thread_idx = blockIdx.x * blockDim.x + threadIdx.x;
   int64_t e = (thread_idx / K) % E;
   int64_t k = thread_idx % K;
-  printf(" thread_idx = %d \n", thread_idx);
   if (thread_idx < numel)  {
     int64_t idx = index_data[e];
-    printf("%f \n", *out_data);
     atomicAdd(out_data + idx * K + k,
               x_data[thread_idx]);
   }
