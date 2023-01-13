@@ -52,10 +52,12 @@ std::tuple<torch::Tensor, torch::Tensor> segment_max_cpu_forward(torch::Tensor& 
     for (auto k = 0; k < K; ++k) {
       if (out_data[idx * K + k] < x_data[e * K + k]) {
 #ifdef COMPILE_WITH_OMP
-#pragma omp atomic write
+#pragma omp atomic
 #endif
+      {
         out_data[idx * K + k] = x_data[e * K + k];
         arg_out_data[idx * K + k] = e;
+      }
       }
     }
   }

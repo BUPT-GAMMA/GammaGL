@@ -2,7 +2,7 @@ import paddle
 from paddle.utils.cpp_extension import CppExtension, CUDAExtension, setup
 
 cuda_macro = ('COMPILE_WITH_CUDA', None) # Paddle offer `PADDLE_WITH_CUDA` macro
-omp_macro = ('COMPLIE_WITH_OMP', None) # Note: OpenMP needs gcc>4.2.0
+omp_macro = ('COMPILE_WITH_OMP', None) # Note: OpenMP needs gcc>4.2.0
 compile_args = {
     'cxx':['-fopenmp']
 }
@@ -10,7 +10,7 @@ compile_args = {
 def get_exts():
     if paddle.is_compiled_with_cuda():
         return CUDAExtension(
-            # name="paddle_segment",
+            # name="paddle_segment", # paddle not support, and the name will get from setup
             sources=[
                 'segment_sum.cpp',
                 'cpu/segment_sum_cpu.cpp',
@@ -21,7 +21,6 @@ def get_exts():
         )
     else:
         return CppExtension(
-            # name="paddle_segment",
             sources=[
                 'segment_sum.cpp',
                 'cpu/segment_sum_cpu.cpp',

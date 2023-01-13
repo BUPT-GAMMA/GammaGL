@@ -7,7 +7,7 @@ from paddle.fluid.framework import in_dygraph_mode
 
 use_ext = False
 try:
-    import paddle_segment
+    import paddle_ext
     use_ext = True
 except:
     pass
