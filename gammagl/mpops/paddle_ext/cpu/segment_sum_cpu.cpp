@@ -34,9 +34,9 @@ std::vector<paddle::Tensor> segment_sum_cpu_forward(const paddle::Tensor& x,
     idx = index_data[e];
     for (auto k = 0; k < K; ++k) {
 #ifdef COMPILE_WITH_OMP
-#pragma omp atomic write
+#pragma omp atomic
 #endif
-      out_data[idx * K + k] += x_data[e * K + k];
+      out_data[idx * K + k] = out_data[idx * K + k] + x_data[e * K + k];
     }
   }
   // }));
