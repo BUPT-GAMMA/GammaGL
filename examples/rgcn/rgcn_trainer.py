@@ -5,18 +5,22 @@
 # @Author  : hanhui
 # @FileName: trainer.py.py
 import os
-os.environ['TL_BACKEND'] = 'torch'  # set your backend here, default `tensorflow`
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
+os.environ['TL_BACKEND'] = 'tensorflow'  # set your backend here, default `tensorflow`
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 import sys
+
 sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
 from gammagl.models import RGCN
 from tensorlayerx.model import TrainOneStep, WithLoss
-from gammagl.datasets import Entities
+from gammagl.datasets import Entities, IMDB
 import os.path as osp
 import numpy as np
+import gammagl.transforms as T
+from gammagl.utils import mask_to_index
 
 
 class SemiSpvzLoss(WithLoss):
@@ -35,11 +39,12 @@ def evaluate(net, data, y, metrics):
     net.set_eval()
     logits = net(data['edge_index'], data['edge_type'])
     _logits = tlx.gather(logits, data['test_idx'])
-    _y = y # tlx.gather(y, data['test_idx'])
+    _y = y  # tlx.gather(y, data['test_idx'])
     metrics.update(_logits, _y)
     acc = metrics.result()
     metrics.reset()
     return acc
+
 
 def calculate_acc(logits, y, metrics):
     """
@@ -56,6 +61,7 @@ def calculate_acc(logits, y, metrics):
     rst = metrics.result()
     metrics.reset()
     return rst
+
 
 # not use , perform on full graph
 def k_hop_subgraph(node_idx, num_hops, edge_index, num_nodes, relabel_nodes=False, flow='source_to_target'):
@@ -92,7 +98,7 @@ def k_hop_subgraph(node_idx, num_hops, edge_index, num_nodes, relabel_nodes=Fals
     edge_index = edge_index[:, edge_mask]
 
     if relabel_nodes:
-        node_idx = -np.ones((num_nodes, ))
+        node_idx = -np.ones((num_nodes,))
         node_idx[subset] = np.arange(subset.shape[0])
         edge_index = node_idx[edge_index]
 
@@ -101,34 +107,96 @@ def k_hop_subgraph(node_idx, num_hops, edge_index, num_nodes, relabel_nodes=Fals
 
 def main(args):
     # load cora dataset
-    if str.lower(args.dataset) not in ['aifb', 'mutag', 'bgs', 'am']:
+    if str.lower(args.dataset) not in ['aifb', 'mutag', 'bgs', 'am', 'imdb']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
-    path = osp.join(osp.dirname(osp.realpath(__file__)), '../Entities')
-    dataset = Entities(path, args.dataset)
-    graph = dataset[0]
+    if str.lower(args.dataset) == 'imdb':
+        targetType = {
+            'imdb': 'movie',
+        }
+        path = osp.join(osp.dirname(osp.realpath(__file__)), '../IMDB')
+        metapaths = [[('movie', 'actor'), ('actor', 'movie')],
+                     [('movie', 'director'), ('director', 'movie')]]
+        transform = T.AddMetaPaths(metapaths=metapaths, drop_orig_edges=True,
+                                   drop_unconnected_nodes=True)
+        dataset = IMDB(path, transform=transform)
+        heterograph = dataset[0]
+        y = heterograph[targetType[str.lower(args.dataset)]].y
+        num_classes = max(y) + 1
 
-    graph.numpy()
-    node_idx = np.concatenate([graph.train_idx, graph.test_idx])
-    node_idx, edge_index, mapping, edge_mask = k_hop_subgraph(
-        node_idx, 2, graph.edge_index, graph.num_nodes, relabel_nodes=True)
+        edge_index_dict = {heterograph.edge_types[i]: heterograph.edge_stores[i]['edge_index'] for i in
+                           range(len(heterograph.edge_stores))}
 
-    graph.num_nodes = node_idx.shape[0]
-    graph.edge_index = edge_index
-    graph.edge_type = graph.edge_type[edge_mask]
-    graph.train_idx = mapping[:graph.train_idx.shape[0]]
-    graph.test_idx = mapping[graph.train_idx.shape[0]:]
-    graph.tensor()
+        train_idx = mask_to_index(heterograph['movie'].train_mask)
+        test_idx = mask_to_index(heterograph['movie'].test_mask)
+        val_idx = mask_to_index(heterograph['movie'].val_mask)
 
-    train_y = graph.train_y
-    test_y = graph.test_y
-    edge_index = graph.edge_index
-    edge_type = graph.edge_type
+        train_y = tlx.gather(y, train_idx)
+        test_y = tlx.gather(y, test_idx)
+        val_y = tlx.gather(y, val_idx)
 
+        edge_index = tlx.concat(
+            [edge_index_dict[('movie', 'metapath_0', 'movie')], edge_index_dict[('movie', 'metapath_1', 'movie')]],
+            axis=1)
+        if tlx.BACKEND == 'tensorflow':
+            edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int32)
+        else:
+            edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int64)
+        edge_type0 = tlx.zeros(shape=(len(edge_index_dict[('movie', 'metapath_0', 'movie')][0]),), dtype=tlx.int64)
+        edge_type1 = tlx.ones(shape=(len(edge_index_dict[('movie', 'metapath_1', 'movie')][0]),), dtype=tlx.int64)
+        edge_type = tlx.concat([edge_type0, edge_type1], axis=0)
 
-    net = RGCN(feature_dim=graph.num_nodes,
+        data = {
+            'edge_index': edge_index,
+            'edge_type': edge_type,
+            'train_idx': train_idx,
+            'test_idx': test_idx,
+            'val_idx': val_idx,
+            'train_y': train_y,
+            'test_y': test_y,
+            'val_y': val_y,
+            'num_class': num_classes,
+            'num_relations': 4,
+            'num_nodes': tlx.convert_to_numpy(max(edge_index[0]) + 1).item()
+        }
+
+    else:
+        path = osp.join(osp.dirname(osp.realpath(__file__)), '../Entities')
+        dataset = Entities(path, args.dataset)
+        graph = dataset[0]
+
+        graph.numpy()
+        node_idx = np.concatenate([graph.train_idx, graph.test_idx])
+        node_idx, edge_index, mapping, edge_mask = k_hop_subgraph(
+            node_idx, 2, graph.edge_index, graph.num_nodes, relabel_nodes=True)
+
+        graph.num_nodes = node_idx.shape[0]
+        graph.edge_index = edge_index
+        graph.edge_type = graph.edge_type[edge_mask]
+        graph.train_idx = mapping[:graph.train_idx.shape[0]]
+        graph.test_idx = mapping[graph.train_idx.shape[0]:]
+        graph.tensor()
+
+        train_y = graph.train_y
+        test_y = graph.test_y
+        edge_index = graph.edge_index
+        edge_type = graph.edge_type
+
+        data = {
+            'edge_index': edge_index,
+            'edge_type': edge_type,
+            'train_idx': graph.train_idx,
+            'test_idx': graph.test_idx,
+            'train_y': graph.train_y,
+            'test_y': graph.test_y,
+            'num_class': int(dataset.num_classes),
+            'num_relations': dataset.num_relations,
+            'num_nodes': graph.num_nodes
+        }
+
+    net = RGCN(feature_dim=data['num_nodes'],
                hidden_dim=args.hidden_dim,
-               num_class=int(dataset.num_classes),
-               num_relations=dataset.num_relations,
+               num_class=data['num_class'],
+               num_relations=data['num_relations'],
                name="RGCN")
 
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
@@ -138,27 +206,22 @@ def main(args):
     loss_func = SemiSpvzLoss(net, tlx.losses.softmax_cross_entropy_with_logits)
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
-    data = {
-        'edge_index': edge_index,
-        'edge_type': edge_type,
-        'train_idx': graph.train_idx,
-        'test_idx': graph.test_idx,
-        'train_y': graph.train_y,
-        'test_y': graph.test_y,
-    }
-
     best_val_acc = 0
     for epoch in range(args.n_epoch):
         net.set_train()
-        train_loss = train_one_step(data, train_y)
+        train_loss = train_one_step(data, data['train_y'])
         net.set_eval()
         logits = net(data['edge_index'], data['edge_type'])
-        val_logits = tlx.gather(logits, data['test_idx'])
-        val_acc = calculate_acc(val_logits, data['test_y'], metrics)
+        if str.lower(args.dataset) == 'imdb':
+            val_logits = tlx.gather(logits, data['val_idx'])
+            val_acc = calculate_acc(val_logits, data['val_y'], metrics)
+        else:
+            val_logits = tlx.gather(logits, data['test_idx'])
+            val_acc = calculate_acc(val_logits, data['test_y'], metrics)
         # val_acc = evaluate(net, data, test_y, metrics)
 
-        print("Epoch [{:0>3d}] ".format(epoch + 1)\
-              + "  train loss: {:.4f}".format(train_loss.item())\
+        print("Epoch [{:0>3d}] ".format(epoch + 1) \
+              + "  train loss: {:.4f}".format(train_loss.item()) \
               + "  val acc: {:.4f}".format(val_acc))
 
         # save best model on evaluation set
