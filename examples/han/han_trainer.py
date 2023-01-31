@@ -137,7 +137,6 @@ def main(args):
     test_y = tlx.gather(data['y'], data['test_idx'])
     test_acc = calculate_acc(test_logits, test_y, metrics)
     print("Test acc:  {:.4f}".format(test_acc))
-    return test_acc
 
 
 if __name__ == '__main__':
