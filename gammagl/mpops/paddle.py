@@ -18,7 +18,7 @@ def unsorted_segment_sum(x, segment_ids, num_segments=None):
     else:
         num_segments = pd.max(segment_ids)+1
     if use_ext:
-        return paddle_ext.segment_sum(x, segment_ids, num_segments)
+        return paddle_ext.unsorted_segment_sum(x, segment_ids, num_segments)
     idx_ = pd.argsort(segment_ids)
     x = pd.gather(x, idx_)
     segment_ids = pd.gather(segment_ids, idx_)
