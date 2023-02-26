@@ -2,6 +2,7 @@ from .gcn import GCNModel
 from .gat import GATModel
 from .sgc import SGCModel
 from .gatv2 import GATV2Model
+from .gaan import GaANModel
 from .graphsage import GraphSAGE_Full_Model, GraphSAGE_Sample_Model
 from .gcnii import GCNIIModel
 from .appnp import APPNPModel
@@ -38,6 +39,7 @@ from .hpn import HPN
 __all__ = [
     'GCNModel',
     'GATModel',
+    'GaANModel',
     'SGCModel',
     'GATV2Model',
     'GraphSAGE_Full_Model',
@@ -72,7 +74,7 @@ __all__ = [
     'VGAEModel',
     'GAEModel',
     'HPN'
-    
+
 ]
 
 classes = __all__
