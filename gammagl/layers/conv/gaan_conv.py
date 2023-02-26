@@ -7,7 +7,7 @@ from gammagl.utils import segment_softmax
 class GaANConv(MessagePassing):
     r"""The gated attentional operator from the `"Gated Attention Networks for Learning on Large and Spatiotemporal Graphs"
     <https://arxiv.org/abs/1803.07294>`_ paper
-    
+
     .. math::
         \mathbf{y}_i = \mathbf{FC}_{\theta_o}(\mathbf{x}_{i}\oplus
         {||}^K_{k=1}\mathbf{g}_i^{(k)}\sum_{j \in \mathcal{N}i} \mathbf{w}_{i,j}^{(k)}
@@ -21,16 +21,16 @@ class GaANConv(MessagePassing):
         \exp\left(\phi_w^{(k)}\left(\mathbf{x}_i, \mathbf{z}_j\right)\right)}
         {\sum_{l=1}^{\Vert \mathcal{N}i\Vert}
         \exp\left(\phi_w^{(k)}\left(\mathbf{x}_i, \mathbf{z}_l\right)\right)}.
-    
+
     where coefficients \phi_w^{(k)}(\mathbf{x},\mathbf{z}) are compute as
-    
+
     .. math::
         \phi_w^{(k)}(\mathbf{x},\mathbf{z})=
         <\mathbf{FC}_{\theta_{xa}^{(k)}}(\mathbf{x}),
         \mathbf{FC}_{\theta_{za}^{(k)}}(\mathbf{z})>,
-        
+
     and the gated attention aggregators \mathbf{g}_i are compute as
-    
+
     .. math::
         \mathbf{g}_i=\mathbf{FC}_{{\theta}_g}^\sigma
         (\mathbf{x}_i\oplus\mathop{max}\limits_{j\in \mathcal{N}_i}
@@ -38,7 +38,7 @@ class GaANConv(MessagePassing):
         \frac
         {\sum_{j\in \mathcal{N}_i}\mathbf{z}_j}
         {|\mathcal{N}_i|}).
-    
+
     Parameters
     ----------
     in_channels: int or tuple
@@ -51,10 +51,13 @@ class GaANConv(MessagePassing):
     heads: int, optional
         Number of multi-head-attentions.
         (default: :obj:`2`)
-		m: int, optional
+    m: int, optional
         Number of output dimension for gated attention aggregator to then
-				take the element wise max.
-        (default: :obj:`8`)
+        take the element wise max.
+        (default: :obj:`64`)
+    v: int, optional
+        Number of output dimension for attention aggregator to record neighbors'message.
+        (default: :obj:`64`)
     negative_slope: float, optional
         LeakyReLU angle of the negative
         slope. (default: :obj:`0.2`)
@@ -68,14 +71,15 @@ class GaANConv(MessagePassing):
 
     """
 
-    def __init__(self, in_channels, out_channels, heads=2, m=8,
-                 negative_slope=0.2, dropout_rate=0, add_bias=True):
+    def __init__(self, in_channels, out_channels, heads=8, m=64, v=64,
+                 negative_slope=0.1, dropout_rate=0.1, add_bias=True):
         super().__init__()
 
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.heads = heads
         self.m = m
+        self.v = v
         self.negative_slope = negative_slope
         self.dropout_rate = dropout_rate
         self.add_bias = add_bias
@@ -83,20 +87,20 @@ class GaANConv(MessagePassing):
         self.dropout = tlx.layers.Dropout(self.dropout_rate)
 
         self.lin = tlx.layers.Linear(
-            in_features=self.in_channels, out_features=self.out_channels * self.heads, act=self.leaky_relu)
+            in_features=self.in_channels, out_features=self.v * self.heads, act=self.leaky_relu)
         initor = tlx.initializers.TruncatedNormal()
 
         self.att_src = self._get_weights("att_src", shape=(
-            1, self.heads, self.out_channels), init=initor, order=True)
+            1, self.heads, self.v), init=initor, order=True)
         self.att_dst = self._get_weights("att_dst", shape=(
-            1, self.heads, self.out_channels), init=initor, order=True)
+            1, self.heads, self.v), init=initor, order=True)
         # GaAN layers
         self.g_lin = tlx.layers.Linear(
-            in_features=self.in_channels+self.out_channels*self.heads+m, out_features=self.heads,act=tlx.sigmoid)
+            in_features=self.in_channels+self.v*self.heads+m, out_features=self.heads, act=tlx.sigmoid)
         self.m_lin = tlx.layers.Linear(
             in_features=self.in_channels, out_features=self.m)
         self.final_lin = tlx.layers.Linear(
-            in_features=self.in_channels+self.out_channels*self.heads, out_features=self.heads*self.out_channels)
+            in_features=self.in_channels+self.v*self.heads, out_features=self.heads*self.out_channels)
 
         if self.add_bias:
             self.bias = self._get_weights("bias", shape=(
@@ -111,7 +115,7 @@ class GaANConv(MessagePassing):
     def message(self, x, edge_index, edge_weight=None, num_nodes=None):
         x_m = self.m_lin(x)
         x_lin = tlx.reshape(self.lin(
-            x), shape=(-1, self.heads, self.out_channels))
+            x), shape=(-1, self.heads, self.v))
         # compute attention weight
         node_src = edge_index[0, :]
         node_dst = edge_index[1, :]
@@ -145,12 +149,15 @@ class GaANConv(MessagePassing):
         g_max = unsorted_segment_max(g_max, dst_index, num_nodes)
         g_mean = unsorted_segment_mean(
             g_mean, dst_index, num_nodes)
-        g_mean = tlx.reshape(g_mean, shape=(-1, self.out_channels*self.heads))
+        g_mean = tlx.reshape(g_mean, shape=(-1, self.v*self.heads))
         g_i = tlx.concat((x, g_max, g_mean), axis=1)
 
-        g_i = tlx.reshape(self.g_lin(g_i), shape=(-1, self.m, 1))
+        g_i = tlx.reshape(self.g_lin(g_i), shape=(-1, self.heads, 1))
+        # print(g_i.shape)
+        # print(att_sum.shape)
+
         att_sum = tlx.reshape(
-            g_i*att_sum, shape=(-1, self.out_channels*self.heads))
+            g_i*att_sum, shape=(-1, self.v*self.heads))
         # concat to have final aggregated message
         x = tlx.concat((x, att_sum), axis=1)
         x = self.final_lin(x)

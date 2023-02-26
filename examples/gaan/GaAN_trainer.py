@@ -57,20 +57,22 @@ def main(args):
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)
     graph = dataset[0]
-    edge_index, _ = add_self_loops(
-        graph.edge_index, n_loops=args.self_loops, num_nodes=graph.num_nodes)
+    edge_index, _ = add_self_loops(graph.edge_index, n_loops=args.self_loops, num_nodes=graph.num_nodes)
 
     # for mindspore, it should be passed into node indices
     train_idx = mask_to_index(graph.train_mask)
     test_idx = mask_to_index(graph.test_mask)
     val_idx = mask_to_index(graph.val_mask)
-
+    
     net = GaANModel(feature_dim=dataset.num_node_features,
-                   hidden_dim=args.hidden_dim,
-                   num_class=dataset.num_classes,
-                   heads=args.heads,
-                   drop_rate=args.drop_rate,
-                   name="GaAN")
+                    hidden_dim=args.hidden_dim,
+                    num_class=dataset.num_classes,
+                    heads=args.heads,
+                    m=args.m,
+                    v=args.v,
+                    drop_rate=args.drop_rate,
+                    name="GaAN")
+
 
     loss = tlx.losses.softmax_cross_entropy_with_logits
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
@@ -89,6 +91,7 @@ def main(args):
         "val_idx": val_idx,
         "num_nodes": graph.num_nodes,
     }
+
 
     best_val_acc = 0
     for epoch in range(args.n_epoch):
@@ -135,6 +138,10 @@ if __name__ == "__main__":
                         default=5e-4, help="l2 loss coeficient")
     parser.add_argument("--heads", type=int, default=8,
                         help="number of heads for stablization")
+    parser.add_argument("--m", type=int, default=8,
+                        help="parameter to compute gate")
+    parser.add_argument("--v", type=int, default=128,
+                        help="parameter to compute gate")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
     parser.add_argument("--dataset_path", type=str,
                         default=r'../', help="path to save dataset")

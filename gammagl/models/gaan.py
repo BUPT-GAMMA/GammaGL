@@ -15,6 +15,7 @@ class GaANModel(tlx.nn.Module):
         heads (int): number of attention heads
         drop_rate (float): dropout rate
         m(int): parameter to control gate value
+        v(int): parameter to control neighbor message
         name (str): model name
 
     """
@@ -24,17 +25,22 @@ class GaANModel(tlx.nn.Module):
                  num_class,
                  heads,
                  drop_rate,
-                 m=8,
+                 m=64,
+                 v=64,
                  name=None):
         super().__init__(name=name)
 
         self.conv1 = GaANConv(in_channels=feature_dim,
                              out_channels=hidden_dim,
-                             heads=heads,m=m,
+                             heads=heads,
+                             m=m,
+                             v=v,
                              dropout_rate=drop_rate)
         self.conv2 = GaANConv(in_channels=hidden_dim*heads,
                              out_channels=num_class,
-                             heads=heads,m=m,
+                             heads=heads,
+                             m=m,
+                             v=v,
                              dropout_rate=drop_rate)
         self.elu = tlx.layers.ELU()
         self.dropout = tlx.layers.Dropout(drop_rate)
