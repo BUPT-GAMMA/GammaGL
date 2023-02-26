@@ -25,8 +25,8 @@ TL_BACKEND="tensorflow" python GaAN_trainer.py --dataset citeseer --n_epoch 200 
 TL_BACKEND="tensorflow" python GaAN_trainer.py --dataset pubmed --n_epoch 300 --lr 0.005 --l2_coef 0.0005 --drop_rate 0.4 --heads 8 --v 64 --m 64
 ```
 
-| Dataset  | GAT(Paper) | Our(tf)  |
-| -------- | ---------- | ---------|
-| cora     | 83.0(±0.7) | 80.50    |
-| citeseer | 72.5(±0.7) | 70.80    |
-| pubmed   | 79.0(±0.3) | 78.80    |
+| Dataset  | GAT(Paper) | Our(tf)      |
+| -------- | ---------- | ------------ |
+| cora     | 83.0(±0.7) | 79.11(±1.78) |
+| citeseer | 72.5(±0.7) | 68.15(±3.75) |
+| pubmed   | 79.0(±0.3) | 77.29(±1.71) |
