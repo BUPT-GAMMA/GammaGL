@@ -39,7 +39,7 @@ at::Tensor size_from_ptr(const at::Tensor &ptr) {
          ptr.narrow(/*dim=*/0, /*start=*/0, /*length=*/ptr.numel() - 1);
 }
 
-at::Tensor segment_matmul_kernel(const at::Tensor &input, const at::Tensor &ptr,
+at::Tensor segment_matmul_kernel_cpu(const at::Tensor &input, const at::Tensor &ptr,
                                  const at::Tensor &other) {
   const auto size = size_from_ptr(ptr).cpu();
   const auto sizes = at::IntArrayRef(size.data_ptr<int64_t>(), size.numel());
@@ -48,7 +48,7 @@ at::Tensor segment_matmul_kernel(const at::Tensor &input, const at::Tensor &ptr,
   auto out = input_contig.new_empty({input.size(0), other.size(-1)});
 
   // AT_DISPATCH_ALL_TYPES(
-  // input_contig.scalar_type(), "segment_matmul_kernel", [&] {
+  // input_contig.scalar_type(), "segment_matmul_kernel_cpu", [&] {
   const auto n = other_contig.size(-1);
   const auto k = input_contig.size(-1);
   // if (mkl_path_available<scalar_t>() && mkl_path_possible(sizes, n, k)) {

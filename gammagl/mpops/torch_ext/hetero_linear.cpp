@@ -81,7 +81,7 @@ at::Tensor segment_matmul(const at::Tensor &input, const at::Tensor &ptr,
   at::checkSize(c, other_arg, 1, input_arg->size(-1));
   at::checkNumel(c, ptr_arg, other_arg->size(0) + 1);
 
-  return segment_matmul_kernel(input, ptr, other);
+  return segment_matmul_kernel_cpu(input, ptr, other);
 }
 
 class GroupedMatmul : public torch::autograd::Function<GroupedMatmul> {
