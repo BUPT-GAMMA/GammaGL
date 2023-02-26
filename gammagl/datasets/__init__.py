@@ -3,6 +3,7 @@ from .coauthor import Coauthor
 from .tu_dataset import TUDataset
 from .planetoid import Planetoid
 from .reddit import Reddit
+from .ppi import PPI
 from .imdb import IMDB
 from .entities import Entities
 from .flickr import Flickr
@@ -19,6 +20,7 @@ __all__ = [
     'Coauthor',
     'TUDataset',
     'Planetoid',
+    'PPI',
     'Reddit',
     'IMDB',
     'Entities',
