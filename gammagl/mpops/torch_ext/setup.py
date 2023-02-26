@@ -58,6 +58,15 @@ def get_exts():
                     ],
                 # define_macros=[omp_macro],
                 # extra_compile_args=compile_args
+            ),
+            CppExtension(
+                name='torch_hetero_linear', 
+                sources=[
+                    'hetero_linear.cpp',
+                    'cpu/grouped_gemm.cpp'
+                    ],
+                # define_macros=[omp_macro],
+                # extra_compile_args=compile_args
             )
         ]
 

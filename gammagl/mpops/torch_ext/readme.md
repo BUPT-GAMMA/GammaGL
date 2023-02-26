@@ -13,3 +13,11 @@ cuda dir: cuda version operators
 segment_{op}.cpp: operators that dispatch device  
 
 Testing script: GammaGL/profiler/mpops/torch_ext.py
+
+
+HeteroLinear Module Base on Grouped GEMM
+reference  
+[https://zhuanlan.zhihu.com/p/484319691](https://zhuanlan.zhihu.com/p/484319691)
+[https://developer.nvidia.com/blog/cutlass-linear-algebra-cuda/](https://developer.nvidia.com/blog/cutlass-linear-algebra-cuda/)  
+[https://github.com/NVIDIA/cutlass/tree/master/examples/24_gemm_grouped](https://github.com/NVIDIA/cutlass/tree/master/examples/24_gemm_grouped)  
+[https://github.com/pyg-team/pyg-lib](https://github.com/pyg-team/pyg-lib)
