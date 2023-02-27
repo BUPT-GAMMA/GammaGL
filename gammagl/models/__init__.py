@@ -7,6 +7,7 @@ from .gcnii import GCNIIModel
 from .appnp import APPNPModel
 from .gin import GINModel
 from .rgcn import RGCN
+from .compgcn import CompGCN
 from .agnn import AGNNModel
 from .jknet import JKNet
 from .han import HAN
@@ -35,6 +36,7 @@ from .node2vec import Node2vecModel
 from .hpn import HPN
 
 
+
 __all__ = [
     'GCNModel',
     'GATModel',
@@ -46,6 +48,7 @@ __all__ = [
     'APPNPModel',
     'GINModel',
     'RGCN',
+    'CompGCN',
     'AGNNModel',
     'JKNet',
     'HAN',
