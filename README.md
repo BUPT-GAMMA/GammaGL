@@ -25,6 +25,55 @@ GammaGL supports multiple deep learning backends, such as TensorFlow, PyTorch, P
 
 Following [PyTorch Geometric(PyG)](https://github.com/pyg-team/pytorch_geometric), GammaGL utilizes a tensor-centric API. If you are familiar with PyG, it will be friendly and maybe a TensorFlow Geometric, Paddle Geometric, or MindSpore Geometric to you.
 
+## News
+<details>
+
+<summary>
+2023-02-24 优秀孵化奖
+</summary>
+<br/>
+
+GammaGL荣获启智社区优秀孵化项⽬奖！
+
+</details>
+
+<details>
+
+<summary>
+2023-02-21 中国电子学会科技进步一等奖
+</summary>
+<br/>
+
+算法库支撑了北邮牵头，蚂蚁、中移动、海致科技等参与的“大规模复杂异质图数据智能分析技术与规模化应用”项目。该项目获得了2022年电子学会科技进步一等奖。
+
+</details>
+
+<details>
+<summary>2023-01-17 release v0.2
+</summary>
+</br>
+We release the latest version v0.2.
+
+- 40 GNN models
+- 20 datasets
+- Efficient message passing operators and fused operator
+- GPU sampling and heterogeneous graphs samplers.
+
+</details>
+
+<details>
+<summary>2022-06-20 release v0.1
+</summary>
+</br>
+We release the latest version v0.1.
+
+- Framework-agnostic design
+- PyG-like
+- Graph data structures, message passing module and sampling module
+- 20+ GNN models
+
+</details>
+
 ## Quick Tour for New Users
 
 In this quick tour, we highlight the ease of creating and training a GNN model with only a few lines of code.
