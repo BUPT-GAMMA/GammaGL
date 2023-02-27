@@ -7,7 +7,7 @@ from paddle.fluid.framework import in_dygraph_mode
 
 use_ext = False
 try:
-    import paddle_segment
+    import paddle_ext
     use_ext = True
 except:
     pass
@@ -18,7 +18,7 @@ def unsorted_segment_sum(x, segment_ids, num_segments=None):
     else:
         num_segments = pd.max(segment_ids)+1
     if use_ext:
-        return paddle_segment.segment_sum(x, segment_ids, num_segments)
+        return paddle_ext.unsorted_segment_sum(x, segment_ids, num_segments)
     idx_ = pd.argsort(segment_ids)
     x = pd.gather(x, idx_)
     segment_ids = pd.gather(segment_ids, idx_)

@@ -9,6 +9,10 @@ from .loop import add_self_loops, remove_self_loops, contains_self_loops
 from .mask import mask_to_index, index_to_mask
 from .inspector import Inspector
 from .device import set_device
+from .to_dense_batch import to_dense_batch
+from .subgraph import k_hop_subgraph
+from .negative_sampling import negative_sampling
+from .convert import to_scipy_sparse_matrix
 from .read_embeddings import read_embeddings
 from .homophily import homophily
 
@@ -26,8 +30,13 @@ __all__ = [
     'mask_to_index',
     'index_to_mask',
     'set_device',
+    'to_dense_batch',
+    'k_hop_subgraph',
+    'negative_sampling',
+    'to_scipy_sparse_matrix'
     'read_embeddings',
     'homophily'
+
 ]
 
 classes = __all__

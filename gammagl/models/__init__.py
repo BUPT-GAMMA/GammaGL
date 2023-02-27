@@ -17,17 +17,23 @@ from .chebnet import ChebNetModel
 from .simplehgn import SimpleHGNModel
 from .fagcn import FAGCNModel
 from .gprgnn import GPRGNNModel
+from .dgcnn import DGCNNModel
+from .seal import DGCNN
 from .hgt import HGTModel
 from .film import FILMModel
 from .pna import PNAModel
 from .mixhop import MIXHOPModel
 from .hcha import HCHA
 from .hardgat import HardGATModel
+from .mlp import MLP
 from .graphgan_generator import Generator
 from .graphgan_discriminator import Discriminator
 from .graphgan import GraphGAN
 from .vgae import VGAEModel, GAEModel
 from .gen import GEstimationN
+from .deepwalk import DeepWalkModel
+from .node2vec import Node2vecModel
+from .hpn import HPN
 
 
 
@@ -52,6 +58,7 @@ __all__ = [
     'SimpleHGNModel',
     'FAGCNModel',
     'GPRGNNModel',
+    'DGCNN',
     'MIXHOPModel',
     'HCHA',
     'HGTModel',
@@ -60,11 +67,15 @@ __all__ = [
     # 'GraphGAN',
     # 'Generator',
     # 'Discriminator',
+    'DGCNNModel',
     'FILMModel',
+    'GEstimationN',
+    'DeepWalkModel',
+    'Node2vecModel',
     'VGAEModel',
     'GAEModel',
-    'GEstimationN'
-
+    'HPN'
+    
 ]
 
 classes = __all__

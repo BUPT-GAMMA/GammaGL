@@ -115,8 +115,10 @@ class AddMetaPaths(BaseTransform):
                 adj = adj * data.adj(scipy_fmt='csr', etype=edge_type)
 
             adj_coo = adj.tocoo()
+            row = tlx.convert_to_tensor(adj_coo.row, dtype = tlx.int64)
+            col = tlx.convert_to_tensor(adj_coo.col, dtype = tlx.int64)
             new_edge_type = (metapath[0][0], f'metapath_{j}', metapath[-1][-1])
-            data[new_edge_type].edge_index = tlx.stack([tlx.ops.convert_to_tensor(adj_coo.row), tlx.ops.convert_to_tensor(adj_coo.col)])
+            data[new_edge_type].edge_index = tlx.stack([row, col])
             data.metapath_dict[new_edge_type] = metapath
 
         if self.drop_orig_edges:

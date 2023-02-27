@@ -75,7 +75,7 @@ class IMDB(InMemoryDataset):
         split = np.load(osp.join(self.raw_dir, 'train_val_test_idx.npz'))
         for name in ['train', 'val', 'test']:
             idx = split[f'{name}_idx']
-            mask = np.zeros(data['movie'].num_nodes, dtype=np.bool)
+            mask = np.zeros(data['movie'].num_nodes, dtype=np.bool_)
             mask[idx] = True
             data['movie'][f'{name}_mask'] = tlx.convert_to_tensor(mask, dtype=tlx.bool)
 

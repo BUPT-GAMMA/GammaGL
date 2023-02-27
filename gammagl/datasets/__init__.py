@@ -9,6 +9,7 @@ from .flickr import Flickr
 from .hgb import HGBDataset
 from .wikipedia_network import WikipediaNetwork
 from .webkb import WebKB
+from .modelnet40 import ModelNet40
 from .dblp import DBLP
 from .ca_grqc import CA_GrQc
 from .zinc import ZINC
@@ -25,6 +26,7 @@ __all__ = [
     'HGBDataset',
     'WikipediaNetwork',
     'WebKB',
+    'ModelNet40',
     'DBLP',
     'CA_GrQc',
     'ZINC'
