@@ -15,62 +15,36 @@ except ImportError:
     exit(0)
 # import paddle_segment
 
-# edge_index = np.load('/home/hanhui/GammaGL/profiler/mpops/edge_index/cora.npy')
-# edge_index = np.load('/home/hanhui/GammaGL/profiler/mpops/edge_index/pubmed.npy')
-edge_index = np.load('/home/hanhui/GammaGL/profiler/mpops/edge_index/ogbn-arxiv.npy')
+relative_path = 'profiler/mpops/edge_index/'
+file_name = ['cora.npy', 'pubmed.npy', 'ogbn-arxiv.npy']
+embedding = [16, 64, 256]
+iter = 1000
 
-# edge_index = np.load('../../edge_index/cora.npy')
-# edge_index = np.load('../../edge_index/pubmed.npy')
-# edge_index = np.load('../../edge_index/ogbn-arxiv.npy')
-num_nodes = np.max(edge_index) + 1
-src = edge_index[0, :]
-dst = edge_index[1, :]
-src = tlx.convert_to_tensor(src, tlx.int64)
-dst = tlx.convert_to_tensor(dst, tlx.int64)
-# x = tlx.convert_to_tensor(np.random.randn(num_nodes, embedding_di4m), dtype=tlx.float32)
-edge_index = tlx.convert_to_tensor(edge_index)
+for name in file_name:
+    path = relative_path + name
+    print(path)
+    edge_index = np.load(path)
 
-print("**********embedding_dim=16**********")
-embedding_dim = 16
-x = tlx.convert_to_tensor(np.random.randn(num_nodes, embedding_dim), dtype=tlx.float32)
-msg = tlx.gather(x, src)
+    src = edge_index[0, :]
+    dst = edge_index[1, :]
+    src = tlx.convert_to_tensor(src, tlx.int64)
+    dst = tlx.convert_to_tensor(dst, tlx.int64)
+    # x = tlx.convert_to_tensor(np.random.randn(num_nodes, embedding_di4m), dtype=tlx.float32)
+    edge_index = tlx.convert_to_tensor(edge_index)
 
-paddle_ext.unsorted_segment_sum(msg, dst, num_nodes) # Warming
+    for embedding_dim in embedding:
+        print("**********embedding_dim={}**********".format(embedding_dim))
+        x = tlx.convert_to_tensor(np.random.randn(num_nodes, embedding_dim), dtype=tlx.float32)
+        msg = tlx.gather(x, src)
 
-start = time.time()
-for j in range(10):
-    paddle_ext.unsorted_segment_sum(msg, dst, num_nodes)
-end = time.time()
-print("ext_segment_sum:{:.3f}".format(end-start))
+        paddle_ext.unsorted_segment_sum(msg, dst, num_nodes) # Warming
 
-print("**********embedding_dim=16**********")
+        start = time.time()
+        for j in range(10):
+            paddle_ext.unsorted_segment_sum(msg, dst, num_nodes)
+        end = time.time()
+        print("ext_segment_sum:{:.3f}".format(end-start))
 
+        print("**********embedding_dim={}**********".format(embedding_dim))
 
-print("**********embedding_dim=64**********")
-embedding_dim = 64
-x = tlx.convert_to_tensor(np.random.randn(num_nodes, embedding_dim), dtype=tlx.float32)
-msg = tlx.gather(x, src)
-
-start = time.time()
-for j in range(10):
-    paddle_ext.unsorted_segment_sum(msg, dst, num_nodes)
-end = time.time()
-print("ext_segment_sum:{:.3f}".format(end-start))
-
-print("**********embedding_dim=64**********")
-
-
-print("**********embedding_dim=256**********")
-embedding_dim = 256
-x = tlx.convert_to_tensor(np.random.randn(num_nodes, embedding_dim), dtype=tlx.float32)
-msg = tlx.gather(x, src)
-
-start = time.time()
-for j in range(10):
-    paddle_ext.unsorted_segment_sum(msg, dst, num_nodes)
-end = time.time()
-print("ext_segment_sum:{:.3f}".format(end-start))
-
-print("**********embedding_dim=256**********")
-
-print(x.place)
+    print(x.place)
