@@ -81,9 +81,3 @@ You can set the dataset to run by changing the list of `file_name` .
 
 In order to accurately calculate the running time, we increase the running times of each operator. After getting the running time, we divide it by the running times to get the single running time of the operator. `iter` represents the number of times each operator runs.
 
-For `th_segment_ops_gpu.py` , you can run it using:
-
-```bash
-python th_segment_ops_gpu.py
-```
-
