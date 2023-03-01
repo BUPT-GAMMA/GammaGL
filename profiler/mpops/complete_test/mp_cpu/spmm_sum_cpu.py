@@ -13,38 +13,63 @@ try:
 except ImportError:
     exit(0)
 
-relative_path = 'profiler/mpops/edge_index/'
-file_name = ['cora.npy', 'pubmed.npy', 'ogbn-arxiv.npy']
-embedding = [16, 64, 256]
-iter = 10
+# edge_index = np.load('/home/hanhui/GammaGL/profiler/mpops/edge_index/cora.npy')
+# edge_index = np.load('/home/hanhui/GammaGL/profiler/mpops/edge_index/pubmed.npy')
+edge_index = np.load('/home/hanhui/GammaGL/profiler/mpops/edge_index/ogbn-arxiv.npy')
 
-for name in file_name:
-    path = relative_path + name
-    print(path)
-    edge_index = np.load(path)
+# edge_index = np.load('../../edge_index/cora.npy')
+# edge_index = np.load('../../edge_index/pubmed.npy')
+# edge_index = np.load('../../edge_index/ogbn-arxiv.npy')
+num_nodes = np.max(edge_index) + 1
+src = edge_index[0, :]
+dst = edge_index[1, :]
+src = tlx.convert_to_tensor(src, tlx.int64)
+dst = tlx.convert_to_tensor(dst, tlx.int64)
+# x = tlx.convert_to_tensor(np.random.randn(num_nodes, embedding_dim), dtype=tlx.float32)
+edge_index = tlx.convert_to_tensor(edge_index)
 
-    num_nodes = np.max(edge_index) + 1
-    src = edge_index[0, :]
-    dst = edge_index[1, :]
-    src = tlx.convert_to_tensor(src, tlx.int64)
-    dst = tlx.convert_to_tensor(dst, tlx.int64)
-    # x = tlx.convert_to_tensor(np.random.randn(num_nodes, embedding_dim), dtype=tlx.float32)
-    edge_index = tlx.convert_to_tensor(edge_index)
+weight = torch.ones(edge_index.shape[1],
+                         dtype=tlx.float32)
 
-    weight = torch.ones(edge_index.shape[1],
-                            dtype=tlx.float32)
-    
-    for embedding_dim in embedding:
-        print("**********embedding_dim={}**********".format(embedding_dim))
-        x = tlx.convert_to_tensor(np.random.randn(num_nodes, embedding_dim), dtype=tlx.float32)
-        # msg = tlx.gather(x, src)
+print("**********embedding_dim=16**********")
+embedding_dim = 16
+x = tlx.convert_to_tensor(np.random.randn(num_nodes, embedding_dim), dtype=tlx.float32)
+# msg = tlx.gather(x, src)
 
-        start = time.time()
-        for j in range(10):
-            torch_gspmm.spmm_sum(edge_index, weight, x)
-        end = time.time()
-        print("spmm_sum:{:.3f}".format(end-start))
+start = time.time()
+for j in range(10):
+    torch_gspmm.spmm_sum(edge_index, weight, x)
+end = time.time()
+print("unsorted_segment_sum:{:.3f}".format(end-start))
 
-        print("**********embedding_dim={}**********".format(embedding_dim))
+print("**********embedding_dim=16**********")
 
-    print(x.device)
+
+print("**********embedding_dim=64**********")
+embedding_dim = 64
+x = tlx.convert_to_tensor(np.random.randn(num_nodes, embedding_dim), dtype=tlx.float32)
+# msg = tlx.gather(x, src)
+
+start = time.time()
+for j in range(10):
+    torch_gspmm.spmm_sum(edge_index, weight, x)
+end = time.time()
+print("unsorted_segment_sum:{:.3f}".format(end-start))
+
+print("**********embedding_dim=64**********")
+
+
+print("**********embedding_dim=256**********")
+embedding_dim = 256
+x = tlx.convert_to_tensor(np.random.randn(num_nodes, embedding_dim), dtype=tlx.float32)
+# msg = tlx.gather(x, src)
+
+start = time.time()
+for j in range(10):
+    torch_gspmm.spmm_sum(edge_index, weight, x)
+end = time.time()
+print("unsorted_segment_sum:{:.3f}".format(end-start))
+
+print("**********embedding_dim=256**********")
+
+print(x.device)
