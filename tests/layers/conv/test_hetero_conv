@@ -1,0 +1,133 @@
+# !/usr/bin/env python3
+# -*- coding:utf-8 -*-
+
+# @Time    : 2023.3.18
+# @Author  : TianY
+# @FileName: test_hetero_conv.py
+import pytest
+import tensorlayerx as tlx
+import numpy as np
+from tensorlayerx.nn import Linear
+
+from gammagl.data import HeteroGraph
+from gammagl.layers.conv import (
+    GCNConv,
+    GATConv,
+    HeteroConv,
+    MessagePassing,
+    SAGEConv,
+)
+
+
+# hetero_wrapper.py 第70行 self.convs = ModuleDict({'__'.join(k): v for k, v in convs.items()})
+# ModuleDict没有引用，似乎gammagl里也没有这个class
+
+def get_edge_index(num_src_nodes, num_dst_nodes, num_edges):
+    get_row = np.random.randint(low=0, high=num_src_nodes, size=num_edges, dtype=np.long)
+    row = tlx.convert_to_tensor(get_row, dtype=tlx.int32)
+    get_col = np.random.randint(low=0, high=num_dst_nodes, size=num_edges, dtype=np.long)
+    col = tlx.convert_to_tensor(get_col, dtype=tlx.int32)
+    return tlx.stack([row, col], axis=0)
+
+
+@pytest.mark.parametrize('aggr', ['sum', 'mean', 'min', 'max', None])
+def test_hetero_conv(aggr):
+    data = HeteroGraph()
+    data['paper'].x = tlx.random_normal((50, 32))
+    data['author'].x = tlx.random_normal((30, 64))
+    data['paper', 'paper'].edge_index = get_edge_index(50, 50, 200)
+    data['paper', 'author'].edge_index = get_edge_index(50, 30, 100)
+    data['paper', 'author'].edge_attr = tlx.random_normal((100, 3))
+    data['author', 'paper'].edge_index = get_edge_index(30, 50, 100)
+    data['paper', 'paper'].edge_weight = tlx.random_uniform((1, 200))
+
+    # Unspecified edge types should be ignored:
+    data['author', 'author'].edge_index = get_edge_index(30, 30, 100)
+
+    conv = HeteroConv(
+        {
+            ('paper', 'to', 'paper'):
+                GCNConv(in_channels=None, out_channels=64),
+            # ('author', 'to', 'paper'):
+            #     SAGEConv(in_channels=None, out_channels=64),
+            # ('paper', 'to', 'author'):
+            #     GATConv(in_channels=None, out_channels=64),
+        }, aggr=aggr)
+
+    # GATConv里没有定义源节点和目的节点是不同类型节点的情况，所以传入的参数不能是（src_node, dst_node)的元组形式
+    # 所以在paper to author这条metapath上不能使用GATConv
+    # 如果删除paper to author 这条metapath, 会导致在传播时源节点和目的节点的个数不同，因为源节点有paper和author而目的节点只有paper
+    # 此时HeteroConv会提示“ There exist node types ({'author'}) whose
+    # representations do not get updated during message passing as they do not occur as destination
+    # type in any edge type. This may lead to unexpected behaviour.”
+    # out 的输出没有auther的特征向量只有paper的向量表示
+    assert str(conv) == 'HeteroConv(num_relations=1)'
+
+    out = conv(data.x_dict, data.edge_index_dict, data.edge_attr_dict,
+               edge_weight_dict=data.edge_weight_dict)
+
+    # HeteroConv种的group()方法，在out = getattr(tlx, 'reduce_' + aggr)(out, dim=0)这一行调用reduce_mean()时提示以外的输入参数“dim”
+    # 将dim改成axis
+
+    if aggr is not None:
+        assert tlx.get_tensor_shape(out['paper']) == [50, 64]
+    else:
+        assert tlx.get_tensor_shape(out['paper']) == [50, 1, 64]
+
+
+class CustomConv(MessagePassing):
+    def __init__(self, out_channels, aggr):
+        super().__init__()
+        self.edge_index = None
+        self.lin = Linear(out_channels)
+        self.aggr = aggr
+
+    def forward(self, x, edge_index, y, z):
+        self.edge_index = edge_index
+        aggr = self.aggr
+        return self.propagate(x, edge_index, aggr, y_dict=y, z_dict=z)
+
+    def message(self, x, y_dict, z_dict):
+        x = self.select_index(x, self.edge_index)
+        y_dict = self.select_index(y_dict, self.edge_index)
+        z_dict = self.select_index(z_dict, self.edge_index)
+        return self.lin(tlx.concat([x, y_dict, z_dict], axis=-1))
+
+    def select_index(self, node_features, edge_index):
+        src_index = edge_index[0, 1:]
+        first = edge_index[0, 0]
+        result = node_features[first]
+        result = tlx.reshape(result, (1, -1))
+        for index in src_index:
+            result = tlx.concat([result, tlx.reshape(node_features[index], (1, -1))], axis=0)
+            print(result.shape)
+        return result
+
+
+@pytest.mark.parametrize('aggr', ['sum', 'mean', 'max'])
+def test_hetero_conv_with_custom_conv(aggr):
+    data = HeteroGraph()
+    data['paper'].x = tlx.random_normal((50, 32))
+    data['paper'].y = tlx.random_normal((50, 3))
+    data['paper'].z = tlx.random_normal((50, 3))
+    # data['author'].x = tlx.random_normal((30, 64))
+    # data['author'].y = tlx.random_normal((30, 3))
+    # data['author'].z = tlx.random_normal((30, 3))
+    data['paper', 'paper'].edge_index = get_edge_index(50, 50, 200)
+    # data['paper', 'author'].edge_index = get_edge_index(50, 30, 100)
+    # data['author', 'paper'].edge_index = get_edge_index(30, 50, 100)
+
+    conv = HeteroConv({key: CustomConv(64, aggr=aggr) for key in data.edge_types})
+    # Test node `args_dict` and `kwargs_dict` with `y_dict` and `z_dict`:
+    out = conv(data.x_dict, data.edge_index_dict, y_dict=data.y_dict,
+               z_dict=data.z_dict)
+    assert len(out) == 1
+    assert tlx.get_tensor_shape(out['paper']) == [50, 64]
+    # assert tlx.get_tensor_shape(out['paper']) == (30, 64)
+
+    # message passing 类里的aggregate方法，未考虑传入参数的size，导致unsorted_segment_sum(msg, dst_index, num_nodes)
+    # 里msg和dst_index的维度不同，在运行时会报错，在添加上述select_index（）方法后，将msg（所有此类节点的特征向量）的行数由50更改
+    # 到200，和dst_index(此种类型的边的个数）行数相同，可行。
+    # message_passing 这个类里面的propagate方法未提供在不同类型节点之间传播信息的功能，故无法进行异质图的测试，
+    # 当节点类型只有一种时，可以正常运行。
+
