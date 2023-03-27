@@ -6,6 +6,6 @@ def test_cagrqc():
     assert datasets.n_node == len(datasets.graph)
     assert datasets.n_node == 5242
     assert datasets.node_embed_init_d.shape == (5242, 50)
+    assert datasets.node_embed_init_g.shape == (5242, 50)
 
-test_cagrqc()
 
