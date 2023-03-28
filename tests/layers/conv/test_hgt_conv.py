@@ -13,7 +13,7 @@ def test_hgt_conv_same_dimensions():
         'author':tlx.random_normal(shape=(4,16)),
         'paper':tlx.random_normal(shape=(6,16))
     }
-
+    
     index1=tlx.convert_to_tensor([0, 0, 1, 0, 3, 1, 0, 2, 0, 2, 0, 0, 2, 0, 3, 3, 1, 0, 2, 3],dtype=tlx.int32)
     index2=tlx.convert_to_tensor([5, 3, 2, 3, 3, 1, 1, 5, 1, 5, 5, 0, 3, 2, 1, 5, 1, 5, 5, 1],dtype=tlx.int32)
 
@@ -26,8 +26,8 @@ def test_hgt_conv_same_dimensions():
     conv=HGTConv(16,16,metadata,heads=2)
     out_dict1=conv(x_dict,edge_index_dict)
     assert len(out_dict1) == 2 
-    assert out_dict1['author'].shape == (4, 16) 
-    assert out_dict1['paper'].shape == (6, 16) 
+    assert tlx.get_tensor_shape(out_dict1['author']) == [4, 16] 
+    assert tlx.get_tensor_shape(out_dict1['paper']) == [6, 16]
 
 """
 def test_hgt_conv_different_dimensions():
@@ -76,8 +76,8 @@ def test_hgt_conv_lazy():
     conv=HGTConv(None,16,metadata,heads=2) #此处的None在py-g中为-1
     out_dict1=conv(x_dict,edge_index_dict)
     assert len(out_dict1) == 2
-    assert out_dict1['author'].shape == (4, 16)
-    assert out_dict1['paper'].shape == (6, 16)
+    assert tlx.get_tensor_shape(out_dict1['author']) == [4, 16]
+    assert tlx.get_tensor_shape(out_dict1['paper']) == [6, 16]
 
 """
 def test_hgt_conv_out_of_place():

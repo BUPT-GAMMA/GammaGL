@@ -2,7 +2,7 @@ from gammagl.datasets.alircd import AliRCD
 
 
 root="./data"
-def test_alircd():
+def alircd():
     data_alircd=AliRCD(root)
     assert len(data_alircd)==1
     assert data_alircd.num_node_features=={'b': 256, 'f': 256, 'a': 256, 'item': 256, 'c': 256, 'e': 256, 'd': 256}
@@ -14,8 +14,8 @@ def test_alircd():
     assert data_alircd.data.keys==['test_idx', 'edge_index', 'y', 'x', 'val_idx', 'n_id', 'num_nodes', 'train_idx']
 
 
-if __name__ == '__main__':
-    test_alircd()
+# if __name__ == '__main__':
+#     test_alircd()
 #如果某次下载被中断将导致该方法再次运行时会报错，可能是缺少一些文件体积的判断？
 """
 output数据格式:

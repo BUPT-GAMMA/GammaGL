@@ -30,14 +30,15 @@ def remove_self_loops(edge_index, edge_attr=None):
     """
     mask = edge_index[0] != edge_index[1]
     if tlx.is_tensor(edge_index):
-        edge_index = tlx.convert_to_numpy(edge_index)
-        edge_index = tlx.convert_to_tensor(edge_index[:, mask], dtype=tlx.int64)
+        edge_index = tlx.mask_select(edge_index, mask, axis = 1)
+        edge_index = tlx.cast(edge_index, dtype = tlx.int64)
     elif check_is_numpy(edge_index):
         edge_index = edge_index[:, mask]
     if edge_attr is None:
         return edge_index, None
     else:
-        return edge_index, edge_attr[mask]
+        edge_attr = tlx.mask_select(edge_attr, mask)
+        return edge_index, edge_attr
 
 
 def add_self_loops(

@@ -18,4 +18,3 @@ def test_coalesce():
     edge_index, attr = coalesce(edge_index, attr)
     assert tlx.ops.convert_to_numpy(edge_index).tolist() == [[0, 1], [1, 0]]
     assert tlx.ops.convert_to_numpy(attr).tolist() == [[-4.0, 4.0], [2.0, 5.0]]
-
