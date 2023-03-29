@@ -1,4 +1,5 @@
 import tensorlayerx as tlx
+import numpy as np
 
 from gammagl.data import HeteroGraph
 import gammagl.transforms as T
@@ -10,8 +11,10 @@ def test_DropEdge():
     num_paper_features = 6
     num_authors = 7
     num_authors_features = 8
-    g['paper'].x = tlx.random_uniform((num_papers, num_paper_features))
-    g['author'].x = tlx.random_uniform((num_authors, num_authors_features))
+    paper = np.random.uniform(low = 0, high = 1, size = (num_papers, num_paper_features))
+    author = np.random.uniform(low = 0, high = 1, size = (num_authors, num_authors_features))
+    g['paper'].x = tlx.convert_to_tensor(paper)
+    g['author'].x = tlx.convert_to_tensor(author)
     g['author', 'writes', 'paper'].edge_index = tlx.convert_to_tensor([[0, 0, 0], [1, 2, 3]])  # [2, num_edges]
     g['author', 'writes', 'paper'].edge_attr = tlx.convert_to_tensor([[0, 0, 0], [1, 1, 1], [2, 2, 2]])
     g['author', 'writes', 'author'].edge_index = tlx.convert_to_tensor(
@@ -26,5 +29,3 @@ def test_DropEdge():
     assert new_g.metadata() == g.metadata()
     # [TODO] Test below value range
     # assert abs(drop_rate-p)<=0.15
-
-

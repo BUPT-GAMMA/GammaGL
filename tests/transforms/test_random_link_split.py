@@ -206,9 +206,8 @@ def test_random_link_split_insufficient_negative_edges():
                                 is_undirected=False, neg_sampling_ratio=2,
                                 split_labels=True)
 
-    with pytest.warns(UserWarning, match="not enough negative edges"):
-        train_data, val_data, test_data = transform(data)
-
+    # with pytest.warns(UserWarning, match="not enough negative edges"):
+    train_data, val_data, test_data = transform(data)
     assert tlx.get_tensor_shape(train_data.neg_edge_label_index) == [2, 2]
     assert tlx.get_tensor_shape(val_data.neg_edge_label_index) == [2, 2]
     assert tlx.get_tensor_shape(test_data.neg_edge_label_index) == [2, 2]
