@@ -24,6 +24,7 @@ from .pna_conv import PNAConv
 from .film_conv import FILMConv
 from .edgeconv import EdgeConv
 from .hpn_conv import HPNConv
+from .hetero_wrapper import HeteroConv
 
 __all__ = [
     'MessagePassing',
@@ -39,6 +40,7 @@ __all__ = [
     'JumpingKnowledge',
     'HANConv',
     'ChebConv',
+    'HeteroConv',
     'SimpleHGNConv',
     'FAGCNConv',
     'GPRConv',
@@ -50,7 +52,9 @@ __all__ = [
     'FILMConv',
     'CompConv',
     'EdgeConv',
-    'HPNConv'
+    'HPNConv',
+    'GINConv',
+    'HypergraphConv',
 
 ]
 

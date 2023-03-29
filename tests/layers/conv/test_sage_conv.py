@@ -4,7 +4,8 @@ from gammagl.layers.conv import SAGEConv
 
 
 def test_sage_conv():
-    x1 = tlx.random_uniform(shape=(4, 8))
+    x1 = np.random.uniform(low = 0, high = 1, size = (4, 8))
+    x1 = tlx.convert_to_tensor(x1, dtype = tlx.float32)
     edge_index = tlx.convert_to_tensor([[0, 1, 2, 3], [0, 0, 1, 1]], dtype=tlx.int64)
     conv = SAGEConv(in_channels=8, out_channels=32)
     out = conv(x1, edge_index)
