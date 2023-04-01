@@ -3,6 +3,8 @@
 import os
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext as _build_ext
+from pybind11.setup_helpers import Pybind11Extension, build_ext
+import numpy as np
 
 # cython compile
 try:
@@ -35,6 +37,14 @@ extensions = [
         language="c++",
         extra_compile_args=compile_extra_args,
         extra_link_args=link_extra_args, ),
+    Pybind11Extension("gammagl.sparse._convert",
+                      sources=["gammagl/sparse/convert.cpp", "gammagl/sparse/neighbor_sample.cpp",
+                               "gammagl/sparse/utils.cpp"],
+                      include_dirs=["third_party/parallel_hashmap"]
+                      ),
+    Pybind11Extension("gammagl.ops._unique",
+                      ["gammagl/ops/include/unique.cpp"],
+                      )
 ]
 
 install_requires = ['numpy', 'scipy', 'pytest', 'cython', 'tensorlayerx']
