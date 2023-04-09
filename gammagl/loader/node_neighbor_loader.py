@@ -2,7 +2,7 @@
 # @author WuJing
 # @created 2023/3/27
 
-from gammagl.loader.nodeLoader import NodeLoader
+from gammagl.loader.node_loader import NodeLoader
 from gammagl.sampler.neighbor_sampler import NeighborSampler
 from gammagl.loader.utils import get_input_nodes_index
 

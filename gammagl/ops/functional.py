@@ -3,7 +3,7 @@
 # @created 2023/3/22
 
 # from unique import unique_impl
-from gammagl.ops._unique import unique_impl
+from gammagl.ops.include._unique import unique_impl
 
 
 def boolean_dispatch(arg_name, arg_index, default, if_true, if_false, module_name, func_name):

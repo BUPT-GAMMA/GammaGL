@@ -1,20 +1,24 @@
 #include <unordered_set>
 #include "parallel_hashmap/phmap.h"
-#include <pybind11/pybind11.h>
-#include <pybind11/numpy.h>
-#include <pybind11/stl.h>
+
+#include "extensions.h"
 #include "utils.h"
 
 using namespace std;
 using namespace pybind11::literals;
 namespace py = pybind11;
 
+typedef string node_t;
+typedef string rel_t; // "paper__to__paper"
+typedef vector<string> edge_t;
+typedef py::array_t<int64_t> tensor;
+
 
 template<class T>
 py::dict from_dict(phmap::flat_hash_map<string, vector<T>> &map);
 
-py::tuple neighbor_sample(py::array_t<long long> colptr, py::array_t<long long> row,
-                          py::array_t<long long> input_node, const vector<long long> num_neighbors,
+py::tuple neighbor_sample(Tensor colptr, Tensor row,
+                          Tensor input_node, const vector<int64_t> &num_neighbors,
                           bool replace,
                           bool directed);
 
@@ -25,7 +29,7 @@ py::tuple hetero_neighbor_sample(
         const unordered_map<rel_t, tensor> &row_dict,
         const unordered_map<node_t, tensor> &input_node_dict,
         const unordered_map<rel_t, tensor> &num_neighbors_dict,
-        const long long num_hops,
+        int64_t num_hops,
         bool replace,
         bool directed
 );

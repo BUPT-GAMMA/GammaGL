@@ -6,29 +6,18 @@
 #include <future>
 #include <condition_variable>
 #include <tuple>
-#include <pybind11/pybind11.h>
-#include <pybind11/numpy.h>
-#include <string>
-#include <pybind11/stl.h>
-#include "parallel_hashmap/phmap.h"
 #include "utils.h"
 
 #ifndef REMOTE_CONVERT_H
 #define REMOTE_CONVERT_H
 
 
-namespace py = pybind11;
-using namespace std;
-using namespace pybind11::literals;
+void parallel_for(int64_t begin, int64_t end, std::function<void(int64_t, int64_t)> f, int num_worker);
 
-typedef string node_t;
-typedef string rel_t; // "paper__to__paper"类型
-typedef vector<string> edge_t;
-typedef py::array_t<long long> tensor;
+int64_t long_min(int64_t a, int64_t b);
 
-void parallel_for(int begin, int end, std::function<void(int, int)> f, int num_worker);
-
-py::array_t<long long> ind2ptr(py::array_t<long long> ind, long long M, int num_worker);
+py::array_t<int64_t> ind2ptr(py::array_t<int64_t> ind, int64_t M, int num_worker);
+py::array_t<int64_t> ptr2ind(py::array_t<int64_t> ind, int64_t M, int num_worker);
 
 
 #endif //REMOTE_CONVERT_H

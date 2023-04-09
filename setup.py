@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
+import os.path as osp
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext as _build_ext
 from pybind11.setup_helpers import Pybind11Extension, build_ext
-import numpy as np
 
 # cython compile
 try:
@@ -27,9 +27,33 @@ class CustomBuildExt(_build_ext):
         import numpy
         self.include_dirs.append(numpy.get_include())
 
+    def build_extensions(self):
+        self.compiler.parallel_compile = 8
+        super().build_extensions()
+
 
 compile_extra_args = ["-std=c++11"]
+
+
+def c_extension(ext_dir, module, dep_src_list=[], **kwargs):
+    if ext_dir[-1] != '/':
+        ext_dir += '/'
+
+    if len(dep_src_list) != 0 and not (dep_src_list[0].endswith('.cpp') or dep_src_list[0].endswith('.c')):
+        raise NameError("Need file names, not module names!")
+
+    for i in range(len(dep_src_list)):
+        dep_src_list[i] = f"{ext_dir}{dep_src_list[i]}"
+
+    return Pybind11Extension(f"{ext_dir}_{module}".replace("/", "."),
+                             sources=[f"{ext_dir}{module}.cpp"] + dep_src_list,
+                             extra_compile_args=compile_extra_args,
+                             **kwargs
+                             )
+
+
 link_extra_args = []
+
 extensions = [
     Extension(
         "gammagl.sample",
@@ -37,17 +61,16 @@ extensions = [
         language="c++",
         extra_compile_args=compile_extra_args,
         extra_link_args=link_extra_args, ),
-    Pybind11Extension("gammagl.sparse._convert",
-                      sources=["gammagl/sparse/convert.cpp", "gammagl/sparse/neighbor_sample.cpp",
-                               "gammagl/sparse/utils.cpp"],
-                      include_dirs=["third_party/parallel_hashmap"]
-                      ),
-    Pybind11Extension("gammagl.ops._unique",
-                      ["gammagl/ops/include/unique.cpp"],
-                      )
+    c_extension("gammagl/sparse/", "convert", ),
+    c_extension("gammagl/sparse/", "neighbor_sample", dep_src_list=["utils.cpp"],
+                include_dirs=["third_party/parallel_hashmap/"]),
+    c_extension("gammagl/sparse/", "saint", dep_src_list=["utils.cpp"]),
+    c_extension("gammagl/sparse/", "sparse", dep_src_list=["utils.cpp"]),
+    c_extension("gammagl/ops/include/", "unique"),
+
 ]
 
-install_requires = ['numpy', 'scipy', 'pytest', 'cython', 'tensorlayerx']
+install_requires = ['numpy', 'scipy', 'pytest', 'cython', 'tensorlayerx', 'pybind11']
 
 classifiers = [
     'Development Status :: 3 - Alpha',
@@ -61,23 +84,19 @@ setup(
     author_email="tyzhao@bupt.edu.cn",
     maintainer="Tianyu Zhao",
     license="Apache-2.0 License",
-
     cmdclass={'build_ext': CustomBuildExt},
     ext_modules=extensions,
-
     description=" ",
-
     url="https://github.com/BUPT-GAMMA/GammaGL",
     download_url="https://github.com/BUPT-GAMMA/GammaGL",
-
     python_requires='>=3.7',
-
     packages=find_packages(),
-
     install_requires=install_requires,
+    classifiers=classifiers,
     include_package_data=True,
-
-    classifiers=classifiers
+    package_data={
+        "gammagl": ["*.json"]
+    }
 )
 
 # python setup.py build_ext --inplace

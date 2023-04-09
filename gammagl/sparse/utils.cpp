@@ -1,12 +1,13 @@
-#include <random>
-#include <ctime>
+#include "utils.h"
 
-long long uniform_randint(long long low, long long high) {
+
+
+int64_t uniform_randint(int64_t low, int64_t high) {
     srand(time(0));
     return rand() % (high - low) + low;
 }
 
-long long uniform_randint(long long high) {
+int64_t uniform_randint(int64_t high) {
     srand(time(0));
     return rand() % high;
 }

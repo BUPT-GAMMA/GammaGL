@@ -1,4 +1,9 @@
-#include "convert.h"
+/**
+ * @Description TODO
+ * @Author WuJing
+ * @Created 2023/4/4
+ */
+
 #include "neighbor_sample.h"
 
 using namespace std;
@@ -15,32 +20,32 @@ py::dict from_dict(phmap::flat_hash_map<string, vector<T>> &map) {
     return dict;
 }
 
-py::tuple neighbor_sample(py::array_t<long long> colptr, py::array_t<long long> row,
-                          py::array_t<long long> input_node, const vector<long long> num_neighbors,
+py::tuple neighbor_sample(Tensor colptr, Tensor row,
+                          Tensor input_node, const vector<int64_t> &num_neighbors,
                           bool replace,
                           bool directed) {
 
     // Initialize some data structures for the sampling process:
-    vector<long long> samples;
-    phmap::flat_hash_map<long long, long long> to_local_node;
+    vector<int64_t> samples;
+    phmap::flat_hash_map<int64_t, int64_t> to_local_node;
 
     auto colptr_data = colptr.mutable_unchecked();
     auto row_data = row.mutable_unchecked();
     auto input_node_data = input_node.mutable_unchecked();
 
 
-    for (long long i = 0; i < input_node_data.size(); i++) {
-        const long long &v = input_node_data(i);
+    for (int64_t i = 0; i < input_node_data.size(); i++) {
+        const int64_t &v = input_node_data(i);
         samples.push_back(v);
         to_local_node.insert({v, i});
     }
 
-    vector<long long> rows, cols, edges;
+    vector<int64_t> rows, cols, edges;
 
-    long long begin = 0, end = samples.size();
-    for (long long ell = 0; ell < (long long) num_neighbors.size(); ell++) {
+    int64_t begin = 0, end = samples.size();
+    for (int64_t ell = 0; ell < (int64_t) num_neighbors.size(); ell++) {
         const auto &num_samples = num_neighbors[ell];
-        for (long long i = begin; i < end; i++) {
+        for (int64_t i = begin; i < end; i++) {
             const auto &w = samples[i];
             const auto &col_start = colptr_data(w);
             const auto &col_end = colptr_data(w + 1);
@@ -50,8 +55,8 @@ py::tuple neighbor_sample(py::array_t<long long> colptr, py::array_t<long long> 
                 continue;
 
             if ((num_samples < 0) || (!replace && (num_samples >= col_count))) {
-                for (long long offset = col_start; offset < col_end; offset++) {
-                    const long long &v = row_data(offset);
+                for (int64_t offset = col_start; offset < col_end; offset++) {
+                    const int64_t &v = row_data(offset);
                     const auto res = to_local_node.insert({v, samples.size()});
                     if (res.second)
                         samples.push_back(v);
@@ -62,9 +67,9 @@ py::tuple neighbor_sample(py::array_t<long long> colptr, py::array_t<long long> 
                     }
                 }
             } else if (replace) {
-                for (long long j = 0; j < num_samples; j++) {
-                    const long long offset = col_start + uniform_randint(col_count);
-                    const long long &v = row_data(offset);
+                for (int64_t j = 0; j < num_samples; j++) {
+                    const int64_t offset = col_start + uniform_randint(col_count);
+                    const int64_t &v = row_data(offset);
                     const auto res = to_local_node.insert({v, samples.size()});
                     if (res.second)
                         samples.push_back(v);
@@ -75,15 +80,15 @@ py::tuple neighbor_sample(py::array_t<long long> colptr, py::array_t<long long> 
                     }
                 }
             } else {
-                unordered_set<long long> rnd_indices;
-                for (long long j = col_count - num_samples; j < col_count; j++) {
-                    long long rnd = uniform_randint(j);
+                unordered_set<int64_t> rnd_indices;
+                for (int64_t j = col_count - num_samples; j < col_count; j++) {
+                    int64_t rnd = uniform_randint(j);
                     if (!rnd_indices.insert(rnd).second) {
                         rnd = j;
                         rnd_indices.insert(j);
                     }
-                    const long long offset = col_start + rnd;
-                    const long long &v = row_data(offset);
+                    const int64_t offset = col_start + rnd;
+                    const int64_t &v = row_data(offset);
                     const auto res = to_local_node.insert({v, samples.size()});
                     if (res.second)
                         samples.push_back(v);
@@ -99,12 +104,12 @@ py::tuple neighbor_sample(py::array_t<long long> colptr, py::array_t<long long> 
     }
 
     if (!directed) {
-        phmap::flat_hash_map<long long, long long>::iterator iter;
-        for (long long i = 0; i < (long long) samples.size(); i++) {
+        phmap::flat_hash_map<int64_t, int64_t>::iterator iter;
+        for (int64_t i = 0; i < (int64_t) samples.size(); i++) {
             const auto &w = samples[i];
             const auto &col_start = colptr_data(w);
             const auto &col_end = colptr_data(w + 1);
-            for (long long offset = col_start; offset < col_end; offset++) {
+            for (int64_t offset = col_start; offset < col_end; offset++) {
                 const auto &v = row_data(offset);
                 iter = to_local_node.find(v);
                 if (iter != to_local_node.end()) {
@@ -126,7 +131,7 @@ py::tuple hetero_neighbor_sample(
         const unordered_map<rel_t, tensor> &row_dict,
         const unordered_map<node_t, tensor> &input_node_dict,
         const unordered_map<rel_t, tensor> &num_neighbors_dict,
-        const long long num_hops,
+        int64_t num_hops,
         bool replace = false,
         bool directed = false
 ) {
@@ -316,5 +321,13 @@ py::tuple hetero_neighbor_sample(
             from_dict<int64_t>(cols_dict),
             from_dict<int64_t>(edges_dict)
     );
+
+}
+
+PYBIND11_MODULE(_neighbor_sample, m) {
+    m.doc() = "gammagl sparse neighbor_sample";
+    m.def("c_neighbor_sample", &neighbor_sample);
+    m.def("c_hetero_neighbor_sample", &hetero_neighbor_sample);
+
 
 }

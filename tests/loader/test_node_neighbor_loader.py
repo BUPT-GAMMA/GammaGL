@@ -51,13 +51,15 @@ def test_homogeneous_neighbor_loader(directed=True):
     for batch in loader:
         assert isinstance(batch, Graph)
 
+        batch = all_to_numpy(batch)
+
         assert batch.x.shape[0] <= 100
         assert batch.batch_size == 20
-        assert tlx.reduce_min(batch.x) >= 0 and tlx.reduce_max(batch.x) < 100
-        assert tlx.reduce_min(batch.edge_index) >= 0
-        assert tlx.reduce_max(batch.edge_index) < batch.num_nodes
-        assert tlx.reduce_min(batch.edge_attr) >= 0
-        assert tlx.reduce_max(batch.edge_attr) < 500
+        assert batch.x.min() >= 0 and batch.x.max() < 100
+        assert batch.edge_index.min() >= 0
+        assert batch.edge_index.max() < batch.num_nodes
+        assert batch.edge_attr.min() >= 0
+        assert batch.edge_attr.max() < 500
 
         assert is_subset(batch.edge_index, edge_index, batch.x, batch.x)
 
@@ -159,5 +161,7 @@ def test_heterogeneous_neighbor_loader(directed=True):
                          graph['author', 'paper'].edge_index,
                          batch['author'].x - 100, batch['paper'].x)
 
+
 if __name__ == '__main__':
+    test_homogeneous_neighbor_loader()
     test_heterogeneous_neighbor_loader()

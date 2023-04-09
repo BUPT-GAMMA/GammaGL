@@ -7,9 +7,8 @@ import tensorlayerx as tlx
 from typing import Union
 
 from gammagl.data import HeteroGraph
-from gammagl.loader.utils import filter_graph, filter_hetero_graph
+from gammagl.loader.utils import filter_graph, filter_hetero_graph, DataLoaderIter
 from gammagl.sampler.neighbor_sampler import SamplerOutput, HeteroSamplerOutput
-from gammagl.loader.hetero_sampler import DataLoaderIterator
 from gammagl.loader.utils import get_input_nodes_index
 
 
@@ -96,7 +95,7 @@ class NodeLoader(DataLoader):
         return graph
 
     def _get_iterator(self):
-        return DataLoaderIterator(super()._get_iterator(), self.filter_fn)
+        return DataLoaderIter(super()._get_iterator(), self.filter_fn)
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}()'

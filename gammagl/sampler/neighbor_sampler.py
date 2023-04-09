@@ -108,12 +108,9 @@ class NeighborSampler(BaseSampler):
 
     def _sample(self, seed, **kwargs):
         if issubclass(self.data_cls, Graph):
-
-            if isinstance(seed, (tuple, list)):
-                seed = tlx.convert_to_numpy(seed)
             out = gammagl.sparse.convert.neighbor_sample(
                 self.colptr,
-                tlx.convert_to_numpy(self.row),
+                self.row,
                 seed,  # seed
                 self.num_neighbors,
                 self.replace,
@@ -123,11 +120,6 @@ class NeighborSampler(BaseSampler):
 
             return SamplerOutput(node, row, col, edge, batch)
         elif issubclass(self.data_cls, HeteroGraph):
-
-            self.nodecolptr_dict_types = all_to_numpy(self.colptr_dict)
-            self.colptr_dict = all_to_numpy(self.colptr_dict)
-            self.row_dict = all_to_numpy(self.row_dict)
-            seed = all_to_numpy(seed)
 
             out = gammagl.sparse.convert.hetero_neighbor_sample(
                 self.node_types,
@@ -141,11 +133,6 @@ class NeighborSampler(BaseSampler):
                 self.directed,
             )
             node, row, col, edge, batch = out + (None,)
-            node = all_to_tensor(node)
-            row = all_to_tensor(row)
-            col = all_to_tensor(col)
-            edge = all_to_tensor(edge)
-            batch = all_to_tensor(batch)
 
             return HeteroSamplerOutput(node,
                                        remap_keys(row, self.to_edge_type),
@@ -209,11 +196,11 @@ class SamplerOutput:
     metadata = None
 
     def __init__(self, node, row, col, edge, batch=None):
-        self.node = node if tlx.is_tensor(node) else tlx.convert_to_tensor(node)
-        self.row = row if tlx.is_tensor(row) else tlx.convert_to_tensor(row)
-        self.col = col if tlx.is_tensor(col) else tlx.convert_to_tensor(col)
-        self.edge = edge if tlx.is_tensor(edge) else tlx.convert_to_tensor(edge)
-        self.batch = batch if batch is None or tlx.is_tensor(batch) else tlx.convert_to_tensor(batch)
+        self.node = node
+        self.row = row
+        self.col = col
+        self.edge = edge
+        self.batch = batch
 
 
 @dataclass
@@ -221,8 +208,8 @@ class HeteroSamplerOutput:
     metadata = None
 
     def __init__(self, node: Dict, row: Dict, col: Dict, edge: Dict, batch=None):
-        self.node = all_to_tensor(node)
-        self.row = all_to_tensor(row)
-        self.col = all_to_tensor(col)
-        self.edge = all_to_tensor(edge)
-        self.batch = all_to_tensor(batch)
+        self.node = node
+        self.row = row
+        self.col = col
+        self.edge = edge
+        self.batch = batch

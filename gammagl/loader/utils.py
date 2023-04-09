@@ -71,14 +71,13 @@ def node_process(src_graph: Union[NodeStorage, List[NodeStorage]], tar_graph, in
         tar_graph = tar_graph[0]
 
     if src_graph.num_nodes is not None:
-        tar_graph.num_nodes = tlx.numel(index)
+        tar_graph.num_nodes = tlx.convert_to_tensor(index.shape[0], dtype=index.dtype)
 
     for key, value in src_graph.items():
         if src_graph.is_node_attr(key):
             dim = src_graph._parent().__cat_dim__(key, value, src_graph)
             tar_graph[key] = tlx.gather(value, index, axis=dim)
     return src_graph
-
 
 
 def edge_process(src_graph: Union[EdgeStorage, List[EdgeStorage]], tar_graph, row, col, index, perm):
@@ -99,13 +98,13 @@ def edge_process(src_graph: Union[EdgeStorage, List[EdgeStorage]], tar_graph, ro
     return src_graph
 
 
-
-def get_input_nodes_index(graph: Union[Graph, HeteroGraph], input_nodes):
+def get_input_nodes_index(graph: Union[Graph, HeteroGraph], input_nodes=None):
     def to_index(index):
         if not tlx.is_tensor(index):
             return index
         if index.dtype == tlx.bool:
-            return tlx.convert_to_tensor(np.nonzero(tlx.convert_to_numpy(index))).reshape(-1)
+
+            return tlx.convert_to_tensor(np.reshape(np.nonzero(tlx.convert_to_numpy(index)), -1))
 
     if isinstance(graph, Graph):
         if input_nodes is None:
@@ -131,7 +130,8 @@ def to_csc(graph: Union[Graph, EdgeStorage], device, is_sorted):
             perm = tlx.argsort(tlx.add((col * graph.size(0)), row))
             row = tlx.gather(row, perm)
 
-        colptr = gammagl.sparse.convert.ind2ptr(tlx.convert_to_numpy(tlx.gather(col, perm)), graph.size(1))
+        # colptr = gammagl.sparse.convert.ind2ptr(tlx.convert_to_numpy(tlx.gather(col, perm)), graph.size(1))
+        colptr = gammagl.sparse.convert.ind2ptr(tlx.gather(col, perm), graph.size(1))
 
     else:
         row = tlx.zeros(0)

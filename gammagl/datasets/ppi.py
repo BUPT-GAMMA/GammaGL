@@ -7,17 +7,22 @@ import tensorlayerx as tlx
 import numpy as np
 from itertools import product
 from gammagl.data import Graph
+from gammagl.data import get_dataset_root
 from gammagl.utils import remove_self_loops
 
 
 class PPI(InMemoryDataset):
     url = 'https://data.dgl.ai/dataset/ppi.zip'
 
-    def __init__(self, root, split='train', transform=None, pre_transform=None,
+    def __init__(self, root=None, split='train', transform=None, pre_transform=None,
                  pre_filter=None):
 
         assert split in ['train', 'val', 'valid', 'test']
 
+        if root is None:
+            root = get_dataset_root()
+        else:
+            root = osp.join(get_dataset_root(), root)
         super().__init__(root, transform, pre_transform, pre_filter)
 
         if split == 'train':
@@ -84,4 +89,3 @@ class PPI(InMemoryDataset):
                 graph = Graph(edge_index=edge_index, x=x[mask], y=y[mask])
                 graph_list.append(graph)
             self.save_data(self.collate(graph_list), self.processed_paths[s])
-
