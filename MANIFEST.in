@@ -1,3 +1,2 @@
 include MANIFEST.in
-recursive-include gammagl *.*
-recursive-include third_party *.*
+recursive-include gammagl *.json
