@@ -54,6 +54,7 @@ def read_config():
     global dataset_root
 
     tlx.BACKEND = config_dict.get("tlx_backend") or config_default_dict.get("tlx_backend")
+    tlx.BACKEND = os.getenv("TL_BACKEND", tlx.BACKEND)
 
     dataset_path = config_dict.get("dataset_root") or config_default_dict.get("dataset_root")
     # '@' stands for ~/.ggl, remove it to use abs path
@@ -75,7 +76,7 @@ Gammagl Global Config Info:
     print(config_interpreter_str)
 
 
-def ggl_init():
+def global_config_init():
     init_config()
     read_config()
 
@@ -85,4 +86,4 @@ def get_dataset_root():
     return dataset_root
 
 
-ggl_init()
+global_config_init()
