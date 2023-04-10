@@ -2,6 +2,6 @@
 # from gammagl.data.graph import Graph
 # from gammagl.sparse.sparse_adj import SparseAdj
 
-__version__ = '0.0.1'
+__version__ = '0.2.0'
 
-from .data import ggl_init
+from .data import global_config_init
