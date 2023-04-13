@@ -14,9 +14,31 @@ from ..data import (
 
 from gammagl.utils import coalesce
 import numpy as np
+import pandas as pd
 
 
 class AMiner(InMemoryDataset):
+    r"""The heterogeneous AMiner dataset from the `"metapath2vec: Scalable
+    Representation Learning for Heterogeneous Networks"
+    <https://dl.acm.org/doi/pdf/10.1145/3097983.3098036>`_ paper, consisting of nodes from
+    type :obj:`"paper"`, :obj:`"author"` and :obj:`"venue"`.
+    Aminer is a heterogeneous graph containing three types of entities - author
+    (1,693,531 nodes), venue (3,883 nodes), and paper (3,194,405 nodes).
+    Venue categories and author research interests are available as ground
+    truth labels for a subset of nodes.
+
+    Args:
+        root (str): Root directory where the dataset should be saved.
+        transform (callable, optional): A function/transform that takes in an
+            :obj:`gammagl.data.HeteroGraph` object and returns a
+            transformed version. The data object will be transformed before
+            every access. (default: :obj:`None`)
+        pre_transform (callable, optional): A function/transform that takes in
+            an :obj:`gammagl.data.HeteroGraph` object and returns a
+            transformed version. The data object will be transformed before
+            being saved to disk. (default: :obj:`None`)
+    """
+
     url = 'https://www.dropbox.com/s/1bnz8r7mofx0osf/net_aminer.zip?dl=1'
     y_url = 'https://www.dropbox.com/s/nkocx16rpl4ydde/label.zip?dl=1'
 
@@ -47,8 +69,6 @@ class AMiner(InMemoryDataset):
         os.unlink(path)
 
     def process(self):
-        import pandas as pd
-
         data = HeteroGraph()
 
         # Get author labels.
