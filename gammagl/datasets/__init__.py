@@ -13,6 +13,7 @@ from .modelnet40 import ModelNet40
 from .dblp import DBLP
 from .ca_grqc import CA_GrQc
 from .zinc import ZINC
+from .aminer import AMiner
 
 __all__ = [
     'Amazon',
@@ -29,7 +30,8 @@ __all__ = [
     'ModelNet40',
     'DBLP',
     'CA_GrQc',
-    'ZINC'
+    'ZINC',
+    'AMiner'
 ]
 
 classes = __all__
