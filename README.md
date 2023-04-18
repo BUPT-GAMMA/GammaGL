@@ -29,6 +29,17 @@ Following [PyTorch Geometric(PyG)](https://github.com/pyg-team/pytorch_geometric
 <details>
 
 <summary>
+2023-04-01 paper accepted
+</summary>
+<br/>
+
+Our paper <i>GammaGL: A Multi-Backend Library for Graph Neural Networks</i> is accpeted at SIGIR 2023 resource paper track.
+
+</details>
+
+<details>
+
+<summary>
 2023-02-24 优秀孵化奖
 </summary>
 <br/>
@@ -398,3 +409,15 @@ GammaGL Team[GAMMA LAB] and Peng Cheng Laboratory.
 See more in [CONTRIBUTING](./CONTRIBUTING.md).
 
 Contribution is always welcomed. Please feel free to open an issue or email to tyzhao@bupt.edu.cn.
+
+## Cite GammaGL
+If you use GammaGL in a scientific publication, we would appreciate citations to the following paper:
+
+```
+@inproceedings{Liu2023gammagl,
+  title={GammaGL: A Multi-Backend Library for Graph Neural Networks},
+  author={Yaoqi Liu, Cheng Yang, Tianyu Zhao, Hui Han, Siyuan Zhang, Jing Wu, Guangyu Zhou, Hai Huang, Hui Wang, Chuan Shi},
+  booktitle={SIGIR},
+  year={2023}
+}
+```
