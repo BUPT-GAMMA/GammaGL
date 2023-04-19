@@ -1,0 +1,24 @@
+# 在mac m1（服务器太慢了 一个小时才跑了10组参数 就直接在自己笔记本运行了）
+# cora
+# tensorflow >81.7 torch用这个参数跑有时候也能到81，不稳定 paddle用这个跑的最好 平均>81.7 mindspore偶尔能跑到81.9，有时候又变成78，奇怪...
+# pubmed
+# tensorflow >78.8 torch和paddle平均在78(有时候可以到78.6) mindspore在78
+# parameters setting
+    parser = argparse.ArgumentParser()
+    # 0.001、0.01、0.1（0.1绝对不可，目前试下来0.01比较好）
+    parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
+    # cora 0.5-0.9（目前试下来0.9表现最好） pubmet 0.4-0.8
+    parser.add_argument("--drop_rate", type=float, default=0.9, help="drop_rate")
+    parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
+    parser.add_argument("--hidden_dim", type=int, default=32, help="dimention of hidden layers")  # 可调可不调 16\32\64
+    parser.add_argument("--num_layers", type=int, default=2, help="number of layers")  # 1、2 （2的表现更好）
+    parser.add_argument("--pseudo_dim", type=int, default=2, help="Pseudo coordinate dimensions in GMMConv, 2 for cora and 3 for pubmed")
+    parser.add_argument("--n_kernels", type=int, default=3, help="Number of kernels in GMMConv layer")
+    parser.add_argument("--l2_coef", type=float, default=5e-3, help="l2 loss coeficient")  # 1、2、5/-5、-4、-3
+    parser.add_argument('--dataset', type=str, default='cora', help='dataset')
+    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
+    parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
+    args = parser.parse_args()
+    main(args)
+
