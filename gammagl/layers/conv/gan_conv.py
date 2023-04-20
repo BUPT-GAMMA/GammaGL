@@ -8,20 +8,25 @@ from gammagl.datasets import Planetoid
 class MLP():
     def __init__(self,
                  channel_list=None,
-                 norm=True,
+                 norm=None,
                  dropout=0.0,
                  bias=True,
                  ):
         self.layers = tlx.nn.ModuleList()
         for i in range(1, len(channel_list)):
             if bias:
-                self.layers.append(tlx.layers.Linear(out_features=channel_list[i], in_features=channel_list[i - 1]))
+                self.layers.append(tlx.layers.Linear(out_features=channel_list[i], in_features=channel_list[i - 1],
+                                                     W_init='xavier_uniform'))
             else:
-                self.layers.append(tlx.layers.Linear(out_features=channel_list[i], in_features=channel_list[i - 1], b_init=None))
-
+                self.layers.append(tlx.layers.Linear(out_features=channel_list[i], in_features=channel_list[i - 1],
+                                                     W_init='xavier_uniform', b_init=None))
             if i < len(channel_list) - 1:
-                if norm:
-                    self.layers.append(tlx.nn.BatchNorm1d(gamma_init='ones'))
+                if norm and norm == 'batch':
+                    self.layers.append(tlx.nn.BatchNorm1d())
+                elif norm and norm == 'layer':
+                    self.layers.append(tlx.nn.LayerNorm())
+                elif norm and norm == 'instance':
+                    self.layers.append(tlx.nn.InstanceNormLayer())
                 self.layers.append(tlx.nn.ReLU())
                 self.layers.append(tlx.nn.Dropout(dropout))
 
@@ -75,9 +80,9 @@ class GANConv(MessagePassing):
                 expansion =2,
                 eps = 1e-7,
                 beta = 1.0,
-                beta_learn = False,
+                beta_learn = True,
                 p = 1.0,
-                p_learn = False
+                p_learn = True
                 ):
         super().__init__()
         if agg not in ['softmax', 'powermean', 'max', 'mean', 'sum']:
@@ -104,7 +109,8 @@ class GANConv(MessagePassing):
         for i in range(self.num_layers - 1):
             channels.append(self.out_channels * self.expansion)
         channels.append(self.out_channels)
-        self.mlp = MLP(channel_list=channels, dropout=0.5)
+        self.mlp = MLP(channel_list=channels)
+
 
     def message(self, x, edge_index, edge_weight=None):
         src, dst = edge_index[0], edge_index[1]
