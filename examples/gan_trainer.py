@@ -16,7 +16,7 @@ class SemiSpvzLoss(WithLoss):
         super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
 
     def forward(self, data, y):
-        logits = self.backbone_network(data['x'], data['edge_index'], None, data['num_nodes'])
+        logits = self.backbone_network(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
         train_logits = tlx.gather(logits, data['train_idx'])
         train_y = tlx.gather(data['y'], data['train_idx'])
         loss = self._loss_fn(train_logits, train_y)
@@ -46,7 +46,8 @@ def main(args):
     dataset = Planetoid(args.dataset_path, args.dataset)
     graph = dataset[0]
     edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=args.self_loops)
-    # edge_weight = tlx.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
+    edge_weight = tlx.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
+    edge_weight = tlx.reshape(edge_weight, shape=(tlx.get_tensor_shape(edge_weight)[0], 1))
 
     # for mindspore, it should be passed into node indices
     train_idx = mask_to_index(graph.train_mask)
@@ -55,6 +56,7 @@ def main(args):
 
     net = GANModel(feature_dim=dataset.num_node_features,
                    hidden_dim=args.hidden_dim,
+                   edge_dim=1,
                    num_class=dataset.num_classes,
                    num_layers=args.num_layers,
                    drop_rate=args.drop_rate,
@@ -72,23 +74,21 @@ def main(args):
         "x": graph.x,
         "y": graph.y,
         "edge_index": edge_index,
-        # "edge_weight": edge_weight,
+        "edge_weight": edge_weight,
         "train_idx": train_idx,
         "test_idx": test_idx,
         "val_idx": val_idx,
         "num_nodes": graph.num_nodes,
     }
-
     best_val_acc = 0
     for epoch in range(args.n_epoch):
         net.set_train()
         train_loss = train_one_step(data, graph.y)
         net.set_eval()
-        logits = net(data['x'], data['edge_index'], None, data['num_nodes'])
+        logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
         val_logits = tlx.gather(logits, data['val_idx'])
         val_y = tlx.gather(data['y'], data['val_idx'])
         val_acc = calculate_acc(val_logits, val_y, metrics)
-
         print("Epoch [{:0>3d}] ".format(epoch + 1) \
               + "  train loss: {:.4f}".format(train_loss.item()) \
               + "  val acc: {:.4f}".format(val_acc))
@@ -102,7 +102,7 @@ def main(args):
     if tlx.BACKEND == 'torch':
         net.to(data['x'].device)
     net.set_eval()
-    logits = net(data['x'], data['edge_index'], None, data['num_nodes'])
+    logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
     test_logits = tlx.gather(logits, data['test_idx'])
     test_y = tlx.gather(data['y'], data['test_idx'])
     test_acc = calculate_acc(test_logits, test_y, metrics)
@@ -111,12 +111,12 @@ def main(args):
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lr", type=float, default=0.03, help="learnin rate")
+    parser.add_argument("--lr", type=float, default=0.01, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=64, help="dimention of hidden layers")
     parser.add_argument("--drop_rate", type=float, default=0.5, help="drop_rate")
     parser.add_argument("--num_layers", type=int, default=2, help="number of layers")
-    parser.add_argument("--agg", type=str, default='powermean', help="select aggregation function.")
+    parser.add_argument("--agg", type=str, default='softmax', help="select aggregation function.")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
