@@ -13,6 +13,7 @@ from .jknet import JKNet
 from .han import HAN
 from .dgi import DGIModel
 from .grace import GraceModel
+from .grade import GRADE
 from .chebnet import ChebNetModel
 from .simplehgn import SimpleHGNModel
 from .fagcn import FAGCNModel
@@ -54,6 +55,7 @@ __all__ = [
     'HAN',
     'DGIModel',
     'GraceModel',
+    'GRADE',
     'ChebNetModel',
     'SimpleHGNModel',
     'FAGCNModel',
