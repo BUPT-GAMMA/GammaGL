@@ -43,12 +43,10 @@ def calculate_acc(logits, y, metrics):
 
 def main(args):
     # load datasets
-    # set_device(5)
     if str.lower(args.dataset) not in ['cora', 'pubmed']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     dataset = Planetoid(args.dataset_path, args.dataset)
     graph = dataset[0]
-    # print(graph)
 
     edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=args.self_loops)
 
@@ -56,23 +54,22 @@ def main(args):
     train_idx = mask_to_index(graph.train_mask)
     test_idx = mask_to_index(graph.test_mask)
     val_idx = mask_to_index(graph.val_mask)
-    # print(len(train_idx), len(test_idx), len(val_idx))
 
-    net = GMMModel(feature_dim=dataset.num_node_features,  # 1433
-                   hidden_dim=args.hidden_dim,  # 16
-                   num_class=dataset.num_classes,  # 7
-                   dim=args.pseudo_dim,  # 2
-                   n_kernels=args.n_kernels,  # 3
+    net = GMMModel(feature_dim=dataset.num_node_features,
+                   hidden_dim=args.hidden_dim,
+                   num_class=dataset.num_classes,
+                   dim=args.pseudo_dim,
+                   n_kernels=args.n_kernels,
                    drop_rate=args.drop_rate,
-                   num_layers=args.num_layers,  # 1
+                   num_layers=args.num_layers,
                    name="GMM")
 
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
     train_weights = net.trainable_weights
 
-    loss_func = SemiSpvzLoss(net, tlx.losses.softmax_cross_entropy_with_logits)  # loss
-    train_one_step = TrainOneStep(loss_func, optimizer, train_weights)  # 反向传播
+    loss_func = SemiSpvzLoss(net, tlx.losses.softmax_cross_entropy_with_logits)
+    train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
     # pseudo
     u, v = edge_index[0, :], edge_index[1, :]
@@ -119,31 +116,20 @@ def main(args):
     test_logits = tlx.gather(logits, data['test_idx'])
     test_y = tlx.gather(data['y'], data['test_idx'])
     test_acc = calculate_acc(test_logits, test_y, metrics)
-    """
-    file = open("print.txt", mode="a")
-    print("***********************************************", file=file)
-    print("n_kernels: ", args.n_kernels, "  lr: ", args.lr, "  l2_coef: ", args.l2_coef,
-          "  drop_rate: ", args.drop_rate, "  hidden_dim: ", args.hidden_dim, file=file)
-    print("Test acc:  {:.4f}".format(test_acc), file=file)
-    print("***********************************************\n", file=file)
-    file.close()
-    """
     print("Test acc:  {:.4f}".format(test_acc))
 
 
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    # 0.001、0.01、0.1（0.1绝对不可，目前试下来0.01比较好）
     parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
-    # cora 0.5-0.9（目前试下来0.9表现最好） pubmet 0.4-0.8
     parser.add_argument("--drop_rate", type=float, default=0.9, help="drop_rate")
     parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
-    parser.add_argument("--hidden_dim", type=int, default=32, help="dimention of hidden layers")  # 16\32\64 (32比较好)
-    parser.add_argument("--num_layers", type=int, default=2, help="number of layers")  # 1、2 （2的表现更好）
+    parser.add_argument("--hidden_dim", type=int, default=32, help="dimention of hidden layers")
+    parser.add_argument("--num_layers", type=int, default=2, help="number of layers")
     parser.add_argument("--pseudo_dim", type=int, default=2, help="Pseudo coordinate dimensions in GMMConv")
     parser.add_argument("--n_kernels", type=int, default=3, help="Number of kernels in GMMConv layer")
-    parser.add_argument("--l2_coef", type=float, default=5e-3, help="l2 loss coeficient")  # 1、2、5/-5、-4、-3(-3、-4好像都还可以)
+    parser.add_argument("--l2_coef", type=float, default=5e-3, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")

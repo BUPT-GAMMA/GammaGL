@@ -4,22 +4,28 @@ from gammagl.layers.conv import GMMConv
 
 
 class GMMModel(tlx.nn.Module):
-    r"""
-    Graph Convolutional Network proposed in `Semi-Supervised Classification with Graph Convolutional Networks`_.
+    r"""The Gaussian Mixture Model or MoNet from the `"Geometric deep learning on graphs
+        and manifolds using mixture model CNNs" <https://arxiv.org/abs/1611.08402>`_ paper
 
-    .. _Semi-Supervised Classification with Graph Convolutional Networks:
-        https://arxiv.org/pdf/1609.02907.pdf
-
-    Parameters
-    ----------
-        feature_dim (int): input feature dimension
-        hidden_dim (int): hidden dimension
-        num_class (int): number of classes
-        drop_rate (float): dropout rate
-        num_layers (int): number of layers
-        norm (str): apply the normalizer
-        name (str): model name
-    """
+        Parameters
+        ----------
+        feature_dim : int
+            input feature dimension
+        hidden_dim: int
+            hidden dimension
+        num_class : int
+            number of classes
+        dim : int
+            Dimensionality of pseudo-coordinte.
+        n_kernels : int
+            Number of kernels.
+        drop_rate : float
+            dropout rate
+        num_layers : int
+            number of layers
+        name : str
+            model name
+        """
 
     def __init__(self,
                  feature_dim,

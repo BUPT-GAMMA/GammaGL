@@ -25,6 +25,7 @@ from .film_conv import FILMConv
 from .edgeconv import EdgeConv
 from .hpn_conv import HPNConv
 from .hetero_wrapper import HeteroConv
+from .gmm_conv import GMMConv
 
 __all__ = [
     'MessagePassing',
@@ -44,7 +45,7 @@ __all__ = [
     'SimpleHGNConv',
     'FAGCNConv',
     'GPRConv',
-    'HyperGraphConv',
+    'HypergraphConv',
     'HGTConv',
     'MixHopConv',
     'HardGATConv',
@@ -55,6 +56,7 @@ __all__ = [
     'HPNConv',
     'GINConv',
     'HypergraphConv',
+    'GMMConv',
 
 ]
 
