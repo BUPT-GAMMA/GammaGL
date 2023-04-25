@@ -37,22 +37,24 @@ class MLP(tlx.nn.Module):
         return self.fc2(x)
 
 class GRADE(tlx.nn.Module):
-    r"""
-    Parameters
-    -----------
-    in_dim: int
-        Input feature size.
-    hid_dim: int
-        Hidden feature size.
-    out_dim: int
-        Output feature size.
-    num_layers: int
-        Number of the GNN encoder layers.
-    act_fn: nn.Module
-        Activation function.
-    temp: float
-        Temperature constant.
-    """
+    r"""The  GRAph contrastive learning for DEgree bias (GRADE) model from the
+        `"Uncovering the Structural Fairness in Graph Contrastive Learning"
+        <https://arxiv.org/abs/2210.03011>`_ paper.
+        Parameters
+        -----------
+        in_dim: int
+            Input feature size.
+        hid_dim: int
+            Hidden feature size.
+        out_dim: int
+            Output feature size.
+        num_layers: int
+            Number of the GNN encoder layers.
+        act_fn: nn.Module
+            Activation function.
+        temp: float
+            Temperature constant.
+     """
     def __init__(self, in_dim, hid_dim, out_dim, num_layers, act_fn, temp):
         super(GRADE, self).__init__()
         self.encoder = GCN(in_dim, hid_dim, act_fn, num_layers)
