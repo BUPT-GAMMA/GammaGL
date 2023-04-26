@@ -14,4 +14,3 @@ def test_ppi_dataset():
     assert len(val_dataset) == 2
     assert len(test_dataset) == 2
 
-test_ppi_dataset()

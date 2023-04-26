@@ -77,8 +77,8 @@ class ChebConv(MessagePassing):
     def __normal__(self, edge_index, num_nodes: Optional[int],
                    edge_weight, normalization: Optional[str],
                    lambda_max, batch=None):
-        edge_index, edge_weight = remove_self_loops(tlx.convert_to_numpy(edge_index),
-                                                    tlx.convert_to_numpy(edge_weight))
+        edge_index, edge_weight = remove_self_loops(edge_index,
+                                                    edge_weight)
         edge_index, edge_weight = get_laplacian(edge_index=tlx.convert_to_tensor(edge_index), num_nodes=num_nodes,
                                                 edge_weight=tlx.convert_to_tensor(edge_weight),
                                                 normalization=normalization)

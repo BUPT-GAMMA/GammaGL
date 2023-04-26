@@ -35,11 +35,15 @@ def unsorted_segment_max(x, segment_ids, num_segments=None):
 
 
 def segment_sum(x, segment_ids, num_segments=None):
+    if num_segments is None:
+        num_segments = int(segment_ids.asnumpy().max() + 1)
     op = P.UnsortedSegmentSum()
     return op(x, segment_ids, num_segments) # num_segments 只能是 int32
 
 
 def segment_mean(x, segment_ids, num_segments=None):
+    if num_segments is None:
+        num_segments = int(segment_ids.asnumpy().max() + 1)
     op = P.UnsortedSegmentSum()
     ones = ms.numpy.ones_like(x, dtype=x.dtype)
     numerator = op(x, segment_ids, num_segments)
@@ -48,5 +52,7 @@ def segment_mean(x, segment_ids, num_segments=None):
 
 
 def segment_max(x, segment_ids, num_segments=None):
+    if num_segments is None:
+        num_segments = int(segment_ids.asnumpy().max() + 1)
     op = P.UnsortedSegmentMax()
     return op(x, segment_ids, num_segments)

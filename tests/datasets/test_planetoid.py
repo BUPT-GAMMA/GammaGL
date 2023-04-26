@@ -21,12 +21,16 @@ def test_citeseer(get_dataset):
         assert tlx.reduce_sum(tlx.cast(data.train_mask, dtype=tlx.int64)) == 6 * 20
         assert tlx.reduce_sum(tlx.cast(data.val_mask, dtype=tlx.int64)) == 500
         assert tlx.reduce_sum(tlx.cast(data.test_mask, dtype=tlx.int64)) == 1000
-        assert tlx.reduce_sum(tlx.cast((data.train_mask & data.val_mask & data.test_mask), dtype=tlx.int64)) == 0
+        # [TODO] Mindspore do not support operators &
+        mask = tlx.logical_and(tlx.logical_and(data.train_mask, data.val_mask), data.test_mask)
+        assert tlx.reduce_sum(tlx.cast(mask, dtype=tlx.int64)) == 0
+        # assert tlx.reduce_sum(tlx.cast((data.train_mask & data.val_mask & data.test_mask), dtype=tlx.int64)) == 0
         assert list(data.batch.shape) == [data.num_nodes]
         assert list(data.ptr) == [0, data.num_nodes]
 
         assert data.has_isolated_nodes()
         assert not data.has_self_loops()
+        # [TODO] is_undirected needs tlx.argsort() 
         assert data.is_undirected()
 
 
@@ -36,7 +40,10 @@ def test_citeseer_with_full_split(get_dataset):
     assert tlx.reduce_sum(tlx.cast(data.val_mask, dtype=tlx.int64)) == 500
     assert tlx.reduce_sum(tlx.cast(data.test_mask, dtype=tlx.int64)) == 1000
     assert tlx.reduce_sum(tlx.cast(data.train_mask, dtype=tlx.int64)) == data.num_nodes - 1500
-    assert tlx.reduce_sum(tlx.cast((data.train_mask & data.val_mask & data.test_mask), dtype=tlx.int64)) == 0
+    # [TODO] Mindspore do not support operators &
+    mask = tlx.logical_and(tlx.logical_and(data.train_mask, data.val_mask), data.test_mask)
+    assert tlx.reduce_sum(tlx.cast(mask, dtype=tlx.int64)) == 0
+    # assert tlx.reduce_sum(tlx.cast((data.train_mask & data.val_mask & data.test_mask), dtype=tlx.int64)) == 0
 
 
 def test_citeseer_with_random_split(get_dataset):
@@ -46,4 +53,7 @@ def test_citeseer_with_random_split(get_dataset):
     assert tlx.reduce_sum(tlx.cast(data.train_mask, dtype=tlx.int64)) == dataset.num_classes * 11
     assert tlx.reduce_sum(tlx.cast(data.val_mask, dtype=tlx.int64)) == 29
     assert tlx.reduce_sum(tlx.cast(data.test_mask, dtype=tlx.int64)) == 41
-    assert tlx.reduce_sum(tlx.cast((data.train_mask & data.val_mask & data.test_mask), dtype=tlx.int64)) == 0
+    # [TODO] Mindspore do not support operators &
+    mask = tlx.logical_and(tlx.logical_and(data.train_mask, data.val_mask), data.test_mask)
+    assert tlx.reduce_sum(tlx.cast(mask, dtype=tlx.int64)) == 0
+    # assert tlx.reduce_sum(tlx.cast((data.train_mask & data.val_mask & data.test_mask), dtype=tlx.int64)) == 0

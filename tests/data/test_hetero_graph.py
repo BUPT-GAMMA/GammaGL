@@ -252,8 +252,8 @@ def test_to_homogeneous_and_vice_versa():
     edge_index2 = out['paper', 'author'].edge_index
     assert tlx.convert_to_numpy(edge_index1).tolist() == tlx.convert_to_numpy(edge_index2).tolist()
     assert np.allclose(
-        data['paper', 'author'].edge_weight,
-        out['paper', 'author'].edge_weight,
+        tlx.convert_to_numpy(data['paper', 'author'].edge_weight),
+        tlx.convert_to_numpy(out['paper', 'author'].edge_weight),
     )
     assert np.allclose(
         tlx.convert_to_numpy(data['paper', 'author'].edge_attr),
@@ -348,4 +348,3 @@ def test_hetero_data_to_canonical():
 
     with pytest.raises(TypeError, match="missing 1 required"):
         data['user', 'product']
-

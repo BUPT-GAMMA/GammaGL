@@ -3,10 +3,8 @@ import numpy as np
 from gammagl.mpops import unsorted_segment_mean
 from gammagl.utils import degree
 
-
-def homophily(edge_index, y, batch=None,
-              method: str = 'edge'):
-	r"""The homophily of a graph characterizes how likely nodes with the same
+def homophily(edge_index, y, batch=None, method: str = 'edge'): 
+    r"""The homophily of a graph characterizes how likely nodes with the same 
     label are near each other in a graph.
     There are many measures of homophily that fits this definition.
     In particular:
@@ -61,57 +59,59 @@ def homophily(edge_index, y, batch=None,
         >>> homophily(edge_index, y, method='edge_insensitive')
         0.19999998807907104
     """
-	assert method in {'edge', 'node', 'edge_insensitive'}
-	if tlx.is_tensor(edge_index):
-		edge_index = tlx.convert_to_numpy(edge_index)
-	if tlx.is_tensor(y):
-		y = tlx.convert_to_numpy(y)
-	y = np.squeeze(y, axis=-1) if y.ndim > 1 else y
+    assert method in {'edge', 'node', 'edge_insensitive'}
+    if tlx.is_tensor(edge_index):
+        edge_index = tlx.convert_to_numpy(edge_index)
+    if tlx.is_tensor(y):
+        y = tlx.convert_to_numpy(y)
+    y = np.squeeze(y, axis=-1) if y.ndim > 1 else y
 
-	row, col = edge_index[0], edge_index[1]
+    row, col = edge_index[0], edge_index[1]
 
-	if method == 'edge':
-		out = np.zeros(row.shape[0])
-		out[y[row] == y[col]] = 1.
-		if batch is None:
-			return float(out.mean())
-		else:
-			out = tlx.convert_to_tensor(out)
-			col = tlx.convert_to_tensor(col)
-			batch = tlx.convert_to_tensor(batch)
-			return unsorted_segment_mean(out, tlx.gather(batch, col))
+    if method == 'edge':
+        out = np.zeros(row.shape[0])
+        out[y[row] == y[col]] = 1.
+        if batch is None:
+            return float(out.mean())
+        else:
+            out = tlx.convert_to_tensor(out)
+            col = tlx.convert_to_tensor(col)
+            batch = tlx.convert_to_tensor(batch)
+            return unsorted_segment_mean(out, tlx.gather(batch, col))
 
-	elif method == 'node':
-		out = np.zeros(row.shape[0])
-		out[y[row] == y[col]] = 1.
-		out = unsorted_segment_mean(tlx.convert_to_tensor(out), tlx.convert_to_tensor(col))
-		if batch is None:
-			return float(tlx.reduce_mean(out))
-		else:
-			return unsorted_segment_mean(out, batch)
+    elif method == 'node':
+        out = np.zeros(row.shape[0])
+        out[y[row] == y[col]] = 1.
+        
+        out = unsorted_segment_mean(tlx.convert_to_tensor(out), tlx.convert_to_tensor(col))
+        print(out)
+        if batch is None:
+            return float(tlx.reduce_mean(out))
+        else:
+            return unsorted_segment_mean(out, batch)
 
-	elif method == 'edge_insensitive':
-		assert y.ndim == 1
-		num_classes = int(y.max()) + 1
-		assert num_classes >= 2
-		if batch is None:
-			batch = np.zeros_like(y)
-		elif tlx.is_tensor(batch):
-			batch = tlx.convert_to_numpy(batch)
-		num_nodes = tlx.convert_to_numpy(degree(batch))
-		num_graphs = num_nodes.size
-		batch = num_classes * batch + y
+    elif method == 'edge_insensitive':
+        assert y.ndim == 1
+        num_classes = int(y.max()) + 1
+        assert num_classes >= 2
+        if batch is None:
+            batch = np.zeros_like(y)
+        elif tlx.is_tensor(batch):
+            batch = tlx.convert_to_numpy(batch)
+        num_nodes = tlx.convert_to_numpy(degree(batch))
+        num_graphs = num_nodes.size
+        batch = num_classes * batch + y
 
-		h = tlx.convert_to_numpy(homophily(edge_index, y, batch, method='edge'))
-		h = np.reshape(h, [num_graphs, num_classes])
+        h = tlx.convert_to_numpy(homophily(edge_index, y, batch, method='edge'))
+        h = np.reshape(h, [num_graphs, num_classes])
 
-		counts = np.bincount(batch, minlength=num_classes * num_graphs)
-		counts = np.reshape(counts, [num_graphs, num_classes])
-		proportions = counts / np.reshape(num_nodes, [-1, 1])
+        counts = np.bincount(batch, minlength=num_classes * num_graphs)
+        counts = np.reshape(counts, [num_graphs, num_classes])
+        proportions = counts / np.reshape(num_nodes, [-1, 1])
 
-		out = np.clip((h - proportions), a_min=0, a_max=None).sum(axis=-1)
-		out /= num_classes - 1
-		return out if out.size > 1 else float(out)
+        out = np.clip((h - proportions), a_min=0, a_max=None).sum(axis=-1)
+        out /= num_classes - 1
+        return out if out.size > 1 else float(out)
 
-	else:
-		raise NotImplementedError
+    else:
+        raise NotImplementedError

@@ -52,4 +52,3 @@ def test_to_dense_batch():
     # out, mask = to_dense_batch(x, batch, batch_size=4)
     # assert out.size() == (4, 3, 2)
     
-test_to_dense_batch()
