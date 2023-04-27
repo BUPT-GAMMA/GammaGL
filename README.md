@@ -377,8 +377,10 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [VGAE [NeurIPS 2016]](./examples/vgae)           | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [HCHA [PR 2021]](./examples/hcha)                |                    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [Node2Vec [KDD 2016]](./examples/node2vec)       | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [DeepWalk [KDD 2014]](./examples/deepwalk)       | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [DGCNN [ACM T GRAPHIC 2019]](./examples/dgcnn)   | :heavy_check_mark: | :heavy_check_mark: |                    |                    |
-
+| [GaAN [UAI 2018]](./examples/gaan)               | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [GRADE [NeurIPS 2022]](./examples/grade)         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 
 | Contrastive Learning                           | TensorFlow         | PyTorch            | Paddle             | MindSpore |
 | ---------------------------------------------- | ------------------ | ------------------ | ------------------ | --------- |
