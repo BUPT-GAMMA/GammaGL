@@ -7,10 +7,10 @@ import tensorlayerx as tlx
 import argparse
 from gammagl.models.grade import GRADE
 from aug import degree_aug
-from utils import load,linear_clf
-from tensorlayerx.nn.layers.activation import ReLU,PRelu
+from utils import load, linear_clf
+from tensorlayerx.nn.layers.activation import ReLU, PRelu
 from tensorlayerx.model import TrainOneStep, WithLoss
-from gammagl.utils.corrupt_graph import add_self_loops,dfde_norm_g
+from gammagl.utils.corrupt_graph import add_self_loops, dfde_norm_g
 from warnings import filterwarnings
 filterwarnings("ignore")
 
@@ -18,9 +18,9 @@ filterwarnings("ignore")
 class Unsupervised_Loss(WithLoss):
     def __init__(self, model):
         super(Unsupervised_Loss, self).__init__(backbone=model, loss_fn=None)
-  
-    def forward(self, data,label):
-        loss = self._backbone(data['feat1'], data['edge1'],data['feat2'], data['edge2'])
+
+    def forward(self, data, label):
+        loss = self._backbone(data['feat1'], data['edge1'], data['feat2'], data['edge2'])
         return loss
 
 def main(args):
@@ -41,7 +41,7 @@ def main(args):
     epochs = args.epochs
     wd = args.wd
 
-    edge_index, feat, labels, train_mask, test_mask, degree,num_nodes = load(args.dataset, args.mode,args.dataset_path)
+    edge_index, feat, labels, train_mask, test_mask, degree, num_nodes = load(args.dataset, args.mode, args.dataset_path)
     in_dim = tlx.get_tensor_shape(feat)[1]
 
     model = GRADE(in_dim, hid_dim, out_dim, num_layers, act_fn, temp)
@@ -58,20 +58,20 @@ def main(args):
             graph2 = dfde_norm_g(edge_index, feat, drop_feature_rate_2,
                                  drop_edge_rate_2)
         else:
-            added_loop_edge_index,_ = add_self_loops(edge_index)
+            added_loop_edge_index, _ = add_self_loops(edge_index)
             embeds = model.get_embedding(feat,added_loop_edge_index)
             graph1, graph2 = degree_aug(edge_index, feat, embeds, degree,
                                         drop_feature_rate_1, drop_edge_rate_1,
-                                        drop_feature_rate_2,drop_edge_rate_2,
-                                        args.threshold,num_nodes)
+                                        drop_feature_rate_2, drop_edge_rate_2,
+                                        args.threshold, num_nodes)
         data = {"feat1":graph1.x, "edge1": graph1.edge_index,
                 "feat2":graph2.x, "edge2": graph2.edge_index}
         loss = train_one_step(data, label=None)
         print(f'Epoch={epoch+1}, loss={loss.item():.4f}')
     print("=== Final ===")
     model.set_eval()
-    added_loop_edge_index,_ = add_self_loops(edge_index)
-    embeds = model.get_embedding(feat,added_loop_edge_index)
+    added_loop_edge_index, _ = add_self_loops(edge_index)
+    embeds = model.get_embedding(feat, added_loop_edge_index)
     '''Evaluation Embeddings'''
     linear_clf(embeds, labels, tlx.convert_to_numpy(train_mask), tlx.convert_to_numpy(test_mask), degree, args.dataset)
 

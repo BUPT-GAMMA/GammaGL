@@ -104,7 +104,7 @@ def load(name, mode,path):
 
     graph = dataset[0]
     num_nodes = graph.num_nodes
-    edge_index=graph.edge_index
+    edge_index = graph.edge_index
     feat = graph.x
     labels = graph.y
     degree=tlx.convert_to_numpy(graph.out_degree)
@@ -113,13 +113,13 @@ def load(name, mode,path):
     # get nodes of which 0<degree<50
     idx_test = [i for i in range(num_nodes) if degree[i]>0 and degree[i]<50]
     #get 1000 nodes for testing
-    if name=='cora':
+    if name == 'cora':
         idx_test = idx_test[1400:2400]
-    if name=='citeseer':
+    if name == 'citeseer':
         idx_test = idx_test[:1000]
-    if name=='photo':
+    if name == 'photo':
         idx_test = idx_test[1000:2000]
-    if name=='computers':
+    if name == 'computers':
         idx_test = idx_test[2000:3000]
 
     # all nodes for training
@@ -131,12 +131,12 @@ def load(name, mode,path):
         for j in range(num_class):
             idx_train.extend([i for i,x in enumerate(labels) if x==j and i not in idx_test][:50])
 
-    train_mask=np.zeros(shape=[num_nodes],dtype=bool)
-    train_mask[idx_train]=True
-    test_mask=np.zeros(shape=[num_nodes],dtype=bool)
-    test_mask[idx_test]=True
-    train_mask=tlx.convert_to_tensor(train_mask,dtype=tlx.bool)
-    test_mask=tlx.convert_to_tensor(test_mask,dtype=tlx.bool)
+    train_mask = np.zeros(shape=[num_nodes],dtype=bool)
+    train_mask[idx_train] = True
+    test_mask = np.zeros(shape=[num_nodes],dtype=bool)
+    test_mask[idx_test] = True
+    train_mask = tlx.convert_to_tensor(train_mask,dtype=tlx.bool)
+    test_mask = tlx.convert_to_tensor(test_mask,dtype=tlx.bool)
     return edge_index, feat, labels, train_mask, test_mask, degree,num_nodes
 
 

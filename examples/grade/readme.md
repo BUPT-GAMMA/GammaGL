@@ -86,7 +86,7 @@ TL_BACKEND=torch python grade_trainer.py --dataset computers --mode full --hid_d
 ## Note!
 * In the original paper, the first 1000 nodes with degrees greater than 0 and less than 50 are selected as the testing set. However, since GammaGL and DGL use different node order when loading the same dataset,
 the nodes in the testing set are not the same. Since the partitioning of datasets will have a great impact on the evaluation of model performance, we fail to reproduce the same performance mentioned in the paper. For the same reason, the performance can not be reproduced by using pytorch_geometric.
-* Because tensorlayerx lacks some operations(e.g. torch.multinomial, torch.repeat_interleave), We use numpy instead. Therefore, it takes longer time to train our model than the author's code. 
+* Because tensorlayerx lacks some operations(e.g. torch.multinomial, torch.repeat_interleave), We use numpy instead. Therefore, it takes longer time to train our model than the author's code.
 * We recommend using the author's code for model comparison. https://github.com/BUPT-GAMMA/Uncovering-the-Structural-Fairness-in-Graph-Contrastive-Learning
 ## 	Performance
 
