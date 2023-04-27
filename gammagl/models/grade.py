@@ -1,27 +1,26 @@
 import tensorlayerx as tlx
 from gammagl.layers.conv import GCNConv
-import numpy as np
 
 
 # Multi-layer Graph Convolutional Networks
 class GCN(tlx.nn.Module):
-    def __init__(self,in_dim, out_dim,act_fn, num_layers = 2):
+    def __init__(self, in_dim, out_dim, act_fn, num_layers = 2):
         super(GCN, self).__init__()
         assert num_layers>=2
         self.num_layers=num_layers
         self.convs=tlx.nn.ModuleList()
 
-        self.convs.append(GCNConv(in_dim,out_dim*2))
+        self.convs.append(GCNConv(in_dim, out_dim*2))
         for _ in range(self.num_layers-2):
-            self.convs.append(GCNConv(out_dim*2,out_dim*2))
+            self.convs.append(GCNConv(out_dim*2, out_dim*2))
 
-        self.convs.append(GCNConv(out_dim*2,out_dim))
+        self.convs.append(GCNConv(out_dim*2, out_dim))
         self.act_fn=act_fn
 
 
-    def forward(self, feat,edge_index):
+    def forward(self, feat, edge_index):
         for i in range(self.num_layers):
-            feat=self.act_fn(self.convs[i](feat,edge_index))
+            feat=self.act_fn(self.convs[i](feat, edge_index))
         return feat
 
 # Multi-layer(2-layer) Perceptron
@@ -74,7 +73,7 @@ class GRADE(tlx.nn.Module):
 
         return loss
 
-    def get_sim(self,z1,z2):
+    def get_sim(self, z1, z2):
         '''
             Compute the similarity matix
             '''
@@ -82,11 +81,11 @@ class GRADE(tlx.nn.Module):
         z2 = tlx.ops.l2_normalize(z2, axis=1)
         return tlx.ops.matmul(z1, tlx.ops.transpose(z2))
 
-    def get_embedding(self,feat,edge):
+    def get_embedding(self, feat, edge):
         # get embeddings from the model for evaluation
-        h=self.encoder(feat,edge)
+        h = self.encoder(feat, edge)
         # h.detach()
-        h=tlx.convert_to_tensor(tlx.convert_to_numpy(h),dtype=tlx.float32)
+        h = tlx.convert_to_tensor(tlx.convert_to_numpy(h), dtype=tlx.float32)
         return h
 
     def forward(self, feat1, edge1, feat2, edge2):
