@@ -5,10 +5,11 @@ gammagl.loader
 
 .. autosummary::
     :nosignatures:
-    {% for cls in gammagl.loader.classes %}
-      {{ cls }}
-    {% endfor %}
+    :toctree: ../generated
+    :template: autosummary/loader_class.rst
 
-.. automodule:: gammagl.loader
-    :members:
-    :undoc-members:
+    gammagl.loader.DataLoader
+    gammagl.loader.Neighbor_Sampler
+    gammagl.loader.Neighbor_Sampler_python
+    gammagl.loader.Hetero_Neighbor_Sampler
+    gammagl.loader.RandomWalk

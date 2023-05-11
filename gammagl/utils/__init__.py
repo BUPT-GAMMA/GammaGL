@@ -33,7 +33,7 @@ __all__ = [
     'to_dense_batch',
     'k_hop_subgraph',
     'negative_sampling',
-    'to_scipy_sparse_matrix'
+    'to_scipy_sparse_matrix',
     'read_embeddings',
     'homophily'
 

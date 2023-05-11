@@ -47,9 +47,9 @@ __all__ = [
     'SimpleHGNConv',
     'FAGCNConv',
     'GPRConv',
-    'HypergraphConv',
     'HGTConv',
     'MixHopConv',
+    'HypergraphConv',
     'HardGATConv',
     'PNAConv',
     'FILMConv',
@@ -57,7 +57,6 @@ __all__ = [
     'EdgeConv',
     'HPNConv',
     'GINConv',
-    'HypergraphConv',
     'GMMConv',
 
 ]
