@@ -14,7 +14,7 @@ __all__ = [
     'SIGN',
     'NormalizeFeatures',
     'DropEdge',
-    'RandomLinkSplit'
+    'RandomLinkSplit',
     'mask_test_edges',
     'sparse_to_tuple'
 

@@ -5,10 +5,15 @@ gammagl.transforms
 
 .. autosummary::
     :nosignatures:
-    {% for cls in gammagl.transforms.classes %}
-      {{ cls }}
-    {% endfor %}
+    :toctree: ../generated
+    :template: autosummary/transforms_class.rst
 
-.. automodule:: gammagl.transforms
-    :members:
-    :undoc-members:
+    gammagl.transforms.BaseTransform
+    gammagl.transforms.AddMetaPaths
+    gammagl.transforms.Compose
+    gammagl.transforms.SIGN
+    gammagl.transforms.NormalizeFeatures
+    gammagl.transforms.DropEdge
+    gammagl.transforms.RandomLinkSplit
+    gammagl.transforms.mask_test_edges
+    gammagl.transforms.sparse_to_tuple
