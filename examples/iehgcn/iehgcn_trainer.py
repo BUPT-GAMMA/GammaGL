@@ -150,16 +150,16 @@ def main(args):
     logits = net(data['x_dict'], data['edge_index_dict'], data['num_nodes_dict'])
     test_logits = tlx.gather(logits[targetType[str.lower(args.dataset)]], data['test_idx'])
     test_y = tlx.gather(data['y'], data['test_idx'])
-    if os.environ['TL_BACKEND'] == 'torch':
-        test_logits = test_logits.detach().numpy()
-    else:
-        test_logits = test_logits.numpy()
+
+    # test_logits = test_logits.detach().numpy()  # torch
+    test_logits = test_logits.numpy()
+
     import numpy as np
     test_logits = np.argmax(test_logits, axis=1)
-    if os.environ['TL_BACKEND'] == 'torch':
-        test_y = test_y.detach().numpy()
-    else:
-        test_y = test_y.numpy()
+
+    # test_y = test_y.detach().numpy()  # torch
+    test_y = test_y.numpy()
+
     from sklearn.metrics import f1_score
     macro_f1 = f1_score(y_true=test_y, y_pred=test_logits, average='macro')
     micro_f1 = f1_score(y_true=test_y, y_pred=test_logits, average='micro')
