@@ -110,7 +110,7 @@ extensions = [
 
 ]
 
-install_requires = ['numpy', 'scipy', 'pytest', 'cython', 'tensorlayerx', 'pybind11']
+install_requires = ['numpy', 'scipy', 'pytest', 'cython', 'tensorlayerx', 'rich', 'tqdm', 'pybind11']
 
 classifiers = [
     'Development Status :: 3 - Alpha',
