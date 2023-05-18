@@ -172,7 +172,7 @@ if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset, not work")
-    parser.add_argument('--dataset', type=str, default='DBLP', help='dataset, IMDB or DBLP')
+    parser.add_argument('--dataset', type=str, default='IMDB', help='dataset, IMDB or DBLP')
     parser.add_argument("--lr", type=float, default=0.005, help="learning rate")
     parser.add_argument("--n_epoch", type=int, default=25, help="number of epoch")
     parser.add_argument("--num_layers", type=int, default=3, help="number of layers")
