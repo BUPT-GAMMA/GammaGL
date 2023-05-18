@@ -3,7 +3,9 @@
 # @created 2023/3/2
 
 import copy
+import random
 
+import numba
 import numpy as np
 import tensorlayerx as tlx
 from typing import Union, Dict, Set, Optional, Any, Tuple, List
@@ -11,7 +13,8 @@ from typing import Union, Dict, Set, Optional, Any, Tuple, List
 import gammagl
 from gammagl.data import Graph, HeteroGraph
 from gammagl.data.storage import EdgeStorage, NodeStorage
-from gammagl.sparse.convert import ind2ptr
+from gammagl.ops.sparse import ind2ptr
+from gammagl.utils.platform_utils import all_to_numpy
 
 
 class DataLoaderIter:
@@ -100,24 +103,25 @@ def edge_process(src_graph: Union[EdgeStorage, List[EdgeStorage]], tar_graph, ro
 
 def get_input_nodes_index(graph: Union[Graph, HeteroGraph], input_nodes=None):
     def to_index(index):
-        if not tlx.is_tensor(index):
-            return index
         if index.dtype == tlx.bool:
-
             return tlx.convert_to_tensor(np.reshape(np.nonzero(tlx.convert_to_numpy(index)), -1))
+        return index
 
     if isinstance(graph, Graph):
         if input_nodes is None:
             return None, range(graph.num_nodes)
         return None, to_index(input_nodes)
 
-    if isinstance(graph, HeteroGraph):
-        assert input_nodes is not None
-
-        # if isinstance(input_nodes, str):
-        #     return input_nodes, range(graph[input_nodes].num_nodes)
-        assert isinstance(input_nodes, str)
+    if isinstance(input_nodes, str):
         return input_nodes, range(graph[input_nodes].num_nodes)
+    assert isinstance(input_nodes, (list, tuple))
+    assert len(input_nodes) == 2
+    assert isinstance(input_nodes[0], str)
+
+    node_type, input_nodes = input_nodes
+    if input_nodes is None:
+        return node_type, range(graph[node_type].num_nodes)
+    return node_type, to_index(input_nodes)
 
 
 # csc format
@@ -130,8 +134,7 @@ def to_csc(graph: Union[Graph, EdgeStorage], device, is_sorted):
             perm = tlx.argsort(tlx.add((col * graph.size(0)), row))
             row = tlx.gather(row, perm)
 
-        # colptr = gammagl.sparse.convert.ind2ptr(tlx.convert_to_numpy(tlx.gather(col, perm)), graph.size(1))
-        colptr = gammagl.sparse.convert.ind2ptr(tlx.gather(col, perm), graph.size(1))
+        colptr = gammagl.ops.sparse.ind2ptr(tlx.gather(col, perm), graph.size(1))
 
     else:
         row = tlx.zeros(0)
@@ -150,7 +153,7 @@ def to_csr(graph: Union[Graph, EdgeStorage], device, is_sorted):
             perm = tlx.argsort(tlx.add((row * graph.size(1)), col))
             col = tlx.gather(col, perm)
 
-        rowptr = gammagl.sparse.convert.ind2ptr(tlx.convert_to_numpy(tlx.gather(row, perm)), graph.size(0))
+        rowptr = gammagl.ops.sparse.ind2ptr(tlx.convert_to_numpy(tlx.gather(row, perm)), graph.size(0))
 
     else:
         col = tlx.zeros(0)
@@ -175,3 +178,60 @@ def remap_keys(original: Dict, mapping: Dict, exclude: Optional[Set[Any]] = None
         (k if k in exclude else mapping[k]): v
         for k, v in original.items()
     }
+
+
+###
+@numba.njit(cache=True)
+def _random_walk(node, length, indptr, indices, p=0.0):
+    result = [numba.int32(0)] * length
+    result[0] = numba.int32(node)
+    i = numba.int32(1)
+    _node = node
+    _start = indptr[_node]
+    _end = indptr[_node + 1]
+    while i < length:
+        start = indptr[node]
+        end = indptr[node + 1]
+        sample = random.randint(start, end - 1)
+        node = indices[sample]
+        if np.random.uniform(0, 1) > p:
+            result[i] = node
+        else:
+            sample = random.randint(_start, _end - 1)
+            node = indices[sample]
+            result[i] = node
+        i += 1
+    return np.array(result, dtype=np.int32)
+
+
+@numba.njit(cache=True, parallel=True)
+def random_walk_parallel(start, length, indptr, indices, num_walks, p):
+    result = [np.zeros(length, dtype=np.int32)] * len(start) * num_walks
+    start_len = len(start)
+    for i in numba.prange(start_len):
+        for j in range(num_walks):
+            result[j * start_len + i] = _random_walk(start[i], length, indptr, indices, p)
+    return result
+
+
+def csr_tuple(graph):
+    indptr, indices, perm = to_csr(graph, None, False)
+    indptr = all_to_numpy(indptr)
+    indices = all_to_numpy(indices)
+    return indptr, indices, perm
+
+
+# csr_cache: avoid repeat csr computation
+def rw_sample(graph, start, walk_length, num_walks=1, p=0, csr_cache=None):
+    if csr_cache is None:
+        indptr, indices, perm = csr_tuple(graph)
+    else:
+        indptr, indices, perm = csr_cache
+    start = all_to_numpy(start)
+    result = random_walk_parallel(start, walk_length, indptr, indices, num_walks, p)
+    return result
+
+
+def rw_sample_by_edge_index(edge_index, start, walk_length, num_walks=1, p=0, csr_cache=None):
+    graph = Graph(edge_index=edge_index)
+    return rw_sample(graph, start, walk_length, num_walks, p, csr_cache)

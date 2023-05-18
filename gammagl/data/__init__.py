@@ -6,7 +6,7 @@ from .download import download_url
 from .in_memory_dataset import InMemoryDataset
 from .extract import extract_zip, extract_tar
 
-from .utils import global_config_init, get_dataset_root
+from .utils import global_config_init
 
 __all__ = [
     'BaseGraph',
@@ -19,7 +19,6 @@ __all__ = [
     'extract_zip',
     'extract_tar',
     'global_config_init',
-    'get_dataset_root'
 ]
 
 classes = __all__

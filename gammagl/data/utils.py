@@ -6,12 +6,11 @@ import tensorlayerx as tlx
 import json
 import os
 import os.path as osp
-
 from typing import Dict, Union
-
-home_path = osp.expanduser("~")
-ggl_dirname = ".ggl"
-ggl_path = osp.join(home_path, ggl_dirname)
+import hashlib
+_home_path = osp.expanduser("~")
+_ggl_dirname = ".ggl"
+ggl_path = osp.join(_home_path, _ggl_dirname)
 dataset_root = ""
 config_default_dict: Union[Dict, None] = None
 config_dict: Union[Dict, None] = None
@@ -86,4 +85,38 @@ def get_dataset_root():
     return dataset_root
 
 
+def get_dataset_meta_path():
+    global ggl_path
+    dataset_meta_path = osp.join(ggl_path, 'dataset_meta.json')
+    if not osp.exists(dataset_meta_path):
+        with open(dataset_meta_path, 'w') as f:
+            json.dump(dict(), f)
+    return dataset_meta_path
+
+
+def get_ggl_path():
+    global ggl_path
+    return ggl_path
+
+
 global_config_init()
+
+
+# toolkit
+def md5sum(filename):
+    """计算文件的MD5值"""
+    md5 = hashlib.md5()
+    with open(filename, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b''):
+            md5.update(chunk)
+    return md5.hexdigest()
+
+
+def md5folder(folder):
+    """ Calculate Dataset Dir MD5"""
+    md5 = hashlib.md5()
+    for root, dirs, files in os.walk(folder):
+        for file in files:
+            filepath = os.path.join(root, file)
+            md5.update(md5sum(filepath).encode('utf-8'))
+    return md5.hexdigest()

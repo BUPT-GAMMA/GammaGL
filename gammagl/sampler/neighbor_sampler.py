@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # @author WuJing
 # @created 2023/3/2
-from typing import List, Dict
+from typing import List, Dict, Optional, Any
 import numpy as np
-import gammagl.sparse.convert
+import gammagl
 from gammagl.loader.utils import to_hetero_csc
 from gammagl.loader.utils import to_csc, remap_keys
 from gammagl.sampler.base_sampler import BaseSampler
@@ -13,7 +13,8 @@ import tensorlayerx as tlx
 from dataclasses import dataclass
 import random
 import gammagl.ops
-from gammagl.utils.platform_utils import all_to_tensor, all_to_numpy
+from gammagl.typing import NodeType
+from gammagl.utils.platform_utils import Tensor, EdgeType
 
 
 def add_negative_samples(
@@ -108,7 +109,7 @@ class NeighborSampler(BaseSampler):
 
     def _sample(self, seed, **kwargs):
         if issubclass(self.data_cls, Graph):
-            out = gammagl.sparse.convert.neighbor_sample(
+            out = gammagl.ops.sparse.neighbor_sample(
                 self.colptr,
                 self.row,
                 seed,  # seed
@@ -116,12 +117,20 @@ class NeighborSampler(BaseSampler):
                 self.replace,
                 self.directed,
             )
-            node, row, col, edge, batch = out + (None,)
 
-            return SamplerOutput(node, row, col, edge, batch)
+            node, row, col, edge = out
+            batch = None
+
+            return SamplerOutput(
+                node=node,
+                row=row,
+                col=col,
+                edge=edge,
+                batch=batch)
+
         elif issubclass(self.data_cls, HeteroGraph):
 
-            out = gammagl.sparse.convert.hetero_neighbor_sample(
+            out = gammagl.ops.sparse.hetero_neighbor_sample(
                 self.node_types,
                 self.edge_types,
                 self.colptr_dict,
@@ -132,19 +141,21 @@ class NeighborSampler(BaseSampler):
                 self.replace,
                 self.directed,
             )
-            node, row, col, edge, batch = out + (None,)
+            node, row, col, edge = out
+            batch = None
 
-            return HeteroSamplerOutput(node,
-                                       remap_keys(row, self.to_edge_type),
-                                       remap_keys(col, self.to_edge_type),
-                                       remap_keys(edge, self.to_edge_type),
-                                       batch)
+            return HeteroSamplerOutput(node=node,
+                                       row=remap_keys(row, self.to_edge_type),
+                                       col=remap_keys(col, self.to_edge_type),
+                                       edge=remap_keys(edge, self.to_edge_type),
+                                       batch=batch)
 
         else:
             raise TypeError(f"'{self.__class__.__name__}'' found invalid "
                             f"type: '{self.data_cls}'")
 
     def sample_from_nodes(self, index, **kwargs):
+
         if isinstance(index, (list, tuple)):
             index = tlx.convert_to_tensor(index)
 
@@ -193,23 +204,19 @@ class NeighborSampler(BaseSampler):
 
 @dataclass
 class SamplerOutput:
-    metadata = None
-
-    def __init__(self, node, row, col, edge, batch=None):
-        self.node = node
-        self.row = row
-        self.col = col
-        self.edge = edge
-        self.batch = batch
+    node: Tensor
+    row: Tensor
+    col: Tensor
+    edge: Tensor
+    batch: Optional[Tensor] = None
+    metadata: Optional[Any] = None
 
 
 @dataclass
 class HeteroSamplerOutput:
-    metadata = None
-
-    def __init__(self, node: Dict, row: Dict, col: Dict, edge: Dict, batch=None):
-        self.node = node
-        self.row = row
-        self.col = col
-        self.edge = edge
-        self.batch = batch
+    node: Dict[NodeType, Tensor]
+    row: Dict[EdgeType, Tensor]
+    col: Dict[EdgeType, Tensor]
+    edge: Dict[EdgeType, Tensor]
+    batch: Optional[Dict[NodeType, Tensor]] = None
+    metadata: Optional[Any] = None

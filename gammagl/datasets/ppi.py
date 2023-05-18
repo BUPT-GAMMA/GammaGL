@@ -7,7 +7,6 @@ import tensorlayerx as tlx
 import numpy as np
 from itertools import product
 from gammagl.data import Graph
-from gammagl.data import get_dataset_root
 from gammagl.utils import remove_self_loops
 
 
@@ -19,10 +18,6 @@ class PPI(InMemoryDataset):
 
         assert split in ['train', 'val', 'valid', 'test']
 
-        if root is None:
-            root = get_dataset_root()
-        else:
-            root = osp.join(get_dataset_root(), root)
         super().__init__(root, transform, pre_transform, pre_filter)
 
         if split == 'train':
@@ -31,14 +26,6 @@ class PPI(InMemoryDataset):
             self.data, self.slices = self.load_data(self.processed_paths[1])
         elif split == 'test':
             self.data, self.slices = self.load_data(self.processed_paths[2])
-
-    @property
-    def raw_dir(self) -> str:
-        return osp.join(self.root, 'ppi', 'raw')
-
-    @property
-    def processed_dir(self) -> str:
-        return osp.join(self.root, 'ppi', 'processed')
 
     @property
     def raw_file_names(self):

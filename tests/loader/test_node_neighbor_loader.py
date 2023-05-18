@@ -2,11 +2,13 @@
 # @author WuJing
 # @created 2023/3/27
 
+import tensorlayerx as tlx
+import numpy as np
 from gammagl.data import HeteroGraph
 from gammagl.data.graph import Graph
 from gammagl.data.storage import NodeStorage, EdgeStorage
 from gammagl.loader.node_neighbor_loader import NodeNeighborLoader
-from gammagl.utils.platform_utils import all_to_numpy
+from gammagl.utils.platform_utils import all_to_numpy, all_to_numpy_by_dict
 
 
 def randint(low, high, shape):
@@ -17,10 +19,6 @@ def get_edge_index(num_src_nodes, num_dst_nodes, num_edges):
     row = randint(0, num_src_nodes, (num_edges,))
     col = randint(0, num_dst_nodes, (num_edges,))
     return tlx.stack([row, col], axis=0)
-
-
-import tensorlayerx as tlx
-import numpy as np
 
 
 def is_subset(subedge_index, edge_index, src_idx, dst_idx):
@@ -113,7 +111,7 @@ def test_heterogeneous_neighbor_loader(directed=True):
         # Test node type selection:
         assert set(batch.node_types) == {'paper', 'author'}
         # ['paper', 'author', ('paper', 'paper'), ('paper', 'author'), ('author', 'author')]
-        all_to_numpy(batch, {
+        all_to_numpy_by_dict(batch, {
             HeteroGraph: ['paper', 'author', ('paper', 'paper'), ('paper', 'author'), ('author', 'paper')],
             NodeStorage: 'x',
             EdgeStorage: ['edge_index', 'edge_attr']
@@ -161,7 +159,3 @@ def test_heterogeneous_neighbor_loader(directed=True):
                          graph['author', 'paper'].edge_index,
                          batch['author'].x - 100, batch['paper'].x)
 
-
-if __name__ == '__main__':
-    test_homogeneous_neighbor_loader()
-    test_heterogeneous_neighbor_loader()

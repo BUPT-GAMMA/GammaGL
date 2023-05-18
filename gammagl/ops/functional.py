@@ -2,15 +2,13 @@
 # @author WuJing
 # @created 2023/3/22
 
-# from unique import unique_impl
-from gammagl.ops.include._unique import unique_impl
+
+from .tensor import unique as unique_impl
 
 
 def boolean_dispatch(arg_name, arg_index, default, if_true, if_false, module_name, func_name):
     """
     Dispatches to either of 2 script functions based on a boolean argument.
-    In TorchScript, the boolean argument must be constant so that the correct
-    function to use can be determined at compile time.
     """
 
     def fn(*args, **kwargs):
@@ -29,8 +27,7 @@ def boolean_dispatch(arg_name, arg_index, default, if_true, if_false, module_nam
 
 
 def _unique_impl(input, sorted=True, return_inverse=False, return_counts=False):
-    output, inverse, counts = unique_impl(input, sorted=sorted, return_inverse=return_inverse,
-                                          return_counts=return_counts)
+    output, inverse, counts = unique_impl(input, sorted, return_inverse, return_counts)
     return output, inverse, counts
 
 

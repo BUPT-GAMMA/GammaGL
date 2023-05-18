@@ -4,6 +4,8 @@
 # to cross platforms
 
 import typing
+from time import time
+
 import numpy as np
 from typing import List, Tuple, Dict, Union
 import tensorlayerx as tlx
@@ -18,27 +20,101 @@ class CommonTensor:
 
 Tensor = CommonTensor
 
+# typing
 
-def to_numpy_list(data_list):
-    if isinstance(data_list, (List, Tuple)):
-        data_list = list(data_list)
+NodeType = str
+EdgeType = Tuple[str, str, str]
+
+
+# Adj = Union[Tensor, SparseGraph]
+# OptTensor = typing.Optional[Tensor]
+# InputNodes = Union[OptTensor, NodeType, Tuple[NodeType, OptTensor]]
+# InputEdges = Union[OptTensor, EdgeType, Tuple[EdgeType, OptTensor]]
+# NumNeighbors = Union[List[int], Dict[EdgeType, List[int]]]
+
+
+# change all tensor data dtype to int64
+def with_dtype(data: Union[np.ndarray, Tensor], dtype):
+    if isinstance(data, np.ndarray):
+        return data.astype(dtype)
+    elif not Tensor.CHECK(data):
+        raise TypeError("Only ndarray and Tensor type could be cast dtype!")
+    else:
+        return tlx.cast(data, dtype)
+
+
+def as_int64(data: Union[np.ndarray, Tensor]):
+    return with_dtype(data, tlx.int64)
+
+
+def as_int32(data: Union[np.ndarray, Tensor]):
+    return with_dtype(data, tlx.int32)
+
+
+def as_float32(data: Union[np.ndarray, Tensor]):
+    return with_dtype(data, tlx.float32)
+
+
+def as_float64(data: Union[np.ndarray, Tensor]):
+    return with_dtype(data, tlx.float64)
+
+
+as_double = as_float64
+
+as_long = as_int64
+
+
+def to_numpy_list(data_list: List):
+    if isinstance(data_list, List):
         for i in range(len(data_list)):
             data_list[i] = all_to_numpy(data_list[i])
-        return tuple(data_list)
-    return all_to_numpy(data_list)
+    return data_list
 
 
-def to_tensor_list(data_list):
-    if isinstance(data_list, (List, Tuple)):
+# each element to tensor
+def to_tensor_list(data_list: List):
+    if isinstance(data_list, Tuple):
         data_list = list(data_list)
+    if isinstance(data_list, (List, np.ndarray)):
         for i in range(len(data_list)):
             data_list[i] = all_to_tensor(data_list[i])
-        return tuple(data_list)
-    return all_to_tensor(data_list)
+    return data_list
 
+
+# arr-like data to list
+def to_list(data: Union[np.ndarray, Tensor]):
+    if isinstance(data, np.ndarray):
+        return data.tolist()
+    elif Tensor.CHECK(data):
+        return all_to_numpy(data).tolist()
+    else:
+        return list(data)
 
 # keys_type for dict-like class (__get_item__)
-def all_to_numpy(data, data_to_keys: Dict[typing.Type, Union[str, List, Tuple]] = None):
+def all_to_numpy(data):
+    if data is None:
+        return data
+    elif isinstance(data, np.ndarray):
+        return data
+    elif isinstance(data, (List, Tuple)):
+        return np.array(data)
+    elif tlx.is_tensor(data):
+        return tlx.convert_to_numpy(data)
+    elif isinstance(data, Dict):
+        for k in data:
+            if tlx.is_tensor(data[k]):
+                data[k] = tlx.convert_to_numpy(data[k])
+        return data
+    elif hasattr(data, '__class__') and hasattr(data.__class__, '__iter__'):
+        for k, v in data:
+            data[k] = all_to_numpy(v)
+        return data
+    else:
+        return data
+
+    return data
+
+def all_to_numpy_by_dict(data, data_to_keys: Dict[typing.Type, Union[str, List, Tuple]] = None):
     if data is None:
         return data
     elif isinstance(data, np.ndarray):
@@ -65,23 +141,23 @@ def all_to_numpy(data, data_to_keys: Dict[typing.Type, Union[str, List, Tuple]] 
                             continue
                         elif len(key) == 1:
                             try:
-                                data[key[0], key[1]] = all_to_numpy(data[key[0]], data_to_keys=data_to_keys)
+                                data[key[0], key[1]] = all_to_numpy_by_dict(data[key[0]], data_to_keys=data_to_keys)
                             except:
                                 pass
 
                         elif len(key) == 2:
                             try:
-                                data[key[0], key[1]] = all_to_numpy(data[key[0], key[1]], data_to_keys=data_to_keys)
+                                data[key[0], key[1]] = all_to_numpy_by_dict(data[key[0], key[1]], data_to_keys=data_to_keys)
                             except:
                                 pass
                         elif len(key) == 3:
                             try:
-                                data[key[0], key[1], key[2]] = all_to_numpy(data[key[0], key[1], key[2]],
+                                data[key[0], key[1], key[2]] = all_to_numpy_by_dict(data[key[0], key[1], key[2]],
                                                                             data_to_keys=data_to_keys)
                             except:
                                 pass
                     try:
-                        data[key] = all_to_numpy(data[key], data_to_keys=data_to_keys)
+                        data[key] = all_to_numpy_by_dict(data[key], data_to_keys=data_to_keys)
                     except:
                         pass
         return data
@@ -106,14 +182,24 @@ def all_to_tensor(data, dtype=tlx.int64):
         for k in data:
             data[k] = all_to_tensor(data[k])
         return data
+    elif hasattr(data, '__class__') and hasattr(data.__class__, '__iter__'):
+        for k, v in data:
+            data[k] = all_to_tensor(v)
+        return data
     else:
         return data
 
 
 # convert input tensor to ndarray and convert output ndarray to tensor
-def ops_func(func):
+def out_tensor(func):
     def wrapper(*args):
-        out = func(*to_numpy_list(args))
-        return to_tensor_list(out)
+        return all_to_tensor(func(*args))
+    return wrapper
+
+
+# convert input tensor to ndarray and convert output ndarray to tensor
+def out_tensor_list(func):
+    def wrapper(*args):
+        return to_tensor_list(func(*args))
 
     return wrapper

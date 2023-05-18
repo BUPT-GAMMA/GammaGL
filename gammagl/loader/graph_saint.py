@@ -5,10 +5,9 @@
 
 import tensorlayerx as tlx
 from tensorlayerx.dataflow import DataLoader
-import gammagl
 from gammagl.data import Graph
 from gammagl.loader.utils import get_input_nodes_index
-from gammagl.sparse.python.graph import SparseGraph
+from gammagl.sparse.graph import SparseGraph
 from gammagl.ops import unique
 import numpy as np
 

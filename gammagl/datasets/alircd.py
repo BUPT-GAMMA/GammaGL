@@ -9,21 +9,21 @@ from tqdm import tqdm
 from gammagl.data import extract_zip, download_url, InMemoryDataset, HeteroGraph
 
 
-
-
 class AliRCD(InMemoryDataset):
     r"""
     """
     url = "https://s3.cn-north-1.amazonaws.com.cn/dgl-data/dataset/openhgnn/AliRCD_session1.zip"
 
-    def __init__(self, root, transform=None, pre_transform=None):
-        self.edge_size = 0
-        self.node_size = 0
+    def __init__(self, root=None, transform=None, pre_transform=None):
+        self.edge_size = 157814864
+        self.node_size = 13806619
         super().__init__(root, transform, pre_transform)
         self.data, self.slices = self.load_data(self.processed_paths[0])
+
     @property
     def raw_file_names(self):
         return ['AliRCD_session1_edges.csv', 'AliRCD_session1_nodes.csv', 'AliRCD_session1_train_labels.csv']
+
     @property
     def processed_file_names(self):
         return tlx.BACKEND + 'data.pt'
@@ -42,42 +42,47 @@ class AliRCD(InMemoryDataset):
         node_counts = self.node_size
 
         print("Start loading node information")
-        process = tqdm(total=node_counts)
-        with open(node_file, 'r') as rf:
-            while True:
-                line = rf.readline()
-                if line is None or len(line) == 0:
-                    break
-                info = line.strip().split(",")
+        # process = tqdm(total=node_counts)
+        with tqdm(total=node_counts, desc='Node Info') as pbar:
+            with open(node_file, 'r') as rf:
+                while True:
+                    line = rf.readline()
+                    if line is None or len(line) == 0:
+                        break
+                    info = line.strip().split(",")
 
-                node_id = int(info[0])
-                node_type = info[1].strip()
+                    node_id = int(info[0])
+                    node_type = info[1].strip()
 
-                node_maps.setdefault(node_type, {})
-                node_id_v2 = len(node_maps[node_type])
-                node_maps[node_type][node_id] = node_id_v2
+                    node_maps.setdefault(node_type, {})
+                    node_id_v2 = len(node_maps[node_type])
+                    node_maps[node_type][node_id] = node_id_v2
 
-                node_embeds.setdefault(node_type, {})
-                lack_num.setdefault(node_type, 0)
-                if node_type == 'item':
-                    if len(info[2]) < 50:
-                        node_embeds[node_type][node_id_v2] = np.zeros(256, dtype=np.float32)
-                        lack_num[node_type] += 1
+                    node_embeds.setdefault(node_type, {})
+                    lack_num.setdefault(node_type, 0)
+                    if node_type == 'item':
+                        if len(info[2]) < 50:
+                            node_embeds[node_type][node_id_v2] = np.zeros(256, dtype=np.float32)
+                            lack_num[node_type] += 1
+                        else:
+                            node_embeds[node_type][node_id_v2] = np.array([x for x in info[2].split(":")],
+                                                                          dtype=np.float32)
                     else:
-                        node_embeds[node_type][node_id_v2] = np.array([x for x in info[2].split(":")], dtype=np.float32)
-                else:
-                    if len(info[2]) < 50:
-                        node_embeds[node_type][node_id_v2] = np.zeros(256, dtype=np.float32)
-                        lack_num[node_type] += 1
-                    else:
-                        node_embeds[node_type][node_id_v2] = np.array([x for x in info[2].split(":")], dtype=np.float32)
+                        if len(info[2]) < 50:
+                            node_embeds[node_type][node_id_v2] = np.zeros(256, dtype=np.float32)
+                            lack_num[node_type] += 1
+                        else:
+                            node_embeds[node_type][node_id_v2] = np.array([x for x in info[2].split(":")],
+                                                                          dtype=np.float32)
 
-                count += 1
-                if count % 100000 == 0:
-                    process.update(100000)
+                    count += 1
+                    if count % 100000 == 0:
+                        pbar.update(100000)
 
-        process.update(self.node_size % 100000)
-        process.close()
+            # pbar.update(self.node_size % 100000)
+            pbar.update(count)
+
+            # process.close()
         print("Complete loading node information\n")
 
         print("Num of total nodes:", count)
@@ -110,7 +115,8 @@ class AliRCD(InMemoryDataset):
             # graph[node_type].x = tlx.convert_to_tensor(node_embeds[node_type].items())
             for nid, embedding in tqdm(node_embeds[node_type].items()):
                 graph[node_type].x[nid] = embedding
-            graph[node_type].x = tlx.convert_to_tensor(graph[node_type].x, tlx.float32)
+            # graph[node_type].x = tlx.convert_to_tensor(graph[node_type].x)
+            graph[node_type].x = graph[node_type].x
             graph[node_type].num_nodes = len(node_maps[node_type])
             graph[node_type].maps = node_maps[node_type]
 
@@ -126,10 +132,13 @@ class AliRCD(InMemoryDataset):
             train_idx = indices[train_val_random][:int(indices.shape[0] * 0.8)]
             val_idx = indices[train_val_random][int(indices.shape[0] * 0.8):int(indices.shape[0] * 0.9)]
             test_idx = indices[train_val_random][int(indices.shape[0] * 0.9):]
-            graph['item'].train_idx = tlx.convert_to_tensor(train_idx, tlx.int64)
-            graph['item'].val_idx = tlx.convert_to_tensor(val_idx, tlx.int64)
-            graph['item'].test_idx = tlx.convert_to_tensor(test_idx, tlx.int64)
-            graph['item'].y = tlx.convert_to_tensor(graph['item'].y)
+            # graph['item'].train_idx = tlx.convert_to_tensor(train_idx, tlx.int64)
+            # graph['item'].val_idx = tlx.convert_to_tensor(val_idx, tlx.int64)
+            # graph['item'].test_idx = tlx.convert_to_tensor(test_idx, tlx.int64)
+            graph['item'].train_idx = train_idx
+            graph['item'].val_idx = val_idx
+            graph['item'].test_idx = test_idx
+            graph['item'].y = graph['item'].y
         for ntype in graph.node_types:
             graph[ntype].n_id = tlx.arange(0, graph[ntype].num_nodes)
         print("Complete converting into GammaGL data\n")
@@ -144,36 +153,41 @@ class AliRCD(InMemoryDataset):
         graph = self.read_node_atts(node_file, label_file)
 
         print("Start loading edge information")
-        process = tqdm(total=self.edge_size)
-        edges = {}
-        count = 0
-        with open(edge_file, 'r') as rf:
-            while True:
-                line = rf.readline()
-                if line is None or len(line) == 0:
-                    break
-                line_info = line.strip().split(",")
-                source_id, dest_id, source_type, dest_type, edge_type = line_info
-                source_id = graph[source_type].maps[int(source_id)]
-                dest_id = graph[dest_type].maps[int(dest_id)]
-                edges.setdefault(edge_type, {})
-                edges[edge_type].setdefault('source', []).append(int(source_id))
-                edges[edge_type].setdefault('dest', []).append(int(dest_id))
-                edges[edge_type].setdefault('source_type', source_type)
-                edges[edge_type].setdefault('dest_type', dest_type)
-                count += 1
-                if count % 100000 == 0:
-                    process.update(100000)
-        process.update(self.edge_size % 100000)
-        process.close()
+
+        # process = tqdm(total=self.edge_size)
+        with tqdm(total=self.edge_size, desc='Edge Info') as pbar:
+            edges = {}
+            count = 0
+            with open(edge_file, 'r') as rf:
+                while True:
+                    line = rf.readline()
+                    if line is None or len(line) == 0:
+                        break
+                    line_info = line.strip().split(",")
+                    source_id, dest_id, source_type, dest_type, edge_type = line_info
+                    source_id = graph[source_type].maps[int(source_id)]
+                    dest_id = graph[dest_type].maps[int(dest_id)]
+                    edges.setdefault(edge_type, {})
+                    edges[edge_type].setdefault('source', []).append(int(source_id))
+                    edges[edge_type].setdefault('dest', []).append(int(dest_id))
+                    edges[edge_type].setdefault('source_type', source_type)
+                    edges[edge_type].setdefault('dest_type', dest_type)
+                    count += 1
+                    if count % 100000 == 0:
+                        pbar.update(100000)
+            pbar.update(self.edge_size % 100000)
+
+            # process.close()
         print('Complete loading edge information\n')
 
         print('Start converting edge information')
         for edge_type in edges:
             source_type = edges[edge_type]['source_type']
             dest_type = edges[edge_type]['dest_type']
-            source = tlx.convert_to_tensor(edges[edge_type]['source'], dtype=tlx.int64)
-            dest = tlx.convert_to_tensor(edges[edge_type]['dest'], dtype=tlx.int64)
+            # source = tlx.convert_to_tensor(edges[edge_type]['source'], dtype=tlx.int64)
+            # dest = tlx.convert_to_tensor(edges[edge_type]['dest'], dtype=tlx.int64)
+            source = edges[edge_type]['source']
+            dest = edges[edge_type]['dest']
             graph[(source_type, edge_type, dest_type)].edge_index = tlx.stack([source, dest])
 
         for edge_type in [('b', 'A_1', 'item'),
@@ -205,7 +219,9 @@ class AliRCD(InMemoryDataset):
         print("##########################################")
         print(f"### Complete generating GammaGL {tlx.BACKEND} graph")
         print("##########################################")
+        graph = graph.tensor()
         return graph
+
     def process(self):
         osp.join(self.raw_dir, self.raw_file_names[0])
         data = self.generate_ggl_graph(osp.join(self.raw_dir, self.raw_file_names[0]),
