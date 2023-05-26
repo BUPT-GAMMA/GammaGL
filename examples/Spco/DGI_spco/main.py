@@ -48,7 +48,7 @@ def coo_to_edge_index(coo_m):
 
 def sinkhorn(K, dist, sin_iter):
     # make the matrix sum to 1
-    u = np.ones([len(dist), 1]) / len(dist)  # dist 行列的数值分布
+    u = np.ones([len(dist), 1]) / len(dist)  # distribution
     K_ = sp.diags(1. / dist) * K
     dist = dist.reshape(-1, 1)
 
@@ -174,13 +174,13 @@ if __name__ == '__main__':
 
     #### SpCo ######
     theta = args.theta
-    delta = np.ones(adj.shape) * args.delta_origin  # 两两之间的权值全部初始增强为0.5。
+    delta = np.ones(adj.shape) * args.delta_origin
     delta_add = delta
     delta_dele = delta
     num_node = adj.shape[0]
     range_node = np.arange(num_node)
-    ori_graph = ori_g  # 原始图
-    new_graph = ori_g  # 增强图
+    ori_graph = ori_g
+    new_graph = ori_g
 
     new_adj = adj.tocsc()
     ori_attr = torch.Tensor(new_adj[new_adj.nonzero()])[0]
@@ -192,8 +192,8 @@ if __name__ == '__main__':
         model.train()
         optimizer.zero_grad()
 
-        graph1_, attr1, feat1 = random_aug(new_graph, new_attr, new_diag_attr, feat, args.dfr_1, args.der_1)  # 更新
-        graph2_, attr2, feat2 = random_aug(ori_graph, ori_attr, ori_diag_attr, feat, args.dfr_2, args.der_2)  # 不更新
+        graph1_, attr1, feat1 = random_aug(new_graph, new_attr, new_diag_attr, feat, args.dfr_1, args.der_1)
+        graph2_, attr2, feat2 = random_aug(ori_graph, ori_attr, ori_diag_attr, feat, args.dfr_2, args.der_2)
 
         graph1 = graph1_.edge_index.to(args.device)
         graph2 = graph2_.edge_index.to(args.device)
@@ -231,7 +231,7 @@ if __name__ == '__main__':
                     new_adj = adj + delta
 
                     new_edge_index = coo_to_edge_index(new_adj)
-                    new_graph = Graph(edge_index=new_edge_index)  # 更新图
+                    new_graph = Graph(edge_index=new_edge_index)
                     new_attr = torch.Tensor(new_adj[new_adj.nonzero()])[0]
                     new_diag_attr = torch.Tensor(new_adj[range_node, range_node])[0]
                 except IndexError:
@@ -250,9 +250,9 @@ if __name__ == '__main__':
                 new_adj = adj + delta
 
                 new_edge_index = coo_to_edge_index(new_adj)
-                new_graph = Graph(edge_index=new_edge_index)  # 更新图
-                new_attr = torch.Tensor(new_adj[new_adj.nonzero()])[0]  # 更新边权
-                new_diag_attr = torch.Tensor(new_adj[range_node, range_node])[0]  # 更新边权
+                new_graph = Graph(edge_index=new_edge_index)  # update edge_index
+                new_attr = torch.Tensor(new_adj[new_adj.nonzero()])[0]  # update weight
+                new_diag_attr = torch.Tensor(new_adj[range_node, range_node])[0]  # update self-loop weight
                 theta = update(1, epoch, args.epochs)
 
     print("=== Evaluation ===")

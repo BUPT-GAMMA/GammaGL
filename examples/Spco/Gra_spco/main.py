@@ -48,7 +48,7 @@ def coo_to_edge_index(coo_m):
 
 def sinkhorn(K, dist, sin_iter):
     # make the matrix sum to 1
-    u = np.ones([len(dist), 1]) / len(dist)  # dist 行列的数值分布
+    u = np.ones([len(dist), 1]) / len(dist)
     K_ = sp.diags(1. / dist) * K
     dist = dist.reshape(-1, 1)
 
@@ -177,13 +177,13 @@ if __name__ == '__main__':
 
     #### SpCo ######
     theta = args.theta
-    delta = np.ones(adj.shape) * args.delta_origin  # 两两之间的权值全部初始增强为0.5。
+    delta = np.ones(adj.shape) * args.delta_origin
     delta_add = delta
     delta_dele = delta
     num_node = adj.shape[0]
     range_node = np.arange(num_node)
-    ori_graph = ori_g  # 原始图
-    new_graph = ori_g  # 增强图
+    ori_graph = ori_g
+    new_graph = ori_g
 
     new_adj = adj.tocsc()
     ori_attr = torch.Tensor(new_adj[new_adj.nonzero()])[0]
@@ -254,9 +254,9 @@ if __name__ == '__main__':
                 new_adj = adj + delta
 
                 new_edge_index = coo_to_edge_index(new_adj)
-                new_graph = Graph(edge_index=new_edge_index)  # 更新图
-                new_attr = torch.Tensor(new_adj[new_adj.nonzero()])[0]  # 更新边权
-                new_diag_attr = torch.Tensor(new_adj[range_node, range_node])[0]  # 更新边权
+                new_graph = Graph(edge_index=new_edge_index)
+                new_attr = torch.Tensor(new_adj[new_adj.nonzero()])[0]
+                new_diag_attr = torch.Tensor(new_adj[range_node, range_node])[0]
                 theta = update(1, epoch, args.epochs)
 
     print("=== Evaluation ===")

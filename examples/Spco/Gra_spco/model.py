@@ -1,7 +1,6 @@
 import tensorlayerx as tlx
-from MyGCN import GCNConv
-from Grace import GraceModel
-
+from gammagl.layers.conv import GCNConv
+from gammagl.models import GraceModel
 
 class LogReg(tlx.nn.Module):
     def __init__(self, hid_dim, out_dim):

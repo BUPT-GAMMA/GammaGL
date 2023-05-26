@@ -1,8 +1,7 @@
 import os
 
 import tensorlayerx as tlx
-# from gammagl.layers.conv import GCNConv
-from MyGCN import GCNConv
+from gammagl.layers.conv import GCNConv
 import math
 import numpy as np
 

@@ -1,6 +1,5 @@
 import tensorlayerx as tlx
-# from gammagl.layers.conv import GCNConv
-from MyGCN import GCNConv
+from gammagl.layers.conv import GCNConv
 
 
 class LogReg(tlx.nn.Module):
@@ -70,7 +69,7 @@ class CCA_SSG(tlx.nn.Module):
         h1 = self.backbone(graph1, attr1, feat1)
         h2 = self.backbone(graph2, attr2, feat2)
 
-        z1 = (h1 - h1.mean(0)) / h1.std(0)  # 对结果进行标准正态化
+        z1 = (h1 - h1.mean(0)) / h1.std(0)
         z2 = (h2 - h2.mean(0)) / h2.std(0)
 
         return z1, z2
