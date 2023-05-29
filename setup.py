@@ -138,14 +138,14 @@ extensions = [
     # cpp_extension("gammagl/ops/sparse/", "rw", dep_src_list=["utils.cpp"]),
     # cpp_extension("gammagl/ops/tensor/", "unique"),
 
-    cpu_extension("sparse", "convert"),
-    # cpu_extension("sparse", "sample", dep_src_list=["utils.cpp"]),
-    # cpu_extension("sparse", "neighbor_sample", dep_src_list=["utils.cpp"],
+    # cpu_extension("sparse", "convert"),
+    # cpu_extension("sparse", "sample", dep_src_list=["sparse_utils.cpp"]),
+    # cpu_extension("sparse", "neighbor_sample", dep_src_list=["sparse_utils.cpp"],
     #               include_dirs=["third_party/parallel_hashmap/"]),
-    # cpu_extension("sparse", "saint", dep_src_list=["utils.cpp"]),
-    # cpu_extension("sparse", "rw", dep_src_list=["utils.cpp"]),
+    # cpu_extension("sparse", "saint", dep_src_list=["sparse_utils.cpp"]),
+    # cpu_extension("sparse", "rw", dep_src_list=["sparse_utils.cpp"]),
     # cpu_extension("tensor", "unique"),
-    cuda_extension("sparse", "convert")
+    # cuda_extension("sparse", "convert")
 
 ]
 
@@ -164,8 +164,8 @@ setup(
     maintainer="Tianyu Zhao",
     license="Apache-2.0 License",
     cmdclass={'build_ext': BuildExtension},
-    ext_modules=extensions,
-    # ext_modules=load_extensions(),
+    # ext_modules=extensions,
+    ext_modules=load_extensions(),
     description=" ",
     url="https://github.com/BUPT-GAMMA/GammaGL",
     download_url="https://github.com/BUPT-GAMMA/GammaGL",
