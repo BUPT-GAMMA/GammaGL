@@ -2,7 +2,7 @@ import tensorlayerx as tlx
 import numpy as np
 from collections import defaultdict
 from gammagl.utils.num_nodes import maybe_num_nodes
-from gammagl.loader.utils import rw_sample_by_edge_index
+
 
 
 class RandomWalk:
@@ -38,6 +38,7 @@ class RandomWalk:
             walks = node2vec_generate_random_walks(neighbor_dict, probs, edge_index, num_walks, walk_length)
 
         elif self.model == "deepwalk":
+            from gammagl.loader.rw_utils import rw_sample_by_edge_index
             walks = rw_sample_by_edge_index(edge_index, edge_index[0, :], walk_length, num_walks)
 
         return walks

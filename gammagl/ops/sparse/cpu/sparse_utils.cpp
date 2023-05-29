@@ -3,7 +3,7 @@
  * @Author: WuJing
  * @created: 2023-04-11
  */
-#include "../sparse_utils.h"
+#include "sparse_utils.h"
 
 //template<class T, class ...Args>
 //py::array_t<T> np_func(const char *func_name, Args ...args) {

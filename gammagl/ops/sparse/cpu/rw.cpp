@@ -4,7 +4,7 @@
  * @Created 2023/4/5
  */
 
-#include "../sparse.h"
+#include "sparse.h"
 
 Tensor random_walk(Tensor rowptr, Tensor col,
                    Tensor start, int64_t walk_length) {

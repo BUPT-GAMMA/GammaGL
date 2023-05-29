@@ -4,7 +4,7 @@
  * @Created 2023/4/10
  */
 
-#include "../sample.h"
+#include "sample.h"
 
 // Returns `rowptr`, `col`, `n_id`, `e_id`
 py::list

@@ -1,5 +1,5 @@
 #include "../../extensions.h"
-#include "../unique.h"
+#include "unique.h"
 
 
 PYBIND11_MODULE(_tensor, m) {

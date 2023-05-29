@@ -9,8 +9,8 @@
  * @Created 2023/4/4
  */
 
-#include "../saint.h"
-#include "../sparse_utils.h"
+#include "saint.h"
+#include "sparse_utils.h"
 
 py::list subgraph(Tensor idx, Tensor rowptr, Tensor row, Tensor col) {
 

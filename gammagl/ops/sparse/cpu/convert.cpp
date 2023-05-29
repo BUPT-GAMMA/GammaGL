@@ -4,12 +4,7 @@
  * @Created 2023/4/4
  */
 
-#include "../convert.h"
-//#include "neighbor_sample.h"
-//#include "saint.h"
-//#include "sparse.h"
-
-
+#include "convert.h"
 
 int calc_threads_num(int diff) {
     int total_num = std::thread::hardware_concurrency();

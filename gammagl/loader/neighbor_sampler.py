@@ -81,12 +81,10 @@ class NeighborSampler(tlx.dataflow.DataLoader):
 
         adjs = []
         n_id = batch
-        # start = time()
+
 
         for size in self.sizes:
-            start = time()
             adj_t, n_id = self.adj_t.sample_adj(n_id, size, replace=False)
-            # print(f'python算子 cost {time() - start}s')
 
             e_id = adj_t.storage.value()
             size = adj_t.sparse_sizes()[::-1]
@@ -98,17 +96,13 @@ class NeighborSampler(tlx.dataflow.DataLoader):
                 adjs.append(Adj(adj_t, e_id, size))
 
             else:
-                start = time()
                 row, col, _ = adj_t.coo()
-                # print(f'coo cost {time() - start}s')
 
                 edge_index = tlx.stack([col, row], axis=0)
                 adjs.append(EdgeIndex(edge_index, e_id, size))
 
-        # print(f'采样cost {time() - start}s')
 
         adjs = adjs[0] if len(adjs) == 1 else adjs[::-1]
-        # out = (batch_size, n_id, adjs)
         out = (batch, n_id, adjs)
         out = self.transform(*out) if self.transform is not None else out
 

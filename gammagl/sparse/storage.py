@@ -6,7 +6,7 @@ import warnings
 import numpy as np
 import tensorlayerx as tlx
 from typing import Tuple, Optional, List, Union
-import gammagl.ops
+import gammagl
 from gammagl.utils.platform_utils import all_to_numpy, Tensor
 
 

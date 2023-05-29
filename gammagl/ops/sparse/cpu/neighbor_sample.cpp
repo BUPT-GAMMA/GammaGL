@@ -4,7 +4,7 @@
  * @Created 2023/4/4
  */
 
-#include "../neighbor_sample.h"
+#include "neighbor_sample.h"
 
 using namespace std;
 using namespace pybind11::literals;

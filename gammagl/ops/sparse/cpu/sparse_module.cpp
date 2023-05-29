@@ -1,9 +1,9 @@
 #include "../../extensions.h"
-#include "../convert.h"
-#include "../neighbor_sample.h"
-#include "../saint.h"
-#include "../sample.h"
-#include "../sparse.h"
+#include "convert.h"
+#include "neighbor_sample.h"
+#include "saint.h"
+#include "sample.h"
+#include "sparse.h"
 
 PYBIND11_MODULE(_sparse, m) {
   m.doc() = "gammagl sparse ops";
