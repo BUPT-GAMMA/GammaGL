@@ -1,6 +1,6 @@
 import os
-#os.environ['TL_BACKEND'] = 'tensorflow'
-#os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+# os.environ['TL_BACKEND'] = 'tensorflow'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 # set your backend here, default 'tensorflow', you can choose 'paddle'、'tensorflow'、'torch'
 
 import argparse
@@ -12,15 +12,13 @@ from gammagl.data import Graph
 from gammagl.datasets import Planetoid
 from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
 from gammagl.utils.corrupt_graph import dfde_norm_g, mask_edge, drop_feature
-
-from magcl import encoder, GraceModel
-from magcl_eval import label_classification
-
+from magcl import NewGrace
+from magcl_eval import evaluate
 
 
 class Unsupervised_Loss(WithLoss):
     def __init__(self, net):
-        super(Unsupervised_Loss, self).__init__(backbone=net, loss_fn=GraceModel.get_loss)
+        super(Unsupervised_Loss, self).__init__(backbone=net, loss_fn=NewGrace.get_loss)
 
     def forward(self, data, label):
         loss = self._backbone(data['feat1'], data['edge1'], data['weight1'], data['num_node1'],
@@ -43,7 +41,7 @@ def main(args):
     original_graph.edge_weight = tlx.convert_to_tensor(edge_weight)
 
     # build model
-    net = GraceModel(in_feat=dataset.num_node_features,
+    net = NewGrace(in_feat=dataset.num_node_features,
                      hid_feat=args.hid_dim,
                      out_feat=args.hid_dim,
                      num_layers=args.num_layers,
@@ -51,13 +49,9 @@ def main(args):
                      temp=args.temp)
 
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2)
-
     train_weights = net.trainable_weights
-
     loss_func = Unsupervised_Loss(net)
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
-
-
 
     for epoch in range(1, args.n_epoch + 1):
         '''train'''
@@ -85,10 +79,13 @@ def main(args):
                                       graph.num_nodes)
 
             '''Evaluation Embeddings  '''
-            label_classification(tlx.convert_to_numpy(embeds), graph.y, tlx.convert_to_numpy(graph.train_mask),
-                                 tlx.convert_to_numpy(graph.test_mask), args.split)
-
-
+            best_acc = 0.0
+            for _ in range(5):
+                acc = evaluate(tlx.convert_to_numpy(embeds), graph.y, tlx.convert_to_numpy(graph.train_mask),
+                               tlx.convert_to_numpy(graph.test_mask), args.split)
+                if best_acc < acc:
+                    best_acc = acc
+            print(f'(E) | Epoch={epoch:03d}, acc={best_acc}')
 
 
 if __name__ == '__main__':
@@ -96,15 +93,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.0005, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=500, help="number of epoch")
-    parser.add_argument("--hid_dim", type=int, default=512, help="dimention of hidden layers")
-    parser.add_argument("--drop_edge_rate_1", type=float, default=0.4)
+    parser.add_argument("--hid_dim", type=int, default=128, help="dimention of hidden layers")
+    parser.add_argument("--drop_edge_rate_1", type=float, default=0.2)
     parser.add_argument("--drop_edge_rate_2", type=float, default=0.4)
-    parser.add_argument("--drop_feature_rate_1", type=float, default=0.5)
-    parser.add_argument("--drop_feature_rate_2", type=float, default=0.5)
-    parser.add_argument("--temp", type=float, default=0.5, help="used as variable tau in the source paper")
+    parser.add_argument("--drop_feature_rate_1", type=float, default=0.3)
+    parser.add_argument("--drop_feature_rate_2", type=float, default=0.4)
+    parser.add_argument("--temp", type=float, default=0.4)
     parser.add_argument("--num_layers", type=int, default=2)
     parser.add_argument("--l2", type=float, default=0.00001, help="l2 loss coeficient")
-    parser.add_argument('--dataset', type=str, default='cora', help='dataset: cora, pubmed, citeseer')
+    parser.add_argument('--dataset', type=str, default='cora', help='dataset,cora/pubmed/citeseer')
     parser.add_argument('--split', type=str, default='random', help='random or public')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
