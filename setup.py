@@ -11,33 +11,16 @@ from gammagl.utils.ggl_build_extension import BuildExtension, PyCudaExtension, P
 # TODO will depend on different host
 WITH_CUDA = False
 
-# class CustomBuildExt(_build_ext):
-#     """CustomBuildExt"""
-#
-#     def finalize_options(self):
-#         _build_ext.finalize_options(self)
-#         # Prevent numpy from thinking it is still in its setup process:
-#         __builtins__.__NUMPY_SETUP__ = False
-#         import numpy
-#         self.include_dirs.append(numpy.get_include())
-#
-#     def build_extensions(self):
-#         self.compiler.parallel_compile = 8
-#         super().build_extensions()
 
 
-compile_extra_args = []
 
-# if platform.system() == 'Windows':
-#     compile_extra_args.append('/std:c++17')
-# else:
-#     compile_extra_args.append('-std=c++17')
+
 
 ext_root = osp.join("gammagl", "ops")
 
 
 # multi cpu modules for development
-def cpu_extension(ext_lib, module, dep_src_list=[], **kwargs):
+def CPUExtension(ext_lib, module, dep_src_list=[], **kwargs):
     ext_dir = osp.join(ext_root, ext_lib)
     if len(dep_src_list) != 0 and not (dep_src_list[0].endswith('.cpp') or dep_src_list[0].endswith('.cc')):
         raise NameError("Not a valid source name")
@@ -56,7 +39,7 @@ def cpu_extension(ext_lib, module, dep_src_list=[], **kwargs):
 
 
 # multi cuda modules for development
-def cuda_extension(ext_lib, module, dep_src_list=[], **kwargs):
+def CUDAExtension(ext_lib, module, dep_src_list=[], **kwargs):
     ext_dir = osp.join(ext_root, ext_lib)
     if len(dep_src_list) != 0 \
             and (not dep_src_list[0].endswith('.cu')
@@ -80,7 +63,9 @@ def cuda_extension(ext_lib, module, dep_src_list=[], **kwargs):
 link_extra_args = []
 
 
-# [osp.join(osp.abspath('.'), f) for f in os.listdir(osp.abspath('.'))]
+def is_src_file(filename:str):
+    return filename.endswith("cpp") \
+        or filename.endswith("cu")
 
 
 # Start to include cuda ops, if no cuda found, will only compile cpu ops
@@ -103,7 +88,7 @@ def load_extensions():
         for ops_type in ops_types:
             is_cuda_ext = ops_type == "cuda"
             src_dir = osp.join(ops_dir, ops_type)
-            src_files = os.listdir(src_dir)
+            src_files = filter(is_src_file, os.listdir(src_dir))
             if not src_files:
                 continue
             if not is_cuda_ext:
@@ -122,32 +107,8 @@ def load_extensions():
     return extensions
 
 
-extensions = [
-    # Extension(
-    #     "gammagl.sample",
-    #     sources=[os.path.join("gammagl", "sample.pyx")],
-    #     language="c++",
-    #     extra_compile_args=compile_extra_args,
-    #     extra_link_args=link_extra_args, ),
 
-    # cpp_extension("gammagl/ops/sparse/", "convert", ),
-    # cpp_extension("gammagl/ops/sparse/", "sample", dep_src_list=["utils.cpp"]),
-    # cpp_extension("gammagl/ops/sparse/", "neighbor_sample", dep_src_list=["utils.cpp"],
-    #               include_dirs=["third_party/parallel_hashmap/"]),
-    # cpp_extension("gammagl/ops/sparse/", "saint", dep_src_list=["utils.cpp"]),
-    # cpp_extension("gammagl/ops/sparse/", "rw", dep_src_list=["utils.cpp"]),
-    # cpp_extension("gammagl/ops/tensor/", "unique"),
 
-    # cpu_extension("sparse", "convert"),
-    # cpu_extension("sparse", "sample", dep_src_list=["sparse_utils.cpp"]),
-    # cpu_extension("sparse", "neighbor_sample", dep_src_list=["sparse_utils.cpp"],
-    #               include_dirs=["third_party/parallel_hashmap/"]),
-    # cpu_extension("sparse", "saint", dep_src_list=["sparse_utils.cpp"]),
-    # cpu_extension("sparse", "rw", dep_src_list=["sparse_utils.cpp"]),
-    # cpu_extension("tensor", "unique"),
-    # cuda_extension("sparse", "convert")
-
-]
 
 install_requires = ['numpy', 'scipy', 'pytest', 'tensorlayerx', 'rich', 'tqdm', 'pybind11']
 
@@ -164,7 +125,6 @@ setup(
     maintainer="Tianyu Zhao",
     license="Apache-2.0 License",
     cmdclass={'build_ext': BuildExtension},
-    # ext_modules=extensions,
     ext_modules=load_extensions(),
     description=" ",
     url="https://github.com/BUPT-GAMMA/GammaGL",
