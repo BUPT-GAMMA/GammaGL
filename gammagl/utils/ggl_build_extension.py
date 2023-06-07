@@ -56,8 +56,6 @@ def _find_cuda_home() -> Optional[str]:
             if not os.path.exists(cuda_home):
                 cuda_home = None
 
-    # if cuda_home and not torch.cuda.is_available():
-    #     print(f"No CUDA runtime is found, using CUDA_HOME='{cuda_home}'")
 
     return cuda_home
 
@@ -147,9 +145,7 @@ class BuildExtension(build_ext, object):
 
         for extension in self.extensions:
             # Ensure at least an empty list of flags for 'cxx' and 'nvcc' when
-            # extra_compile_args is a dict. Otherwise, default torch flags do
-            # not get passed. Necessary when only one of 'cxx' and 'nvcc' is
-            # passed to extra_compile_args in CUDAExtension, i.e.
+            # extra_compile_args is a dict.
             #   CUDAExtension(..., extra_compile_args={'cxx': [...]})
             # or
             #   CUDAExtension(..., extra_compile_args={'nvcc': [...]})
