@@ -5,6 +5,7 @@
 from time import time
 from typing import List, Dict, Tuple, Union
 
+# try for development
 try:
     from ._sparse import (
         c_sample_adj,
@@ -23,6 +24,7 @@ except:
     from ._neighbor_sample import c_neighbor_sample, c_hetero_neighbor_sample
 
 from gammagl.utils.platform_utils import out_tensor_list, Tensor, out_tensor
+
 
 
 @out_tensor

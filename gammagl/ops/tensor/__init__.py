@@ -2,6 +2,9 @@
 # @author WuJing
 # @created 2023/4/11
 
-from .tensor import (
+try:
+    from .tensor import (
     unique
 )
+except:
+    Warning("tensor ops load failed.")

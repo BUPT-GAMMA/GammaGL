@@ -2,7 +2,8 @@
 # @author WuJing
 # @created 2023/4/11
 
-from .sparse import (
+try:
+    from .sparse import (
     ind2ptr,
     ptr2ind,
     neighbor_sample,
@@ -11,3 +12,5 @@ from .sparse import (
     random_walk,
     sample_adj
 )
+except:
+    Warning("sparse ops load failed.")
