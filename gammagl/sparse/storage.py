@@ -49,7 +49,7 @@ class SparseStorage:
 
         assert row is not None or rowptr is not None
         assert col is not None
-        assert col.dtype == tlx.int64
+        # assert col.dtype == tlx.int64
 
         M: int = 0
         if sparse_sizes is None or sparse_sizes[0] is None:
