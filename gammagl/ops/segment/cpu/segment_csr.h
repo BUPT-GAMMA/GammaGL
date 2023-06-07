@@ -12,7 +12,7 @@
 #include <optional>
 
 #include "reducer.h"
-#include "../extensions.h"
+#include "../../extensions.h"
 #include "segment_utils.h"
 
 py::list

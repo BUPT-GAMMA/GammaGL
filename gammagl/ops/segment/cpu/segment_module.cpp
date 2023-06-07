@@ -1,5 +1,5 @@
 #include "../../extensions.h"
-#include "../segment_csr.h"
+#include "segment_csr.h"
 
 PYBIND11_MODULE(_segment, m) {
   m.doc() = "gammagl segment ops";
