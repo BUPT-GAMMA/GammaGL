@@ -5,6 +5,7 @@ import copy
 import glob
 import os
 import os.path as osp
+import re
 import subprocess
 import sys
 from typing import Optional, List
@@ -23,6 +24,8 @@ COMMON_NVCC_FLAGS = [
     '-D__CUDA_NO_HALF2_OPERATORS__',
     '--expt-relaxed-constexpr'
 ]
+
+COMMON_MSVC_FLAGS = ['/MD', '/wd4819', '/wd4251', '/wd4244', '/wd4267', '/wd4275', '/wd4018', '/wd4190', '/EHsc']
 
 
 def _is_cuda_file(path: str) -> bool:
@@ -157,8 +160,13 @@ class BuildExtension(build_ext, object):
         # Register .cu, .cuh and .hip as valid source extensions.
 
         self.compiler.src_extensions += ['.cu', '.cuh']
+        if self.compiler.compiler_type == 'msvc':
+            self.compiler._cpp_extensions += ['.cu', '.cuh']
+            original_compile = self.compiler.compile
+            original_spawn = self.compiler.spawn
+        else:
+            original_compile = self.compiler._compile
 
-        original_compile = self.compiler._compile
 
         def unix_cuda_flags(cflags):
             cflags = (COMMON_NVCC_FLAGS +
@@ -208,7 +216,64 @@ class BuildExtension(build_ext, object):
                 # Put the original compiler back in place.
                 self.compiler.set_executable('compiler_so', original_compiler)
 
-        self.compiler._compile = unix_wrap_single_compile
+        def win_wrap_single_compile(sources,
+                                    output_dir=None,
+                                    macros=None,
+                                    include_dirs=None,
+                                    debug=0,
+                                    extra_preargs=None,
+                                    extra_postargs=None,
+                                    depends=None):
+
+            self.cflags = copy.deepcopy(extra_postargs)
+            append_std17_if_no_std_present(self.cflags)
+            extra_postargs = None
+
+            def spawn(cmd):
+                # Using regex to match src, obj and include files
+                src_regex = re.compile('/T(p|c)(.*)')
+                src_list = [
+                    m.group(2) for m in (src_regex.match(elem) for elem in cmd)
+                    if m
+                ]
+
+                obj_regex = re.compile('/Fo(.*)')
+                obj_list = [
+                    m.group(1) for m in (obj_regex.match(elem) for elem in cmd)
+                    if m
+                ]
+
+                include_regex = re.compile(r'((\-|\/)I.*)')
+                include_list = [
+                    m.group(1)
+                    for m in (include_regex.match(elem) for elem in cmd) if m
+                ]
+
+                if len(src_list) >= 1 and len(obj_list) >= 1:
+                    src = src_list[0]
+                    obj = obj_list[0]
+                    if isinstance(self.cflags, dict):
+                        cflags = COMMON_MSVC_FLAGS + self.cflags['cxx']
+                        cmd += cflags
+                    elif isinstance(self.cflags, list):
+                        cflags = COMMON_MSVC_FLAGS + self.cflags
+                        cmd += cflags
+
+                return original_spawn(cmd)
+
+            try:
+                self.compiler.spawn = spawn
+                return original_compile(sources, output_dir, macros,
+                                        include_dirs, debug, extra_preargs,
+                                        extra_postargs, depends)
+            finally:
+                self.compiler.spawn = original_spawn
+
+
+        if self.compiler.compiler_type == 'msvc':
+            self.compiler.compile = win_wrap_single_compile
+        else:
+            self.compiler._compile = unix_wrap_single_compile
 
         build_ext.build_extensions(self)
 
