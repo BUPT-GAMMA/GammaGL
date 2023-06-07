@@ -1,22 +1,20 @@
 gammagl.data
-====================
+==============
 
 .. currentmodule:: gammagl.data
 
 .. autosummary::
-    :nosignatures:
-    {% for cls in gammagl.data.classes %}
-      {{ cls }}
-    {% endfor %}
+   :nosignatures:
+   :toctree: ../generated
+   :template: autosummary/data_class.rst
 
-.. automodule:: gammagl.data
-    :members:
-    :exclude-members: Graph, HeteroGraph
+    gammagl.data.BaseGraph
+    gammagl.data.Graph
+    gammagl.data.BatchGraph
+    gammagl.data.HeteroGraph
+    gammagl.data.Dataset
+    gammagl.data.download_url
+    gammagl.data.InMemoryDataset
+    gammagl.data.extract_zip
+    gammagl.data.extract_tar
 
-    .. autoclass:: Graph
-       :special-members: __cat_dim__, __inc__
-       :inherited-members:
-
-    .. autoclass:: HeteroGraph
-       :special-members: __cat_dim__, __inc__
-       :inherited-members:

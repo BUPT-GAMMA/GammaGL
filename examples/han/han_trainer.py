@@ -5,10 +5,12 @@
 # @Author  : clear
 # @FileName: han_trainer.py
 import os
+
 os.environ['TL_BACKEND'] = 'tensorflow'  # set your backend here, default `tensorflow`
 # os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 import sys
+
 sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
@@ -30,6 +32,7 @@ class SemiSpvzLoss(WithLoss):
         train_y = tlx.gather(data['y'], data['train_idx'])
         loss = self._loss_fn(train_logits, train_y)
         return loss
+
 
 def calculate_acc(logits, y, metrics):
     """
@@ -65,18 +68,18 @@ def main(args):
     y = graph['movie'].y
 
     # for mindspore, it should be passed into node indices
-    train_idx = mask_to_index(graph['movie'].train_mask,)
+    train_idx = mask_to_index(graph['movie'].train_mask, )
     test_idx = mask_to_index(graph['movie'].test_mask)
     val_idx = mask_to_index(graph['movie'].val_mask)
 
     net = HAN(
         in_channels=graph.x_dict['movie'].shape[1],
-        out_channels=3, # graph.num_classes,
+        out_channels=3,  # graph.num_classes,
         metadata=graph.metadata(),
         drop_rate=args.drop_rate,
         hidden_channels=args.hidden_dim,
         heads=args.heads,
-        name = 'han',
+        name='han',
     )
 
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
@@ -87,11 +90,20 @@ def main(args):
     semi_spvz_loss = SemiSpvzLoss(net, loss_func)
     train_one_step = TrainOneStep(semi_spvz_loss, optimizer, train_weights)
 
+    edge_index_dict = {}
+    if tlx.BACKEND == 'tensorflow':
+        edge_index_dict = graph.edge_index_dict
+    else:
+        edge_index_dict[('movie', 'metapath_0', 'movie')] = tlx.convert_to_tensor(
+            graph.edge_index_dict[('movie', 'metapath_0', 'movie')], dtype=tlx.int64)
+        edge_index_dict[('movie', 'metapath_1', 'movie')] = tlx.convert_to_tensor(
+            graph.edge_index_dict[('movie', 'metapath_1', 'movie')], dtype=tlx.int64)
+
     # train test val = 400, 3478, 400
     data = {
         "x_dict": graph.x_dict,
-        "y":y,
-        "edge_index_dict": graph.edge_index_dict,
+        "y": y,
+        "edge_index_dict": edge_index_dict,
         "train_idx": train_idx,
         "test_idx": test_idx,
         "val_idx": val_idx,
@@ -126,6 +138,7 @@ def main(args):
     test_acc = calculate_acc(test_logits, test_y, metrics)
     print("Test acc:  {:.4f}".format(test_acc))
 
+
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
@@ -139,4 +152,5 @@ if __name__ == '__main__':
     # parser.add_argument('--dataset', type=str, default='IMDB', help='dataset')
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     args = parser.parse_args()
+
     main(args)

@@ -37,7 +37,7 @@ class HGTConv(MessagePassing):
             metadata,
             heads: int = 1,
             group: str = "sum",
-            dropout_rate=0,
+            dropout_rate=0.,
     ):
         super().__init__()
 

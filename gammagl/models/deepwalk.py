@@ -101,7 +101,8 @@ class DeepWalkModel(tlx.nn.Module):
     def loss(self, pos_rw, neg_rw):
         # Positive loss.
         start = pos_rw[:, 0]
-        rest = tlx.convert_to_tensor(np.array(pos_rw[:, 1:]))
+
+        rest = tlx.gather(pos_rw, tlx.convert_to_tensor([1]), axis = 1)
 
         h_start = tlx.reshape(self.embedding(start), (pos_rw.shape[0], 1, self.embedding_dim))
         h_rest = tlx.reshape(self.embedding(tlx.reshape(rest, (-1, 1))), (pos_rw.shape[0], -1, self.embedding_dim))
@@ -112,7 +113,7 @@ class DeepWalkModel(tlx.nn.Module):
 
         # Negative loss.
         start = neg_rw[:, 0]
-        rest = tlx.convert_to_tensor(np.array(neg_rw[:, 1:]))
+        rest = tlx.gather(neg_rw, tlx.convert_to_tensor([1]), axis = 1)
 
         h_start = tlx.reshape(self.embedding(start), (neg_rw.shape[0], 1, self.embedding_dim))
         h_rest = tlx.reshape(self.embedding(tlx.reshape(rest, (-1, 1))), (neg_rw.shape[0], -1, self.embedding_dim))

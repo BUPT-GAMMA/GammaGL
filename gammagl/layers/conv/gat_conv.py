@@ -63,7 +63,7 @@ class GATConv(MessagePassing):
                  heads=1,
                  concat=True,
                  negative_slope=0.2,
-                 dropout_rate=0,
+                 dropout_rate=0.,
                  add_bias=True):
         super().__init__()
 

@@ -125,7 +125,7 @@ class RGCNConv(MessagePassing):
 
         weight = self.weight
         if self.num_bases is not None:  # Basis-decomposition =================
-            weight = (self.base_att @ 
+            weight = tlx.matmul(self.base_att,
                       tlx.reshape(weight, [self.num_bases, -1])
                       )
             weight = tlx.reshape(weight, [self.num_relations, self.in_channels_l, self.out_channels])
@@ -159,11 +159,11 @@ class RGCNConv(MessagePassing):
                     out += self.propagate(tlx.gather(weight[i], x_l), edges, num_nodes=size[1])
                 else:
                     h = self.propagate(x_l, edges, num_nodes=size[1])
-                    out = out + (h @ weight[i])
+                    out = out + tlx.matmul(h, weight[i])
 
         root = self.root
         if root is not None:
-            out += tlx.gather(root, x_r) if x_r.dtype == tlx.int64 else x_r @ root
+            out += tlx.gather(root, x_r) if x_r.dtype == tlx.int64 else tlx.matmul(x_r, root)
 
         if self.add_bias:
             out += self.bias

@@ -76,3 +76,4 @@ class PPI(InMemoryDataset):
                 graph = Graph(edge_index=edge_index, x=x[mask], y=y[mask])
                 graph_list.append(graph)
             self.save_data(self.collate(graph_list), self.processed_paths[s])
+

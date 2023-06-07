@@ -1,8 +1,8 @@
-import numpy
 from gammagl.transforms import BaseTransform
 from scipy.stats import bernoulli
 from gammagl.data import graph
 import tensorlayerx as tlx
+
 class DropEdge(BaseTransform):
     r"""Randomly drop edges, as described in
         `DropEdge: Towards Deep Graph Convolutional Networks on Node Classification
@@ -13,12 +13,12 @@ class DropEdge(BaseTransform):
             Probability of an edge to be dropped.
         Example
         -------
-        >>> import numpy
+        >>> import numpy as np
         >>> from gammagl.data import graph
         >>> from gammagl.transforms import DropEdge
         >>> import tensorlayerx as tlx
         >>> transform = DropEdge()
-        >>> g = graph.Graph(x=numpy.random.randn(5, 16), edge_index=tlx.convert_to_tensor([[0, 0, 0], [1, 2, 3]]), edge_attr=tlx.convert_to_tensor([[0,0,0],[1,1,1],[2,2,2]]),num_nodes=5,)
+        >>> g = graph.Graph(x=np.random.randn(5, 16), edge_index=tlx.convert_to_tensor([[0, 0, 0], [1, 2, 3]]), edge_attr=tlx.convert_to_tensor([[0,0,0],[1,1,1],[2,2,2]]),num_nodes=5,)
         >>> new_g = transform(g)
         >>> print(g)
         Graph(edge_index=[2, 3], edge_attr=[3, 3], x=[5, 16], num_nodes=5)
@@ -30,8 +30,8 @@ class DropEdge(BaseTransform):
         >>> num_paper_features=6
         >>> num_authors=7
         >>> num_authors_features=8
-        >>> data['paper'].x = tlx.random_uniform((num_papers, num_paper_features))
-        >>> data['author'].x =  tlx.random_uniform((num_authors, num_authors_features))
+        >>> data['paper'].x = tlx.convert_to_tensor(np.random.uniform((num_papers, num_paper_features)))
+        >>> data['author'].x = tlx.convert_to_tensor(np.random.uniform((num_authors, num_authors_features)))
         >>> data['author', 'writes', 'paper'].edge_index = tlx.convert_to_tensor([[0, 0, 0], [1, 2, 3]])  # [2, num_edges]
         >>> data['author', 'writes', 'paper'].edge_attr = tlx.convert_to_tensor([[0, 0, 0], [1, 1, 1],[2, 2, 2]])
         >>> data['author', 'writes', 'author'].edge_index = tlx.convert_to_tensor([[1, 2, 3], [2, 3, 1]])
@@ -80,11 +80,11 @@ class DropEdge(BaseTransform):
                 return g
         else:
             for e_type in g.metadata()[-1]:
-                samples = tlx.ops.convert_to_tensor(bernoulli.rvs(1-self.p, size=tlx.ops.get_tensor_shape(g[e_type].edge_index)[-1]), dtype=bool)
+                samples = tlx.ops.convert_to_tensor(bernoulli.rvs(1-self.p, size=tlx.ops.get_tensor_shape(g[e_type].edge_index)[-1]), dtype=tlx.bool)
                 if hasattr(g[e_type],'edge_index'):
-                    g[e_type].edge_index = tlx.ops.transpose(tlx.ops.transpose(g[e_type].edge_index)[samples])
+                    g[e_type].edge_index = tlx.mask_select(g[e_type].edge_index, samples, axis = 1)
                     if hasattr(g[e_type],'edge_attr'):
-                        g[e_type].edge_attr = g[e_type].edge_attr[samples]
+                        g[e_type].edge_attr = tlx.mask_select(g[e_type].edge_attr, samples)
                     else:
                         pass
                 else:

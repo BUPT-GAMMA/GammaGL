@@ -2,16 +2,19 @@ from .gcn import GCNModel
 from .gat import GATModel
 from .sgc import SGCModel
 from .gatv2 import GATV2Model
+from .gaan import GaANModel
 from .graphsage import GraphSAGE_Full_Model, GraphSAGE_Sample_Model
 from .gcnii import GCNIIModel
 from .appnp import APPNPModel
 from .gin import GINModel
 from .rgcn import RGCN
+from .compgcn import CompGCN
 from .agnn import AGNNModel
 from .jknet import JKNet
 from .han import HAN
 from .dgi import DGIModel
 from .grace import GraceModel
+from .grade import GRADE
 from .chebnet import ChebNetModel
 from .simplehgn import SimpleHGNModel
 from .fagcn import FAGCNModel
@@ -33,11 +36,14 @@ from .gen import GEstimationN
 from .deepwalk import DeepWalkModel
 from .node2vec import Node2vecModel
 from .hpn import HPN
+from .gmm import GMMModel
+
 
 
 __all__ = [
     'GCNModel',
     'GATModel',
+    'GaANModel',
     'SGCModel',
     'GATV2Model',
     'GraphSAGE_Full_Model',
@@ -46,11 +52,13 @@ __all__ = [
     'APPNPModel',
     'GINModel',
     'RGCN',
+    'CompGCN',
     'AGNNModel',
     'JKNet',
     'HAN',
     'DGIModel',
     'GraceModel',
+    'GRADE',
     'ChebNetModel',
     'SimpleHGNModel',
     'FAGCNModel',
@@ -71,8 +79,9 @@ __all__ = [
     'Node2vecModel',
     'VGAEModel',
     'GAEModel',
-    'HPN'
-    
+    'HPN',
+    'GMMModel',
+
 ]
 
 classes = __all__

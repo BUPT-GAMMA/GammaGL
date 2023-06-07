@@ -199,5 +199,3 @@ def test_data():
 #     for data in data_list:
 #         assert data.x.is_shared()
 #         assert torch.allclose(data.x, torch.full((8, ), 4.))
-
-test_data()

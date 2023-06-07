@@ -39,7 +39,7 @@ def test_han_conv():
 def test_han_conv_empty_tensor():
     x_dict = {
         'author': tlx.random_normal((6, 16), dtype = tlx.float32),
-        'paper': tlx.random_uniform((0, 12), dtype = tlx.float32),
+        'paper': tlx.random_normal((0, 12), dtype = tlx.float32),
     }
     edge1 = np.random.randint(0, 0, size = (2, 0), dtype = np.int64)
     edge2 = np.random.randint(0, 0, size = (2, 0), dtype = np.int64)

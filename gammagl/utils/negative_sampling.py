@@ -84,7 +84,7 @@ def negative_sampling(edge_index, num_nodes = None, num_neg_samples = None, meth
             rnd = sample(population, sample_size, True)
             mask = np.isin(rnd, idx)
             if neg_idx is not None:
-                mask |= np.isin(rnd, tlx.to_device(neg_idx, 'cpu'))
+                mask |= np.isin(tlx.convert_to_numpy(rnd), tlx.convert_to_numpy(neg_idx))
             mask = tlx.convert_to_tensor(mask, dtype=tlx.bool, device='cpu')
             rnd = tlx.mask_select(rnd, ~mask)
             if neg_idx is None:
@@ -133,13 +133,17 @@ def edge_index_to_vector(edge_index, size, bipartite, force_undirected):
         num_nodes = size[0]
 
         mask = row != col
-        row, col = tlx.mask_select(row, mask), tlx.mask_select(col, mask)
-        indice = tlx.mask_select(tlx.arange(0, col.shape[0]), row < col)
-        col = tlx.scatter_update(col, indice, tlx.gather(col, indice) - 1)
+        row = tlx.convert_to_numpy(tlx.mask_select(row, mask))
+        col = tlx.convert_to_numpy(tlx.mask_select(col, mask))
+
+        indice = tlx.mask_select(tlx.arange(0, col.shape[0]), tlx.convert_to_tensor(row < col))
+        indice = tlx.convert_to_numpy(indice)
+        col[indice] = col[indice] - 1
+        # col = tlx.tensor_scatter_nd_update(col, indice, tlx.gather(col, indice) - 1)
         
         idx = row * (num_nodes - 1) + col
         population = num_nodes * (num_nodes - 1)
-        return idx, population
+        return tlx.convert_to_tensor(idx), population
 
 
 def vector_to_edge_index(idx, size, bipartite, force_undirected):
@@ -162,6 +166,12 @@ def vector_to_edge_index(idx, size, bipartite, force_undirected):
         else:
             row = idx // (num_nodes - 1)
             col = idx % (num_nodes - 1)
-            indice = tlx.mask_select(tlx.arange(0, col.shape[0]), row <= col)
-            col = tlx.scatter_update(col, indice, tlx.gather(col, indice) + 1)
+            row = tlx.convert_to_numpy(row)
+            col = tlx.convert_to_numpy(col)
+            indice = tlx.mask_select(tlx.arange(0, col.shape[0]), tlx.convert_to_tensor(row <= col))
+            indice = tlx.convert_to_numpy(indice)
+            col[indice] = col[indice] + 1
+            row = tlx.convert_to_tensor(row)
+            col = tlx.convert_to_tensor(col)
+            # col = tlx.scatter_update(col, indice, tlx.gather(col, indice) + 1)
             return tlx.stack([row, col])

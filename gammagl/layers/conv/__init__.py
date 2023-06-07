@@ -1,12 +1,14 @@
 from .message_passing import MessagePassing
 from .gcn_conv import GCNConv
 from .gat_conv import GATConv
+from .gaan_conv import GaANConv
 from .sgc_conv import SGConv
 from .sage_conv import SAGEConv
 from .gatv2_conv import GATV2Conv
 from .gcnii_conv import GCNIIConv
 from .appnp_conv import APPNPConv
 from .rgcn_conv import RGCNConv
+from .compgcn_conv import CompConv
 from .agnn_conv import AGNNConv
 from .JumpingKnowledge import JumpingKnowledge
 from .han_conv import HANConv
@@ -23,11 +25,14 @@ from .pna_conv import PNAConv
 from .film_conv import FILMConv
 from .edgeconv import EdgeConv
 from .hpn_conv import HPNConv
+from .hetero_wrapper import HeteroConv
+from .gmm_conv import GMMConv
 
 __all__ = [
     'MessagePassing',
     'GCNConv',
     'GATConv',
+    'GaANConv',
     'SGConv',
     'SAGEConv',
     'GATV2Conv',
@@ -38,17 +43,21 @@ __all__ = [
     'JumpingKnowledge',
     'HANConv',
     'ChebConv',
+    'HeteroConv',
     'SimpleHGNConv',
     'FAGCNConv',
     'GPRConv',
-    'HyperGraphConv',
     'HGTConv',
     'MixHopConv',
+    'HypergraphConv',
     'HardGATConv',
     'PNAConv',
     'FILMConv',
+    'CompConv',
     'EdgeConv',
-    'HPNConv'
+    'HPNConv',
+    'GINConv',
+    'GMMConv',
 
 ]
 

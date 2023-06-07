@@ -2,8 +2,6 @@ numpy
 scipy
 cython
 tensorflow
-torch
-torchvision
 paddlepaddle==2.3.2
 pytest
 tqdm
