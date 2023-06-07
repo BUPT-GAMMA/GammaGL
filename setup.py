@@ -12,10 +12,6 @@ from gammagl.utils.ggl_build_extension import BuildExtension, PyCudaExtension, P
 WITH_CUDA = False
 
 
-
-
-
-
 ext_root = osp.join("gammagl", "ops")
 
 
@@ -105,9 +101,6 @@ def load_extensions():
                 ))
 
     return extensions
-
-
-
 
 
 install_requires = ['numpy', 'scipy', 'pytest', 'tensorlayerx', 'rich', 'tqdm', 'pybind11']
