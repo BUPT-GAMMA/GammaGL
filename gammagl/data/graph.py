@@ -819,7 +819,10 @@ class Graph(BaseGraph):
     # 	for key, value in self._store.items():
     # 		yield key, value
 
-    def __iter__(self) -> Iterable:
+    # do not use __iter__ function, or will throw exception in paddle backend.
+    # So here use iter
+    # now visit graph attr by for key, value in "graph.iter()", instead of "graph"
+    def iter(self) -> Iterable:
         for key, value in self._store.items():
             yield key, value
 
