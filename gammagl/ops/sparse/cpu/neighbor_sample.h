@@ -7,7 +7,7 @@
 #include <unordered_set>
 
 
-#include "../extensions.h"
+#include "../../extensions.h"
 #include "sparse_utils.h"
 
 using namespace std;

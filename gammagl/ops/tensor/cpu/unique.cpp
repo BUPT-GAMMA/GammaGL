@@ -5,7 +5,7 @@
  */
 
 
-#include "../unique.h"
+#include "unique.h"
 
 
 py::list unique_impl(
