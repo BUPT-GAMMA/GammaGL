@@ -50,7 +50,7 @@ class GraphSAINTSampler(DataLoader):
         row, col, edge_idx = adj.coo()
         graph = Graph(x=None, num_nodes=node_idx.shape[0], edge_index=tlx.stack([row, col], axis=0))
 
-        for key, item in self.graph:
+        for key, item in self.graph.iter():
             if key in ['edge_index', 'num_nodes']:
                 continue
             if tlx.is_tensor(item) and item.shape[0] == self.N:
