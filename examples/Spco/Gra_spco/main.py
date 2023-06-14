@@ -46,6 +46,14 @@ def coo_to_edge_index(coo_m):
     return edge_index
 
 
+def edge_index_to_adj(edge_index, edge_values=None, add_self=False):
+    if add_self is True:
+        edge_index = add_self_loops(edge_index=edge_index)
+    adj_csc = to_scipy_sparse_matrix(edge_index=edge_index, edge_attr=edge_values).tocsc()
+    adj = torch.tensor(adj_csc.toarray())
+    return adj
+
+
 def sinkhorn(K, dist, sin_iter):
     # make the matrix sum to 1
     u = np.ones([len(dist), 1]) / len(dist)
@@ -100,30 +108,21 @@ def preprocess_features(features):
         return features.todense(), sparse_to_tuple(features)
 
 
-def get_dataset(path, dataname, scope_flag):
-    adj = sp.load_npz(path + "/adj.npz")
-
-    feat = sp.load_npz(path + "/feat.npz").A
-    if dataname != 'blog':
+def get_dataset(path, data_name, scope_flag):
+    dataset = DataSet(path=path, name=data_name)
+    edge_index, feat, labels, num_class, train_idx, val_idx, test_idx = dataset.load_dataset()
+    if data_name != 'blog':
         feat = torch.Tensor(preprocess_features(feat))
     else:
         feat = torch.Tensor(feat)
-    num_features = feat.shape[-1]
-    label = torch.LongTensor(np.load(path + "/label.npy"))
-    idx_train20 = np.load(path + "/train20.npy")
-    idx_train10 = np.load(path + "/train10.npy")
-    idx_train5 = np.load(path + "/train5.npy")
-    idx_train = [idx_train5, idx_train10, idx_train20]
-    idx_val = np.load(path + "/val.npy")
-    idx_test = np.load(path + "/test.npy")
-    num_class = label.max() + 1
-
+    adj = edge_index_to_adj(edge_index)
     laplace = sp.eye(adj.shape[0]) - normalize_adj(adj)
-    if scope_flag == 1:
-        scope = torch.load(path + "/scope_1.pt")
-    if scope_flag == 2:
-        scope = torch.load(path + "/scope_2.pt")
-    return adj, feat, label, num_class, idx_train, idx_val, idx_test, laplace, scope
+    if scope_flag == 1:  # 1-hop Sparser operation
+        scope = edge_index
+    if scope_flag == 2:  # 2-hop Sparser operation
+        adj_2 = adj @ adj
+        scope = coo_to_edge_index(adj_2)
+    return adj, feat, labels, num_class, train_idx, val_idx, test_idx, laplace, scope
 
 
 if __name__ == '__main__':
@@ -131,7 +130,11 @@ if __name__ == '__main__':
     parser.add_argument('--device', type=str, default='cuda:2')
 
     print(args)
-    path = "../dataset/" + args.dataname
+    path = "../datasets"
+    if os.path.exists(path):
+        pass
+    else:
+        os.mkdir(path)
     adj, feat, labels, num_class, train_idx, val_idx, test_idx, laplace, scope = get_dataset(path, args.dataname,
                                                                                              args.scope_flag)
     adj = adj + sp.eye(adj.shape[0])
@@ -140,8 +143,9 @@ if __name__ == '__main__':
 
     if args.dataname == 'pubmed':
         new_adjs = []
+        adjs_path = '../pubmed_new_adjs'
         for i in range(10):
-            new_adjs.append(sp.load_npz(path + "/0.01_1_" + str(i) + ".npz"))
+            new_adjs.append(sp.load_npz(adjs_path + "/0.01_1_" + str(i) + ".npz"))
         adj_num = len(new_adjs)
         adj_inter = int(adj_num / args.num)
         sele_adjs = []
@@ -157,10 +161,10 @@ if __name__ == '__main__':
         epoch_inter = args.epoch_inter
     else:
         scope_matrix = sp.coo_matrix((np.ones(scope.shape[1]), (scope[0, :], scope[1, :])), shape=adj.shape).A
-        dist = adj.A.sum(-1) / adj.A.sum() # dist边分布
+        dist = adj.A.sum(-1) / adj.A.sum()  # get distribution
     in_dim = feat.shape[1]
 
-    if args.dataset =='citeseer':
+    if args.dataset == 'citeseer':
         activation = tlx.nn.PRelu()  # citeseer
     else:
         activation = tlx.relu  # cora,pubmed,flickr,blog
@@ -231,11 +235,10 @@ if __name__ == '__main__':
                 try:
                     print("================================================")
                     delta = args.lam * sele_adjs[int(epoch / epoch_inter)]
-                    # new_adj = adj + delta
                     new_adj = adj + delta
 
                     new_edge_index = coo_to_edge_index(new_adj)
-                    new_graph = Graph(edge_index=new_edge_index)  # 更新图
+                    new_graph = Graph(edge_index=new_edge_index)
                     new_attr = torch.Tensor(new_adj[new_adj.nonzero()])[0]
                     new_diag_attr = torch.Tensor(new_adj[range_node, range_node])[0]
                 except IndexError:
@@ -268,60 +271,57 @@ if __name__ == '__main__':
     test_f1_macro_ll = 0
     test_f1_micro_ll = 0
 
-    label_dict = {0: "5", 1: "10", 2: "20"}
-    for i in range(3):
-        train_embs = embeds[train_idx[i]]
-        val_embs = embeds[val_idx]
-        test_embs = embeds[test_idx]
+    train_embs = embeds[train_idx]
+    val_embs = embeds[val_idx]
+    test_embs = embeds[test_idx]
 
-        label = labels.to(args.device)
+    label = labels.to(args.device)
 
-        train_labels = label[train_idx[i]]
-        val_labels = label[val_idx]
-        test_labels = label[test_idx]
+    train_labels = label[train_idx]
+    val_labels = label[val_idx]
+    test_labels = label[test_idx]
 
-        ''' Linear Evaluation '''
-        logreg = LogReg(train_embs.shape[1], num_class)
-        opt = th.optim.Adam(logreg.parameters(), lr=args.lr2, weight_decay=args.wd2)
-        logreg = logreg.to(args.device)
+    ''' Linear Evaluation '''
+    logreg = LogReg(train_embs.shape[1], num_class)
+    opt = th.optim.Adam(logreg.parameters(), lr=args.lr2, weight_decay=args.wd2)
+    logreg = logreg.to(args.device)
 
-        loss_fn = th.nn.CrossEntropyLoss()
+    loss_fn = th.nn.CrossEntropyLoss()
 
-        best_val_acc = 0
-        eval_acc = 0
+    best_val_acc = 0
+    eval_acc = 0
 
-        for epoch in range(2000):
-            logreg.train()
-            opt.zero_grad()
-            logits = logreg(train_embs)
-            preds = th.argmax(logits, dim=1)
-            train_acc = th.sum(preds == train_labels).float() / train_labels.shape[0]
-            loss2 = loss_fn(logits, train_labels)
-            loss2.backward()
-            opt.step()
+    for epoch in range(2000):
+        logreg.train()
+        opt.zero_grad()
+        logits = logreg(train_embs)
+        preds = th.argmax(logits, dim=1)
+        train_acc = th.sum(preds == train_labels).float() / train_labels.shape[0]
+        loss = loss_fn(logits, train_labels)
+        loss.backward()
+        opt.step()
 
-            logreg.eval()
-            with th.no_grad():
-                val_logits = logreg(val_embs)
-                test_logits = logreg(test_embs)
+        logreg.eval()
+        with th.no_grad():
+            val_logits = logreg(val_embs)
+            test_logits = logreg(test_embs)
 
-                val_preds = th.argmax(val_logits, dim=1)
-                test_preds = th.argmax(test_logits, dim=1)
+            val_preds = th.argmax(val_logits, dim=1)
+            test_preds = th.argmax(test_logits, dim=1)
 
-                val_acc = th.sum(val_preds == val_labels).float() / val_labels.shape[0]
-                test_acc = th.sum(test_preds == test_labels).float() / test_labels.shape[0]
+            val_acc = th.sum(val_preds == val_labels).float() / val_labels.shape[0]
+            test_acc = th.sum(test_preds == test_labels).float() / test_labels.shape[0]
 
-                test_f1_macro = f1_score(test_labels.cpu(), test_preds.cpu(), average='macro')
-                test_f1_micro = f1_score(test_labels.cpu(), test_preds.cpu(), average='micro')
-                if val_acc >= best_val_acc:
-                    best_val_acc = val_acc
-                    if test_acc > eval_acc:
-                        test_f1_macro_ll = test_f1_macro
-                        test_f1_micro_ll = test_f1_micro
+            test_f1_macro = f1_score(test_labels.cpu(), test_preds.cpu(), average='macro')
+            test_f1_micro = f1_score(test_labels.cpu(), test_preds.cpu(), average='micro')
+            if val_acc >= best_val_acc:
+                best_val_acc = val_acc
+                if test_acc > eval_acc:
+                    test_f1_macro_ll = test_f1_macro
+                    test_f1_micro_ll = test_f1_micro
 
-                print('Epoch:{}, train_acc:{:.4f}, val_acc:{:4f}, test_acc:{:4f}'.format(epoch, train_acc, val_acc,
-                                                                                         test_acc))
-
-        f = open(own_str + "_" + label_dict[i] + ".txt", "a")
-        f.write(str(test_f1_macro_ll) + "\t" + str(test_f1_micro_ll) + "\n")
-        f.close()
+            print('Epoch:{}, train_acc:{:.4f}, val_acc:{:4f}, test_acc:{:4f}'.format(epoch, train_acc, val_acc,
+                                                                                     test_acc))
+    f = open(own_str + "_result" + ".txt", "a")
+    f.write(str(test_f1_macro_ll) + "\t" + str(test_f1_micro_ll) + "\n")
+    f.close()
