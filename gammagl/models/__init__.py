@@ -37,7 +37,8 @@ from .deepwalk import DeepWalkModel
 from .node2vec import Node2vecModel
 from .hpn import HPN
 from .gmm import GMMModel
-
+from .mgnni import MGNNI_m_MLP
+from .mgnni import MGNNI_m_att
 
 
 __all__ = [

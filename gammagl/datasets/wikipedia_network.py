@@ -97,16 +97,28 @@ class WikipediaNetwork(InMemoryDataset):
         if self.geom_gcn_preprocess:
             with open(self.raw_paths[0], 'r') as f:
                 data = f.read().split('\n')[1:-1]
-            x = [[float(v) for v in r.split('\t')[1].split(',')] for r in data]
-            x = np.array(x, dtype=np.float32)
-            y = [int(r.split('\t')[2]) for r in data]
-            y = np.array(y, dtype=np.int64)
+                x = [[float(v) for v in r.split('\t')[1].split(',')] for r in data]
+                x = np.array(x, dtype=np.float32)
+                y = [int(r.split('\t')[2]) for r in data]
+                y = np.array(y, dtype=np.int64)
 
             with open(self.raw_paths[1], 'r') as f:
                 data = f.read().split('\n')[1:-1]
                 data = [[int(v) for v in r.split('\t')] for r in data]
-            edge_index = np.ascontiguousarray(np.array(data, dtype=np.int64).T)
-            edge_index, _ = coalesce(edge_index, None, x.size, x.size)
+                edge_index = np.ascontiguousarray(np.array(data, dtype=np.int64).T)
+                edge_index = coalesce(edge_index)
+            # with open(self.raw_paths[0], 'r') as f:
+            #     data = f.read().split('\n')[1:-1]
+            # x = [[float(v) for v in r.split('\t')[1].split(',')] for r in data]
+            # x = np.array(x, dtype=np.float32)
+            # y = [int(r.split('\t')[2]) for r in data]
+            # y = np.array(y, dtype=np.int64)
+            #
+            # with open(self.raw_paths[1], 'r') as f:
+            #     data = f.read().split('\n')[1:-1]
+            #     data = [[int(v) for v in r.split('\t')] for r in data]
+            # edge_index = np.ascontiguousarray(np.array(data, dtype=np.int64).T)
+            # edge_index, _ = coalesce(edge_index, None, x.size, x.size)
 
             train_masks, val_masks, test_masks = [], [], []
             for f in self.raw_paths[2:]:
