@@ -5,8 +5,28 @@ from gammagl.layers.conv import MGNNI_m_iter
 
 
 class MGNNI_m_MLP(tlx.nn.Module):
-    def __init__(self, m, m_y, nhid, ks, threshold, max_iter, gamma, fp_layer='MGNNI_m_att', dropout=0.5,
-                 batch_norm=False):
+    r"""
+    Multiscale Graph Neural Networks with Implicit Layers proposed in `MGNNI: Multiscale Graph Neural Networks with Implicit Layers`_.
+
+    .. _MGNNI: Multiscale Graph Neural Networks with Implicit Layers:
+        https://arxiv.org/abs/2210.08353
+
+    This model is for datasets chameleon and squirrel.
+
+    Parameters
+    ----------
+        m (int): input feature dimension
+        m_y (int): number of classes
+        nhid (int): hidden dimension
+        ks (list): list of scales
+        threshold (int): threshold for convergence
+        max_iter (str): maximum number of iterative solver iterations
+        gamma (str): contraction Factor
+        dropout (float): dropout rate (1 - keep probability)
+        batch_norm (bool): whether to use batch norm
+    """
+
+    def __init__(self, m, m_y, nhid, ks, threshold, max_iter, gamma, dropout=0.5, batch_norm=False):
         super(MGNNI_m_MLP, self).__init__()
         self.fc1 = tlx.layers.Linear(out_features=nhid,
                                      in_features=m,
@@ -16,14 +36,12 @@ class MGNNI_m_MLP(tlx.nn.Module):
                                      in_features=nhid,
                                      # W_init='xavier_uniform',
                                      )
-
-        self.dropout = dropout
-        self.MGNNI_layer = eval(fp_layer)(nhid, m_y, ks, threshold, max_iter, gamma, dropout=self.dropout,
+        self.dropout = nn.Dropou(dropout)
+        self.MGNNI_layer = MGNNI_m_att(nhid, m_y, ks, threshold, max_iter, gamma, dropout=self.dropout,
                                           batch_norm=batch_norm)
 
     def forward(self, X, edge_index, edge_weight=None, num_nodes=None):
-        # print('I am coming!')
-        X = nn.Dropout(p=self.dropout)(tlx.ops.transpose(X))
+        X = self.dropout(tlx.ops.transpose(X))
         X = nn.ReLU()(self.fc1(X))
         X = nn.Dropout(p=self.dropout)(X)
         X = self.fc2(X)
@@ -31,8 +49,26 @@ class MGNNI_m_MLP(tlx.nn.Module):
 
         return output
 
-
 class MGNNI_m_att(nn.Module):
+    r"""
+    Multiscale Graph Neural Networks with Implicit Layers proposed in
+    `MGNNI: Multiscale Graph Neural Networks with Implicit Layers`_.
+
+    .. _MGNNI: Multiscale Graph Neural Networks with Implicit Layers:
+        https://arxiv.org/abs/2210.08353
+
+    This model is for datasets cornell, texas and wisconsin.
+
+    Parameters
+    ----------
+        m (int): input feature dimension
+        m_y (int): number of classes
+        ks (list): list of scales
+        threshold (int): threshold for convergence
+        max_iter (str): maximum number of iterative solver iterations
+        gamma (str): contraction Factor
+        dropout (float): dropout rate (1 - keep probability)
+    """
     def __init__(self, m, m_y, ks, threshold, max_iter, gamma, dropout=0.5,
                  layer_norm=False, batch_norm=False):
         super(MGNNI_m_att, self).__init__()

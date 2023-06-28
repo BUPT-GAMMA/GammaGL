@@ -7,6 +7,41 @@ from gammagl.layers.conv import MessagePassing
 
 
 class MGNNI_m_iter(MessagePassing):
+    r"""The mgnni operator from the `"Multiscale Graph Neural Networks with Implicit Layers"
+    <https://arxiv.org/abs/2210.08353>`_ paper
+
+    .. math::
+       Z^{(l+1)} =\gamma g(F)Z^{(l)}S^{(m)}+f(X;G),
+    where :math `\gamma` denotes the contraction factor,
+    :math `m` denotes a hyperparameter for graph scale(i.e., the power of adjacency matrix) and
+    :math `f(X;G)` is a parameterized transformation on input features and graphs,
+    the normalized weight matrix :math:`g(F)` are computed as
+
+    .. math::
+       g(F) =\frac{1}{\|F^\top F\|_\text{F}+\epsilon_F}F^\top F.
+
+    Parameters
+    ----------
+    m: int
+        Size of each input sample to
+        derive the size from the first input(s) to the forward method.
+    k: int
+        The power of adjacency matrix.
+        The greater the k, the further the distance to capture the information
+    threshold: int
+        Threshold for convergence.
+        Convergence is considered when the difference
+        between the two times is less than this threshold
+    max_iter: int
+        Maximum number of iterative solver iterations
+    gamma: float
+        The contraction factor.
+        The smaller the gamma, the faster the contraction,
+        the smaller the capture range; the larger the gamma,
+        the larger the capture range, but it is difficult to converge and inefficient
+    layer_norm: bool, optional
+        whether to use layer norm. (default: :obj:`False`)
+    """
     def __init__(self, m, k, threshold, max_iter, gamma, layer_norm=False):
         super(MGNNI_m_iter, self).__init__()
         self.F = nn.Parameter(tlx.convert_to_tensor(np.zeros((m, m)), dtype=tlx.float32))
@@ -24,12 +59,11 @@ class MGNNI_m_iter(MessagePassing):
 
     def _inner_func(self, Z, X, edge_index, edge_weight, num_nodes):
         P = tlx.ops.transpose(Z)
-        ei = tlx.ops.convert_to_tensor(tlx.ops.convert_to_numpy(edge_index))
+        ei = tlx.ops.convert_to_tensor(edge_index)
         src, dst = ei[0], ei[1]
         if edge_weight is None:
             edge_weight = tlx.ones(shape=(ei.shape[1], 1))
         edge_weight = tlx.reshape(edge_weight, (-1,))
-        weights = edge_weight
 
         deg = degree(src, num_nodes=num_nodes, dtype=tlx.float32)
         norm = tlx.pow(deg, -0.5)
@@ -53,7 +87,7 @@ class MGNNI_m_iter(MessagePassing):
                                     z_init=tlx.zeros_like(X),
                                     threshold=self.threshold,
                                     max_iter=self.max_iter)
-        Z = tlx.convert_to_tensor(tlx.convert_to_numpy(Z))
+        Z = tlx.convert_to_tensor(Z)
 
         new_Z = Z
 
@@ -67,12 +101,11 @@ class MGNNI_m_iter(MessagePassing):
         return new_Z
 
 
-def fwd_solver(f, z_init, threshold, max_iter, mode='abs'):
+def fwd_solver(f, z_init, threshold, max_iter):
     z_prev, z = z_init, f(z_init)
     nstep = 0
     while nstep < max_iter:
         z_prev, z = z, f(z)
-        # torch
         abs_diff = tlx.ops.convert_to_numpy(norm(z_prev - z)).item()
         if abs_diff < threshold:
             break

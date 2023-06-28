@@ -1,7 +1,4 @@
 import os
-import time
-
-import numpy as np
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 os.environ['TL_BACKEND'] = 'torch'
@@ -13,10 +10,13 @@ import sys
 
 sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import argparse
-import tensorlayerx as tlx  # 导入tensorlayerx包
-from gammagl.datasets import WebKB, WikipediaNetwork  # 专门做读取数据的类Planetoid
+import tensorlayerx as tlx
+import time
+import numpy as np
+# Classes WebKB and WikipediaNetwork that specialize in reading data
+from gammagl.datasets import WebKB, WikipediaNetwork
 from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index, set_device
-from gammagl.models import MGNNI_m_MLP, MGNNI_m_att  #
+from gammagl.models import MGNNI_m_MLP, MGNNI_m_att
 from tensorlayerx.model import TrainOneStep, WithLoss
 import gammagl.transforms as T
 
@@ -27,9 +27,7 @@ class SemiSpvzLoss(WithLoss):
 
     def forward(self, data, y):
         logits = self.backbone_network(tlx.ops.transpose(data['x']), data['edge_index'], None, data['num_nodes'])
-        # print(data['train_idx'])
         train_logits = tlx.gather(logits, data['train_idx'])
-        # print(len(data['train_idx']))
         train_y = tlx.gather(data['y'], data['train_idx'])
         loss = self._loss_fn(train_logits, train_y)
         return loss
@@ -53,8 +51,6 @@ def calculate_acc(logits, y, metrics):
 
 def main(args):
     # load datasets
-    # set_device(5)
-    # tlx.set_seed(args.seed)
     if str.lower(args.dataset) in ['cornell', 'texas', 'wisconsin']:
         # raise ValueError('Unknown dataset: {}'.format(args.dataset))
         dataset = WebKB(args.dataset_path, args.dataset, transform=T.NormalizeFeatures())
@@ -66,7 +62,7 @@ def main(args):
         edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=args.self_loops)
     else:
         edge_index = graph.edge_index
-    edge_weight = tlx.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
+    edge_weight = calc_gcn_norm(edge_index, graph.num_nodes)
 
     if not os.path.exists(args.path):
         os.mkdir(args.path)
@@ -81,13 +77,14 @@ def main(args):
     filep = open(result_path, 'w')
     filep.write(str(args) + '\n')
 
+    # Turn data sets from one-dimensional to two-dimensional for easy slicing and splitting.
     train_mask = []
     test_mask = []
     val_mask = []
     for i in range(10):
-        train_mask.append(graph.train_mask[i * graph.num_nodes : (i + 1) * graph.num_nodes])
-        test_mask.append(graph.test_mask[i * graph.num_nodes : (i + 1) * graph.num_nodes])
-        val_mask.append(graph.val_mask[i * graph.num_nodes : (i + 1) * graph.num_nodes])
+        train_mask.append(graph.train_mask[i * graph.num_nodes: (i + 1) * graph.num_nodes])
+        test_mask.append(graph.test_mask[i * graph.num_nodes: (i + 1) * graph.num_nodes])
+        val_mask.append(graph.val_mask[i * graph.num_nodes: (i + 1) * graph.num_nodes])
     np.stack(train_mask)
     np.stack(test_mask)
     np.stack(val_mask)
@@ -202,7 +199,7 @@ if __name__ == '__main__':
     parser.add_argument('--gamma', type=float, default=0.8)
     parser.add_argument('--max_iter', type=int, default=300)
     parser.add_argument('--threshold', type=float, default=1e-6)
-    parser.add_argument('--ks', type=str, default='[1,2]', help='a list of S^k, then concat for EIGNN_m_concat')
+    parser.add_argument('--ks', type=str, default='[1,2]', help='a list of S^k')
     parser.add_argument('--batch_norm', type=int, default=0, choices=[0, 1], help='whether to use batch norm')
     parser.add_argument('--path', type=str, default='./results/')
     parser.add_argument('--idx_split', type=int, default=5)
