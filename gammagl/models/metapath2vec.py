@@ -3,7 +3,7 @@ from tensorlayerx.nn import Embedding
 from gammagl.typing import NodeType, EdgeType
 from typing import Dict, List, Optional, Tuple
 from tensorlayerx.dataflow import DataLoader
-from gammagl.utils.random_walk_sample import rw_sample_by_edge_index, csr_tuple
+from gammagl.utils.random_walk_sample import rw_sample_by_edge_index
 import numpy as np
 from gammagl.data import Graph
 from .skipgram import SkipGramModel
@@ -102,12 +102,8 @@ class MetaPath2Vec(tlx.nn.Module):
         self.offset = tlx.convert_to_tensor(offset, dtype=tlx.int64)
 
         edge_dict = {}
-        self.edge_index_dict_csr = {}
         for keys, edge_index in edge_index_dict.items():
             edge_dict[keys] = edge_index
-            graph = Graph(edge_index=edge_index)
-            indptr, indices, perm = csr_tuple(graph)
-            self.edge_index_dict_csr[keys] = (indptr, indices, perm)
 
         self.edge_dict = edge_dict
 
@@ -141,7 +137,7 @@ class MetaPath2Vec(tlx.nn.Module):
         rws = [tlx.convert_to_tensor(batch, dtype=tlx.int64)]
         for i in range(self.walk_length - 1):
             keys = self.metapath[i % len(self.metapath)]
-            batch = rw_sample_by_edge_index(self.edge_dict[keys], batch, 2, csr_cache=self.edge_index_dict_csr[keys])
+            batch = rw_sample_by_edge_index(self.edge_dict[keys], batch, 2)
             batch = list(map(lambda x: x[-1], batch))
             rws.append(tlx.convert_to_tensor(batch, dtype=tlx.int64))
 

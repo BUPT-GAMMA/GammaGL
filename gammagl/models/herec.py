@@ -109,7 +109,6 @@ class HERec(tlx.nn.Module):
 
         self.edge_index_big = [[], []]
         edge_dict = {}
-        self.edge_index_dict_csr = {}
         for keys, edge_index in edge_index_dict.items():
             edge_dict[keys] = edge_index
 
