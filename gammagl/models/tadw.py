@@ -89,7 +89,7 @@ class TADWModel(tlx.nn.Module):
         num_feats = self.node_feature.shape[1]
         feature = tlx.convert_to_numpy(self.node_feature)
         for i in range(num_feats):
-            temp = tlx.convert_to_numpy(tlx.reduce_sum(tlx.convert_to_tensor(feature[:, i])))
+            temp = sum([num > 0 for num in feature[:, i]])
             if temp > 0:
                 IDF = tlx.convert_to_numpy(tlx.log(tlx.convert_to_tensor(num_nodes / temp)))
                 feature[:, i] = feature[:, i] * IDF
