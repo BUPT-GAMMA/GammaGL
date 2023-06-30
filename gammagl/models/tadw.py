@@ -8,9 +8,6 @@ from scipy.sparse.linalg import svds
 lower_control = 10 ** (-15)
 
 
-# lower_control = 10 ** (-1)
-
-
 class TADWModel(tlx.nn.Module):
     r"""The TADW model from the
     `"Network Representation Learning with Rich Text Information"
@@ -59,11 +56,11 @@ class TADWModel(tlx.nn.Module):
         self.T = self._create_tfifd_matrix()
         self.T = np.transpose(self.T)
 
-        self.W = np.random.uniform(0, 1, (self.embedding_dim, self.M.shape[0]))
-        self.H = np.random.uniform(0, 1, (self.embedding_dim, self.T.shape[0]))
+        self.W = np.random.uniform(-1, 1, (self.embedding_dim, self.M.shape[0]))
+        self.H = np.random.uniform(-1, 1, (self.embedding_dim, self.T.shape[0]))
 
-        # self.W = np.random.uniform(-1, 1, (self.embedding_dim, self.M.shape[0]))
-        # self.H = np.random.uniform(-1, 1, (self.embedding_dim, self.T.shape[0]))
+        self.W = self.W / np.linalg.norm(self.W)
+        self.H = self.H / np.linalg.norm(self.H)
 
     def _create_target_matrix(self):
         edge_index, _ = add_self_loops(self.edge_index, num_nodes=self.N, n_loops=1)
@@ -78,13 +75,13 @@ class TADWModel(tlx.nn.Module):
             dst = edge_index[1][i]
             A[src][dst] = norm_degs[src]
 
-        graph_length = len(A)
-        for i in range(graph_length):
-            if (np.linalg.norm(A[i], ord=2) > 0):
-                temp = tlx.convert_to_numpy(tlx.reduce_sum(tlx.convert_to_tensor(A[i])))
-                A[i] = A[i] / temp
-
         M = (A + np.dot(A, A)) / 2.
+
+        graph_length = len(M)
+        for i in range(graph_length):
+            if (np.linalg.norm(M[i], ord=2) > 0):
+                temp = tlx.convert_to_numpy(tlx.reduce_sum(tlx.convert_to_tensor(M[i])))
+                M[i] = M[i] / temp
         return M
 
     def _create_tfifd_matrix(self):
@@ -104,11 +101,6 @@ class TADWModel(tlx.nn.Module):
             if (np.linalg.norm(text_feature[:, i], ord=2) > 0):
                 text_feature[:, i] = text_feature[:, i] / np.linalg.norm(text_feature[:, i], ord=2)
 
-        # length = len(text_feature)
-        # for i in range(length):
-        #     text_feature[i] = text_feature[i] / np.linalg.norm(text_feature[i], ord=2)
-
-        # # text_feature = text_feature * 0.1
         return text_feature
 
     def fit(self):
@@ -128,10 +120,7 @@ class TADWModel(tlx.nn.Module):
         grad = self.lamda * self.W - np.dot(H_T, self.M - np.dot(np.transpose(H_T), self.W))
         self.W = self.W - self.lr * grad
         # Overflow control
-        self.W[self.W < lower_control] = lower_control
-
-        # self.W[self.W < lower_control and self.W >= 0] = lower_control
-        # self.W[self.W > -1 * lower_control and self.W < 0] = lower_control
+        self.W = np.where(abs(self.W) < lower_control, np.sign(self.W) * lower_control, self.W)
 
     def update_H(self):
         """
@@ -141,7 +130,7 @@ class TADWModel(tlx.nn.Module):
         grad = self.lamda * self.H - np.dot(np.dot(self.W, inside), np.transpose(self.T))
         self.H = self.H - self.lr * grad
         # Overflow control
-        self.H[self.H < lower_control] = lower_control
+        self.H = np.where(abs(self.H) < lower_control, np.sign(self.H) * lower_control, self.H)
 
     def loss(self):
         # self.score_matrix = self.M - np.dot(np.dot(np.transpose(self.W), self.H), self.T)
@@ -162,7 +151,7 @@ class TADWModel(tlx.nn.Module):
         feature = [np.transpose(self.W), np.transpose(np.dot(self.H, self.T))]
         feature = np.concatenate(feature, axis=1)
 
-        length = len(feature[0])
+        length = len(feature[1])
         for i in range(length):
             if (np.linalg.norm(feature[:, i], ord=2) > 0):
                 feature[:, i] = feature[:, i] / np.linalg.norm(feature[:, i], ord=2)
