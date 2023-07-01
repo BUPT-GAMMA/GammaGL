@@ -5,7 +5,7 @@ Author's code: https://github.com/GXM1141/MA-GCL
 
 ## Example Implementor
 
-This example was implemented by Zhiwei Le
+This example was implemented by LiZhiwei
 
 ## Datasets
 
@@ -47,26 +47,26 @@ In the paper(as well as authors' repo), the training set and testing set are spl
 # use paddle backend
 
 # Cora with random split
-TL_BACKEND=paddle python magcl_trainer.py --dataset cora
+TL_BACKEND=paddle python magcl_trainer.py --dataset cora --epochs 500 --drop_edge_rate_1 0.4 --drop_edge_rate_2 0.2 --drop_feature_rate_1 0.5 --drop_feature_rate_2 0.5 --lr 0.0005
 # Citeseer with random split
-TL_BACKEND=paddle python magcl_trainer.py --dataset citeseer
+TL_BACKEND=paddle python magcl_trainer.py --dataset citeseer --epochs 600 --drop_edge_rate_1 0.4 --drop_edge_rate_2 0.4 --drop_feature_rate_1 0.3 --drop_feature_rate_2 0.3 --lr 0.0001
 ```
 ```bash
 # use tensorflow backend
 
 # Cora with random split
-TL_BACKEND=tensorflow python magcl_trainer.py --dataset cora
+TL_BACKEND=tensorflow python magcl_trainer.py --dataset cora --epochs 500 --drop_edge_rate_1 0.4 --drop_edge_rate_2 0.2 --drop_feature_rate_1 0.5 --drop_feature_rate_2 0.5 --lr 0.0005
 # Citeseer with random split
-TL_BACKEND=tensorflow python magcl_trainer.py --dataset citeseer
+TL_BACKEND=tensorflow python magcl_trainer.py --dataset citeseer --epochs 600 --drop_edge_rate_1 0.4 --drop_edge_rate_2 0.4 --drop_feature_rate_1 0.3 --drop_feature_rate_2 0.3 --lr 0.0001
 
 ```
 ```bash 
 # use pytorch backend
 
 # Cora with random split
-TL_BACKEND=torch python magcl_trainer.py --dataset cora
+TL_BACKEND=torch python magcl_trainer.py --dataset cora --epochs 500 --drop_edge_rate_1 0.4 --drop_edge_rate_2 0.2 --drop_feature_rate_1 0.5 --drop_feature_rate_2 0.5 --lr 0.0005
 # Citeseer with random split
-TL_BACKEND=torch python magcl_trainer.py --dataset citeseer
+TL_BACKEND=torch python magcl_trainer.py --dataset --dataset citeseer --epochs 600 --drop_edge_rate_1 0.4 --drop_edge_rate_2 0.4 --drop_feature_rate_1 0.3 --drop_feature_rate_2 0.3 --lr 0.0001
 
 
 ```
