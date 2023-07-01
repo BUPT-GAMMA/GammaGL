@@ -47,26 +47,26 @@ In the paper(as well as authors' repo), the training set and testing set are spl
 # use paddle backend
 
 # Cora with random split
-TL_BACKEND=paddle python magcl_trainer.py --dataset cora --n_epoch 100
+TL_BACKEND=paddle python magcl_trainer.py --dataset cora
 # Citeseer with random split
-TL_BACKEND=paddle python magcl_trainer.py --dataset citeseer --n_epoch 20
+TL_BACKEND=paddle python magcl_trainer.py --dataset citeseer
 ```
 ```bash
 # use tensorflow backend
 
 # Cora with random split
-TL_BACKEND=tensorflow python magcl_trainer.py --dataset cora --n_epoch 150
+TL_BACKEND=tensorflow python magcl_trainer.py --dataset cora
 # Citeseer with random split
-TL_BACKEND=tensorflow python magcl_trainer.py --dataset citeseer --lr 2e-3 --n_epoch 75 --hid_dim 256
+TL_BACKEND=tensorflow python magcl_trainer.py --dataset citeseer
 
 ```
 ```bash 
 # use pytorch backend
 
 # Cora with random split
-TL_BACKEND=torch python magcl_trainer.py --dataset cora --n_epoch 500
+TL_BACKEND=torch python magcl_trainer.py --dataset cora
 # Citeseer with random split
-TL_BACKEND=torch python magcl_trainer.py --dataset citeseer --n_epoch 200 --lr 1e-3 --l2 1e-5 --hid_dim 256 --drop_edge_rate_1 0.2 --drop_edge_rate_2 0.0 --drop_feature_rate_1 0.3 --drop_feature_rate_2 0.2 --temp 0.9
+TL_BACKEND=torch python magcl_trainer.py --dataset citeseer
 
 
 ```
@@ -81,8 +81,7 @@ TL_BACKEND=torch python magcl_trainer.py --dataset citeseer --n_epoch 200 --lr 1
 |   Author's Code   | 83.3 |   73.6   |  83.5  |
 |     GammaGL(tf)   | 82.1 |   72.0   |   -    |
 |     GammaGL(th)   | 80.5 |   71.4   |   -    |
-|     GammaGL(pd)   |  -   |    -     |   -    |
+|     GammaGL(pd)   | 82.4 |   70.4   |   -    |
 
-* I can't run the model with paddle on my laptop, I will update acc of it soon.
-* I can't run the model on Pubmed on my laptop, I will continue work on it.
-* The acc on ggl can't reach the acc from the Author's code, I will try to improve it soon.
+
+
