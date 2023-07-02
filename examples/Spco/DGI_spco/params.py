@@ -7,7 +7,7 @@ argv = sys.argv
 def cora_params():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--dataname', type=str, default="cora")
+    parser.add_argument('--dataname', type=str, default="Cora")
     parser.add_argument('--gpu', type=int, default=0)
     parser.add_argument('--lr1', type=float, default=0.001)
     parser.add_argument('--lr2', type=float, default=1e-3)
@@ -42,7 +42,7 @@ def cora_params():
 def citeseer_params():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--dataname', type=str, default="citeseer")
+    parser.add_argument('--dataname', type=str, default="CiteSeer")
     parser.add_argument('--gpu', type=int, default=0)
     parser.add_argument('--lr1', type=float, default=1e-3)
     parser.add_argument('--lr2', type=float, default=1e-3)
@@ -112,7 +112,7 @@ def blog_params():
 def flickr_params():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--dataname', type=str, default="flickr")
+    parser.add_argument('--dataname', type=str, default="Flickr")
     parser.add_argument('--gpu', type=int, default=0)
     parser.add_argument('--lr1', type=float, default=1e-2)
     parser.add_argument('--lr2', type=float, default=1e-3)
@@ -159,7 +159,7 @@ def flickr_params():
 def pubmed_params():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--dataname', type=str, default="pubmed")
+    parser.add_argument('--dataname', type=str, default="PubMed")
     parser.add_argument('--gpu', type=int, default=0)
     parser.add_argument('--lr1', type=float, default=1e-4)
     parser.add_argument('--lr2', type=float, default=1e-3)

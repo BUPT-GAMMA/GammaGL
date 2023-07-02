@@ -5,7 +5,7 @@ from gammagl.layers.conv import GCNConv
 class LogReg(tlx.nn.Module):
     def __init__(self, hid_dim, out_dim):
         super(LogReg, self).__init__()
-        self.fc = tlx.nn.Linear(in_features=hid_dim,out_features=out_dim)
+        self.fc = tlx.nn.Linear(in_features=hid_dim, out_features=out_dim)
 
     def forward(self, x):
         ret = self.fc(x)

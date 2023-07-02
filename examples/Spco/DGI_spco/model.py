@@ -52,11 +52,11 @@ class DGIModel(tlx.nn.Module):
         self.disc = Discriminator(hid_feat)
         self.loss = tlx.losses.sigmoid_cross_entropy
 
-    def get_embedding(self, feat, edge_index, edge_weight):
+    def get_embedding(self, feat,edge_index, edge_weight):
         out = self.gcn(feat, edge_index, edge_weight, feat.shape[0])
         return out.detach()
 
-    def forward(self, feat_1, edge_index_1, edge_weight_1, feat_2, edge_index_2, edge_weight_2):
+    def forward(self, feat_1,edge_index_1, edge_weight_1, feat_2,edge_index_2, edge_weight_2):
         pos = self.gcn(feat_1, edge_index_1, edge_weight_1, feat_1.shape[0])
         neg = self.gcn(feat_2, edge_index_2, edge_weight_2, feat_2.shape[0], True)
 

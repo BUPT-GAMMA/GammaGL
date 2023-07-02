@@ -3,14 +3,14 @@ import os
 os.environ['TL_BACKEND'] = 'torch'
 import argparse
 
-import torch
 from aug import random_aug
 import numpy as np
-import torch as th
 import tensorlayerx as tlx
 import warnings
 from gammagl.data import Graph
+from dataset import DataSet
 from gammagl.utils import add_self_loops
+from gammagl.utils.device import set_device
 
 from sklearn.metrics import f1_score
 import scipy.sparse as sp
@@ -19,13 +19,8 @@ from model import DGIModel, LogReg
 
 warnings.filterwarnings('ignore')
 
-args = set_params('cora')  # cora/citeseer/pubmed/flickr/blog
+args = set_params('cora')  # Cora/Citeseer/Pubmed/flickr/blog
 
-# check cuda
-if args.gpu != -1 and th.cuda.is_available():
-    args.device = 'cuda:{}'.format(args.gpu)
-else:
-    args.device = 'cpu'
 '''
 ## random seed ##
 seed = args.seed
@@ -38,25 +33,15 @@ own_str = args.dataname
 print(own_str)
 
 
-def coo_to_edge_index(coo_m):
-    adj = torch.tensor(coo_m.todense())
-    adj = sp.coo_matrix(adj)
-    indices = np.vstack((adj.row, adj.col))
-    edge_index = torch.LongTensor(indices)
+def coo_to_edge_index(adj):
+    edge_index = adj.todense().nonzero()
+    edge_index = tlx.convert_to_tensor([edge_index[0], edge_index[1]])
     return edge_index
-
-
-def edge_index_to_adj(edge_index, edge_values=None, add_self=False):
-    if add_self is True:
-        edge_index = add_self_loops(edge_index=edge_index)
-    adj_csc = to_scipy_sparse_matrix(edge_index=edge_index, edge_attr=edge_values).tocsc()
-    adj = torch.tensor(adj_csc.toarray())
-    return adj
 
 
 def sinkhorn(K, dist, sin_iter):
     # make the matrix sum to 1
-    u = np.ones([len(dist), 1]) / len(dist)  # distribution
+    u = np.ones([len(dist), 1]) / len(dist)  # the distribution of row or col
     K_ = sp.diags(1. / dist) * K
     dist = dist.reshape(-1, 1)
 
@@ -110,41 +95,50 @@ def preprocess_features(features):
 
 def get_dataset(path, data_name, scope_flag):
     dataset = DataSet(path=path, name=data_name)
-    edge_index, feat, labels, num_class, train_idx, val_idx, test_idx = dataset.load_dataset()
+    edge_index, feat, labels, num_class, train_mask, val_mask, test_mask = dataset.load_dataset()
     if data_name != 'blog':
-        feat = torch.Tensor(preprocess_features(feat))
+        feat = tlx.convert_to_tensor(preprocess_features(feat), dtype=tlx.float32)
     else:
-        feat = torch.Tensor(feat)
-    adj = edge_index_to_adj(edge_index)
+        feat = tlx.convert_to_tensor(feat, dtype=tlx.float32)
+    adj = sp.coo_matrix((np.ones(edge_index.shape[1]), (edge_index[0, :], edge_index[1, :])),
+                        shape=(feat.shape[0], feat.shape[0]))
     laplace = sp.eye(adj.shape[0]) - normalize_adj(adj)
     if scope_flag == 1:  # 1-hop Sparser operation
         scope = edge_index
     if scope_flag == 2:  # 2-hop Sparser operation
         adj_2 = adj @ adj
         scope = coo_to_edge_index(adj_2)
-    return adj, feat, labels, num_class, train_idx, val_idx, test_idx, laplace, scope
+    return adj, feat, labels, num_class, train_mask, val_mask, test_mask, laplace, scope
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--device', type=str, default='cuda:2')
-
     print(args)
     path = "../datasets"
     if os.path.exists(path):
         pass
     else:
         os.mkdir(path)
-    adj, feat, labels, num_class, train_idx, val_idx, test_idx, laplace, scope = get_dataset(path, args.dataname,
-                                                                                             args.scope_flag)
-    adj = adj + sp.eye(adj.shape[0])
+    adj, feat, labels, num_class, train_mask, val_mask, test_mask, laplace, scope = get_dataset(path, args.dataname,
+                                                                                                args.scope_flag)
+    device = set_device(id=args.gpu)
+
+    adj = adj + sp.eye(adj.shape[0])  # add self-loop
     edge_index = coo_to_edge_index(adj)
+
+    feat = feat.to(edge_index.device)
+    labels = labels.to(edge_index.device)
+    train_mask = train_mask.to(edge_index.device)
+    val_mask = val_mask.to(edge_index.device)
+    test_mask = test_mask.to(edge_index.device)
+
     ori_g = Graph(x=feat, edge_index=edge_index)
 
     if args.dataname == 'pubmed':
         new_adjs = []
+        adjs_path = '../pubmed_new_adjs'
         for i in range(10):
-            new_adjs.append(sp.load_npz(path + "/0.01_1_" + str(i) + ".npz"))
+            new_adjs.append(sp.load_npz(adjs_path + "/0.01_1_" + str(i) + ".npz"))
         adj_num = len(new_adjs)
         adj_inter = int(adj_num / args.num)
         sele_adjs = []
@@ -160,56 +154,51 @@ if __name__ == '__main__':
         epoch_inter = args.epoch_inter
     else:
         scope_matrix = sp.coo_matrix((np.ones(scope.shape[1]), (scope[0, :], scope[1, :])), shape=adj.shape).A
-        dist = adj.A.sum(-1) / adj.A.sum()
+        dist = adj.A.sum(-1) / adj.A.sum()  # get distribution
 
     in_dim = feat.shape[1]
 
     activation = tlx.nn.PRelu()
 
-    model = DGIModel(in_feat=feat.shape[1], hid_feat=args.hid_dim, act=activation).to(args.device)
+    model = DGIModel(in_feat=feat.shape[1], hid_feat=args.hid_dim, act=activation)
 
-    optimizer = th.optim.Adam(model.parameters(), lr=args.lr1, weight_decay=args.wd1)
+    optim = tlx.optimizers.Adam(lr=args.lr1, weight_decay=args.wd1)
 
     N = feat.shape[0]
-
     cnt_wait = 0
     best = 1e9
     best_t = 0
 
     #### SpCo ######
     theta = args.theta
-    delta = np.ones(adj.shape) * args.delta_origin
-    delta_add = delta
-    delta_dele = delta
+    delta = np.ones(adj.shape) * args.delta_origin  # all node-pairs are enhanced by delta.
+    delta_add = delta  # add edges
+    delta_dele = delta  # delete edges
     num_node = adj.shape[0]
     range_node = np.arange(num_node)
-    ori_graph = ori_g
-    new_graph = ori_g
+    ori_graph = ori_g  # A
+    new_graph = ori_g  # V
 
     new_adj = adj.tocsc()
-    ori_attr = torch.Tensor(new_adj[new_adj.nonzero()])[0]
-    ori_diag_attr = torch.Tensor(new_adj[range_node, range_node])[0]
-    new_attr = torch.Tensor(new_adj[new_adj.nonzero()])[0]
-    new_diag_attr = torch.Tensor(new_adj[range_node, range_node])[0]
+    ori_attr = tlx.convert_to_tensor(new_adj[new_adj.nonzero()], dtype=tlx.float32)[0]  # get A's all edges' weight
+    ori_diag_attr = tlx.convert_to_tensor(new_adj[range_node, range_node], dtype=tlx.float32)[0]  # get A's diag weight
+    new_attr = tlx.convert_to_tensor(new_adj[new_adj.nonzero()], dtype=tlx.float32)[0]  # get V's all edges' weight
+    new_diag_attr = tlx.convert_to_tensor(new_adj[range_node, range_node], dtype=tlx.float32)[0]  # get V's diag weight
 
     for epoch in range(args.epochs):
         model.train()
-        optimizer.zero_grad()
 
-        graph1_, attr1, feat1 = random_aug(new_graph, new_attr, new_diag_attr, feat, args.dfr_1, args.der_1)
-        graph2_, attr2, feat2 = random_aug(ori_graph, ori_attr, ori_diag_attr, feat, args.dfr_2, args.der_2)
+        graph1_, attr1, feat1 = random_aug(new_graph, new_attr, new_diag_attr, feat, args.dfr_1,
+                                           args.der_1)  # get enhanced V
+        graph2_, attr2, feat2 = random_aug(ori_graph, ori_attr, ori_diag_attr, feat, args.dfr_2,
+                                           args.der_2)  # get enhanced A
 
-        graph1 = graph1_.edge_index.to(args.device)
-        graph2 = graph2_.edge_index.to(args.device)
+        graph1 = graph1_.edge_index
+        graph2 = graph2_.edge_index
 
-        attr1 = attr1.to(args.device)
-        attr2 = attr2.to(args.device)
-
-        feat1 = feat1.to(args.device)
-        feat2 = feat2.to(args.device)
         loss1 = model(feat1, graph1, attr1, feat2, graph2, attr2)
 
-        if torch.isnan(loss1) == True:
+        if tlx.is_nan(loss1):
             break
 
         if loss1 < best:
@@ -223,8 +212,8 @@ if __name__ == '__main__':
             print('Early stopping!')
             break
 
-        loss1.backward()
-        optimizer.step()
+        grads = optim.gradient(loss1, model.trainable_weights)
+        optim.apply_gradients(zip(grads, model.trainable_weights))
 
         print('Epoch={:03d}, loss={:.4f}'.format(epoch, loss1.item()))
         if args.dataname == 'pubmed':
@@ -236,8 +225,8 @@ if __name__ == '__main__':
 
                     new_edge_index = coo_to_edge_index(new_adj)
                     new_graph = Graph(edge_index=new_edge_index)
-                    new_attr = torch.Tensor(new_adj[new_adj.nonzero()])[0]
-                    new_diag_attr = torch.Tensor(new_adj[range_node, range_node])[0]
+                    new_attr = tlx.convert_to_tensor(new_adj[new_adj.nonzero()], dtype=tlx.float32)[0]
+                    new_diag_attr = tlx.convert_to_tensor(new_adj[range_node, range_node], dtype=tlx.float32)[0]
                 except IndexError:
                     pass
         else:
@@ -251,74 +240,75 @@ if __name__ == '__main__':
                                                  args.sin_iter)
                 delta = (delta_add - delta_dele) * scope_matrix
                 delta = args.lam * normalize_adj(delta)
-                new_adj = adj + delta
+                new_adj = adj + delta  # get enhanced V
 
                 new_edge_index = coo_to_edge_index(new_adj)
                 new_graph = Graph(edge_index=new_edge_index)  # update edge_index
-                new_attr = torch.Tensor(new_adj[new_adj.nonzero()])[0]  # update weight
-                new_diag_attr = torch.Tensor(new_adj[range_node, range_node])[0]  # update self-loop weight
+                new_attr = tlx.convert_to_tensor(new_adj[new_adj.nonzero()], dtype=tlx.float32)[0]  # update weight
+                new_diag_attr = tlx.convert_to_tensor(new_adj[range_node, range_node], dtype=tlx.float32)[
+                    0]  # update self-loop weight
                 theta = update(1, epoch, args.epochs)
 
     print("=== Evaluation ===")
-    ori_edge_index = ori_g.edge_index.to(args.device)
-    feat = feat.to(args.device)
+    ori_edge_index = ori_g.edge_index
+    feat = feat
 
-    attr = torch.Tensor(adj[adj.nonzero()])[0].to(args.device)
-    embeds = model.get_embedding(feat, ori_edge_index, attr)
+    attr = tlx.convert_to_tensor(adj[adj.nonzero()], dtype=tlx.float32)[0]
+    embeds = model.get_embedding(feat,ori_edge_index, attr)  # get representations
     test_f1_macro_ll = 0
     test_f1_micro_ll = 0
 
-    train_embs = embeds[train_idx]
-    val_embs = embeds[val_idx]
-    test_embs = embeds[test_idx]
+    train_embs = embeds[train_mask, :]
+    val_embs = embeds[val_mask, :]
+    test_embs = embeds[test_mask, :]
 
-    label = labels.to(args.device)
+    label = labels
 
-    train_labels = label[train_idx]
-    val_labels = label[val_idx]
-    test_labels = label[test_idx]
+    train_labels = label[train_mask]
+    val_labels = label[val_mask]
+    test_labels = label[test_mask]
 
     ''' Linear Evaluation '''
     logreg = LogReg(train_embs.shape[1], num_class)
-    opt = th.optim.Adam(logreg.parameters(), lr=args.lr2, weight_decay=args.wd2)
-    logreg = logreg.to(args.device)
+    opt = tlx.optimizers.Adam(lr=args.lr2, weight_decay=args.wd2)
+    logreg = logreg
 
-    loss_fn = th.nn.CrossEntropyLoss()
+    loss_fn = tlx.losses.softmax_cross_entropy_with_logits
 
     best_val_acc = 0
     eval_acc = 0
 
     for epoch in range(2000):
         logreg.train()
-        opt.zero_grad()
+
         logits = logreg(train_embs)
-        preds = th.argmax(logits, dim=1)
-        train_acc = th.sum(preds == train_labels).float() / train_labels.shape[0]
+        preds = logits.argmax(1)
+        train_acc = (preds == train_labels).sum().float() / train_labels.shape[0]
         loss = loss_fn(logits, train_labels)
-        loss.backward()
-        opt.step()
+
+        grads = opt.gradient(loss, logreg.trainable_weights)
+        opt.apply_gradients(zip(grads, logreg.trainable_weights))
 
         logreg.eval()
-        with th.no_grad():
-            val_logits = logreg(val_embs)
-            test_logits = logreg(test_embs)
+        val_logits = logreg(val_embs)
+        test_logits = logreg(test_embs)
 
-            val_preds = th.argmax(val_logits, dim=1)
-            test_preds = th.argmax(test_logits, dim=1)
+        val_preds = val_logits.argmax(1)
+        test_preds = test_logits.argmax(1)
 
-            val_acc = th.sum(val_preds == val_labels).float() / val_labels.shape[0]
-            test_acc = th.sum(test_preds == test_labels).float() / test_labels.shape[0]
+        val_acc = (val_preds == val_labels).sum().float() / val_labels.shape[0]
+        test_acc = (test_preds == test_labels).sum().float() / test_labels.shape[0]
 
-            test_f1_macro = f1_score(test_labels.cpu(), test_preds.cpu(), average='macro')
-            test_f1_micro = f1_score(test_labels.cpu(), test_preds.cpu(), average='micro')
-            if val_acc >= best_val_acc:
-                best_val_acc = val_acc
-                if test_acc > eval_acc:
-                    test_f1_macro_ll = test_f1_macro
-                    test_f1_micro_ll = test_f1_micro
+        test_f1_macro = f1_score(test_labels.cpu(), test_preds.cpu(), average='macro')
+        test_f1_micro = f1_score(test_labels.cpu(), test_preds.cpu(), average='micro')
+        if val_acc >= best_val_acc:
+            best_val_acc = val_acc
+            if test_acc > eval_acc:
+                test_f1_macro_ll = test_f1_macro
+                test_f1_micro_ll = test_f1_micro
 
-            print('Epoch:{}, train_acc:{:.4f}, val_acc:{:4f}, test_acc:{:4f}'.format(epoch, train_acc, val_acc,
-                                                                                     test_acc))
+        print('Epoch:{}, train_acc:{:.4f}, val_acc:{:4f}, test_acc:{:4f}'.format(epoch, train_acc, val_acc,
+                                                                                 test_acc))
     f = open(own_str + "_result" + ".txt", "a")
     f.write(str(test_f1_macro_ll) + "\t" + str(test_f1_micro_ll) + "\n")
     f.close()
