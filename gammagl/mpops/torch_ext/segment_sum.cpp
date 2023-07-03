@@ -1,4 +1,4 @@
-#include "segment_max.h"
+#include "segment_sum.h"
 #include <assert.h>
 #include <torch/extension.h>
 #include <torch/script.h>
@@ -6,7 +6,7 @@
 
 #include <iostream>
 #include <vector>
-#include "cpu/segment_max_cpu.h"
+#include "cpu/segment_sum_cpu.h"
 
 
 using torch::autograd::AutogradContext;
@@ -23,13 +23,13 @@ inline std::tuple<torch::Tensor, torch::Tensor> device_dispatch_forward(torch::T
                                                           torch::Tensor& index,
                                                           int64_t& N) {
   if (x.is_cpu() && index.is_cpu()) {
-    return segment_max_cpu_forward(x, index, N);
+    return segment_sum_cpu_forward(x, index, N);
   } else {
     AT_ERROR("Tensor device inconsistent error.");
   }
 }
 
-torch::Tensor SegmentMax::forward(AutogradContext* ctx,
+torch::Tensor SegmentSum::forward(AutogradContext* ctx,
                                torch::Tensor x,
                                torch::Tensor index,
                                int64_t N) {
@@ -42,7 +42,7 @@ torch::Tensor SegmentMax::forward(AutogradContext* ctx,
     return out;
 }
 
-std::vector<torch::Tensor> SegmentMax::backward(
+std::vector<torch::Tensor> SegmentSum::backward(
       AutogradContext* ctx,
       std::vector<torch::Tensor> grad_outs) {
     auto grad_out = grad_outs[0];

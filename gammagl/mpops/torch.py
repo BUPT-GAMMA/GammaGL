@@ -2,8 +2,8 @@ import torch
 
 use_ext = False
 try:
-    import torch_segment
-    import torch_gspmm
+    import torch_operator
+
     use_ext = True
 except:
     pass
@@ -17,6 +17,8 @@ def unsorted_segment_sum(x, segment_ids, num_segments=None):
         # `rgcn` meet an error that `segment_ids` is empty
         # assert segment_ids.max() < num_segments
 
+    if use_ext:
+        return torch_operator.segment_sum(x, segment_ids, num_segments)
 
     if len(segment_ids.shape) == 1:
         s = torch.prod(torch.tensor(x.shape[1:], device=x.device)).to(torch.int64)
@@ -36,6 +38,9 @@ def unsorted_segment_mean(x, segment_ids, num_segments=None):
     # else:
     # `rgcn` meet an error that `segment_ids` is empty
     # assert segment_ids.max() < num_segments
+
+    if use_ext:
+        return torch_operator.segment_mean(x, segment_ids, num_segments)
 
     if len(segment_ids.shape) == 1:
         s = torch.prod(torch.tensor(x.shape[1:], device=x.device)).to(torch.int64)
@@ -61,7 +66,7 @@ def unsorted_segment_max(x, segment_ids, num_segments=None):
 
     assert x.shape[0] == segment_ids.shape[0], "the length of segment_ids should be equal to data.shape[0]."
     if use_ext:
-        return torch_segment.segment_max(x, segment_ids, num_segments)
+        return torch_operator.segment_max(x, segment_ids, num_segments)
     res = []
     for i in range(num_segments):
         res.append(torch.max(x[segment_ids == i], dim=0)[0])
@@ -69,18 +74,19 @@ def unsorted_segment_max(x, segment_ids, num_segments=None):
 
 
 def segment_max(x, segment_ids, num_segments=None):
-    return unsorted_segment_max(x, segment_ids,num_segments)
+    return unsorted_segment_max(x, segment_ids, num_segments)
 
 
-def segment_mean(x, segment_ids,num_segments=None):
-    return unsorted_segment_mean(x, segment_ids,num_segments)
+def segment_mean(x, segment_ids, num_segments=None):
+    return unsorted_segment_mean(x, segment_ids, num_segments)
 
 
-def segment_sum(x, segment_ids,num_segments=None):
-    return unsorted_segment_sum(x, segment_ids,num_segments)
+def segment_sum(x, segment_ids, num_segments=None):
+    return unsorted_segment_sum(x, segment_ids, num_segments)
+
 
 def gspmm(index, weight, x, reduce='sum'):
     if reduce == 'sum':
-        return torch_gspmm.spmm_sum(index, weight, x)
+        return torch_operator.spmm_sum(index, weight, x)
     else:
         raise Exception("Unsupported reduce type, please choose from ['sum', ].")
