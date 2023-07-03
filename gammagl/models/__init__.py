@@ -39,6 +39,8 @@ from .hpn import HPN
 from .gmm import GMMModel
 from .iehgcn import ieHGCNModel
 from .tadw import TADWModel
+from .mgnni import MGNNI_m_MLP
+from .mgnni import MGNNI_m_att
 
 
 __all__ = [
