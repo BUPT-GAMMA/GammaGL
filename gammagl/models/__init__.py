@@ -37,8 +37,8 @@ from .deepwalk import DeepWalkModel
 from .node2vec import Node2vecModel
 from .hpn import HPN
 from .gmm import GMMModel
+from .iehgcn import ieHGCNModel
 from .tadw import TADWModel
-
 
 
 __all__ = [
@@ -82,7 +82,8 @@ __all__ = [
     'GAEModel',
     'HPN',
     'GMMModel',
-    'TADWModel'
+    'ieHGCNModel',
+    'TADWModel',
 
 ]
 
