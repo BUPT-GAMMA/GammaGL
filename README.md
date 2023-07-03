@@ -382,6 +382,7 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [GaAN [UAI 2018]](./examples/gaan)               | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [GRADE [NeurIPS 2022]](./examples/grade)         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [GMM [CVPR 2017]](./examples/gmm)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [TADW [IJCAI 2015]](./examples/tadw)             | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [MGNNI [NeurIPS 2022]](./examples/mgnni)         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 
 | Contrastive Learning                           | TensorFlow         | PyTorch            | Paddle             | MindSpore |
@@ -400,6 +401,7 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [SimpleHGN [KDD 2021]](./examples/simplehgn) | :heavy_check_mark: |                    |                    |           |
 | [CompGCN [ICLR 2020]](./examples/compgcn)    |                    | :heavy_check_mark: | :heavy_check_mark: |           |
 | [HPN [TKDE 2021]](./examples/hpn)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [ieHGCN [TKDE 2021]](./examples/iehgcn)      | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 
 > Note
 > 
