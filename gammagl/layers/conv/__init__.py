@@ -27,6 +27,7 @@ from .edgeconv import EdgeConv
 from .hpn_conv import HPNConv
 from .hetero_wrapper import HeteroConv
 from .gmm_conv import GMMConv
+from .magcl_conv import MAGCLConv
 
 __all__ = [
     'MessagePassing',
@@ -58,7 +59,7 @@ __all__ = [
     'HPNConv',
     'GINConv',
     'GMMConv',
-
+    'MAGCLConv',
 ]
 
 classes = __all__

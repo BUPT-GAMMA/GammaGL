@@ -63,10 +63,10 @@ class MAGCLConv(MessagePassing):
         self.out_channels = out_channels
         self.add_bias = add_bias
         self._norm = norm
-
-        stdv = math.sqrt(6.0 / (in_channels + out_channels))
-        self.weight = tlx.nn.Parameter(tlx.random_uniform((in_channels, out_channels), -stdv, stdv))
-
+        initor = tlx.initializers.TruncatedNormal()
+        # stdv = math.sqrt(6.0 / (in_channels + out_channels))
+        # self.weight = tlx.nn.Parameter(tlx.random_uniform((in_channels, out_channels), -stdv, stdv))
+        self.weight = self._get_weights("weight", shape=(in_channels, out_channels), init=initor, order=True)
         if add_bias is True:
             initor = tlx.initializers.Zeros()
             self.bias = self._get_weights("bias", shape=(1, self.out_channels), init=initor)

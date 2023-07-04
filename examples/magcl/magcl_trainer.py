@@ -4,7 +4,6 @@ import os
 # set your backend here, default 'tensorflow', you can choose 'paddle'、'tensorflow'、'torch'
 
 import argparse
-from eval import LogisticRegression
 from sklearn.metrics import accuracy_score
 import tensorlayerx as tlx
 from tensorlayerx.model import TrainOneStep, WithLoss
@@ -12,7 +11,7 @@ from gammagl.data import Graph
 from gammagl.datasets import Planetoid
 from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
 from gammagl.utils.corrupt_graph import dfde_norm_g, mask_edge, drop_feature
-from magcl import NewGrace
+from gammagl.models.magcl import NewGrace
 from magcl_eval import evaluate
 
 

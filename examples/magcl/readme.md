@@ -1,5 +1,5 @@
 # GammaGL Implementation of MA-GCL
-This GammaGL example implements the model proposed in the paper [Deep Graph Contrastive Representation Learning](https://arxiv.org/abs/2006.04131).
+This GammaGL example implements the model proposed in the paper [MA-GCL: Model Augmentation Tricks for Graph Contrastive Learning.](https://arxiv.org/pdf/2212.07035.pdf).
 
 Author's code: https://github.com/GXM1141/MA-GCL
 

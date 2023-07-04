@@ -37,7 +37,7 @@ from .deepwalk import DeepWalkModel
 from .node2vec import Node2vecModel
 from .hpn import HPN
 from .gmm import GMMModel
-
+from .magcl import NewGrace
 
 
 __all__ = [
@@ -81,6 +81,7 @@ __all__ = [
     'GAEModel',
     'HPN',
     'GMMModel',
+    'NewGrace',
 
 ]
 
