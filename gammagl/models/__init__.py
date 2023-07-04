@@ -39,8 +39,8 @@ from .hpn import HPN
 from .gmm import GMMModel
 from .iehgcn import ieHGCNModel
 from .tadw import TADWModel
-from .mgnni import MGNNI_m_MLP
-from .mgnni import MGNNI_m_att
+from .mgnni import MGNNI_m_MLP, MGNNI_m_att 
+from .magcl import NewGrace
 
 
 __all__ = [
@@ -86,6 +86,9 @@ __all__ = [
     'GMMModel',
     'ieHGCNModel',
     'TADWModel',
+    'MGNNI_m_MLP', 
+    'MGNNI_m_att', 
+    'NewGrace',
 
 ]
 

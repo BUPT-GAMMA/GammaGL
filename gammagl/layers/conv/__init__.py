@@ -29,6 +29,7 @@ from .hetero_wrapper import HeteroConv
 from .gmm_conv import GMMConv
 from .iehgcn_conv import ieHGCNConv
 from .mgnni_m_iter import MGNNI_m_iter
+from .magcl_conv import MAGCLConv
 
 __all__ = [
     'MessagePassing',
@@ -61,6 +62,8 @@ __all__ = [
     'GINConv',
     'GMMConv',
     'ieHGCNConv',
+    'MGNNI_m_iter',
+    'MAGCLConv',
 
 ]
 
