@@ -7,6 +7,7 @@
 #include <iostream>
 #include <vector>
 #include "cpu/segment_max_cpu.h"
+#include "cuda/segment_max_cuda.h"
 
 
 using torch::autograd::AutogradContext;
@@ -22,7 +23,13 @@ inline std::vector<int64_t> list2vec(const c10::List<int64_t> list) {
 inline std::tuple<torch::Tensor, torch::Tensor> device_dispatch_forward(torch::Tensor& x,
                                                           torch::Tensor& index,
                                                           int64_t& N) {
-  if (x.is_cpu() && index.is_cpu()) {
+  if (x.is_cuda() && index.is_cuda()) {
+#ifdef COMPILE_WITH_CUDA
+    return segment_max_cuda_forward(x, index, N);
+#else
+    AT_ERROR("Compiled with CUDA support while tensor is on GPU!");
+#endif
+  } else if (x.is_cpu() && index.is_cpu()) {
     return segment_max_cpu_forward(x, index, N);
   } else {
     AT_ERROR("Tensor device inconsistent error.");
