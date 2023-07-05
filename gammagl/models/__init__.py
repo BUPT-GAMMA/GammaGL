@@ -33,10 +33,13 @@ from .graphgan_discriminator import Discriminator
 from .graphgan import GraphGAN
 from .vgae import VGAEModel, GAEModel
 from .gen import GEstimationN
+from .skipgram import SkipGramModel
 from .deepwalk import DeepWalkModel
 from .node2vec import Node2vecModel
 from .hpn import HPN
 from .gmm import GMMModel
+from .herec import HERec
+from .metapath2vec import MetaPath2Vec
 
 
 
@@ -75,12 +78,15 @@ __all__ = [
     'DGCNNModel',
     'FILMModel',
     'GEstimationN',
+    'SkipGramModel',
     'DeepWalkModel',
     'Node2vecModel',
     'VGAEModel',
     'GAEModel',
     'HPN',
     'GMMModel',
+    'HERec',
+    'MetaPath2Vec'
 
 ]
 
