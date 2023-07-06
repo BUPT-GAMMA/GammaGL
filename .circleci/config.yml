@@ -40,6 +40,8 @@ jobs:
       - run:
           command: python setup.py install
       - run:
+          command: pip install protobuf==3.19.6
+      - run:
           name: Run TF tests
           # This assumes pytest is installed via the install-package step above
           command: TL_BACKEND=tensorflow pytest

@@ -1,7 +1,7 @@
 numpy
 scipy
 cython
-tensorflow==2.11.0
+tensorflow
 paddlepaddle==2.3.2
 pytest
 tqdm
