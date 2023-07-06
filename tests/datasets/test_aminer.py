@@ -26,4 +26,4 @@ def aminer():
     assert graph.num_nodes == 4891819
 
 
-test_aminer()
+# test_aminer()
