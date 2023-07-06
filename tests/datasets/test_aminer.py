@@ -5,7 +5,7 @@ import os
 import tensorlayerx as tlx
 from gammagl.datasets.aminer import AMiner
 
-root = "../../data/Aminer"
+root = "./data"
 def test_aminer():
     dataset = AMiner(root)
     graph = dataset[0]
