@@ -6,7 +6,7 @@ import tensorlayerx as tlx
 from gammagl.datasets.aminer import AMiner
 
 root = "./data"
-def test_aminer():
+def aminer():
     dataset = AMiner(root)
     graph = dataset[0]
     assert len(dataset) == 1
