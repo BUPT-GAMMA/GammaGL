@@ -9,7 +9,7 @@ import tensorlayerx as tlx
 import time
 
 try:
-    import torch_segment
+    import torch_operator
 except ImportError:
     exit(0)
 
@@ -43,7 +43,7 @@ for name in file_name:
         for j in range(10):
             msg = tlx.gather(x, src)
             msg = msg * edge_weight
-            torch_segment.segment_max(msg, dst, num_nodes)
+            torch_operator.segment_max(msg, dst, num_nodes)
         end = time.time()
         print("ext_segment_max:{:.3f}".format(end-start))
 

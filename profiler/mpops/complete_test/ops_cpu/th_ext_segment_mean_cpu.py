@@ -1,18 +1,12 @@
 import os
 
 os.environ['TL_BACKEND'] = 'torch'
-os.environ["CUDA_VISIBLE_DEVICES"] = "4"
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 from pyinstrument import Profiler
 import numpy as np
 import tensorlayerx as tlx
 # from gammagl.mpops import *
 import time
-
-try:
-    tlx.set_device(device='GPU', id=4)
-except:
-    print("GPU is not available")
-
 
 try:
     import torch_operator
@@ -38,16 +32,17 @@ for name in file_name:
     edge_index = tlx.convert_to_tensor(edge_index)
 
     for embedding_dim in embedding:
+
         print("**********embedding_dim={}**********".format(embedding_dim))
         x = tlx.convert_to_tensor(np.random.randn(num_nodes, embedding_dim), dtype=tlx.float32)
         msg = tlx.gather(x, src)
 
         start = time.time()
-        for j in range(10):
-            torch_operator.segment_max(msg, dst, num_nodes)
+        for j in range(iter):
+            torch_operator.segment_mean(msg, dst, num_nodes)
         end = time.time()
-        print("ext_segment_max:{:.3f}".format(end-start))
+        print("ext_segment_mean:{:.3f}".format(end-start))
 
         print("**********embedding_dim={}**********".format(embedding_dim))
 
-    print(x.device)
+print(x.device)

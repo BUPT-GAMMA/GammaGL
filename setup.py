@@ -3,6 +3,7 @@
 import os
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext as _build_ext
+import subprocess
 
 # cython compile
 try:
@@ -69,6 +70,9 @@ setup(
 
     classifiers=classifiers
 )
+
+os.chdir('gammagl/mpops/torch_ext')
+subprocess.call('python setup.py install', shell=True)
 
 # python setup.py build_ext --inplace
 # python setup.py install
