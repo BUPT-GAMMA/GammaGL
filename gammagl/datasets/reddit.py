@@ -6,6 +6,7 @@ import tensorlayerx as tlx
 import numpy as np
 import scipy.sparse as sp
 from gammagl.data import extract_zip, download_url, InMemoryDataset, Graph
+from gammagl.sparse.coalesce import coalesce
 
 
 class Reddit(InMemoryDataset):
@@ -32,7 +33,7 @@ class Reddit(InMemoryDataset):
 
     url = 'https://data.dgl.ai/dataset/reddit.zip'
 
-    def __init__(self, root, transform=None, pre_transform=None):
+    def __init__(self, root=None, transform=None, pre_transform=None):
         super().__init__(root, transform, pre_transform)
         self.data, self.slices = self.load_data(self.processed_paths[0])
 
@@ -59,8 +60,7 @@ class Reddit(InMemoryDataset):
 
         edge = np.array([adj.row, adj.col], dtype=np.int64)
 
-        ind = np.argsort(edge[1], axis=0)
-        edge = edge[:, ind]
+        edge, _ = coalesce(edge, None, x.shape[0], x.shape[0])
 
         data = Graph(edge_index=edge, x=x, y=y)
 
@@ -68,9 +68,7 @@ class Reddit(InMemoryDataset):
         data.val_mask = tlx.convert_to_tensor(split == 2)
         data.test_mask = tlx.convert_to_tensor(split == 3)
 
-
         data = data if self.pre_transform is None else self.pre_transform(data)
         # with open(self.processed_paths[0], 'wb') as f:
         #     pickle.dump(self.collate([data]), f)
         self.save_data(self.collate([data]), self.processed_paths[0])
-

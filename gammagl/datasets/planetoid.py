@@ -91,7 +91,7 @@ class Planetoid(InMemoryDataset):
 
     url = 'https://github.com/kimiyoung/planetoid/raw/master/data'
 
-    def __init__(self, root: str, name: str, split: str = "public",
+    def __init__(self, root: str = None, name: str = 'cora', split: str = "public",
                  num_train_per_class: int = 20, num_val: int = 500,
                  num_test: int = 1000, transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None):
@@ -146,7 +146,7 @@ class Planetoid(InMemoryDataset):
 
     @property
     def processed_file_names(self) -> str:
-        return tlx.BACKEND+'_data.pt'
+        return tlx.BACKEND + '_data.pt'
 
     def download(self):
         for name in self.raw_file_names:

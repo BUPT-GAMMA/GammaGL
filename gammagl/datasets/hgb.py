@@ -21,6 +21,7 @@ def makedirs(path: str):
         if e.errno != errno.EEXIST and osp.isdir(path):
             raise
 
+
 def download_url(url: str, folder: str, filename: str, log: bool = True):
     path = osp.join(folder, filename)
 
@@ -41,7 +42,9 @@ def download_url(url: str, folder: str, filename: str, log: bool = True):
         f.write(data.read())
 
     return path
-#TODO:现在有些属性,e.g. num_classes, num_etypes不应该存储，而是HeteroGraph()提供属性方法
+
+
+# TODO:现在有些属性,e.g. num_classes, num_etypes不应该存储，而是HeteroGraph()提供属性方法
 # 数据集处理对于HeteroGraph()的使用仅限于__setaddr__
 
 class HGBDataset(InMemoryDataset):
@@ -81,7 +84,7 @@ class HGBDataset(InMemoryDataset):
         'imdb': 'IMDB',
     }
 
-    def __init__(self, root: str, name: str,
+    def __init__(self, root: str = 'aifb', name: str = 'acm',
                  transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None):
         self.name = name.lower()
@@ -108,13 +111,13 @@ class HGBDataset(InMemoryDataset):
 
     def download(self):
         url = self.url.format(self.names[self.name])
-        path = download_url(url, self.raw_dir, self.names[self.name]+'.zip')
+        path = download_url(url, self.raw_dir, self.names[self.name] + '.zip')
         extract_zip(path, self.raw_dir)
         shutil.rmtree(osp.join(self.raw_dir, "__MACOSX"))
         for filename in self.raw_file_names:
-            filePath = osp.join(self.raw_dir,self.names[self.name],filename)
+            filePath = osp.join(self.raw_dir, self.names[self.name], filename)
             shutil.move(filePath, self.raw_dir)
-        shutil.rmtree(osp.join(self.raw_dir,self.names[self.name]))
+        shutil.rmtree(osp.join(self.raw_dir, self.names[self.name]))
         os.unlink(path)
 
     def process(self):
@@ -208,12 +211,12 @@ class HGBDataset(InMemoryDataset):
                     if self.name in ['imdb']:  # multi-label
                         data[n_type].y = np.zeros((num_nodes, num_classes))
                     else:
-                        data[n_type].y = np.full((num_nodes, ), -1, dtype='int64')
-                    data[n_type].train_mask = np.full((num_nodes),False,dtype='bool')
-                    data[n_type].test_mask = np.full((num_nodes),False,dtype='bool')
-                    
-                if(len(data[n_type].y.shape) > 1):
-                # multi-label
+                        data[n_type].y = np.full((num_nodes,), -1, dtype='int64')
+                    data[n_type].train_mask = np.full((num_nodes), False, dtype='bool')
+                    data[n_type].test_mask = np.full((num_nodes), False, dtype='bool')
+
+                if (len(data[n_type].y.shape) > 1):
+                    # multi-label
                     for v in y[3].split(','):
                         data[n_type].y[n_id, int(v)] = 1
                 else:
@@ -221,9 +224,9 @@ class HGBDataset(InMemoryDataset):
                 data[n_type].train_mask[n_id] = True
             for y in test_ys:
                 n_id, n_type = mapping_dict[int(y[0])], n_types[int(y[2])]
-                
-                if(len(data[n_type].y.shape) > 1):
-                # multi-label
+
+                if (len(data[n_type].y.shape) > 1):
+                    # multi-label
                     for v in y[3].split(','):
                         data[n_type].y[n_id, int(v)] = 1
                 else:
@@ -232,7 +235,7 @@ class HGBDataset(InMemoryDataset):
 
             data[n_type].y = tlx.ops.convert_to_tensor(data[n_type].y)
             data[n_type].train_mask = tlx.ops.convert_to_tensor(data[n_type].train_mask)
-            
+
             data[n_type].test_mask = tlx.ops.convert_to_tensor(data[n_type].test_mask)
         else:  # Link prediction:
             raise NotImplementedError

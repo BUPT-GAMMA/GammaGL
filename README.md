@@ -11,8 +11,6 @@
 
 GammaGL is a multi-backend graph learning library based on [TensorLayerX](https://github.com/tensorlayer/TensorLayerX), which supports TensorFlow, PyTorch, PaddlePaddle, MindSpore as the backends.
 
-We release the version 0.1.0 on 20th June. 
-
 We give a development tutorial in Chinese on [wiki](https://github.com/BUPT-GAMMA/GammaGL/wiki/%E5%BC%80%E5%8F%91%E8%80%85%E6%B5%81%E7%A8%8B).
 
 ## Highlighted Features
@@ -313,16 +311,19 @@ class EdgeConv(MessagePassing):
 3. **Download GammaGL**
    
    ```bash
-   git clone https://github.com/BUPT-GAMMA/GammaGL.git
+   git clone --recursive https://github.com/BUPT-GAMMA/GammaGL.git
    python setup.py install
    ```
-   
+
    > 大陆用户如果遇到网络问题，推荐从启智社区安装
    > 
    > Try to git clone from OpenI
    > 
-   > `git clone https://git.openi.org.cn/GAMMALab/GammaGL.git`
-
+   > `git clone --recursive https://git.openi.org.cn/GAMMALab/GammaGL.git`
+   > 
+   > "--recursive" is required, if you forgot, you can run command below in Gammagl root dir:
+   > 
+   > `git submodule update --init`
 ## How to Run
 
 Take [GCN](./examples/gcn) as an example:

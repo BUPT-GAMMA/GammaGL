@@ -50,7 +50,7 @@ class Flickr(InMemoryDataset):
     class_map_id = '1uxIkbtg5drHTsKt-PAsZZ4_yJmgFmle9'
     role_id = '1htXCtuktuCW8TR8KiKfrFDAxUgekQoV7'
 
-    def __init__(self, root: str, transform: Optional[Callable] = None,
+    def __init__(self, root: str = None, transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None):
         super().__init__(root, transform, pre_transform)
         self.data, self.slices = self.load_data(self.processed_paths[0])
@@ -61,7 +61,7 @@ class Flickr(InMemoryDataset):
 
     @property
     def processed_file_names(self) -> str:
-        return tlx.BACKEND+'data.pt'
+        return tlx.BACKEND + 'data.pt'
 
     def download(self):
         path = download_url(self.url.format(self.adj_full_id), self.raw_dir)
@@ -108,6 +108,3 @@ class Flickr(InMemoryDataset):
 
         data = data if self.pre_transform is None else self.pre_transform(data)
         self.save_data(self.collate([data]), self.processed_paths[0])
-
-
-

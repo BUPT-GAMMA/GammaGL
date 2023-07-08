@@ -97,7 +97,7 @@ class ShapeNet(InMemoryDataset):
         'Table': [47, 48, 49],
     }
 
-    def __init__(self, root, categories=None, include_normals=True,
+    def __init__(self, root=None, categories=None, include_normals=True,
                  split='trainval', transform=None, pre_transform=None,
                  pre_filter=None):
         if categories is None:

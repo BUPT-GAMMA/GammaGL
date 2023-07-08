@@ -1,4 +1,5 @@
 import tensorlayerx as tlx
+from typing import Tuple, List
 
 from gammagl.layers.conv import SAGEConv
 
@@ -32,7 +33,6 @@ class GraphSAGE_Full_Model(tlx.nn.Module):
 
 
 class GraphSAGE_Sample_Model(tlx.nn.Module):
-
     r"""The GraphSAGE operator from the `"Inductive Representation Learning on Large Graphs"
     <https://arxiv.org/abs/1706.02216>`_ paper
 
@@ -66,16 +66,15 @@ class GraphSAGE_Sample_Model(tlx.nn.Module):
                 self.convs.append(SAGEConv(hid_feat, hid_feat, tlx.ReLU()))
             self.convs.append(conv2)
 
-    def forward(self, feat, subg):
-        h = feat
-        for l, (layer, sg) in enumerate(zip(self.convs, subg)):
+    def forward(self, x, edgeIndices):
+        for l, (layer, edgeIndex) in enumerate(zip(self.convs, edgeIndices)):
             if tlx.BACKEND == 'torch':
-                sg.to(h.device)
-            target_feat = tlx.gather(h, tlx.arange(0, sg.size[1]))  # Target nodes are always placed first.
-            h = layer((h, target_feat), sg.edge)
+                edgeIndex.to(x.device)
+            target_x = tlx.gather(x, tlx.arange(0, edgeIndex.size[1]))  # Target nodes are always placed first.
+            x = layer((x, target_x), edgeIndex.edge_index)
             if l != len(self.convs) - 1:
-                h = self.dropout(h)
-        return h
+                x = self.dropout(x)
+        return x
 
     def inference(self, feat, dataloader, cur_x):
         if tlx.BACKEND == 'torch':
@@ -84,13 +83,16 @@ class GraphSAGE_Sample_Model(tlx.nn.Module):
             y = tlx.zeros((feat.shape[0], self.num_class if l == len(self.convs) - 1 else self.hid_feat))
             if tlx.BACKEND == 'torch':
                 y = y.to(feat.device)
-            for dst_node, adjs, all_node in dataloader:
-                sg = adjs[0]
+            for dst_node, n_id, adjs in dataloader:
+                if isinstance(adjs, (List, Tuple)):
+                    sg = adjs[0]
+                else:
+                    sg = adjs
                 if tlx.BACKEND == 'torch':
                     sg.to(y.device)
-                h = tlx.gather(feat, all_node)
+                h = tlx.gather(feat, n_id)
                 target_feat = tlx.gather(h, tlx.arange(0, sg.size[1]))
-                h = layer((h, target_feat), sg.edge)
+                h = layer((h, target_feat), sg.edge_index)
                 # if l != len(self.convs) - 1:
                 #     h = self.dropout(h)
                 # soon will compile

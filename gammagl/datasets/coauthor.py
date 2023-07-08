@@ -51,7 +51,7 @@ class Coauthor(InMemoryDataset):
 
     url = 'https://github.com/shchur/gnn-benchmark/raw/master/data/npz/'
 
-    def __init__(self, root: str, name: str,
+    def __init__(self, root: str = None, name: str = 'cs',
                  transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None):
         assert name.lower() in ['cs', 'physics']
@@ -73,7 +73,7 @@ class Coauthor(InMemoryDataset):
 
     @property
     def processed_file_names(self) -> str:
-        return tlx.BACKEND+'_data.pt'
+        return tlx.BACKEND + '_data.pt'
 
     def download(self):
         download_url(self.url + self.raw_file_names, self.raw_dir)
@@ -86,6 +86,5 @@ class Coauthor(InMemoryDataset):
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}{self.name}()'
 
-#data=Coauthor(root='./Coauthor/',name='cs')
-#data.process()
-
+# data=Coauthor(root='./Coauthor/',name='cs')
+# data.process()

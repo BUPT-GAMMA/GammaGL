@@ -4,6 +4,7 @@ from collections import defaultdict
 from gammagl.utils.num_nodes import maybe_num_nodes
 
 
+
 class RandomWalk:
     def __init__(self, model):
         self.model = model
@@ -20,24 +21,25 @@ class RandomWalk:
         dst = tlx.convert_to_numpy(dst)
 
         # get source node neighbors.
-        node_neighbor = {}
+        # node_neighbor = {}
+        neighbor_dict = defaultdict(list)
         nodes_weight = {}
         index = 0
         for src_node in src:
-            if src_node not in node_neighbor.keys():
-                node_neighbor[src_node] = list()
-
-            node_neighbor[src_node].append(dst[index])
+            # if src_node not in node_neighbor.keys():
+            #     node_neighbor[src_node] = list()
+            neighbor_dict[src_node].append(dst[index])
             nodes_weight[(src_node, dst[index])] = edge_weight[index]
             index += 1
 
         walks = list()
         if self.model == "node2vec":
-            probs = compute_probabilities(node_neighbor, edge_index, nodes_weight, p, q, num_nodes)
-            walks = node2vec_generate_random_walks(node_neighbor, probs, edge_index, num_walks, walk_length)
+            probs = compute_probabilities(neighbor_dict, edge_index, nodes_weight, p, q, num_nodes)
+            walks = node2vec_generate_random_walks(neighbor_dict, probs, edge_index, num_walks, walk_length)
 
         elif self.model == "deepwalk":
-            walks = deepwalk_generate_random_walks(node_neighbor, edge_index, num_walks, walk_length)
+            from gammagl.loader.rw_utils import rw_sample_by_edge_index
+            walks = rw_sample_by_edge_index(edge_index, edge_index[0, :], walk_length, num_walks)
 
         return walks
 

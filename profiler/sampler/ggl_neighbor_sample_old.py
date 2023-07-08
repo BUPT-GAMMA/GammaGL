@@ -9,25 +9,27 @@ import numpy as np
 from gammagl.datasets import Reddit
 import tensorlayerx as tlx
 import argparse
-from gammagl.loader.Neighbour_sampler import Neighbor_Sampler
-
-
-
+from gammagl.loader.neighbor_sampler import NeighborSampler
 # load reddit dataset
-dataset = Reddit('../reddit')
+dataset = Reddit()
 # dataset.process()  # suggest to execute explicitly so far
 graph = dataset[0]
 
 train_idx = mask_to_index(graph.train_mask)
 
+train_loader = NeighborSampler(edge_index=graph.edge_index,
+                               node_idx=graph.train_mask
+                               , sample_lists=[25, 10]
+                               , batch_size=1024
+                               , shuffle=False
+                               , num_workers=0)
 
-train_loader = Neighbor_Sampler(edge_index=graph.edge_index.numpy(),
-                                dst_nodes=tlx.convert_to_numpy(train_idx),
-                                sample_lists=[25, 10], batch_size=1024, shuffle=True, num_workers=0)
-
-sub_loader = Neighbor_Sampler(edge_index=graph.edge_index.numpy(),
-                              dst_nodes=np.arange(0, graph.num_nodes),
-                              sample_lists=[-1], batch_size=1024, shuffle=False, num_workers=0)
+sub_loader = NeighborSampler(edge_index=graph.edge_index,
+                             node_idx=None,
+                             sample_lists=[-1],
+                             batch_size=1024
+                             , shuffle=False
+                             , num_workers=0)
 
 """
 test sample without replacement speed
@@ -35,7 +37,7 @@ test sample without replacement speed
 arrs = []
 for i in range(10):
     aa = time()
-    for dst_node, adjs, all_node in train_loader:
+    for batch, n_id, adjs in train_loader:
         pass
     bb = time()
     if i > 3:
