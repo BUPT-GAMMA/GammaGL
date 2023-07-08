@@ -9,7 +9,7 @@ from gammagl.mpops import *
 import time
 
 try:
-    import torch_gspmm
+    import torch_operator
 except ImportError:
     exit(0)
 
@@ -41,7 +41,7 @@ for name in file_name:
 
         start = time.time()
         for j in range(10):
-            torch_gspmm.spmm_sum(edge_index, weight, x)
+            torch_operator.spmm_sum(edge_index, weight, x)
         end = time.time()
         print("spmm_sum:{:.3f}".format(end-start))
 

@@ -14,10 +14,10 @@ except:
     print("GPU is not available")
 
 try:
-    import torch_gspmm
+    import torch_operator
 except ImportError:
     exit(0)
-    
+
 iter = 1000
 
 relative_path = 'profiler/mpops/edge_index/'
@@ -39,7 +39,7 @@ for name in file_name:
     edge_index = tlx.convert_to_tensor(edge_index)
 
     weight = torch.ones(edge_index.shape[1],
-                            dtype=tlx.float32)
+                        dtype=tlx.float32)
     for embedding_dim in embedding:
         print("**********embedding_dim={}**********".format(embedding_dim))
         x = tlx.convert_to_tensor(np.random.randn(num_nodes, embedding_dim), dtype=tlx.float32)
@@ -47,9 +47,9 @@ for name in file_name:
 
         start = time.time()
         for j in range(iter):
-            torch_gspmm.spmm_sum(edge_index, weight, x)
+            torch_operator.spmm_sum(edge_index, weight, x)
         end = time.time()
-        print("unsorted_segment_sum:{:.3f}".format(end-start))
+        print("unsorted_segment_sum:{:.3f}".format(end - start))
 
         print("**********embedding_dim={}**********".format(embedding_dim))
 

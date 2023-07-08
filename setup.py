@@ -7,6 +7,7 @@ from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext as _build_ext
 # from pybind11.setup_helpers import Pybind11Extension, build_ext
 from gammagl.utils.ggl_build_extension import BuildExtension, PyCudaExtension, PyCPUExtension
+import subprocess
 
 # TODO will depend on different host
 WITH_CUDA = False
@@ -131,6 +132,9 @@ setup(
         "gammagl": ["*.json"]
     }
 )
+
+os.chdir('gammagl/mpops/torch_ext')
+subprocess.call('python setup.py install', shell=True)
 
 # python setup.py build_ext --inplace
 # python setup.py install

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(torch_segment)
+project(torch_operator)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -23,5 +23,5 @@ if(${CUDA_FOUND})
     add_definitions(-DCOMPILE_WITH_CUDA)
 endif()
 
-add_library(torch_segment SHARED segment_max.cpp segment_max_cuda.cu)
-target_link_libraries(torch_segment ${TORCH_LIBRARIES} ${PYTHON_LIBRARIES})
+add_library(torch_operator SHARED segment_max.cpp segment_max_cuda.cu)
+target_link_libraries(torch_operator ${TORCH_LIBRARIES} ${PYTHON_LIBRARIES})

@@ -40,7 +40,10 @@ from .hpn import HPN
 from .gmm import GMMModel
 from .herec import HERec
 from .metapath2vec import MetaPath2Vec
-
+from .iehgcn import ieHGCNModel
+from .tadw import TADWModel
+from .mgnni import MGNNI_m_MLP, MGNNI_m_att 
+from .magcl import NewGrace
 
 
 __all__ = [
@@ -87,6 +90,11 @@ __all__ = [
     'GMMModel',
     'HERec',
     'MetaPath2Vec'
+    'ieHGCNModel',
+    'TADWModel',
+    'MGNNI_m_MLP', 
+    'MGNNI_m_att', 
+    'NewGrace',
 
 ]
 
