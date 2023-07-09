@@ -16,7 +16,6 @@ from tensorlayerx.model import WithLoss, TrainOneStep
 from sklearn.linear_model import LogisticRegression
 import numpy as np
 
-
 if tlx.BACKEND == 'torch':  # when the backend is torch and you want to use GPU
     try:
         tlx.set_device(device='GPU', id=0)

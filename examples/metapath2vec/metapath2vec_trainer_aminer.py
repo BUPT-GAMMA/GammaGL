@@ -90,7 +90,6 @@ def main(args, log_steps=10):
             model.set_train()
             train_loss = train_one_step(data, tlx.convert_to_tensor(0, dtype=tlx.float32))
             total_loss += train_loss.item()
-            # print(i)
             if (i + 1) % log_steps == 0:
                 model.set_eval()
                 z = model.campute('author', batch=graph['author'].y_index)
@@ -99,15 +98,8 @@ def main(args, log_steps=10):
                     z = tlx.convert_to_tensor(z)
                     y = tlx.convert_to_tensor(y)
                 perm = np.random.permutation(z.shape[0])
-                # train_perm = perm[:int(z.size(0) * args.train_ratio)]
                 train_perm = perm[:int(z.shape[0] * args.train_ratio)]
-                # test_perm = perm[int(z.size(0) * args.train_ratio):]
                 test_perm = perm[int(z.shape[0] * args.train_ratio):]
-                # train_perm = tlx.convert_to_tensor(train_perm)
-                # test_perm = tlx.convert_to_tensor(test_perm)
-                # y = np.array(y)
-                # val_acc = calculate_acc(z[train_perm], y[train_perm], z[test_perm], y[test_perm], max_iter=300)
-                # val_acc = calculate_acc(tlx.gather(z, train_perm), tlx.gather(y, train_perm), tlx.gather(z, test_perm), tlx.gather(y, test_perm), max_iter=300)
                 if tlx.BACKEND == "paddle":
                     val_acc = calculate_acc(tlx.gather(z, tlx.convert_to_tensor(train_perm)),
                                             tlx.gather(y, tlx.convert_to_tensor(train_perm)),
@@ -138,11 +130,8 @@ def main(args, log_steps=10):
         z = tlx.convert_to_tensor(z)
         y = tlx.convert_to_tensor(y)
     perm = np.random.permutation(z.shape[0])
-    # train_perm = perm[:int(z.size(0) * args.train_ratio)]
     train_perm = perm[:int(z.shape[0] * args.train_ratio)]
-    # test_perm = perm[int(z.size(0) * args.train_ratio):]
     test_perm = perm[int(z.shape[0] * args.train_ratio):]
-    # test_acc = calculate_acc(z[train_perm], y[train_perm], z[test_perm], y[test_perm], max_iter=300)
     if tlx.BACKEND == "paddle":
         test_acc = calculate_acc(tlx.gather(z, tlx.convert_to_tensor(train_perm)),
                                  tlx.gather(y, tlx.convert_to_tensor(train_perm)),
