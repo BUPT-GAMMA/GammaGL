@@ -1,11 +1,9 @@
-# Heterogeneous Information Network Embedding
-for Recommendation
-
+# Heterogeneous Information Network Embedding for Recommendation
 - Paper link: [https://arxiv.org/pdf/1711.10730.pdf](https://arxiv.org/pdf/1711.10730.pdf)
 
 - Author's code repo:
 
-    https://github.com/librahu/HERec.
+    https://github.com/librahu/HERec
 
 
 Dataset Statics

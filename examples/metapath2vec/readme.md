@@ -1,7 +1,4 @@
-# metapath2vec: Scalable Representation Learning for
-Heterogeneous Networks
-for Recommendation
-
+# metapath2vec: Scalable Representation Learning for Heterogeneous Networks
 - Paper link: [https://ericdongyx.github.io/papers/KDD17-dong-chawla-swami-metapath2vec.pdf](https://ericdongyx.github.io/papers/KDD17-dong-chawla-swami-metapath2vec.pdf)
 
 - Author's code repo (in Tensorflow):
