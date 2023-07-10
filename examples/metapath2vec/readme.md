@@ -1,7 +1,4 @@
-# metapath2vec: Scalable Representation Learning for
-Heterogeneous Networks
-for Recommendation
-
+# metapath2vec: Scalable Representation Learning for Heterogeneous Networks
 - Paper link: [https://ericdongyx.github.io/papers/KDD17-dong-chawla-swami-metapath2vec.pdf](https://ericdongyx.github.io/papers/KDD17-dong-chawla-swami-metapath2vec.pdf)
 
 - Author's code repo (in Tensorflow):
@@ -22,14 +19,14 @@ Dataset Statics
 
 ```bash
 TL_BACKEND="torch" python metapath2vec_trainer_aminer.py --lr 0.1 --embedding_dim 16 --walk_length 60 --window_size 3 --num_walks 600 --n_epoch 5 --num_negative_samples 6 --batch_size 128 --train_ratio 0.5 --dataset aminer
-TL_BACKEND="torch" python metapath2vec_trainer_imdb&dblp.py --lr 0.01 --embedding_dim 16 --walk_length 50 --window_size 7 --num_walks 5 --n_epoch 50 --num_negative_samples 5 --batch_size 128 --dataset imdb
-TL_BACKEND="torch" python metapath2vec_trainer_imdb&dblp.py --lr 0.01 --embedding_dim 16 --walk_length 50 --window_size 7 --num_walks 5 --n_epoch 50 --num_negative_samples 5 --batch_size 128 --dataset dblp
+TL_BACKEND="torch" python metapath2vec_trainer_imdb_dblp.py --lr 0.01 --embedding_dim 16 --walk_length 50 --window_size 7 --num_walks 5 --n_epoch 50 --num_negative_samples 5 --batch_size 128 --dataset imdb
+TL_BACKEND="torch" python metapath2vec_trainer_imdb_dblp.py --lr 0.01 --embedding_dim 16 --walk_length 50 --window_size 7 --num_walks 5 --n_epoch 50 --num_negative_samples 5 --batch_size 128 --dataset dblp
 TL_BACKEND="tensorflow" python metapath2vec_trainer_aminer.py --lr 0.1 --embedding_dim 16 --walk_length 60 --window_size 3 --num_walks 500 --n_epoch 5 --num_negative_samples 6 --batch_size 128 --train_ratio 0.5 --dataset aminer
-TL_BACKEND="tensorflow" python metapath2vec_trainer_imdb&dblp.py --lr 0.01 --embedding_dim 16 --walk_length 50 --window_size 7 --num_walks 5 --n_epoch 50 --num_negative_samples 5 --batch_size 128 --dataset imdb
-TL_BACKEND="tensorflow" python metapath2vec_trainer_imdb&dblp.py --lr 0.01 --embedding_dim 16 --walk_length 50 --window_size 7 --num_walks 5 --n_epoch 50 --num_negative_samples 5 --batch_size 128 --dataset dblp
+TL_BACKEND="tensorflow" python metapath2vec_trainer_imdb_dblp.py --lr 0.01 --embedding_dim 16 --walk_length 50 --window_size 7 --num_walks 5 --n_epoch 50 --num_negative_samples 5 --batch_size 128 --dataset imdb
+TL_BACKEND="tensorflow" python metapath2vec_trainer_imdb_dblp.py --lr 0.01 --embedding_dim 16 --walk_length 50 --window_size 7 --num_walks 5 --n_epoch 50 --num_negative_samples 5 --batch_size 128 --dataset dblp
 TL_BACKEND="paddle" python metapath2vec_trainer_aminer.py --lr 0.1 --embedding_dim 16 --walk_length 60 --window_size 3 --num_walks 600 --n_epoch 5 --num_negative_samples 6 --batch_size 128 --train_ratio 0.5 --dataset aminer
-TL_BACKEND="paddle" python metapath2vec_trainer_imdb&dblp.py --lr 0.01 --embedding_dim 16 --walk_length 50 --window_size 7 --num_walks 5 --n_epoch 50 --num_negative_samples 5 --batch_size 128 --dataset imdb
-TL_BACKEND="paddle" python metapath2vec_trainer_imdb&dblp.py --lr 0.01 --embedding_dim 16 --walk_length 50 --window_size 7 --num_walks 5 --n_epoch 50 --num_negative_samples 5 --batch_size 128 --dataset dblp
+TL_BACKEND="paddle" python metapath2vec_trainer_imdb_dblp.py --lr 0.01 --embedding_dim 16 --walk_length 50 --window_size 7 --num_walks 5 --n_epoch 50 --num_negative_samples 5 --batch_size 128 --dataset imdb
+TL_BACKEND="paddle" python metapath2vec_trainer_imdb_dblp.py --lr 0.01 --embedding_dim 16 --walk_length 50 --window_size 7 --num_walks 5 --n_epoch 50 --num_negative_samples 5 --batch_size 128 --dataset dblp
 ```
 
 
