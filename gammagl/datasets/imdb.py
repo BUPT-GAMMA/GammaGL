@@ -8,7 +8,7 @@ import scipy.sparse as sp
 import tensorlayerx as tlx
 
 from gammagl.data import (HeteroGraph, InMemoryDataset, download_url,
-                                  extract_zip)
+                          extract_zip)
 
 
 class IMDB(InMemoryDataset):
@@ -40,7 +40,7 @@ class IMDB(InMemoryDataset):
 
     url = 'https://www.dropbox.com/s/g0btk9ctr1es39x/IMDB_processed.zip?dl=1'
 
-    def __init__(self, root: str, transform: Optional[Callable] = None,
+    def __init__(self, root: str = None, transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None):
         super().__init__(root, transform, pre_transform)
         self.data, self.slices = self.load_data(self.processed_paths[0])
@@ -54,7 +54,7 @@ class IMDB(InMemoryDataset):
 
     @property
     def processed_file_names(self) -> str:
-        return tlx.BACKEND+'data.pt'
+        return tlx.BACKEND + 'data.pt'
 
     def download(self):
         path = download_url(self.url, self.raw_dir)

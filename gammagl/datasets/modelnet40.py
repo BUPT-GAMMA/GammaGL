@@ -38,7 +38,7 @@ class ModelNet40(InMemoryDataset):
     """
     url = 'https://shapenet.cs.stanford.edu/media/modelnet40_ply_hdf5_2048.zip'
 
-    def __init__(self, root, transform=None, pre_transform=None, pre_filter=None, split='train', num_points=1024):
+    def __init__(self, root=None, transform=None, pre_transform=None, pre_filter=None, split='train', num_points=1024):
         self.num_points = num_points
         self.split = split
         super(ModelNet40, self).__init__(root, transform, pre_transform, pre_filter)
@@ -83,4 +83,3 @@ class ModelNet40(InMemoryDataset):
                 data_list = self.pre_transform(data_list)
             print(self.collate(data_list))
             self.save_data(self.collate(data_list), self.processed_paths[i])
-

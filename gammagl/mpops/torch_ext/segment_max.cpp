@@ -1,3 +1,4 @@
+#include "segment_max.h"
 #include <assert.h>
 #include <torch/extension.h>
 #include <torch/script.h>
@@ -6,9 +7,8 @@
 #include <iostream>
 #include <vector>
 #include "cpu/segment_max_cpu.h"
-#ifdef COMPILE_WITH_CUDA
 #include "cuda/segment_max_cuda.h"
-#endif
+
 
 using torch::autograd::AutogradContext;
 
@@ -20,7 +20,7 @@ inline std::vector<int64_t> list2vec(const c10::List<int64_t> list) {
   return result;
 }
 
-std::tuple<torch::Tensor, torch::Tensor> device_dispatch_forward(torch::Tensor& x,
+inline std::tuple<torch::Tensor, torch::Tensor> device_dispatch_forward(torch::Tensor& x,
                                                           torch::Tensor& index,
                                                           int64_t& N) {
   if (x.is_cuda() && index.is_cuda()) {
@@ -36,9 +36,7 @@ std::tuple<torch::Tensor, torch::Tensor> device_dispatch_forward(torch::Tensor& 
   }
 }
 
-class SegmentMax : public torch::autograd::Function<SegmentMax> {
- public:
-  static torch::Tensor forward(AutogradContext* ctx,
+torch::Tensor SegmentMax::forward(AutogradContext* ctx,
                                torch::Tensor x,
                                torch::Tensor index,
                                int64_t N) {
@@ -49,9 +47,9 @@ class SegmentMax : public torch::autograd::Function<SegmentMax> {
     ctx->save_for_backward({index, arg_out});
     ctx->mark_non_differentiable({arg_out});
     return out;
-  }
+}
 
-  static std::vector<torch::Tensor> backward(
+std::vector<torch::Tensor> SegmentMax::backward(
       AutogradContext* ctx,
       std::vector<torch::Tensor> grad_outs) {
     auto grad_out = grad_outs[0];
@@ -64,15 +62,4 @@ class SegmentMax : public torch::autograd::Function<SegmentMax> {
     grad_in.scatter_(0, arg_out, grad_out);
     grad_in = grad_in.narrow(0, 0, x_shape[0] - 1);
     return {grad_in, torch::Tensor(), torch::Tensor()};
-  }
-};
-
-torch::Tensor segment_max(torch::Tensor x, torch::Tensor index, int64_t N) {
-  auto result = SegmentMax::apply(x, index, N);
-  return result;
-}
-
-PYBIND11_MODULE(torch_segment, m) {
-  m.def("segment_max", segment_max);
-  // m.def("segment_sum", segment_sum);
 }

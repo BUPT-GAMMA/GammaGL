@@ -33,12 +33,18 @@ from .graphgan_discriminator import Discriminator
 from .graphgan import GraphGAN
 from .vgae import VGAEModel, GAEModel
 from .gen import GEstimationN
+from .skipgram import SkipGramModel
 from .deepwalk import DeepWalkModel
 from .node2vec import Node2vecModel
 from .hpn import HPN
 from .gmm import GMMModel
+from .herec import HERec
+from .metapath2vec import MetaPath2Vec
+from .iehgcn import ieHGCNModel
+from .tadw import TADWModel
+from .mgnni import MGNNI_m_MLP, MGNNI_m_att 
+from .magcl import NewGrace
 from .cagcn import CAGCNModel
-
 
 
 __all__ = [
@@ -76,13 +82,23 @@ __all__ = [
     'DGCNNModel',
     'FILMModel',
     'GEstimationN',
+    'SkipGramModel',
     'DeepWalkModel',
     'Node2vecModel',
     'VGAEModel',
     'GAEModel',
     'HPN',
     'GMMModel',
-    'CAGCNModel'
+    'HERec',
+    'MetaPath2Vec'
+    'ieHGCNModel',
+    'TADWModel',
+    'MGNNI_m_MLP', 
+    'MGNNI_m_att', 
+    'NewGrace',
+    'CAGCNModel',
+
+
 ]
 
 classes = __all__
