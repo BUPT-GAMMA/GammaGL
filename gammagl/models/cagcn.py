@@ -1,14 +1,6 @@
 # import os
 # os.environ['TL_BACKEND'] = 'torch'
 
-"""
-GCN 原样
-import tensorlayerx as tlx
-import tensorlayerx.nn as nn
-from gammagl.layers.conv import GCNConv
-
-"""
-
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
 from gammagl.models.gcn import GCNModel
