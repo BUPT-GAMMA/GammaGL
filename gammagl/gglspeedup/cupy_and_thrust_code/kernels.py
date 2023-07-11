@@ -52,7 +52,7 @@ sample_kernel1 = trtc.For(
 pre_reindex_code1 = r'''
 
 /*   v          w               x
-   node_id,   hash 数值, 原数组中的位置
+   node_id,   hash           position
       y        z
     keys   values   
 */

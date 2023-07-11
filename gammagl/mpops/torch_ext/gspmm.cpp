@@ -1,3 +1,4 @@
+#include "gspmm.h"
 #include <assert.h>
 #include <iostream>
 #include <torch/extension.h>
@@ -10,8 +11,8 @@
 #include "cuda/spmm_sum_cuda.h"
 #endif
 
-using torch::autograd::AutogradContext;
-using tenosr_list = std::vector<torch::Tensor>;
+// using torch::autograd::AutogradContext;
+// using tenosr_list = std::vector<torch::Tensor>;
 
 torch::Tensor device_dispatch_forward(torch::Tensor &index,
                                       torch::Tensor &weight, torch::Tensor &x) {
@@ -49,9 +50,8 @@ torch::Tensor device_dispatch_backward(torch::Tensor &index,
 // TODO: 1. support SpMMMax, SpMMMean, etc.
 //       2. generalized operators to support more data
 //          structures, such as csr, csc, etc.
-class SpMMSum : public torch::autograd::Function<SpMMSum> {
-public:
-  static torch::Tensor forward(AutogradContext *ctx, torch::Tensor index,
+
+torch::Tensor SpMMSum::forward(torch::autograd::AutogradContext *ctx, torch::Tensor index,
                                torch::Tensor weight, torch::Tensor x) {
     ctx->save_for_backward({index, weight, x});
     ctx->mark_non_differentiable({index, weight});
@@ -59,26 +59,10 @@ public:
     return out;
   }
 
-  static std::vector<torch::Tensor>
-  backward(AutogradContext *ctx, std::vector<torch::Tensor> grad_outs) {
+std::vector<torch::Tensor> SpMMSum::backward(torch::autograd::AutogradContext *ctx, std::vector<torch::Tensor> grad_outs) {
     auto saved = ctx->get_saved_variables();
     auto index = saved[0], weight = saved[1], x = saved[2];
     torch::Tensor grad_x =
         device_dispatch_backward(index, weight, grad_outs[0]);
     return {torch::Tensor(), torch::Tensor(), grad_x};
   }
-};
-
-torch::Tensor spmm_sum(torch::Tensor index, torch::Tensor weight,
-                       torch::Tensor x) {
-  auto result = SpMMSum::apply(index, weight, x);
-  return result;
-}
-
-// TORCH_LIBRARY BUG: dynamic module does not define module export function.
-// Use PYBIND11_MODULE
-PYBIND11_MODULE(torch_gspmm, m) {
-  m.def("spmm_sum", spmm_sum);
-  // m.def("spmm_max", spmm_max);
-  // ...
-}

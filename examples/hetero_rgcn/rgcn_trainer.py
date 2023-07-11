@@ -1,7 +1,7 @@
 import os
 
 # os.environ['TL_BACKEND'] = 'torch'  # set your backend here, default `tensorflow`
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 from gammagl.datasets.alircd import AliRCD
 import argparse
@@ -9,11 +9,12 @@ import tensorlayerx as tlx
 from gammagl.layers.conv import RGCNConv
 from tensorlayerx.model import TrainOneStep, WithLoss
 
-from gammagl.loader import Hetero_Neighbor_Sampler as NeighborLoader
-import os.path as osp
+from gammagl.loader.node_neighbor_loader import NodeNeighborLoader as NeighborLoader
 import numpy as np
 
 from sklearn.metrics import average_precision_score
+
+from gammagl.utils.platform_utils import with_dtype, as_int64
 
 
 class RGCN(tlx.nn.Module):
@@ -44,11 +45,9 @@ class SemiSpvzLoss(WithLoss):
         super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
 
     def forward(self, data, label):
-        logits = self._backbone(tlx.to_device(data['x'], device="gpu", id=data["id"]),
-                                tlx.to_device(data['edge_index'], device="gpu", id=data["id"]),
-                                tlx.to_device(data['edge_type'], device="gpu", id=data["id"]))
+        logits = self._backbone(data['x'], data['edge_index'], data['edge_type'])
         train_logits = tlx.gather(logits, tlx.arange(data['start'], data['end']))
-        train_labels = tlx.to_device(label, device="gpu", id=data["id"])
+        train_labels = label
         loss = self._loss_fn(train_logits, train_labels)
         return loss
 
@@ -82,7 +81,8 @@ def calculate_acc(logits, y, metrics):
 
 
 def main(args):
-    data = AliRCD(args.dataset)
+    # data = AliRCD(args.dataset)
+    data = AliRCD()
     hgraph = data[0]
     if tlx.BACKEND == 'torch':
         import torch
@@ -95,17 +95,29 @@ def main(args):
 
     # Mini-Batch
 
-    train_loader = NeighborLoader(graph=hgraph, input_nodes=(labeled_class, train_idx),
+    train_loader = NeighborLoader(graph=hgraph, input_nodes_type=(labeled_class, train_idx),
                                   num_neighbors=[args.fanout] * args.n_layers,
                                   shuffle=True, batch_size=args.batch_size)
 
-    val_loader = NeighborLoader(graph=hgraph, input_nodes=(labeled_class, val_idx),
+    val_loader = NeighborLoader(graph=hgraph, input_nodes_type=(labeled_class, val_idx),
                                 num_neighbors=[args.fanout] * args.n_layers,
                                 shuffle=False, batch_size=args.batch_size)
 
-    test_loader = NeighborLoader(graph=hgraph, input_nodes=(labeled_class, test_idx),
+    test_loader = NeighborLoader(graph=hgraph, input_nodes_type=(labeled_class, test_idx),
                                  num_neighbors=[args.fanout] * args.n_layers,
                                  shuffle=False, batch_size=args.batch_size)
+
+    # train_loader = NeighborLoader(graph=hgraph, input_nodes=(labeled_class, train_idx),
+    #                               num_neighbors=[args.fanout] * args.n_layers,
+    #                               shuffle=True, batch_size=args.batch_size)
+    #
+    # val_loader = NeighborLoader(graph=hgraph, input_nodes=(labeled_class, val_idx),
+    #                             num_neighbors=[args.fanout] * args.n_layers,
+    #                             shuffle=False, batch_size=args.batch_size)
+    #
+    # test_loader = NeighborLoader(graph=hgraph, input_nodes=(labeled_class, test_idx),
+    #                              num_neighbors=[args.fanout] * args.n_layers,
+    #                              shuffle=False, batch_size=args.batch_size)
 
     num_relations = len(hgraph.edge_types)
 
@@ -138,7 +150,6 @@ def main(args):
             test_scores_list = []
             test_labels_list = []
 
-
             metric = tlx.metrics.Accuracy()
 
             net.set_train()
@@ -157,7 +168,7 @@ def main(args):
                     'edge_index': batch.edge_index,
                     'edge_type': batch.edge_type,
                     'start': start,
-                    'end': start + batch_size,
+                    'end': start + as_int64(batch_size),
                     "id": args.device_id,
                 }
                 loss = train_one_step(data=data, label=label)
@@ -181,14 +192,12 @@ def main(args):
                     'edge_index': batch.edge_index,
                     'edge_type': batch.edge_type,
                     'start': start,
-                    'end': start + batch_size,
+                    'end': start + as_int64(batch_size),
                     "id": args.device_id,
                 }
-                logits = net(tlx.to_device(data["x"], device="gpu", id=args.device_id),
-                             tlx.to_device(data["edge_index"], device="gpu", id=args.device_id),
-                             tlx.to_device(data["edge_type"], device="gpu", id=args.device_id))
+                logits = net(data["x"], data["edge_index"], data["edge_type"])
                 val_logits = tlx.gather(logits, tlx.arange(data['start'], data['end']))
-                val_labels = tlx.to_device(label, device="gpu", id=data["id"])
+                val_labels = label
                 loss = tlx.losses.softmax_cross_entropy_with_logits(val_logits, val_labels)
                 val_loss_list.append(tlx.convert_to_numpy(loss))
                 val_preds = tlx.nn.Softmax()(val_logits)
@@ -215,14 +224,12 @@ def main(args):
                     'edge_index': batch.edge_index,
                     'edge_type': batch.edge_type,
                     'start': start,
-                    'end': start + batch_size,
+                    'end': start + as_int64(batch_size),
                     "id": args.device_id,
                 }
-                logits = net(tlx.to_device(data["x"], device="gpu", id=args.device_id),
-                             tlx.to_device(data["edge_index"], device="gpu", id=args.device_id),
-                             tlx.to_device(data["edge_type"], device="gpu", id=args.device_id))
+                logits = net(data["x"], data["edge_index"], data["edge_type"])
                 test_logits = tlx.gather(logits, tlx.arange(data['start'], data['end']))
-                test_labels = tlx.to_device(label, device="gpu", id=data["id"])
+                test_labels = label
                 loss = tlx.losses.softmax_cross_entropy_with_logits(test_logits, test_labels)
                 test_loss_list.append(tlx.convert_to_numpy(loss))
                 test_preds = tlx.nn.Softmax()(test_logits)
@@ -233,7 +240,6 @@ def main(args):
             test_loss = np.hstack(val_loss_list).mean()
             test_acc = metric.result()
             test_ap = average_precision_score(np.hstack(test_labels_list), np.hstack(test_scores_list))
-
 
             print(f'Epoch {epoch:02d}')
             print(f"        Train: Loss: {train_loss:.4f}")
@@ -246,7 +252,7 @@ if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
-    parser.add_argument('--dataset', type=str, default='../../icdm_train')
+    # parser.add_argument('--dataset', type=str, default='../../icdm_train')
     parser.add_argument('--labeled-class', type=str, default='item')
     parser.add_argument("--batch-size", type=int, default=1024,
                         help="Mini-batch size. If -1, use full graph training.")
