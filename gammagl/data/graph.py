@@ -174,8 +174,8 @@ class BaseGraph:
         return sum([v.num_edges for v in self.edge_stores])
 
     def is_coalesced(self) -> bool:
-        r"""Returns :obj:`True` if edge indices :obj:`edge_index` are sorted
-        and do not contain duplicate entries."""
+        r"""Returns :obj:`True` if the :obj:`edge_index` is sorted
+        and does not contain duplicate entries."""
         return all([store.is_coalesced() for store in self.edge_stores])
 
     def coalesce(self):
@@ -350,7 +350,7 @@ class Graph(BaseGraph):
     r"""
     A Graph object describe a homogeneous graph. The graph object
     will hold node-level, link-level and graph-level attributes. In
-    general, :class:`~gammagl.data.Data` tries to mimic the behaviour
+    general, :class:`~gammagl.data.Graph` tries to mimic the behaviour
     of a regular Python dictionary. In addition, it provides useful
     functionality for analyzing graph structures, and provides basic
     tensor functionalities.
@@ -359,7 +359,7 @@ class Graph(BaseGraph):
 
         >>> from gammagl.data import Graph
         >>> import numpy
-        >>> g = graph.Graph(x=numpy.random.randn(5, 16), edge_index=[[0, 0, 0], [1, 2, 3]], num_nodes=5,)
+        >>> g = Graph(x=numpy.random.randn(5, 16), edge_index=[[0, 0, 0], [1, 2, 3]], num_nodes=5,)
         >>> print(g)
         GNN Graph instance.
         number of nodes: 5
@@ -458,7 +458,7 @@ class Graph(BaseGraph):
             info = ',\n'.join(info)
             return f'{cls}(\n{info}\n)'
 
-    def stores_as(self, data: 'Data'):
+    def stores_as(self, data: 'Graph'):
         return self
 
     @property
@@ -499,7 +499,7 @@ class Graph(BaseGraph):
         pass  # TODO
 
     def is_node_attr(self, key: str) -> bool:
-        r"""Returns :obj:`True` if the object at key :obj:`key` denotes a
+        r"""Returns :obj:`True` if the object at :obj:`key` denotes a
         node-level attribute."""
         return self._store.is_node_attr(key)
 
@@ -726,8 +726,8 @@ class Graph(BaseGraph):
                 dst_types = np.unique(tlx.convert_to_numpy(tlx.gather(node_type, dst))).tolist()
                 if len(src_types) != 1 and len(dst_types) != 1:
                     raise ValueError(
-                        "Could not construct a 'HeteroData' object from the "
-                        "'Data' object because single edge types span over "
+                        "Could not construct a 'Graph' object from the "
+                        "'Graph' object because single edge types span over "
                         "multiple node types")
                 edge_type_names.append((node_type_names[src_types[0]], str(i),
                                         node_type_names[dst_types[0]]))
@@ -792,7 +792,7 @@ class Graph(BaseGraph):
 
     @classmethod
     def from_dict(cls, mapping: Dict[str, Any]):
-        r"""Creates a :class:`~gammagl.data.Data` object from a Python
+        r"""Creates a :class:`~gammagl.data.Graph` object from a Python
         dictionary."""
         return cls(**mapping)
 

@@ -9,30 +9,27 @@ GammaGL works with the following operating systems:
 * macOS X
 * Windows
 
-GammaGL requires Python version ``3.7.5`` or ``3.9.0`` if you want to use mindspore as backend.
+GammaGL requires Python version 3.8, 3.9 or 3.10(partially).
 
 Backend
 -------
 
-- `tensorflow <https://www.tensorflow.org/api_docs/>`_ : Any latest stable version
-- `pytorch <https://pytorch.org/get-started/locally/>`_ : Support version 1.10
-- `paddlepaddle <https://www.paddlepaddle.org.cn/>`_ : Any latest stable version
-- `mindspore <https://www.mindspore.cn/install>`_ : Only support version 1.6.1, GPU-CUDA 11.1 and python 3.7.5
+- `tensorflow <https://www.tensorflow.org/api_docs/>`_ : We recommend tensorflow version under 2.12.0
+- `pytorch <https://pytorch.org/get-started/locally/>`_ : Support version under 1.10.2
+- `paddlepaddle <https://www.paddlepaddle.org.cn/>`_ : We recommend paddlepaddle version under 2.3.2
+- `mindspore <https://www.mindspore.cn/install>`_ : Support version 1.8.1, GPU-CUDA 11.1
 
-Install
--------
+Install from pip
+----------------
 
-**1. Python environment (Optional):** We recommend using Conda package manager
+**1. Python environment (Optional):** We recommend using conda package manager
 
 .. code:: bash
 
-    conda create -n gammagl python=3.7.5
+    conda create -n gammagl python=3.8
     source activate gammagl
 
-.. note::
-   python=3.7.5 or 3.9.0 is suitable for mindspore
-
-**2. Backend:** Install Backend. For example:
+**2. Backend:** Select and Install your favorite deep learning backend. For example:
 
 .. code:: bash
 
@@ -40,17 +37,52 @@ Install
     pip install tensorflow-gpu # GPU version
     pip install tensorflow # CPU version
     # pytorch
-    pip3 install torch=1.10.2
+    pip install torch==1.10.1+cu111 torchvision==0.11.2+cu111 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu111/
     # paddlepaddle
     python -m pip install paddlepaddle-gpu
     # mindspore
-    pip install https://ms-release.obs.cn-north-4.myhuaweicloud.com/1.6.1/MindSpore/gpu/x86_64/cuda-11.1/mindspore_gpu-1.6.1-cp37-cp37m-linux_x86_64.whl --trusted-host ms-release.obs.cn-north-4.myhuaweicloud.com -i https://pypi.tuna.tsinghua.edu.cn/simple
+    pip install https://ms-release.obs.cn-north-4.myhuaweicloud.com/1.8.1/MindSpore/gpu/x86_64/cuda-11.1/mindspore_gpu-1.8.1-cp37-cp37m-linux_x86_64.whl --trusted-host ms-release.obs.cn-north-4.myhuaweicloud.com -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 .. note::
-   * For tensorflow, any latest stable version is supported.
-   * For pytorch, version 1.10 is supported.
-   * For paddlepaddle, any latest stable version is supported.
-   * For mindspore, GammaGL only support version 1.6.1, GPU-CUDA 11.1 and python 3.7.5.
+   * For tensorflow, we recommend you to use version under 2.10.0.
+   * For pytorch, version under 1.10 is supported.
+   * For paddlepaddle, we recommend you to use version under 2.3.2.
+   * For mindspore, GammaGL only support version 1.8.1, GPU-CUDA 11.1.
+
+**3. GammaGL:** Install `GammaGL <https://github.com/BUPT-GAMMA/GammaGL>`_ and its dependencies.
+
+.. code:: bash
+    pip install gammgl
+
+Install from source
+-------------------
+
+**1. Python environment (Optional):** We recommend using conda package manager
+
+.. code:: bash
+
+    conda create -n gammagl python=3.8
+    source activate gammagl
+
+**2. Backend:** Select and Install your favorite deep learning backend. For example:
+
+.. code:: bash
+
+    # tensorflow
+    pip install tensorflow-gpu # GPU version
+    pip install tensorflow # CPU version
+    # pytorch
+    pip install torch==1.10.1+cu111 torchvision==0.11.2+cu111 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu111/
+    # paddlepaddle
+    python -m pip install paddlepaddle-gpu
+    # mindspore
+    pip install https://ms-release.obs.cn-north-4.myhuaweicloud.com/1.8.1/MindSpore/gpu/x86_64/cuda-11.1/mindspore_gpu-1.8.1-cp37-cp37m-linux_x86_64.whl --trusted-host ms-release.obs.cn-north-4.myhuaweicloud.com -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+.. note::
+   * For tensorflow, we recommend you to use version under 2.12.0.
+   * For pytorch, version under 1.10 is supported.
+   * For paddlepaddle, we recommend you to use version under 2.3.2.
+   * For mindspore, GammaGL only support version 1.8.1, GPU-CUDA 11.1.
 
 **3. TensorLayerX:** Install `TensorLayerX <https://tensorlayerx.readthedocs.io/en/latest/user/installation.html#install-tensorlayerx>`_ . For example:
 
@@ -59,19 +91,22 @@ Install
     pip install git+https://github.com/tensorlayer/tensorlayerx.git 
 
 .. note::
-   use ``pip install git+https://gitee.com/clearhanhui/TensorLayerX`` for network problem. But it may not be the latest.
+   use ``pip install git+https://git.openi.org.cn/OpenI/TensorLayerX.git`` for network problem. But it may not be the latest.
 
-**4. GammaGL:** Install `GammaGL <https://github.com/BUPT-GAMMA/GammaGL>`_ and its dependencies. For example:
+**4. GammaGL:** Install `GammaGL <https://github.com/BUPT-GAMMA/GammaGL>`_ and its dependencies.
 
 .. code:: bash
-
-    pip install cython
-    git clone https://github.com/BUPT-GAMMA/GammaGL.git
-    cd gammagl
+    pip install pybind11 pyparsing
+    git clone --recursive https://github.com/BUPT-GAMMA/GammaGL.git
+    cd GammaGL
     python setup.py install
 
 .. note::
-   ``cython`` is required, otherwise, you cannot install ``GammaGL`` properly.
+   * ``pybind11`` and ``pyparsing`` is required, otherwise, you cannot install ``GammaGL`` properly.
+   * Currently, the version of ``protobuf`` should be under 3.20.x and the version of ``numpy`` should be under 1.24.4.
+   * If you want to develop ``GammaGL``, you may use the following command to build package:
+   .. code:: bash
+      python setup.py bulid_ext --inplace
 
 How to Run
 ----------

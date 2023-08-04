@@ -104,7 +104,8 @@ def load_extensions():
     return extensions
 
 
-install_requires = ['numpy', 'scipy', 'pytest', 'tensorlayerx', 'rich', 'tqdm', 'pybind11']
+install_requires = ['numpy<=1.24.7', 'pandas', 'numba', 'scipy', 'protobuf==3.19.6', 'pyparsing',
+                    'tensorboardx<=2.5', 'pytest', 'tensorlayerx', 'rich', 'tqdm', 'pybind11']
 
 classifiers = [
     'Development Status :: 3 - Alpha',
@@ -113,7 +114,7 @@ classifiers = [
 
 setup(
     name="gammagl",
-    version="0.2.0",
+    version="0.3.0",
     author="BUPT-GAMMA LAB",
     author_email="tyzhao@bupt.edu.cn",
     maintainer="Tianyu Zhao",
@@ -133,8 +134,8 @@ setup(
     }
 )
 
-os.chdir('gammagl/mpops/torch_ext')
-subprocess.call('python setup.py install', shell=True)
+# os.chdir('gammagl/mpops/torch_ext')
+# subprocess.call('python setup.py install', shell=True)
 
 # python setup.py build_ext --inplace
 # python setup.py install
