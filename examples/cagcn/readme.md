@@ -67,3 +67,43 @@ TL_BACKEND="torch" python cagcn_trainer.py --model GCN --hidden 64 --dataset Pub
 |  pubmed  | 20  | 81.16±0.36 |   80.50    |   80.70    |
 |  pubmed  | 40  | 83.08±0.21 |   83.10    |   83.40    |
 |  pubmed  | 60  | 84.47±0.23 |   84.20    |   84.00    |
+
+
+
+
+
+
+
+```bash
+CUDA_VISIBLE_DEVICES='2'
+
+## GCN L/C=20
+TL_BACKEND="torch" python cagcn_trainer.py --hidden 64 --dataset Cora --labelrate 20 --stage 4 --lr_for_cal 0.001 --l2_for_cal 5e-3 --epoch_for_st 200 --threshold 0.8 --lr 0.005 --weight_decay 0.01 --dropout 0.8 
+TL_BACKEND="torch" python cagcn_trainer.py --hidden 64 --dataset Citeseer --labelrate 20 --stage 5 --lr_for_cal 0.001 --l2_for_cal 5e-3 --epoch_for_st 150 --threshold 0.9 --lr 0.01 --weight_decay 0.01 --dropout 0.7 
+TL_BACKEND="torch" python cagcn_trainer.py --model GCN --hidden 64 --dataset Pubmed --labelrate 20 --stage 6 --lr_for_cal 0.001 --l2_for_cal 5e-3 --epoch_for_st 100 --threshold 0.8 --lr 0.01 --weight_decay 0.002 --dropout 0.5
+
+TL_BACKEND="tensorflow" python cagcn_trainer.py --hidden 64 --dataset Cora --labelrate 20 --stage 4 --lr_for_cal 0.001 --l2_for_cal 5e-3 --epoch_for_st 200 --threshold 0.8 --lr 0.005 --weight_decay 0.01 --dropout 0.8 
+TL_BACKEND="tensorflow" python cagcn_trainer.py --model GCN --hidden 64 --dataset Pubmed --labelrate 20 --stage 6 --lr_for_cal 0.001 --l2_for_cal 5e-3 --epoch_for_st 100 --threshold 0.8 --lr 0.01 --weight_decay 0.002 --dropout 0.5
+
+## GCN L/C=40
+TL_BACKEND="torch" python cagcn_trainer.py --model GCN --hidden 64 --dataset Cora --labelrate 40 --stage 2 --lr_for_cal 0.001 --l2_for_cal 5e-4 --epoch_for_st 200 --threshold 0.8 --lr 0.005 --weight_decay 0.01 --dropout 0.8
+
+TL_BACKEND="tensorflow" python cagcn_trainer.py --model GCN --hidden 64 --dataset Cora --labelrate 40 --stage 2 --lr_for_cal 0.001 --l2_for_cal 5e-3 --epoch_for_st 200 --threshold 0.8  --lr 0.005 --weight_decay 0.01 --dropout 0.8 
+
+
+
+## GCN L/C=60
+TL_BACKEND="torch" python cagcn_trainer.py --model GCN --hidden 64 --dataset Cora --labelrate 60 --stage 4 --lr_for_cal 0.001 --l2_for_cal 5e-3 --epoch_for_st 200 --threshold 0.8 --lr 0.005 --weight_decay 0.01 --dropout 0.8
+```
+
+| Dataset  | L/C  | Paper      | Our(torch)  | Our(tensorflow) | Our(paddle) |
+| -------- | ---- | ---------- | ----------- | --------------- | ----------- |
+| cora     | 20   | 83.11±0.52 | 83.23(0.43) | 83.39(0.45)     |             |
+| cora     | 40   | 84.37±0.38 | 83.53(0.63) | 83.73(0.75)     |             |
+| cora     | 60   | 85.79±0.27 | 85.23(0.56) |                 |             |
+| citeseer | 20   | 74.90±0.40 | 71.67(0.59) |                 |             |
+| citeseer | 40   | 75.48±0.50 |             |                 |             |
+| citeseer | 60   | 76.43±0.20 |             |                 |             |
+| pubmed   | 20   | 81.16±0.36 | 78.13(0.46) | 77.48(0.90)     |             |
+| pubmed   | 40   | 83.08±0.21 |             |                 |             |
+| pubmed   | 60   | 84.47±0.23 |             |                 |             |
