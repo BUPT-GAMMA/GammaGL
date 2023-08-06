@@ -9,7 +9,7 @@
 import os
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '4'
-os.environ['TL_BACKEND'] = 'torch'
+os.environ['TL_BACKEND'] = 'paddle'
 import sys
 
 sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
@@ -278,6 +278,9 @@ def main(args):
         metrics.update(test_logits, test_labels)
         test_acc = metrics.result()
         metrics.reset()
+
+        if tlx.BACKEND == "paddle":
+            test_loss = tlx.convert_to_numpy(test_loss)[0]
 
         print(f"Test set results with CaGCN:",
               f"loss = {test_loss:.4f}",
