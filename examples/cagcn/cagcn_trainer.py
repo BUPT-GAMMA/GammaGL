@@ -17,6 +17,7 @@ import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
 from gammagl.models.gcn import GCNModel
+from gammagl.models.gat import GATModel
 from gammagl.models.cagcn import CAGCNModel
 from gammagl.utils import mask_to_index
 
@@ -35,23 +36,19 @@ def load_dataset(args):
     # get info
     features = graph.x
     labels = graph.y
-    train_idx = list(mask_to_index(graph.train_mask))
-    val_idx = list(mask_to_index(graph.val_mask))
-    test_idx = list(mask_to_index(graph.test_mask))
-    # train_idx = mask_to_index(graph.train_mask)
-    # val_idx = mask_to_index(graph.val_mask)
-    # test_idx = mask_to_index(graph.test_mask)
+    val_idx = mask_to_index(graph.val_mask)
+    test_idx = mask_to_index(graph.test_mask)
 
     # process train_mask
-    for _ in range(2):
-        if args.labelrate != 20:
-            args.labelrate -= 20
-            nclass = int(max(labels)) + 1
-            start = max(val_idx) + 1
-            end = start + args.labelrate * nclass
-            for i in range(start, end):
-                train_idx.append(i)
-                # tlx.concat((train_idx, tlx.convert_to_tensor([i], dtype=tlx.int64)), axis=-1)
+    label_rate = args.labelrate
+    if (label_rate != 20):
+        label_rate -= 20
+        nclass = int(max(labels)) + 1
+        start = max(val_idx) + 1
+        end = start + label_rate * nclass
+        graph.train_mask[start:end] = True
+
+    train_idx = mask_to_index(graph.train_mask)
 
     return {
         "features": features,
@@ -90,9 +87,13 @@ def nll_and_lambda_cal_loss_fn(Lambda):
 class BaseModelLoss(tlx.model.WithLoss):
     def __init__(self, net, loss_fn):
         super(BaseModelLoss, self).__init__(backbone=net, loss_fn=loss_fn)
+        self.name = net.name
 
     def forward(self, data, y):
-        logits = self.backbone_network(data['x'], data['edge_index'], None, data['num_nodes'])
+        if self.name == "GCN":
+            logits = self.backbone_network(data['x'], data['edge_index'], None, data['num_nodes'])
+        elif self.name == "GAT":
+            logits = self.backbone_network(data['x'], data['edge_index'], data['num_nodes'])
         train_logits = tlx.gather(logits, data['train_idx'])
         train_y = tlx.gather(data['y'], data['train_idx'])
         loss = self._loss_fn(train_logits, train_y)
@@ -102,17 +103,82 @@ class BaseModelLoss(tlx.model.WithLoss):
 class CalModelLoss(tlx.model.WithLoss):
     def __init__(self, net, loss_fn):
         super(CalModelLoss, self).__init__(backbone=net, loss_fn=loss_fn)
+        self.name = net.base_model.name
 
     def forward(self, data, y):
-        logits = self.backbone_network(data['edge_index'], None, data['num_nodes'], data['x'], data['edge_index'], None,
-                                       data['num_nodes'])
+        if self.name == "GCN":
+            logits = self.backbone_network(data['edge_index'], None, data['num_nodes'], data['x'], data['edge_index'],
+                                           None,
+                                           data['num_nodes'])
+        elif self.name == "GAT":
+            logits = self.backbone_network(data['edge_index'], None, data['num_nodes'], data['x'],
+                                           data['edge_index'],
+                                           data['num_nodes'])
         train_logits = tlx.gather(logits, data['train_idx'])
         train_y = tlx.gather(data['y'], data['train_idx'])
         loss = self._loss_fn(train_logits, train_y)
         return loss
 
 
-def train(epoch_id, Lambda, model, metrics, optimizer, data, train_weights, sign=False):
+def calculate_acc(logits, y, metrics):
+    """
+    Args:
+        logits: node logits
+        y: node labels
+        metrics: tensorlayerx.metrics
+
+    Returns:
+        rst
+    """
+
+    metrics.update(logits, y)
+    rst = metrics.result()
+    metrics.reset()
+    return rst
+
+
+def generate_pesudo_label(output, pesudo_data, threshold):
+    output = tlx.nn.Softmax()(output)
+    pred_label = tlx.ops.argmax(output, axis=-1)
+    confidence = tlx.ops.reduce_max(output, axis=-1)
+    temp_y = tlx.convert_to_numpy(pesudo_data['y'])
+    for i, conf in enumerate(confidence):
+        if conf > threshold and (i not in pesudo_data['train_idx']) and (
+                i not in pesudo_data['test_idx']) and (i not in pesudo_data['val_idx']):
+            pesudo_data['train_idx'] = tlx.concat(
+                (pesudo_data['train_idx'], tlx.convert_to_tensor([i], dtype=tlx.int64)), axis=-1)
+            temp_y[i] = pred_label[i]
+    pesudo_data['y'] = tlx.convert_to_tensor(temp_y)
+
+    return pesudo_data
+
+
+def get_models(args, data, nclass, cal_model=None, scaling_model=False):
+    if scaling_model:
+        nhid = 16
+        model_name = cal_model
+    else:
+        nhid = args.hidden
+        model_name = args.model
+    if model_name == 'GCN':
+        model = GCNModel(feature_dim=data['x'].shape[1],
+                         hidden_dim=nhid,
+                         num_class=nclass,
+                         drop_rate=args.dropout,
+                         name=model_name)
+    elif model_name == 'GAT':
+        model = GATModel(feature_dim=data['x'].shape[1],
+                         hidden_dim=nhid,
+                         num_class=nclass,
+                         heads=8,
+                         drop_rate=args.dropout,
+                         num_layers=3,
+                         name=model_name)
+
+    return model
+
+
+def train(args, epoch_id, Lambda, model, metrics, optimizer, data, train_weights, sign=False):
     if not sign:
         loss_fn = tlx.losses.softmax_cross_entropy_with_logits
         net_with_loss = BaseModelLoss(model, loss_fn)
@@ -125,17 +191,18 @@ def train(epoch_id, Lambda, model, metrics, optimizer, data, train_weights, sign
     train_loss = train_one_step(data, data['y'])
     model.set_eval()
     if not sign:
-        logits = model(data['x'], data['edge_index'], None, data['num_nodes'])
+        if args.model == "GCN":
+            logits = model(data['x'], data['edge_index'], None, data['num_nodes'])
+        elif args.model == "GAT":
+            logits = model(data['x'], data['edge_index'], data['num_nodes'])
     else:
-        logits = model(data['edge_index'], None, data['num_nodes'], data['x'], data['edge_index'], None,
+        logits = model(data['edge_index'], None, data['num_nodes'], data['x'], data['edge_index'],
                        data['num_nodes'])
     # val
     val_logits = tlx.gather(logits, data['val_idx'])
     val_y = tlx.gather(data['y'], data['val_idx'])
     val_loss = tlx.losses.softmax_cross_entropy_with_logits(val_logits, val_y)
-    metrics.update(val_logits, val_y)
-    val_acc = metrics.result()
-    metrics.reset()
+    val_acc = calculate_acc(val_logits, val_y, metrics)
 
     if tlx.BACKEND == "paddle":
         train_loss = train_loss[0]
@@ -152,11 +219,11 @@ def main(args):
     data = load_dataset(args)
     nclass = int(max(data['labels'])) + 1
 
-    if tlx.BACKEND == "paddle":
-        temp = list()
-        for i in range(len(data['train_idx'])):
-            temp.append(tlx.convert_to_tensor(data['train_idx'][i]))
-        data['train_idx'] = temp
+    # if tlx.BACKEND == "paddle":
+    #     temp = list()
+    #     for i in range(len(data['train_idx'])):
+    #         temp.append(tlx.convert_to_tensor(data['train_idx'][i]))
+    #     data['train_idx'] = temp
 
     pesudo_data = {
         "x": data['features'],
@@ -168,8 +235,6 @@ def main(args):
         "num_nodes": data['num_nodes'],
     }
 
-    if tlx.BACKEND == 'torch':
-        device = pesudo_data['x'].device
     acc_test_times_list = list()
 
     if not os.path.exists(args.best_model_path):
@@ -182,18 +247,17 @@ def main(args):
     for times in range(0, args.stage):
         # phase_1
         # Base Model
-        base_model = GCNModel(pesudo_data['x'].shape[1], args.hidden, nclass, args.dropout)
+        # base_model = GCNModel(pesudo_data['x'].shape[1], args.hidden, nclass, args.dropout)
+        base_model = get_models(args, pesudo_data, nclass)
         base_optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.weight_decay)
         metrics = tlx.metrics.Accuracy()
-        if tlx.BACKEND == 'torch':
-            base_model.to(device)
 
         # Train base model normally
         # Save the best base model weights
         best_val_loss = 100
         bad_counter = 0
         for epoch in range(args.epochs):
-            val_loss = train(epoch, args.Lambda, base_model, metrics, base_optimizer, pesudo_data,
+            val_loss = train(args, epoch, args.Lambda, base_model, metrics, base_optimizer, pesudo_data,
                              base_model.trainable_weights)
             if val_loss < best_val_loss:
                 base_model.save_weights(model_b_scaling, format='npz_dict')
@@ -210,10 +274,6 @@ def main(args):
         base_model.load_weights(model_b_scaling, format='npz_dict')
         cal_model = CAGCNModel(base_model, nclass, 1, args.dropout)
         cal_optimizer = tlx.optimizers.Adam(lr=args.lr_for_cal, weight_decay=args.l2_for_cal)
-        if tlx.BACKEND == 'torch':
-            cal_model.base_model.to(pesudo_data['x'].device)
-            cal_model.cal_model.to(pesudo_data['x'].device)
-            cal_model.to(pesudo_data['x'].device)
 
         # Train calibration model by training set or validation set (only the last time used)
         # Save the best calibration model weights
@@ -225,7 +285,7 @@ def main(args):
             temp_data['train_idx'] = pesudo_data['val_idx']
 
         for epoch in range(epochs):
-            val_loss = train(epoch, args.Lambda, cal_model, metrics, cal_optimizer, temp_data,
+            val_loss = train(args, epoch, args.Lambda, cal_model, metrics, cal_optimizer, temp_data,
                              cal_model.cal_model.trainable_weights, True)
             if times != args.stage - 1:
                 if epoch == epochs - 1:
@@ -243,47 +303,32 @@ def main(args):
         # phase 3
         # Load the best calibration model weights
         cal_model.load_weights(model_a_scaling, format='npz_dict')
-        if tlx.BACKEND == 'torch':
-            cal_model.base_model.to(device)
-            cal_model.cal_model.to(device)
-            cal_model.to(device)
         # add predictions satisfying (ground truth == prediction && confidence > threshold) to pesudo labels
         cal_model.set_eval()
-        output = cal_model(pesudo_data['edge_index'], None, pesudo_data['num_nodes'], pesudo_data['x'],
-                           pesudo_data['edge_index'], None, pesudo_data['num_nodes'])
-        output = tlx.nn.Softmax()(output)
-        pred_label = tlx.ops.argmax(output, axis=-1)
-        confidence = tlx.ops.reduce_max(output, axis=-1)
-        temp_y = tlx.convert_to_numpy(pesudo_data['y'])
-        for i, conf in enumerate(confidence):
-            if conf > args.threshold and (i not in pesudo_data['train_idx']) and (
-                    i not in pesudo_data['test_idx']) and (i not in pesudo_data['val_idx']):
-                pesudo_data['train_idx'].append(i)
-                # tlx.concat((pesudo_data['train_idx'], tlx.convert_to_tensor([i], dtype=tlx.int64)), axis=-1)
-                temp_y[i] = pred_label[i]
-        pesudo_data['y'] = tlx.convert_to_tensor(temp_y)
+        if cal_model.base_model.name=="GCN":
+            output = cal_model(pesudo_data['edge_index'], None, pesudo_data['num_nodes'], pesudo_data['x'],
+                               pesudo_data['edge_index'], None, pesudo_data['num_nodes'])
+        elif cal_model.base_model.name == "GAT":
+            output = cal_model(pesudo_data['edge_index'], None, pesudo_data['num_nodes'], pesudo_data['x'],
+                               pesudo_data['edge_index'], pesudo_data['num_nodes'])
+        pesudo_data = generate_pesudo_label(output, pesudo_data, args.threshold)
 
         # phase 4
         # Testing
         test_model = cal_model
         test_model.load_weights(model_a_scaling, format='npz_dict')
-        if tlx.BACKEND == 'torch':
-            test_model.to(device)
         test_model.set_eval()
-        logits = test_model(data['edge_index'], None, data['num_nodes'], data['features'], data['edge_index'], None,
-                            data['num_nodes'])
+        if test_model.base_model.name == "GCN":
+            logits = test_model(data['edge_index'], None, data['num_nodes'], data['features'], data['edge_index'], None,
+                                data['num_nodes'])
+        elif test_model.base_model.name == "GAT":
+            logits = test_model(data['edge_index'], None, data['num_nodes'], data['features'], data['edge_index'],
+                                data['num_nodes'])
         test_logits = tlx.gather(logits, data['test_idx'])
         test_labels = tlx.gather(data['labels'], data['test_idx'])
-        test_loss = tlx.losses.softmax_cross_entropy_with_logits(test_logits, test_labels)
-        metrics.update(test_logits, test_labels)
-        test_acc = metrics.result()
-        metrics.reset()
-
-        if tlx.BACKEND == "paddle":
-            test_loss = tlx.convert_to_numpy(test_loss)[0]
+        test_acc = calculate_acc(test_logits, test_labels, metrics)
 
         print(f"Test set results with CaGCN:",
-              f"loss = {test_loss:.4f}",
               f"accuracy = {test_acc:.4f}")
 
         acc_test_times_list.append(test_acc)
@@ -295,7 +340,7 @@ def main(args):
 if __name__ == "__main__":
     # Training settings
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='GCN')
+    parser.add_argument('--model', type=str, default='GAT')
     parser.add_argument('--dataset', type=str, default="Cora", help='dataset for training')
     parser.add_argument('--stage', type=int, default=1, help='times of retraining')
     parser.add_argument('--epochs', type=int, default=2000, help='Number of epochs to train.')

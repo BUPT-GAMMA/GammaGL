@@ -20,19 +20,19 @@ class CAGCNModel(tlx.nn.Module):
         norm (str): apply the normalizer
         name (str): model name
     """
-    def __init__(self, 
+
+    def __init__(self,
                  base_model,
                  feature_dim,
                  num_class,
                  drop_rate,
-                 num_layers = 2,
-                 hidden_dim = 64,
-                 norm = 'both',
+                 num_layers=2,
+                 hidden_dim=64,
+                 norm='both',
                  name=None):
         super().__init__()
         self.base_model = base_model
         self.cal_model = GCNModel(feature_dim, hidden_dim, num_class, drop_rate, num_layers, norm, name)
-
 
     def forward(self, cal_edge_index, cal_edge_weight, cal_num_nodes, *args, **kwargs):
         """
