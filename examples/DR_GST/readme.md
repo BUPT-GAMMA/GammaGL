@@ -27,17 +27,15 @@ Results
 TL_BACKEND="torch" python DR-GST.py --dataset Cora --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
 TL_BACKEND="torch" python DR-GST.py --dataset Citeseer --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
 TL_BACKEND="torch" python DR-GST.py --dataset Pubmed --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
-TL_BACKEND="torch" python DR-GST.py --dataset CS --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
-TL_BACKEND="torch" python DR-GST.py --dataset Physics --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
-TL_BACKEND="torch" python DR-GST.py --dataset Computers --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
-TL_BACKEND="torch" python DR-GST.py --dataset Photo --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
-```
+TL_BACKEND="torch" python DR-GST.py --dataset CoraFull --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
+TL_BACKEND="torch" python DR-GST.py --dataset Flickr --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
+‘’‘
 
 
 | Dataset  | Paper Code | Out(th) |
 |----------|------------|---------|
-| Cora     | 83.34      | 92.00   |
-| CiteSeer | 75.78      | 92.80   |
-| PubMed   | 81.08      | 91.20   | 
-| CoraFull | 62.75      | 91.00   |
+| Cora     | 83.34      | 87.90   |
+| CiteSeer | 75.78      | 88.30   |
+| PubMed   | 81.08      | 82.10   | 
+| CoraFull | 62.75      | 90.00   |
 | Flickr   | 53.66      | 92.80   |

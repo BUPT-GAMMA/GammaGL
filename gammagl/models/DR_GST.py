@@ -150,6 +150,8 @@ class DR_GST():
         data = dataset.data
         train_mask = data.train_mask
         nclass = dataset.num_classes
+        if torch.is_tensor(train_mask) == False:
+            train_mask = torch.tensor(train_mask)
         train_index = mask_to_index(train_mask)
         train_mask = train_mask.clone()
         train_mask[:] = False
@@ -168,8 +170,17 @@ class DR_GST():
         edge_index, _ = add_self_loops(data.edge_index, num_nodes=data.num_nodes, n_loops=args.self_loops)
 
         train_idx = idx_train
-        test_idx = mask_to_index(data.test_mask)
-        val_idx = mask_to_index(data.val_mask)
+
+        test_mask = data.test_mask
+        if torch.is_tensor(test_mask) == False:
+            test_mask = torch.tensor(test_mask)
+        test_idx = mask_to_index(test_mask)
+
+        val_mask = data.val_mask
+        if torch.is_tensor(val_mask) == False:
+            val_mask = torch.tensor(val_mask)
+
+        val_idx = mask_to_index(val_mask)
 
         optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.weight_decay)
         train_weights = net.trainable_weights
@@ -204,9 +215,9 @@ class DR_GST():
             one_hot_labels = MyWithLoss.one_hot(pseudo_labels[idx_val], train_data['num_class'])
             loss_val = tlx.losses.softmax_cross_entropy_with_logits(logits[idx_val], one_hot_labels)
 
-            # print("Epoch [{:0>3d}] ".format(epoch + 1) \
-            #       + "  val loss: {:.4f}".format(loss_val) \
-            #       + "  val acc: {:.4f}".format(val_acc))
+            print("Epoch [{:0>3d}] ".format(epoch + 1) \
+                  + "  val loss: {:.4f}".format(loss_val) \
+                  + "  val acc: {:.4f}".format(val_acc))
 
             model_path = './save_model/%s-%s-%d-%f-%f-%f-%s.pth' % (
                 args.model, args.dataset, args.labelrate, args.threshold, args.beta, args.droprate, args.drop_method)
