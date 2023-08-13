@@ -1,31 +1,25 @@
+import copy
 import math
 import os
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 os.environ['TL_BACKEND'] = 'torch'
 #tensorlayerx\optimizers\torch_optimizers.py 264行 loss.bakcward() -> loss.backward(retain_graph=True)
-import argparse
 import tensorlayerx as tlx
 import torch
 import tensorflow as tf
 from tensorlayerx.model import TrainOneStep, WithLoss
 from tensorlayerx.losses import mean_squared_error
+from tensorlayerx.dataflow import random_split
 from gammagl.datasets import Planetoid
 from gammagl.datasets import Amazon
-from gammagl.datasets import Coauthor
-from gammagl.models import GCNModel, GATModel, GraphSAGE_Full_Model, APPNPModel, GINModel, SGCModel, MIXHOPModel
+from gammagl.datasets import Coauthor, Flickr
+from gammagl.models import GCNModel, GATModel, GraphSAGE_Full_Model, APPNPModel, GINModel, SGCModel, MIXHOPModel, DR_GST
 from gammagl.utils import add_self_loops, mask_to_index
 from gammagl.data import Dataset
-from gammagl.transforms import DropEdge
-import numpy as np
 import random
 
 
-def calculate_acc(logits, y, metrics):
-    metrics.update(logits, y)
-    rst = metrics.result()
-    metrics.reset()
-    return rst
 
 
 class MyWithLoss(WithLoss):
@@ -61,27 +55,53 @@ class MyWithLoss(WithLoss):
 
 
 class DR_GST():
+
+
+    @staticmethod
+    def test(output, y, idx_test, num_class):
+        metrics = tlx.metrics.Accuracy()
+        test_logits = tlx.gather(output.clone(), idx_test)
+        test_y = tlx.gather(y, idx_test)
+        acc_test = DR_GST.calculate_acc(test_logits, test_y, metrics)
+
+
+        one_hot_labels = MyWithLoss.one_hot(y[idx_test], num_class)
+        loss_test = tlx.losses.softmax_cross_entropy_with_logits(output[idx_test], one_hot_labels)
+
+        print(f"Test set results",
+              f"loss= {loss_test.item():.4f}",
+              f"accuracy= {acc_test:.4f}")
+
+        return acc_test, loss_test
     @staticmethod
     def generate_mask(dataset, labels, labelrate, os_path=None):
-        datalength = labels.size()
-        train_mask, val_mask, test_mask = tlx.ones_like((1, datalength[0]), dtype=bool), tlx.zeros_like(
-            (1, datalength[0]), dtype=bool) \
-            , tlx.ones_like((1, datalength[0]), dtype=bool)
-        path = 'data/%s/' % (dataset)
-        if os_path != None:
-            path = os_path + '/' + path
-        mask = (train_mask, val_mask, test_mask)
+        datalength = labels.size()[0]
+        train_mask, val_mask, test_mask =  torch.full((1, datalength), fill_value=False, dtype=bool), torch.full(
+        (1, datalength), fill_value=False, dtype=bool) \
+        , torch.full((1, datalength), fill_value=False, dtype=bool)
         name = ('train', 'val', 'test')
-        for (i, na) in enumerate(name):
-            with open(path + na + '%s.txt' % labelrate, 'r') as f:
-                index = f.read().splitlines()
-                index = list(map(int, index))
-                mask[i][0][index] = 1
+
+        indices = torch.randperm(datalength)
+
+        train_ratio = 0.8
+        val_ratio = 0.1
+        test_ratio = 0.1
+        train_size = int(train_ratio * datalength)
+        val_size = int(val_ratio * datalength)
+        test_size = datalength - train_size - val_size
+
+        train_mask[0][indices[:train_size]] = True
+        val_mask[0][indices[train_size:train_size + val_size]] = True
+        test_mask[0][indices[train_size + val_size:]] = True
+
+
+        mask = (train_mask, val_mask, test_mask)
+
         return mask[0][0], mask[1][0], mask[2][0]
 
     @staticmethod
     def update_T(T, output, idx_train, labels):
-        if tlx.BACKEND == 'tensorflow':  # TODO 只有两个版本
+        if tlx.BACKEND == 'tensorflow':
             output = tf.keras.activations.softmax(output, axis=1)
             T.requires_grad = True
             index = mask_to_index(idx_train)
@@ -115,6 +135,15 @@ class DR_GST():
         rst = metrics.result()
         metrics.reset()
         return rst
+
+    @staticmethod
+    def accuracy(pred, targ):
+        pred = torch.softmax(pred, dim=1)
+        pred_max_index = torch.max(pred, 1)[1]
+        ac = ((pred_max_index == targ).float()).sum().item() / targ.size()[0]
+        return ac
+
+
 
     @staticmethod
     def generate_trainmask(dataset, labels, labelrate):
@@ -162,8 +191,6 @@ class DR_GST():
             "T": T,
             "beta": args.beta
         }
-
-        best_val_acc = 0
         for epoch in range(args.epochs):
             net.set_train()
             train_loss = train_one_step(train_data, data.y.detach())
@@ -174,12 +201,12 @@ class DR_GST():
             val_y = tlx.gather(train_data['y'], train_data['val_idx'])
             val_acc = DR_GST.calculate_acc(val_logits, val_y, metrics)
 
-            print("Epoch [{:0>3d}] ".format(epoch + 1) \
-                  + "  train loss: {:.4f}".format(train_loss.item()) \
-                  + "  val acc: {:.4f}".format(val_acc))
-
             one_hot_labels = MyWithLoss.one_hot(pseudo_labels[idx_val], train_data['num_class'])
             loss_val = tlx.losses.softmax_cross_entropy_with_logits(logits[idx_val], one_hot_labels)
+
+            # print("Epoch [{:0>3d}] ".format(epoch + 1) \
+            #       + "  val loss: {:.4f}".format(loss_val) \
+            #       + "  val acc: {:.4f}".format(val_acc))
 
             model_path = './save_model/%s-%s-%d-%f-%f-%f-%s.pth' % (
                 args.model, args.dataset, args.labelrate, args.threshold, args.beta, args.droprate, args.drop_method)
@@ -271,9 +298,9 @@ class DR_GST():
     def load_dataset(model_path, name):
         if name == 'Cora':
             dataset = Planetoid(model_path, name)
-        elif name == 'Citeseer':
+        elif name == 'CiteSeer':
             dataset = Planetoid(model_path, name)
-        elif name == 'Pubmed':
+        elif name == 'PubMed':
             dataset = Planetoid(model_path, name)
         elif name == 'CS':
             dataset = Coauthor(model_path, "CS")
@@ -283,6 +310,10 @@ class DR_GST():
             dataset = Amazon(model_path, "Computers")
         elif name == 'Photo':
             dataset = Amazon(model_path, "Photo")
+        elif name == 'CoraFull':
+            dataset = Planetoid(model_path, 'Cora', split='full')
+        elif name == 'Flickr':
+            dataset = Flickr(model_path, name)
         else:
             dataset = Dataset()
             dataset.load_data(model_path)
@@ -295,8 +326,9 @@ class DR_GST():
             droprate = args.dropout
         else:
             droprate = args.droprate
+        data = dataset.data
         if model_name == 'GCN':
-            model = GCNModel(feature_dim=dataset.num_node_features,
+            model = GCNModel(feature_dim=data.num_node_features,
                              hidden_dim=args.hidden_dim,
                              num_class=dataset.num_classes,
                              drop_rate=args.droprate,
@@ -304,7 +336,7 @@ class DR_GST():
                              norm=args.norm,
                              name="GCN")
         elif model_name == 'GAT':
-            model = GATModel(feature_dim=dataset.num_node_features,
+            model = GATModel(feature_dim=data.num_node_features,
                              hidden_dim=args.hidden_dim,
                              num_class=dataset.num_classes,
                              heads=([args.nb_heads] * 1) + [args.nb_out_heads],
@@ -312,7 +344,7 @@ class DR_GST():
                              num_layers=args.num_layers,
                              name="GAT")
         elif model_name == 'GraphSAGE':
-            model = GraphSAGE_Full_Model(in_feats=dataset.num_node_features,
+            model = GraphSAGE_Full_Model(in_feats=data.num_node_features,
                                          n_hidden=args.hidden,
                                          n_classes=dataset.num_classes,
                                          n_layers=args.num_layers,
@@ -320,23 +352,23 @@ class DR_GST():
                                          dropout=droprate,
                                          aggregator_type='gcn')
         elif model_name == 'APPNP':
-            model = APPNPModel(feature_dim=dataset.num_node_features,
+            model = APPNPModel(feature_dim=data.num_node_features,
                                num_class=dataset.num_classes,
                                iter_K=10,
                                alpha=0.1,
                                drop_rate=droprate,
                                name="APPNP")
         elif model_name == 'GIN':
-            model = GINModel(in_channels=dataset.num_node_features,
+            model = GINModel(in_channels=data.num_node_features,
                              hidden_channels=args.hidden,
                              out_channels=dataset.num_classes,
                              num_layers=args.num_layers)
         elif model_name == 'SGC':
-            model = SGCModel(feature_dim=dataset.num_node_features,
+            model = SGCModel(feature_dim=data.num_node_features,
                              num_class=dataset.num_classes,
                              iter_K=2)
         elif model_name == 'MixHop':
-            model = MIXHOPModel(feature_dim=dataset.num_node_features,
+            model = MIXHOPModel(feature_dim=data.num_node_features,
                                 hidden_dim=args.hidden,
                                 out_dim=dataset.num_classes,
                                 p=[0, 1, 2],
@@ -346,93 +378,3 @@ class DR_GST():
                                 name="MixHop")
 
         return model
-
-
-def main(args):
-    model_path = './save_model/%s-%s-%d-%f-%f-%f-%s.pth' % (
-        args.model, args.dataset, args.labelrate, args.threshold, args.beta, args.droprate, args.drop_method)
-
-    dataset_name = args.dataset
-    dataset = DR_GST.load_dataset(model_path, dataset_name)
-
-    data = dataset.data
-    labels = data.y
-    num_node = data.num_nodes
-    num_class = dataset.num_classes
-
-    if dataset_name in {'Cora', 'Citeseer', 'Pubmed'}:
-        idx_train = data.train_mask
-        idx_val = data.val_mask
-        idx_test = data.test_mask
-    else:
-        idx_train, idx_val, idx_test = DR_GST.generate_mask(dataset=dataset_name, labels=labels, labelrate=20)
-
-    train_index = mask_to_index(idx_train)
-    idx_train_ag = mask_to_index(data.train_mask)
-    if tlx.BACKEND == 'torch':
-        pseudo_labels = labels.clone()  # TODO tensorflow 会报错
-    elif tlx.BACKEND == 'tensorflow':
-        pseudo_labels = tf.optimizers.copy(labels)
-    bald = tlx.ones((num_node,))
-    T = tlx.ops.eye(num_class, num_class)
-    T.requires_grad = False
-
-    if args.drop_method == 'dropedge':
-        drop_edge_data = DropEdge(p=0.1)(data)
-
-    if args.labelrate != 20:
-        idx_train[train_index] = True
-        idx_train = DR_GST.generate_trainmask(dataset, labels, args.labelrate)
-
-    for s in range(args.stage):
-        best_output = DR_GST.train(dataset, args, bald, T, idx_val, idx_train_ag, pseudo_labels)
-        T = DR_GST.update_T(T, best_output, idx_train, data.y.data)
-        idx_unlabeled = ~(idx_train | idx_test | idx_val)
-
-        if args.drop_method == 'dropout':
-            bald = DR_GST.uncertainty_dropout(model_path, args, dataset)
-        elif args.drop_method == 'dropedge':
-            bald = DR_GST.uncertainty_dropedge(drop_edge_data, model_path, args, dataset)
-
-        net = DR_GST.get_model(args, dataset)
-        tlx.files.load_and_assign_npz(name=model_path + net.name + ".npz", network=net)
-        if tlx.BACKEND == 'torch':
-            net.to(data['x'].device)
-        net.set_eval()
-        best_output = net(data.x, data.edge_index, None, data.num_nodes)
-        idx_train_ag, pseudo_labels, idx_pseudo = DR_GST.regenerate_pseudo_label(best_output, labels, idx_train,idx_unlabeled, args.threshold)
-    return
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='GCN')
-    parser.add_argument('--dataset', type=str, default="Cora",
-                        help='dataset for training')
-    parser.add_argument("--dataset_path", type=str, default=r'../',
-                        help="path to save dataset")
-    parser.add_argument('--labelrate', type=int, default=20)
-    parser.add_argument('--weight_decay', type=float, default=5e-4,
-                        help='Weight decay (L2 loss on parameters).')
-    parser.add_argument('--epochs', type=int, default=2000,
-                        help='Number of epochs to train.')
-    parser.add_argument('--stage', type=int, default=3)
-    parser.add_argument('--threshold', type=float, default=0.53)
-    parser.add_argument('--beta', type=float, default=1 / 3,
-                        help='coefficient for weighted CE loss')
-    parser.add_argument('--drop_method', type=str, default='dropout')
-    parser.add_argument('--lr', type=float, default=0.01,
-                        help='Initial learning rate.')
-    parser.add_argument('--droprate', type=float, default=0.5,
-                        help='Droprate for MC-Dropout')
-    parser.add_argument('--hidden_dim', type=int, default=64,
-                        help='Number of hidden units.')
-    parser.add_argument('--dropout', type=float, default=0.5,
-                        help='Dropout rate (1 - keep probability).')
-    parser.add_argument('--patience', type=int, default=100)
-    parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
-    parser.add_argument("--num_layers", type=int, default=2, help="number of layers")
-    parser.add_argument("--norm", type=str, default='both', help="how to apply the normalizer.")
-
-    args = parser.parse_args()
-    main(args)
