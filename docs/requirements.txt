@@ -4,7 +4,7 @@ sphinx-markdown-tables
 sphinx-intl
 recommonmark
 sphinx_copybutton==0.4.0
-numpy
+numpy<=1.23
 scipy
 tensorflow
 torch
@@ -12,4 +12,5 @@ tqdm
 hyperdash
 git+https://github.com/tensorlayer/tensorlayerx.git
 pytest
-cython
+pyparsing
+pybind11
