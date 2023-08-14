@@ -1,5 +1,9 @@
 version: 2
 
+submodules:
+  include: all
+  recursive: true
+
 python:
   version: "3.8"
   install:
@@ -7,6 +11,3 @@ python:
     - method: setuptools
       path: .
   system_packages: true
-
-submodules:
-  recursive: true
