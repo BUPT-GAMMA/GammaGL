@@ -8,5 +8,5 @@ python:
       path: .
   system_packages: true
 
-submodule:
+submodules:
   recursive: true
