@@ -27,6 +27,40 @@ if tlx.BACKEND == 'torch':  # when the backend is torch and you want to use GPU
     except:
         print("GPU is not available")
 
+
+
+def calculate_acc(logits, y, metrics):
+    """
+    Args:
+        logits: node logits
+        y: node labels
+        metrics: tensorlayerx.metrics
+
+    Returns:
+        rst
+    """
+    metrics.update(logits, y)
+    rst = metrics.result()
+    metrics.reset()
+    return rst
+
+
+class SemiSpvzLoss(WithLoss):
+    def __init__(self, net, loss_fn):
+        super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
+
+    def forward(self, data, y):
+        logits = self.backbone_network(data['x'], data['edge_index'])
+
+        train_logits = tlx.gather(logits, data['train_idx'])
+        train_y = tlx.gather(data['y'], data['train_idx'])
+        loss = self._loss_fn(train_logits, train_y)
+        return loss
+
+
+
+
+
 def main(args):
     dataset = WikipediaNetwork(root="./", name=args.dataset, transform=T.NormalizeFeatures())
     graph = dataset[0]
@@ -70,7 +104,7 @@ def main(args):
 
     net.load_weights("./"+ net.name +".npz", format='npz_dict')
 
-    net.set_eval()# 只用于测试集，dropout关闭
+    net.set_eval()
     logits = net(data['x'], data['edge_index'])
     test_logits = tlx.gather(logits, data['test_idx'])
     test_y = tlx.gather(data['y'], data['test_idx'])

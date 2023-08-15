@@ -4,14 +4,12 @@ import numpy as np
 import tensorlayerx as tlx
 from tensorlayerx.model import WithLoss
 
-
-
 def feature_normalize(x):
     x = np.array(x)
-    rowsum = x.sum(axis=1, keepdims=True)  # np.sum
+    rowsum = x.sum(axis=1, keepdims=True)
     rowsum = np.clip(rowsum, 1, 1e10)
     return x / rowsum
-def normalize_graph(g):  # g是邻接矩阵，函数返回L矩阵。函数只使用np，不需要torch
+def normalize_graph(g):  # input : g is a adjacent matrix , return the L matrix of graph
     g = np.array(g)
     g = g + g.T
     g[g > 0.] = 1.0
@@ -21,23 +19,23 @@ def normalize_graph(g):  # g是邻接矩阵，函数返回L矩阵。函数只使
     adj = np.dot(np.dot(deg, g), deg)
     L = np.eye(g.shape[0]) - adj
     return L  # L = In − D^−1/2 @ A @ D^−1/2,
-def eigen_decompositon(g):  # 输入一个邻接矩阵g，返回L矩阵的特征值和特征向量
+def eigen_decompositon(g):  #  input : g is a adjacent matrix , return the eigenvalue and eigenvectors of L matrix
     "The normalized (unit “length”) eigenvectors, "
     "such that the column v[:,i] is the eigenvector corresponding to the eigenvalue w[i]."
-    g = normalize_graph(g)  # 返回邻接矩阵g的L矩阵
-    e, u = eigh(g)  # 返回L矩阵的特征值和特征向量
+    g = normalize_graph(g)  #  return L matrix of g
+    e, u = eigh(g)  # return the eigenvalues and eigenvectors of L
     return e, u
 def transpose_qkv_tlx(X, num_heads):
     """
-    用于将输入的q,k,v按照多个头进行拆分
-    :param X: [bsz,query数量，embed_dim]
+    to split the q,k,v with multiheads
+    :param X: [bsz,query，embed_dim]
     :param num_heads:
-    :return: [bsz,query数量，num_heads,embed_dim/num_heads]
+    :return: [bsz,query，num_heads,embed_dim/num_heads]
     """
     X = tlx.ops.reshape(X,
                         (tlx.ops.get_tensor_shape(X)[0], tlx.ops.get_tensor_shape(X)[1], num_heads, -1))
     X = tlx.ops.convert_to_tensor(
-        tlx.ops.convert_to_numpy(X).transpose((0, 2, 1, 3))  # 把num_heads移动到query数量维前面
+        tlx.ops.convert_to_numpy(X).transpose((0, 2, 1, 3))  # make num_heads in front of query
     )
     X = tlx.ops.reshape(
         X, (-1, tlx.ops.get_tensor_shape(X)[2], tlx.ops.get_tensor_shape(X)[3])
@@ -48,7 +46,7 @@ def transepose_output_tlx(X, num_heads):
         X, (-1, num_heads, tlx.ops.get_tensor_shape(X)[1], tlx.ops.get_tensor_shape(X)[2])
     )
     X = tlx.ops.convert_to_tensor(
-        tlx.ops.convert_to_numpy(X).transpose((0, 2, 1, 3))  # 把num_heads移动到query数量维前面
+        tlx.ops.convert_to_numpy(X).transpose((0, 2, 1, 3))  # make num_heads in front of query
     )
     X = tlx.ops.reshape(
         X, (tlx.ops.get_tensor_shape(X)[0], tlx.ops.get_tensor_shape(X)[1], -1)
@@ -61,7 +59,7 @@ def get_split(y, nclass, seed=0):
     val_lb = int(round(0.2 * len(y)))
 
     indices = []
-    for i in range(nclass):  # 每一个label
+    for i in range(nclass):  # every label
         h = tlx.convert_to_numpy((y == i))
         res = np.nonzero(h)
         res = np.array(res).reshape(-1)
@@ -84,37 +82,22 @@ def get_split(y, nclass, seed=0):
 
     return train_index, valid_index, test_index
 
-def calculate_acc(logits, y, metrics):
-    """
-    Args:
-        logits: node logits
-        y: node labels
-        metrics: tensorlayerx.metrics
-
-    Returns:
-        rst
-    """
-    metrics.update(logits, y)
-    rst = metrics.result()
-    metrics.reset()
-    return rst
-# utils：类
+# utils
 class DotProductAttention_tlx(tlx.nn.Module):
     def __init__(self):
         super().__init__()
 
     def forward(self, querys, keys=None, values=None):
         """
-        :param querys:  形状为[bsz=1,tgt_len==特征值repres数量==query数量，embedding的长度（特征值repre的长度）]
+        :param querys:  shape:[bsz=1 ,  tgt_len==eigvalues repres num==query num  ， embedding's length（eigenvalues repre's length）]
         :return:
         """
-        # 默认自注意力
+        # default:self attention
         keys = querys
         values = querys
 
         d = tlx.get_tensor_shape(querys)[-1]
         scores = tlx.ops.bmm(querys, tlx.nn.Transpose(perm=[0, 2, 1])(keys)) / math.sqrt(d)
-        # 经验证两个类的scores是一样的
         self.attn_weights = tlx.nn.Softmax(axis=-1)(scores)
         return tlx.ops.bmm(self.attn_weights, values)
 class MultiHeadAttention_tlx(tlx.nn.Module):
@@ -131,7 +114,7 @@ class MultiHeadAttention_tlx(tlx.nn.Module):
     def forward(self, q, k, v):
         is_batched = len(tlx.get_tensor_shape(q)) == 3
 
-        if not is_batched:  # 如果输入没有batch
+        if not is_batched:  # if input with no batchs
             q = tlx.ops.expand_dims(q, axis=0)
             k = tlx.ops.expand_dims(k, axis=0)
             v = tlx.ops.expand_dims(v, axis=0)
@@ -144,12 +127,12 @@ class MultiHeadAttention_tlx(tlx.nn.Module):
         output_concat = transepose_output_tlx(output, self.num_heads)
         res = self.W_o(output_concat)
 
-        if not is_batched:  # 如果输入没有batch,之前加了batch，现在把batch消掉
+        if not is_batched:  # if input with no batchs,remove the batchs which is added in the begining
             res = tlx.ops.squeeze(res, axis=0)
 
         return res
 class SineEncoding(tlx.nn.Module):
-    def __init__(self, hidden_dim=16):  # 128
+    def __init__(self, hidden_dim=16):
         super(SineEncoding, self).__init__()
         self.constant = 100
         self.hidden_dim = hidden_dim
@@ -167,7 +150,7 @@ class SineEncoding(tlx.nn.Module):
         pe = tlx.ops.expand_dims(ee, axis=1) * div
         eeig = tlx.ops.concat((tlx.ops.expand_dims(e, axis=1), tlx.ops.sin(pe), tlx.ops.cos(pe)),
                               axis=1)
-        eeig = tlx.cast(eeig, dtype=tlx.float32)  # 改变类型
+        eeig = tlx.cast(eeig, dtype=tlx.float32)
         # print(eeig)
         return self.eig_w(eeig)
 class FeedForwardNetwork_tlx(tlx.nn.Module):
@@ -181,30 +164,30 @@ class FeedForwardNetwork_tlx(tlx.nn.Module):
         x = self.layer1(x)
         x = self.layer2(x)
         return x
-class SpecLayer(tlx.nn.Module):  # 论文中将M+1映射到d的层
+class SpecLayer(tlx.nn.Module):  # M+1 --> d
     #                        m        d
     def __init__(self, nbases, ncombines, prop_dropout=0.0, norm='none'):
         super(SpecLayer, self).__init__()
         self.prop_dropout = tlx.nn.Dropout(p=prop_dropout)
 
-        # self.weight 是一个[ 1 ,m ,d]
+        # self.weight with shape :[ 1 ,m ,d]
         if norm == 'none':
             self.weight = tlx.nn.Parameter(data=tlx.ones((1, nbases, ncombines)))
-        else:  # 需要经过初始化
+        else:  # need initialization
             self.weight = tlx.nn.Parameter(tlx.initializers.random_normal(mean=0.0, stddev=0.01) \
                                                (shape=(1, nbases, ncombines)))
 
-        if norm == 'layer':  # Arxiv
+        if norm == 'layer':
             self.norm = tlx.nn.LayerNorm(ncombines)  # d
-        elif norm == 'batch':  # Penn
+        elif norm == 'batch':
             self.norm = tlx.nn.BatchNorm1d(num_features=ncombines)  # ncombines == d
 
         else:  # Others
             self.norm = None
 
-    def forward(self, x):  # 输入是[N,m,d]，返回是[N,d]
-        x = self.prop_dropout(x) * self.weight  # [N, m, d] * [1, m, d]  =  [ N , m, d ]，这里体现每一个节点特征dim
-        x = tlx.ops.reduce_sum(x, axis=1)  # 返回[N , d]                                          都有一个filter
+    def forward(self, x):  # input [N,m,d],return [N,d]
+        x = self.prop_dropout(x) * self.weight  # [N, m, d] * [1, m, d]  =  [ N , m, d ]，every node feat dim with a filter
+        x = tlx.ops.reduce_sum(x, axis=1)  # return [N , d]
 
         if self.norm is not None:
             x = self.norm(x)
@@ -217,7 +200,7 @@ class Specformer(tlx.nn.Module):
                  tran_dropout=0.2, feat_dropout=0.4, prop_dropout=0.5, norm='none'):
         super(Specformer, self).__init__()
 
-        # 节点特征大小 nfeat ，特征值repre大小 hidden_dim
+        # node feat:nfeat ，eigenvalue repre shape: hidden_dim
         self.norm = norm
         self.nfeat = nfeat
         self.nlayer = nlayer
@@ -259,7 +242,7 @@ class Specformer(tlx.nn.Module):
             adj[source[i], target[i]] = 1.
             adj[target[i], source[i]] = 1.
 
-        # adj是图邻接矩阵，还不是L矩阵
+        # adj is the adjacent matrix of graph
         e, u = eigen_decompositon(adj)
         e = tlx.convert_to_tensor(e)
         u = tlx.convert_to_tensor(u)
@@ -270,7 +253,7 @@ class Specformer(tlx.nn.Module):
         e = tlx.cast(x=e, dtype=tlx.float32)
         u = tlx.cast(x=u, dtype=tlx.float32)
 
-        # 对节点特征做变换
+        # make conversion of node feat
         if self.norm == 'none':
             h = self.feat_dp1(x)
             h = tlx.cast(x=h, dtype=tlx.float32)
@@ -278,10 +261,10 @@ class Specformer(tlx.nn.Module):
             h = self.feat_dp2(h)
         else:
             h = self.feat_dp1(x)
-            h = self.linear_encoder(h)  # nfeat->hidden_dim，把节点特征大小统一变换到特征值表示向量的大小
+            h = self.linear_encoder(h)  # nfeat->hidden_dim( eigenvalue repre shape )
 
-        # 对特征值repre做变换
-        eig = self.eig_encoder(e)  # 输出eig为[N, d]
+        # conversion of eigenvalues repre
+        eig = self.eig_encoder(e)  # return :eig with shape [N, d]
 
         mha_eig = self.mha_norm(eig)
         mha_eig = self.mha(q=mha_eig, k=mha_eig,v=mha_eig)
@@ -289,32 +272,21 @@ class Specformer(tlx.nn.Module):
         ffn_eig = self.ffn_norm(eig)
         ffn_eig = self.ffn(ffn_eig)
         eig = eig + self.ffn_dropout(ffn_eig)
-        new_e = self.decoder(eig)  # 输出为[N, m]
+        new_e = self.decoder(eig)  # return [N, m]
         for conv in self.layers:
-            basic_feats = [h]  # 一开始的h 是[N,d]的节点特征
+            basic_feats = [h]  #  first h is node feat with shape [N,d]
             utx = ut @ h
             for i in range(self.nheads):
                 basic_feats.append(u @ (tlx.ops.expand_dims(input=new_e[:, i], axis=1) * utx))  # [N, d]
             basic_feats = tlx.ops.stack(values=basic_feats, axis=1)  # [N, m, d]
 
-            h = conv(basic_feats)  # conv层输入是[N,m,d]输出是[N,d]
+            h = conv(basic_feats)  # conv layer:input [N,m,d],return [N,d]
 
         if self.norm == 'none':
-            return h  # 返回[N,nlass]的logits
+            return h  # return logits with shape [N,nlass]
         else:
             h = self.feat_dp2(h)
             h = self.classify(h)
             return h
-class SemiSpvzLoss(WithLoss):
-    def __init__(self, net, loss_fn):
-        super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
-
-    def forward(self, data, y):
-        logits = self.backbone_network(data['x'], data['edge_index'])
-
-        train_logits = tlx.gather(logits, data['train_idx'])
-        train_y = tlx.gather(data['y'], data['train_idx'])
-        loss = self._loss_fn(train_logits, train_y)
-        return loss
 
 
