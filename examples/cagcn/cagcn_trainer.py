@@ -8,8 +8,8 @@
 
 import os
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '4'
-os.environ['TL_BACKEND'] = 'torch'
+os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+os.environ['TL_BACKEND'] = 'tensorflow'
 import sys
 
 sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
@@ -23,7 +23,7 @@ from gammagl.utils import mask_to_index
 
 if tlx.BACKEND == 'torch':  # when the backend is torch and you want to use GPU
     try:
-        tlx.set_device(device='GPU', id=4)
+        tlx.set_device(device='GPU', id=2)
     except:
         print("GPU is not available")
 
@@ -196,8 +196,12 @@ def train(args, epoch_id, Lambda, model, metrics, optimizer, data, train_weights
         elif args.model == "GAT":
             logits = model(data['x'], data['edge_index'], data['num_nodes'])
     else:
-        logits = model(data['edge_index'], None, data['num_nodes'], data['x'], data['edge_index'],
-                       data['num_nodes'])
+        if args.model == "GCN":
+            logits = model(data['edge_index'], None, data['num_nodes'], data['x'], data['edge_index'], None,
+                           data['num_nodes'])
+        elif args.model == "GAT":
+            logits = model(data['edge_index'], None, data['num_nodes'], data['x'], data['edge_index'],
+                           data['num_nodes'])
     # val
     val_logits = tlx.gather(logits, data['val_idx'])
     val_y = tlx.gather(data['y'], data['val_idx'])
@@ -212,18 +216,12 @@ def train(args, epoch_id, Lambda, model, metrics, optimizer, data, train_weights
           f'train_loss {train_loss:.4f}',
           f'val_loss {val_loss:.4f}',
           f'val_acc {val_acc:.4f}')
-    return val_loss
+    return val_acc
 
 
 def main(args):
     data = load_dataset(args)
     nclass = int(max(data['labels'])) + 1
-
-    # if tlx.BACKEND == "paddle":
-    #     temp = list()
-    #     for i in range(len(data['train_idx'])):
-    #         temp.append(tlx.convert_to_tensor(data['train_idx'][i]))
-    #     data['train_idx'] = temp
 
     pesudo_data = {
         "x": data['features'],
@@ -247,21 +245,20 @@ def main(args):
     for times in range(0, args.stage):
         # phase_1
         # Base Model
-        # base_model = GCNModel(pesudo_data['x'].shape[1], args.hidden, nclass, args.dropout)
         base_model = get_models(args, pesudo_data, nclass)
         base_optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.weight_decay)
         metrics = tlx.metrics.Accuracy()
 
         # Train base model normally
         # Save the best base model weights
-        best_val_loss = 100
+        best_val_acc = 0
         bad_counter = 0
         for epoch in range(args.epochs):
-            val_loss = train(args, epoch, args.Lambda, base_model, metrics, base_optimizer, pesudo_data,
-                             base_model.trainable_weights)
-            if val_loss < best_val_loss:
+            val_acc = train(args, epoch, args.Lambda, base_model, metrics, base_optimizer, pesudo_data,
+                            base_model.trainable_weights)
+            if val_acc > best_val_acc:
                 base_model.save_weights(model_b_scaling, format='npz_dict')
-                best_val_loss = val_loss
+                best_val_acc = val_acc
                 bad_counter = 0
             else:
                 bad_counter += 1
@@ -277,7 +274,7 @@ def main(args):
 
         # Train calibration model by training set or validation set (only the last time used)
         # Save the best calibration model weights
-        best_val_loss = 100
+        best_val_acc = 0
         bad_counter = 0
         epochs = args.epoch_for_st if times != args.stage - 1 else args.epochs
         temp_data = pesudo_data
@@ -285,15 +282,15 @@ def main(args):
             temp_data['train_idx'] = pesudo_data['val_idx']
 
         for epoch in range(epochs):
-            val_loss = train(args, epoch, args.Lambda, cal_model, metrics, cal_optimizer, temp_data,
-                             cal_model.cal_model.trainable_weights, True)
+            val_acc = train(args, epoch, args.Lambda, cal_model, metrics, cal_optimizer, temp_data,
+                            cal_model.cal_model.trainable_weights, True)
             if times != args.stage - 1:
                 if epoch == epochs - 1:
                     cal_model.save_weights(model_a_scaling, format='npz_dict')
                 continue
-            if val_loss < best_val_loss:
+            if val_acc > best_val_acc:
                 cal_model.save_weights(model_a_scaling, format='npz_dict')
-                best_val_loss = val_loss
+                best_val_acc = val_acc
                 bad_counter = 0
             else:
                 bad_counter += 1
@@ -305,7 +302,7 @@ def main(args):
         cal_model.load_weights(model_a_scaling, format='npz_dict')
         # add predictions satisfying (ground truth == prediction && confidence > threshold) to pesudo labels
         cal_model.set_eval()
-        if cal_model.base_model.name=="GCN":
+        if cal_model.base_model.name == "GCN":
             output = cal_model(pesudo_data['edge_index'], None, pesudo_data['num_nodes'], pesudo_data['x'],
                                pesudo_data['edge_index'], None, pesudo_data['num_nodes'])
         elif cal_model.base_model.name == "GAT":
@@ -368,12 +365,21 @@ if __name__ == "__main__":
     import numpy as np
 
     number = []
-    for i in range(3):
+    for i in range(5):
         acc = main(args)
 
         number.append(acc)
+    #
+    # print("实验结果：")
+    # print(np.mean(number))
+    # print(np.std(number))
+    # print(number)
 
-    print("实验结果：")
-    print(np.mean(number))
-    print(np.std(number))
-    print(number)
+    with open('example_torch.txt', 'a') as f:
+        print(tlx.BACKEND, file=f)
+        print(
+            f"python cagcn_trainer.py --model {args.model} --dataset {args.dataset} --stage {args.stage} --epochs {args.epochs} --epoch_for_st {args.epoch_for_st} --lr {args.lr} --lr_for_cal {args.lr_for_cal} --weight_decay {args.weight_decay} --l2_for_cal {args.l2_for_cal} --hidden {args.hidden} --dropout {args.dropout} --labelrate {args.labelrate} --n_bins {args.n_bins} --Lambda {args.Lambda} --patience {args.patience} --threshold {args.threshold}",
+            file=f)
+        print(number, file=f)
+        print(np.mean(number), file=f)
+        print(np.std(number), file=f)
