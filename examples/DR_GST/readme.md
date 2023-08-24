@@ -25,8 +25,8 @@ Results
 ```bash
 # available dataset: "Cora", "Citeseer", "Pubmed", "CS", "Physics", "Computers", "Photo"
 TL_BACKEND="torch" python DR-GST.py --dataset Cora --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
-TL_BACKEND="torch" python DR-GST.py --dataset Citeseer --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
-TL_BACKEND="torch" python DR-GST.py --dataset Pubmed --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
+TL_BACKEND="torch" python DR-GST.py --dataset CiteSeer --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
+TL_BACKEND="torch" python DR-GST.py --dataset PubMed --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
 TL_BACKEND="torch" python DR-GST.py --dataset CoraFull --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
 TL_BACKEND="torch" python DR-GST.py --dataset Flickr --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
 ‘’‘
@@ -34,8 +34,8 @@ TL_BACKEND="torch" python DR-GST.py --dataset Flickr --model GCN --labelrate 20 
 
 | Dataset  | Paper Code | Out(th) |
 |----------|------------|---------|
-| Cora     | 83.34      | 87.90   |
-| CiteSeer | 75.78      | 88.30   |
-| PubMed   | 81.08      | 82.10   | 
+| Cora     | 83.34      | 80.90   |
+| CiteSeer | 75.78      | 78.40  |
+| PubMed   | 81.08      | 79.30   | 
 | CoraFull | 62.75      | 90.00   |
 | Flickr   | 53.66      | 92.80   |

@@ -2,9 +2,11 @@ import copy
 import math
 import os
 
+import numpy as np
+
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 os.environ['TL_BACKEND'] = 'torch'
-#tensorlayerx\optimizers\torch_optimizers.py 264行 loss.bakcward() -> loss.backward(retain_graph=True)
+# tensorlayerx\optimizers\torch_optimizers.py 264行 loss.bakcward() -> loss.backward(retain_graph=True)
 import tensorlayerx as tlx
 import torch
 import tensorflow as tf
@@ -18,7 +20,6 @@ from gammagl.models import GCNModel, GATModel, GraphSAGE_Full_Model, APPNPModel,
 from gammagl.utils import add_self_loops, mask_to_index
 from gammagl.data import Dataset
 import random
-
 
 
 
@@ -56,14 +57,12 @@ class MyWithLoss(WithLoss):
 
 class DR_GST():
 
-
     @staticmethod
     def test(output, y, idx_test, num_class):
         metrics = tlx.metrics.Accuracy()
         test_logits = tlx.gather(output.clone(), idx_test)
         test_y = tlx.gather(y, idx_test)
         acc_test = DR_GST.calculate_acc(test_logits, test_y, metrics)
-
 
         one_hot_labels = MyWithLoss.one_hot(y[idx_test], num_class)
         loss_test = tlx.losses.softmax_cross_entropy_with_logits(output[idx_test], one_hot_labels)
@@ -73,12 +72,13 @@ class DR_GST():
               f"accuracy= {acc_test:.4f}")
 
         return acc_test, loss_test
+
     @staticmethod
     def generate_mask(dataset, labels, labelrate, os_path=None):
         datalength = labels.size()[0]
-        train_mask, val_mask, test_mask =  torch.full((1, datalength), fill_value=False, dtype=bool), torch.full(
-        (1, datalength), fill_value=False, dtype=bool) \
-        , torch.full((1, datalength), fill_value=False, dtype=bool)
+        train_mask, val_mask, test_mask = torch.full((1, datalength), fill_value=False, dtype=bool), torch.full(
+            (1, datalength), fill_value=False, dtype=bool) \
+            , torch.full((1, datalength), fill_value=False, dtype=bool)
         name = ('train', 'val', 'test')
 
         indices = torch.randperm(datalength)
@@ -93,7 +93,6 @@ class DR_GST():
         train_mask[0][indices[:train_size]] = True
         val_mask[0][indices[train_size:train_size + val_size]] = True
         test_mask[0][indices[train_size + val_size:]] = True
-
 
         mask = (train_mask, val_mask, test_mask)
 
@@ -121,7 +120,9 @@ class DR_GST():
             nclass = labels.max().item() + 1
             for epoch in range(200):
                 optimizer.zero_grad()
-                loss = mse_criterion(output[index].detach(), T[labels[index]].clone()) + mse_criterion(T.clone(), torch.eye(nclass))
+                loss = mse_criterion(output[index].detach(), T[labels[index]].clone()) + mse_criterion(T.clone(),
+                                                                                                       torch.eye(
+                                                                                                           nclass))
                 loss.backward()
                 optimizer.step()
             T.requires_grad = False
@@ -143,8 +144,6 @@ class DR_GST():
         ac = ((pred_max_index == targ).float()).sum().item() / targ.size()[0]
         return ac
 
-
-
     @staticmethod
     def generate_trainmask(dataset, labels, labelrate):
         data = dataset.data
@@ -164,11 +163,13 @@ class DR_GST():
 
     @staticmethod
     def train(graph, args, bald, T, idx_val, idx_train, pseudo_labels):
+
         net = DR_GST.get_model(args, graph)
         data = graph.data
         best, bad_counter = 100, 0
-        edge_index, _ = add_self_loops(data.edge_index, num_nodes=data.num_nodes, n_loops=args.self_loops)
 
+        # edge_index, _ = add_self_loops(data.edge_index, num_nodes=data.num_nodes, n_loops=args.self_loops)
+        edge_index = data.edge_index
         train_idx = idx_train
 
         test_mask = data.test_mask
@@ -191,7 +192,7 @@ class DR_GST():
 
         train_data = {
             "x": data.x,
-            "y": data.y,
+            "y": pseudo_labels,
             "edge_index": edge_index,
             "train_idx": train_idx,
             "test_idx": test_idx,
@@ -202,6 +203,7 @@ class DR_GST():
             "T": T,
             "beta": args.beta
         }
+
         for epoch in range(args.epochs):
             net.set_train()
             train_loss = train_one_step(train_data, data.y.detach())
@@ -211,13 +213,15 @@ class DR_GST():
             val_logits = tlx.gather(logits.clone(), train_data['val_idx'])
             val_y = tlx.gather(train_data['y'], train_data['val_idx'])
             val_acc = DR_GST.calculate_acc(val_logits, val_y, metrics)
+            acc_val = DR_GST.accuracy(val_logits, val_y)
+
 
             one_hot_labels = MyWithLoss.one_hot(pseudo_labels[idx_val], train_data['num_class'])
             loss_val = tlx.losses.softmax_cross_entropy_with_logits(logits[idx_val], one_hot_labels)
 
             print("Epoch [{:0>3d}] ".format(epoch + 1) \
                   + "  val loss: {:.4f}".format(loss_val) \
-                  + "  val acc: {:.4f}".format(val_acc))
+                  + "  val acc: {:.4f}".format(acc_val))
 
             model_path = './save_model/%s-%s-%d-%f-%f-%f-%s.pth' % (
                 args.model, args.dataset, args.labelrate, args.threshold, args.beta, args.droprate, args.drop_method)
@@ -237,8 +241,6 @@ class DR_GST():
 
     @staticmethod
     def regenerate_pseudo_label(output, labels, idx_train, unlabeled_index, threshold, sign=False):
-
-        're-generate pseudo labels every stage'
         unlabeled_index = mask_to_index(unlabeled_index == True)
         confidence, pred_label = DR_GST.get_confidence(output, sign)
         index = mask_to_index(confidence > threshold)
@@ -247,7 +249,6 @@ class DR_GST():
         for i in index:
             if i not in idx_train:
                 pseudo_labels[i] = pred_label[i]
-                # pseudo_labels[i] = labels[i]
                 if i in unlabeled_index:
                     idx_train_ag[i] = True
                     pseudo_index.append(i)
@@ -264,7 +265,6 @@ class DR_GST():
 
         confidence = tlx.reduce_max(output, axis=1)
         pred_label = tlx.argmax(output, axis=1)
-
         return confidence, pred_label
 
     @staticmethod
@@ -302,8 +302,8 @@ class DR_GST():
         entropy = tlx.reduce_sum(tlx.reduce_mean(out_list * tlx.log(out_list), axis=0), axis=1)
         Eentropy = tlx.reduce_sum(out_mean * tlx.log(out_mean), axis=1)
         bald = entropy - Eentropy
-
         return bald
+
 
     @staticmethod
     def load_dataset(model_path, name):
