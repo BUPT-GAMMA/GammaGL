@@ -25,8 +25,9 @@ def main(args):
     model_path = './save_model/%s-%s-%d-%f-%f-%f-%s.pth' % (
         args.model, args.dataset, args.labelrate, args.threshold, args.beta, args.droprate, args.drop_method)
 
+    dataset_path = args.dataset_path
     dataset_name = args.dataset
-    dataset = DR_GST.load_dataset(model_path, dataset_name)
+    dataset = DR_GST.load_dataset(dataset_path, dataset_name)
 
     data = dataset.data
     labels = data.y

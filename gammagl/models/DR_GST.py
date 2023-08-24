@@ -294,28 +294,27 @@ class DR_GST():
 
 
     @staticmethod
-    def load_dataset(model_path, name):
+    def load_dataset(dataset_path, name):
         if name == 'Cora':
-            dataset = Planetoid(model_path, name)
+            dataset = Planetoid(dataset_path, name)
         elif name == 'CiteSeer':
-            dataset = Planetoid(model_path, name)
+            dataset = Planetoid(dataset_path, name)
         elif name == 'PubMed':
-            dataset = Planetoid(model_path, name)
+            dataset = Planetoid(dataset_path, name)
         elif name == 'CS':
-            dataset = Coauthor(model_path, "CS")
+            dataset = Coauthor(dataset_path, "CS")
         elif name == 'Physics':
-            dataset = Coauthor(model_path, "Physics")
+            dataset = Coauthor(dataset_path, "Physics")
         elif name == 'Computers':
-            dataset = Amazon(model_path, "Computers")
+            dataset = Amazon(dataset_path, "Computers")
         elif name == 'Photo':
-            dataset = Amazon(model_path, "Photo")
+            dataset = Amazon(dataset_path, "Photo")
         elif name == 'CoraFull':
-            dataset = Planetoid(model_path, 'Cora', split='full')
+            dataset = Planetoid(dataset_path, 'Cora', split='full')
         elif name == 'Flickr':
-            dataset = Flickr(model_path, name)
+            dataset = Flickr(dataset_path, name)
         else:
-            dataset = Dataset()
-            dataset.load_data(model_path)
+            dataset = Dataset(root=dataset_path)
         return dataset
 
     @staticmethod
