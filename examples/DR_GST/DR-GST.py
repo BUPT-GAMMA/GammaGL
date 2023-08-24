@@ -9,9 +9,7 @@ os.environ['TL_BACKEND'] = 'torch'
 import argparse
 import tensorlayerx as tlx
 from gammagl.models import DR_GST
-import tensorflow as tf
-from tensorlayerx.model import TrainOneStep, WithLoss
-from gammagl.utils import add_self_loops, mask_to_index
+from gammagl.utils import mask_to_index
 from gammagl.transforms import DropEdge
 import torch
 

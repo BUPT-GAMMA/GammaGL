@@ -1,9 +1,4 @@
-import copy
-import math
 import os
-
-import numpy as np
-
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 os.environ['TL_BACKEND'] = 'torch'
 # tensorlayerx\optimizers\torch_optimizers.py 264行 loss.bakcward() -> loss.backward(retain_graph=True)
@@ -12,7 +7,6 @@ import torch
 import tensorflow as tf
 from tensorlayerx.model import TrainOneStep, WithLoss
 from tensorlayerx.losses import mean_squared_error
-from tensorlayerx.dataflow import random_split
 from gammagl.datasets import Planetoid
 from gammagl.datasets import Amazon
 from gammagl.datasets import Coauthor, Flickr
