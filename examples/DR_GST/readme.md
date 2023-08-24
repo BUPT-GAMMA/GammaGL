@@ -37,5 +37,5 @@ TL_BACKEND="torch" python DR-GST.py --dataset Flickr --model GCN --labelrate 20 
 | Cora     | 83.34      | 80.90   |
 | CiteSeer | 75.78      | 78.40  |
 | PubMed   | 81.08      | 79.30   | 
-| CoraFull | 62.75      | 90.00   |
+| CoraFull | 62.75      | 80.30   |
 | Flickr   | 53.66      | 92.80   |

@@ -1,4 +1,7 @@
 import os
+
+import numpy as np
+
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 os.environ['TL_BACKEND'] = 'torch'
 # tensorlayerx\optimizers\torch_optimizers.py 264行 loss.bakcward() -> loss.backward(retain_graph=True)
@@ -29,12 +32,13 @@ class MyWithLoss(WithLoss):
                                            data["num_class"], data["T"])
         return loss
 
-    def weighted_cross_entropy(self, output, labels, bald, beta, num_class, T):
+    @staticmethod
+    def weighted_cross_entropy(output, labels, bald, beta, num_class, T):
         bald += 1e-6
         output = tlx.softmax(output, axis=1)
         output = tlx.matmul(output, T)
         bald = bald / (tlx.reduce_mean(bald) * beta)
-        labels = self.one_hot(labels, num_class)
+        labels = MyWithLoss.one_hot(labels, num_class)
         tmp = tlx.reduce_sum(output * labels, axis=1)
         loss = -tlx.log(tmp)
         loss = tlx.reduce_sum(loss * bald)
@@ -94,18 +98,7 @@ class DR_GST():
 
     @staticmethod
     def update_T(T, output, idx_train, labels):
-        if tlx.BACKEND == 'tensorflow':
-            output = tf.keras.activations.softmax(output, axis=1)
-            T.requires_grad = True
-            index = mask_to_index(idx_train)
-            nclass = labels.max().item() + 1
-            optimizer = tf.optimizers.Adam(learning_rate=0.01, weight_decay=5e-4)
-            for epoch in range(200):
-                with tf.GradientTape() as tape:
-                    loss = mean_squared_error(output[index], T[labels[index]]) + mean_squared_error(T, tlx.eye(nclass))
-                grads = tape.gradient(loss, T)
-                optimizer.apply_gradients(zip(grads, [T]))
-        elif tlx.BACKEND == 'torch':
+        if tlx.BACKEND == 'torch':
             output = torch.softmax(output, dim=1)
             T.requires_grad = True
             optimizer = torch.optim.Adam([T], lr=0.01, weight_decay=5e-4)
@@ -277,7 +270,7 @@ class DR_GST():
         entropy = tlx.reduce_sum(tlx.reduce_mean(out_list * tlx.log(out_list), axis=0), axis=1)
         Eentropy = tlx.reduce_sum(out_mean * tlx.log(out_mean), axis=1)
         bald = entropy - Eentropy
-        return bald
+        return bald.detach()
 
     @staticmethod
     def uncertainty_dropout(model_path, args, dataset):
@@ -287,6 +280,7 @@ class DR_GST():
         net.set_eval()
         out_list = []
         data = dataset.data
+
         for _ in range(f_pass):
             output = net(data.x, data.edge_index, None, data.num_nodes)
             output = tlx.softmax(output, axis=1)
@@ -296,7 +290,7 @@ class DR_GST():
         entropy = tlx.reduce_sum(tlx.reduce_mean(out_list * tlx.log(out_list), axis=0), axis=1)
         Eentropy = tlx.reduce_sum(out_mean * tlx.log(out_mean), axis=1)
         bald = entropy - Eentropy
-        return bald
+        return bald.detach()
 
 
     @staticmethod
