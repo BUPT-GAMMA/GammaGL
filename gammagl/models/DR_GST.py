@@ -1,9 +1,7 @@
 import os
-
-import numpy as np
-
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 os.environ['TL_BACKEND'] = 'torch'
+import numpy as np
 # tensorlayerx\optimizers\torch_optimizers.py 264行 loss.bakcward() -> loss.backward(retain_graph=True)
 import tensorlayerx as tlx
 import torch
@@ -107,9 +105,7 @@ class DR_GST():
             nclass = labels.max().item() + 1
             for epoch in range(200):
                 optimizer.zero_grad()
-                loss = mse_criterion(output[index].detach(), T[labels[index]].clone()) + mse_criterion(T.clone(),
-                                                                                                       torch.eye(
-                                                                                                           nclass))
+                loss = mse_criterion(output[index].detach(), T[labels[index]].clone()) + mse_criterion(T.clone(),torch.eye(nclass))
                 loss.backward()
                 optimizer.step()
             T.requires_grad = False
@@ -279,8 +275,8 @@ class DR_GST():
             output = torch.softmax(output, dim=1)
             output = torch.mm(output, T)
             sign = False
-            loss_train = DR_GST.weighted_cross_entropy(output[idx_train], pseudo_labels[idx_train], bald[idx_train], args.beta,
-                                                nclass, sign)
+            loss_train = MyWithLoss.weighted_cross_entropy(output[idx_train], pseudo_labels[idx_train], bald[idx_train], args.beta,
+                                                nclass, T)
             # loss_train = criterion(output[idx_train], pseudo_labels[idx_train])
             acc_train = DR_GST.accuracy(output[idx_train], pseudo_labels[idx_train])
             loss_train.backward()
@@ -369,16 +365,16 @@ class DR_GST():
         net.set_eval()
         out_list = []
         data = dataset.data
-
-        for _ in range(f_pass):
-            output = net(data.x, data.edge_index, None, data.num_nodes)
-            output = tlx.softmax(output, axis=1)
-            out_list.append(output)
-        out_list = tlx.stack(out_list)
-        out_mean = tlx.reduce_mean(out_list, axis=0)
-        entropy = tlx.reduce_sum(tlx.reduce_mean(out_list * tlx.log(out_list), axis=0), axis=1)
-        Eentropy = tlx.reduce_sum(out_mean * tlx.log(out_mean), axis=1)
-        bald = entropy - Eentropy
+        with torch.no_grad():
+            for _ in range(f_pass):
+                output = net(data.x, data.edge_index, None, data.num_nodes)
+                output = tlx.softmax(output, axis=1)
+                out_list.append(output)
+            out_list = tlx.stack(out_list)
+            out_mean = tlx.reduce_mean(out_list, axis=0)
+            entropy = tlx.reduce_sum(tlx.reduce_mean(out_list * tlx.log(out_list), axis=0), axis=1)
+            Eentropy = tlx.reduce_sum(out_mean * tlx.log(out_mean), axis=1)
+            bald = entropy - Eentropy
         return bald.detach()
 
 

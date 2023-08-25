@@ -72,10 +72,11 @@ def main(args):
         if tlx.BACKEND == 'torch':
             net.to(data['x'].device)
         net.set_eval()
+
         best_output = net(data.x, data.edge_index, None, data.num_nodes)
-        acc_test, loss_test = DR_GST.test(best_output, data.y, idx_test, num_class)
         idx_train_ag, pseudo_labels, idx_pseudo = DR_GST.regenerate_pseudo_label(best_output, labels, idx_train,
                                                                                  idx_unlabeled, args.threshold)
+        acc_test, loss_test = DR_GST.test(best_output, data.y, idx_test, num_class)
 
     return
 
