@@ -120,12 +120,6 @@ class DR_GST():
         metrics.reset()
         return rst
 
-    @staticmethod
-    def accuracy(pred, targ):
-        pred = torch.softmax(pred, dim=1)
-        pred_max_index = torch.max(pred, 1)[1]
-        ac = ((pred_max_index == targ).float()).sum().item() / targ.size()[0]
-        return ac
 
     @staticmethod
     def generate_trainmask(dataset, labels, labelrate):
@@ -195,8 +189,7 @@ class DR_GST():
             logits = net(train_data['x'], train_data['edge_index'], None, train_data['num_nodes'])
             val_logits = tlx.gather(logits.clone(), train_data['val_idx'])
             val_y = tlx.gather(train_data['y'], train_data['val_idx'])
-            val_acc = DR_GST.calculate_acc(val_logits, val_y, metrics)
-            acc_val = DR_GST.accuracy(val_logits, val_y)
+            acc_val = DR_GST.calculate_acc(val_logits, val_y, metrics)
 
 
             one_hot_labels = MyWithLoss.one_hot(pseudo_labels[idx_val], train_data['num_class'])
@@ -221,95 +214,6 @@ class DR_GST():
                 break
 
         return best_output
-
-    @staticmethod
-    def train1(graph, args, bald, T, idx_val, idx_train, pseudo_labels):
-        sign = True
-        seed = np.random.randint(1000)
-        np.random.seed(seed)
-        torch.manual_seed(seed)
-        torch.cuda.manual_seed(seed)
-        nclass = graph.num_classes
-        # Model and optimizer
-        model = DR_GST.get_model(args, graph)
-        optimizer = torch.optim.Adam(model.parameters(),
-                               lr=args.lr, weight_decay=args.weight_decay)
-        best, bad_counter = 100, 0
-
-        data = graph.data
-        best, bad_counter = 100, 0
-
-        # edge_index, _ = add_self_loops(data.edge_index, num_nodes=data.num_nodes, n_loops=args.self_loops)
-        edge_index = data.edge_index
-        train_idx = idx_train
-
-        test_mask = data.test_mask
-        if torch.is_tensor(test_mask) == False:
-            test_mask = torch.tensor(test_mask)
-        test_idx = mask_to_index(test_mask)
-
-        val_mask = data.val_mask
-        if torch.is_tensor(val_mask) == False:
-            val_mask = torch.tensor(val_mask)
-
-        val_idx = mask_to_index(val_mask)
-
-        train_data = {
-            "x": data.x,
-            "y": pseudo_labels,
-            "edge_index": edge_index,
-            "train_idx": train_idx,
-            "test_idx": test_idx,
-            "val_idx": val_idx,
-            "num_nodes": data.num_nodes,
-            "num_class": graph.num_classes,
-            "bald": bald,
-            "T": T,
-            "beta": args.beta
-        }
-
-        for epoch in range(args.epochs):
-            model.train()
-            optimizer.zero_grad()
-            output = model(train_data['x'], train_data['edge_index'], None, train_data['num_nodes'])
-            output = torch.softmax(output, dim=1)
-            output = torch.mm(output, T)
-            sign = False
-            loss_train = MyWithLoss.weighted_cross_entropy(output[idx_train], pseudo_labels[idx_train], bald[idx_train], args.beta,
-                                                nclass, T)
-            # loss_train = criterion(output[idx_train], pseudo_labels[idx_train])
-            acc_train = DR_GST.accuracy(output[idx_train], pseudo_labels[idx_train])
-            loss_train.backward()
-            optimizer.step()
-            criterion = torch.nn.CrossEntropyLoss().cuda()
-            labels = data.y
-            with torch.no_grad():
-                model.eval()
-                output = model(train_data['x'], train_data['edge_index'], None, train_data['num_nodes'])
-                loss_val = criterion(output[idx_val], labels[idx_val])
-                acc_val = DR_GST.accuracy(output[idx_val], labels[idx_val])
-
-            model_path = './save_model/%s-%s-%d-%f-%f-%f-%s.pth' % (
-                args.model, args.dataset, args.labelrate, args.threshold, args.beta, args.droprate, args.drop_method)
-
-            if loss_val < best:
-                torch.save(model.state_dict(), model_path, _use_new_zipfile_serialization=False)
-                best = loss_val
-                bad_counter = 0
-                best_output = output
-            else:
-                bad_counter += 1
-
-            if bad_counter == args.patience:
-                break
-
-            print(f'epoch: {epoch}',
-                  f'loss_train: {loss_train.item():.4f}',
-                  f'acc_train: {acc_train:.4f}',
-                  f'loss_val: {loss_val.item():.4f}',
-                  f'acc_val: {acc_val:.4f}',)
-        return best_output
-
 
     @staticmethod
     def regenerate_pseudo_label(output, labels, idx_train, unlabeled_index, threshold, sign=False):

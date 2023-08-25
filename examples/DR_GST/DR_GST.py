@@ -14,11 +14,6 @@ from gammagl.transforms import DropEdge
 import torch
 
 
-def calculate_acc(logits, y, metrics):
-    metrics.update(logits, y)
-    rst = metrics.result()
-    metrics.reset()
-    return rst
 
 
 def main(args):
