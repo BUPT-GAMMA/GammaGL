@@ -58,7 +58,7 @@ def main(args):
     T.requires_grad = False
 
     for s in range(args.stage):
-        best_output = DR_GST.train(dataset, args, bald, T, idx_val_ag, idx_train_ag, pseudo_labels)
+        best_output = DR_GST.train1(dataset, args, bald, T, idx_val_ag, idx_train_ag, pseudo_labels)
         T = DR_GST.update_T(T.detach(), best_output, idx_train, data.y.data)
         idx_unlabeled = ~(idx_train | idx_test | idx_val)
 
