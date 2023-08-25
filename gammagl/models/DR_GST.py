@@ -345,7 +345,6 @@ class DR_GST():
         net = DR_GST.get_model(args, dataset)
         tlx.files.load_and_assign_npz(name=model_path + net.name + ".npz", network=net)
         out_list = []
-        net.set_eval()
         for _ in range(f_pass):
             output = net(droped_data.x, droped_data.edge_index, None, droped_data.num_nodes)
             output = tlx.softmax(output, axis=1)
@@ -362,7 +361,6 @@ class DR_GST():
         f_pass = 100
         net = DR_GST.get_model(args, dataset)
         tlx.files.load_and_assign_npz(name=model_path + net.name + ".npz", network=net)
-        net.set_eval()
         out_list = []
         data = dataset.data
         with torch.no_grad():
