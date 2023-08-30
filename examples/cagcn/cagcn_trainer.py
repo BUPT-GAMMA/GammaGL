@@ -46,7 +46,12 @@ def load_dataset(args):
         nclass = int(max(labels)) + 1
         start = max(val_idx) + 1
         end = start + label_rate * nclass
-        graph.train_mask[start:end] = True
+        if tlx.BACKEND == "torch":
+            graph.train_mask[start:end] = True
+        else:
+            graph.train_mask = tlx.convert_to_numpy(graph.train_mask)
+            graph.train_mask[start:end] = True
+            graph.train_mask = tlx.convert_to_tensor(graph.train_mask)
 
     train_idx = mask_to_index(graph.train_mask)
 
@@ -360,26 +365,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # main(args)
-
-    import numpy as np
-
-    number = []
-    for i in range(5):
-        acc = main(args)
-
-        number.append(acc)
-    #
-    # print("实验结果：")
-    # print(np.mean(number))
-    # print(np.std(number))
-    # print(number)
-
-    with open('example_torch.txt', 'a') as f:
-        print(tlx.BACKEND, file=f)
-        print(
-            f"python cagcn_trainer.py --model {args.model} --dataset {args.dataset} --stage {args.stage} --epochs {args.epochs} --epoch_for_st {args.epoch_for_st} --lr {args.lr} --lr_for_cal {args.lr_for_cal} --weight_decay {args.weight_decay} --l2_for_cal {args.l2_for_cal} --hidden {args.hidden} --dropout {args.dropout} --labelrate {args.labelrate} --n_bins {args.n_bins} --Lambda {args.Lambda} --patience {args.patience} --threshold {args.threshold}",
-            file=f)
-        print(number, file=f)
-        print(np.mean(number), file=f)
-        print(np.std(number), file=f)
+    main(args)
