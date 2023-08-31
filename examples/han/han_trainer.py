@@ -5,12 +5,9 @@
 # @Author  : clear
 # @FileName: han_trainer.py
 import os
-
-os.environ['TL_BACKEND'] = 'tensorflow'  # set your backend here, default `tensorflow`
-# os.environ["CUDA_VISIBLE_DEVICES"] = "2"
-
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 import sys
-
 sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
@@ -20,7 +17,6 @@ from gammagl.datasets import IMDB
 from gammagl.models import HAN
 from gammagl.utils import mask_to_index, set_device
 from tensorlayerx.model import TrainOneStep, WithLoss
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -58,12 +54,12 @@ def main(args):
     # and set `movie` string with proper values.
 
     set_device(args.gpu)
-    path = osp.join(osp.dirname(osp.realpath(__file__)), '../IMDB')
+    # path = osp.join(osp.dirname(osp.realpath(__file__)), '../IMDB')
     metapaths = [[('movie', 'actor'), ('actor', 'movie')],
                  [('movie', 'director'), ('director', 'movie')]]
     transform = T.AddMetaPaths(metapaths=metapaths, drop_orig_edges=True,
                                drop_unconnected_nodes=True)
-    dataset = IMDB(path, transform=transform)
+    dataset = IMDB(args.dataset_path, transform=transform)
     graph = dataset[0]
     y = graph['movie'].y
 
@@ -149,6 +145,7 @@ if __name__ == '__main__':
     parser.add_argument("--heads", type=int, default=8, help="number of heads for stablization")
     parser.add_argument("--drop_rate", type=float, default=0.6, help="drop_rate")
     parser.add_argument("--gpu", type=int, default=0, help="gpu id")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     # parser.add_argument('--dataset', type=str, default='IMDB', help='dataset')
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     args = parser.parse_args()

@@ -12,8 +12,8 @@ from gammagl.data.separate import separate
 
 class DynamicInheritance(type):
     # A meta class that sets the base class of a `Batch` object, e.g.:
-    # * `Batch(Data)` in case `Data` objects are batched together
-    # * `Batch(HeteroData)` in case `HeteroData` objects are batched together
+    # * `Batch(Graph)` in case `Graph` objects are batched together
+    # * `Batch(HeteroGraph)` in case `HeteroGraph` objects are batched together
     def __call__(cls, *args, **kwargs):
         base_cls = kwargs.pop('_base_cls', Graph)
 
@@ -52,7 +52,7 @@ class BatchGraph(metaclass=DynamicInheritance):
     :obj:`batch`, which maps each node to its respective graph identifier.
     """
     @classmethod
-    def from_data_list(cls, data_list: Union[List[Graph]],
+    def from_data_list(cls, data_list: List[Graph],
                        follow_batch: Optional[List[str]] = None,
                        exclude_keys: Optional[List[str]] = None):
         # https://github.com/pyg-team/pytorch_geometric/issues/3332
@@ -79,7 +79,7 @@ class BatchGraph(metaclass=DynamicInheritance):
 
         return batch
 
-    def get_example(self, idx: int) -> Union[Graph]:
+    def get_example(self, idx: int) -> Graph:
         r"""Gets the :class:`~gammagl.data.Graph` or
         :class:`~gammagl.data.HeteroGraph` object at index :obj:`idx`.
         The :class:`~gammagl.data.BatchGraph` object must have been created
@@ -103,7 +103,7 @@ class BatchGraph(metaclass=DynamicInheritance):
         return data
 
     def index_select(self,
-                     idx: IndexType) -> Union[List[Graph]]:
+                     idx: IndexType) -> List[Graph]:
         r"""Creates a subset of :class:`~gammagl.data.Graph` or
         :class:`~gammagl.data.HeteroGraph` objects from specified
         indices :obj:`idx`.
@@ -151,7 +151,7 @@ class BatchGraph(metaclass=DynamicInheritance):
         else:
             return self.index_select(idx)
 
-    def to_data_list(self) -> Union[List[Graph]]:
+    def to_data_list(self) -> List[Graph]:
         r"""Reconstructs the list of :class:`~gammagl.data.Graph` or
         :class:`~gammagl.data.HeteroGraph` objects from the
         :class:`~gammagl.data.BatchGraph` object.

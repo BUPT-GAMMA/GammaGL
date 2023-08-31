@@ -3,13 +3,9 @@ import numpy as np
 import scipy.sparse as sp
 import argparse
 import os
-
-# os.environ['TL_BACKEND'] = 'tensorflow
-# os.environ["CUDA_VISIBLE_DEVICES"] = " "
-
-# set your backend here, default `tensorflow`, you can choose 'paddle'、'tensorflow'、'torch'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 import sys
-
 sys.path.append(os.getcwd())
 import tensorlayerx as tlx
 from gammagl.models.merit import MERIT
@@ -22,7 +18,6 @@ from tqdm import tqdm
 from gammagl.utils.corrupt_graph import dfde_norm_g
 from gammagl.utils.norm import calc_gcn_norm
 from gammagl.datasets.amazon import Amazon
-
 
 class Unsupervised_Loss(WithLoss):
     def __init__(self, net):
@@ -38,7 +33,7 @@ def main(args):
     # load dataset
     if str.lower(args.dataset) not in ['cora', 'pubmed', 'citeseer']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
-    dataset = Planetoid(r'../', args.dataset)
+    dataset = Planetoid(args.dataset_path, args.dataset)
     # dataset=Amazon(root='./Amazon/',name='photo')
     graph = dataset[0]
     num_node = graph.num_nodes
@@ -117,6 +112,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--num_layers', type=int, default=2)
     parser.add_argument('--dataset', type=str, default='cora', help='dataset,cora/pubmed/citeseer')
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument('--runs', type=int, default=1)
     parser.add_argument('--eval_every_epoch', type=int, default=1)
     parser.add_argument('--epochs', type=int, default=500)

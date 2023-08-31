@@ -1,6 +1,7 @@
 import sys
 import os
-
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
@@ -9,7 +10,6 @@ from gammagl.datasets.ppi import PPI
 from gammagl.models import FILMModel
 from gammagl.loader import DataLoader
 from sklearn.metrics import f1_score
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):

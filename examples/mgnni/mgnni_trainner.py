@@ -1,13 +1,8 @@
 import os
-
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+# os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'torch'
-# os.environ['TL_BACKEND'] = 'mindspore'
-# os.environ['TL_BACKEND'] = 'paddle'
-# os.environ['TL_BACKEND'] = 'tensorflow'  # set your backend here, default `tensorflow`
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import sys
-
 sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
@@ -19,7 +14,6 @@ from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index, set_devi
 from gammagl.models import MGNNI_m_MLP, MGNNI_m_att
 from tensorlayerx.model import TrainOneStep, WithLoss
 import gammagl.transforms as T
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -191,7 +185,7 @@ if __name__ == '__main__':
                         help='Weight decay (L2 loss on parameters).')
     parser.add_argument('--dataset', type=str, default="texas",
                         help='Dataset to use.')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     parser.add_argument("--best_model_path", type=str, default='./', help="best model path")
     parser.add_argument('--model', type=str, default='MGNNI_m_att', choices=['MGNNI_m_MLP', 'MGNNI_m_att'],

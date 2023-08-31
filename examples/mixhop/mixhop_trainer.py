@@ -1,10 +1,7 @@
 import os
-
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'tensorflow'
-
 import sys
-
 sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
@@ -12,7 +9,6 @@ from gammagl.datasets import Planetoid
 from gammagl.models import MIXHOPModel
 from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -123,7 +119,7 @@ if __name__ == '__main__':
     parser.add_argument("--drop_rate", type=float, default=0.8, help="drop_rate")
     parser.add_argument("--l2_coef", type=float, default=1e-3, help="l2_loss_coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     parser.add_argument("--num_layers", type=int, default=3, help="number of layers")

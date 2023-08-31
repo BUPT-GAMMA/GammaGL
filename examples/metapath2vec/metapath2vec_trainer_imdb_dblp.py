@@ -1,13 +1,9 @@
 import argparse
 import os
-
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-# os.environ['TL_BACKEND'] = 'tensorflow'
-
+# os.environ['TL_BACKEND'] = 'torch'
 import sys
-
 sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
-
 import os.path as osp
 import tensorlayerx as tlx
 from gammagl.datasets import IMDB, DBLP
@@ -21,7 +17,6 @@ if tlx.BACKEND == 'torch':  # when the backend is torch and you want to use GPU
         tlx.set_device(device='GPU', id=0)
     except:
         print("GPU is not available")
-
 
 class Unsupervised_Loss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -152,7 +147,7 @@ if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='imdb', help='dataset')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
     parser.add_argument("--n_epoch", type=int, default=50, help="number of epoch")

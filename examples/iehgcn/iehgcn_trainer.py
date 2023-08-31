@@ -1,11 +1,8 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
-
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'torch'
-# os.environ['TL_BACKEND'] = 'paddle'
-# os.environ['TL_BACKEND'] = 'mindspore'  # unsupported
-
 import argparse
 import tensorlayerx as tlx
 from gammagl.utils import add_self_loops, mask_to_index, degree, set_device
@@ -14,13 +11,11 @@ import gammagl.transforms as T
 from gammagl.datasets import HGBDataset, IMDB
 from gammagl.models import ieHGCNModel
 
-
 # This model only support dataset DBLP and IMDB.
 targetType = {
     'imdb': 'movie',
     'dblp': 'author'
     }
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -194,7 +189,7 @@ def main(args):
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset, not work")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset, not work")
     parser.add_argument('--dataset', type=str, default='DBLP', help='dataset, IMDB or DBLP')
     parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
     parser.add_argument("--n_epoch", type=int, default=30, help="number of epoch")

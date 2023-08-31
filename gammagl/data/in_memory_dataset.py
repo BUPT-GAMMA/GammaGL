@@ -20,15 +20,15 @@ class InMemoryDataset(Dataset):
             saved. (default: :obj:`None`)
         transform (callable, optional): A function/transform that takes in an
             :obj:`gammagl.data.Graph` object and returns a transformed
-            version. The data object will be transformed before every access.
+            version. The graph object will be transformed before every access.
             (default: :obj:`None`)
         pre_transform (callable, optional): A function/transform that takes in
             an :obj:`gammagl.data.Graph` object and returns a
-            transformed version. The data object will be transformed before
+            transformed version. The graph object will be transformed before
             being saved to disk. (default: :obj:`None`)
         pre_filter (callable, optional): A function that takes in an
             :obj:`gammagl.data.Graph` object and returns a boolean
-            value, indicating whether the data object should be included in the
+            value, indicating whether the graph object should be included in the
             final dataset. (default: :obj:`None`)
     """
     @property
@@ -99,7 +99,7 @@ class InMemoryDataset(Dataset):
     def collate(
             data_list: List[Graph]):
             #-> Tuple[Graph, Optional[Dict[str, Tensor]]]:
-        r"""Collates a Python list of :obj:`gammagl.data.Data` objects
+        r"""Collates a Python list of :obj:`gammagl.data.Graph` objects
         to the internal storage format of
         :class:`~gammagl.data.InMemoryDataset`."""
         if len(data_list) == 1:

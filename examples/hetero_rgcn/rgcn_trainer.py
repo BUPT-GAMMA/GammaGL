@@ -1,21 +1,15 @@
 import os
-
-# os.environ['TL_BACKEND'] = 'torch'  # set your backend here, default `tensorflow`
-# os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 from gammagl.datasets.alircd import AliRCD
 import argparse
 import tensorlayerx as tlx
 from gammagl.layers.conv import RGCNConv
 from tensorlayerx.model import TrainOneStep, WithLoss
-
 from gammagl.loader.node_neighbor_loader import NodeNeighborLoader as NeighborLoader
 import numpy as np
-
 from sklearn.metrics import average_precision_score
-
 from gammagl.utils.platform_utils import with_dtype, as_int64
-
 
 class RGCN(tlx.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, num_relations, num_bases, n_layers=2):
@@ -81,8 +75,7 @@ def calculate_acc(logits, y, metrics):
 
 
 def main(args):
-    # data = AliRCD(args.dataset)
-    data = AliRCD()
+    data = AliRCD(args.dataset_path)
     hgraph = data[0]
     if tlx.BACKEND == 'torch':
         import torch
@@ -253,6 +246,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     # parser.add_argument('--dataset', type=str, default='../../icdm_train')
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument('--labeled-class', type=str, default='item')
     parser.add_argument("--batch-size", type=int, default=1024,
                         help="Mini-batch size. If -1, use full graph training.")

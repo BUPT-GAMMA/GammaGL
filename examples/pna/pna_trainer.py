@@ -6,7 +6,8 @@
 @Author  :   huang le
 """
 import os
-os.environ['TL_BACKEND'] = 'tensorflow'  # set your backend here, default `tensorflow`
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 import os.path as osp
 import argparse
 import sys
@@ -21,9 +22,6 @@ from gammagl.utils.degree import degree
 from tensorlayerx.model import TrainOneStep, WithLoss
 from tensorlayerx.losses import absolute_difference_error
 from tensorlayerx.optimizers.lr import ReduceOnPlateau
-
-tlx.set_device(device='GPU', id=0)  # set your device here, default `GPU`
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -59,7 +57,7 @@ def evaluate(model, loader):
 
 def main(args):
     # load datasets
-    path = osp.join(osp.dirname(osp.realpath(__file__)), 'data', 'ZINC')
+    path = args.dataset_path
     train_dataset = ZINC(path, subset=True, split='train')
     val_dataset = ZINC(path, subset=True, split='val')
     test_dataset = ZINC(path, subset=True, split='test')
@@ -132,6 +130,7 @@ if __name__ == '__main__':
     parser.add_argument("--batch_size", type=int, default=128, help="batch size")
     parser.add_argument("--lr", type=float, default=0.001, help="learning rate")
     parser.add_argument("--n_epoch", type=int, default=400, help="number of epoch")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument('--in_channels', type=int, default=75, help='Size of each input sample in PNAConv layer')
     parser.add_argument('--out_channels', type=int, default=75, help='Size of each output sample in PNAConv layer')

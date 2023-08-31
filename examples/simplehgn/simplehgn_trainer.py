@@ -1,7 +1,8 @@
 import argparse
 import os
 import sys
-os.environ['TL_BACKEND'] = 'tensorflow'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 sys.path.insert(0, os.path.abspath('./')) # adds path2gammagl to execute in command line.
 import tensorlayerx as tlx
@@ -10,7 +11,6 @@ from gammagl.datasets import HGBDataset
 from gammagl.models import SimpleHGNModel
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.utils import add_self_loops, mask_to_index
-
 
 def calculate_f1_score(val_logits, val_y):
     val_logits = tlx.ops.argmax(val_logits, axis=-1)
@@ -164,7 +164,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default="dblp")
     parser.add_argument('--edge_dim', type=int, default=64)
     parser.add_argument('--run', type=int, default=1)
-    parser.add_argument('--dataset_path', type = str, default = r"../")
+    parser.add_argument('--dataset_path', type = str, default = r"")
     parser.add_argument("--best_model_path", type = str, default = r"./")
 
     args = parser.parse_args()
