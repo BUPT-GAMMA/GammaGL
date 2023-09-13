@@ -386,6 +386,7 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [TADW [IJCAI 2015]](./examples/tadw)             | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [MGNNI [NeurIPS 2022]](./examples/mgnni)         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [MAGCL [AAAI 2023]](./examples/magcl)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [CAGCN [NeurIPS 2021]](./examples/cagcn)         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 
 | Contrastive Learning                           | TensorFlow         | PyTorch            | Paddle             | MindSpore |
 | ---------------------------------------------- | ------------------ | ------------------ | ------------------ | --------- |

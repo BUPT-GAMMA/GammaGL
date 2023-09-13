@@ -7,12 +7,10 @@
 """
 
 import os
-
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
-os.environ['TL_BACKEND'] = 'tensorflow'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 import sys
-
-sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
+sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
