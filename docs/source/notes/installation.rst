@@ -6,7 +6,6 @@ System requrements
 GammaGL works with the following operating systems:
 
 * Linux
-* macOS X
 * Windows
 
 GammaGL requires Python version 3.8, 3.9 or 3.10(partially).
