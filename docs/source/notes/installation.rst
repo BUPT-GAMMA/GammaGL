@@ -107,7 +107,9 @@ Install from source
     * ``pybind11`` and ``pyparsing`` is required, otherwise, you cannot install ``GammaGL`` properly.
     * Currently, the version of ``protobuf`` should be under 3.20.x and the version of ``numpy`` should be under 1.24.4.
     * If you want to develop ``GammaGL``, you may use the following command to build package:
+
     .. code:: bash
+
        python setup.py bulid_ext --inplace
 
 How to Run
