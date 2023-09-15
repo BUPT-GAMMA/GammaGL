@@ -44,15 +44,16 @@ Install from pip
     pip install https://ms-release.obs.cn-north-4.myhuaweicloud.com/1.8.1/MindSpore/gpu/x86_64/cuda-11.1/mindspore_gpu-1.8.1-cp37-cp37m-linux_x86_64.whl --trusted-host ms-release.obs.cn-north-4.myhuaweicloud.com -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 .. note::
-   * For tensorflow, we recommend you to use version under 2.10.0.
+   * For tensorflow, we recommend you to use version under 2.11.0.
    * For pytorch, version under 1.10 is supported.
    * For paddlepaddle, we recommend you to use version under 2.3.2.
    * For mindspore, GammaGL only support version 1.8.1, GPU-CUDA 11.1.
 
 **3. GammaGL:** Install `GammaGL <https://github.com/BUPT-GAMMA/GammaGL>`_ and its dependencies.
 
-.. code:: bash
-    pip install gammgl
+    .. code:: bash
+       
+       pip install gammgl
 
 Install from source
 -------------------
@@ -95,18 +96,18 @@ Install from source
 
 **4. GammaGL:** Install `GammaGL <https://github.com/BUPT-GAMMA/GammaGL>`_ and its dependencies.
 
-.. code:: bash
-    pip install pybind11 pyparsing
-    git clone --recursive https://github.com/BUPT-GAMMA/GammaGL.git
-    cd GammaGL
-    python setup.py install
+    .. code:: bash
+       pip install pybind11 pyparsing
+       git clone --recursive https://github.com/BUPT-GAMMA/GammaGL.git
+       cd GammaGL
+       python setup.py install
 
-.. note::
-   * ``pybind11`` and ``pyparsing`` is required, otherwise, you cannot install ``GammaGL`` properly.
-   * Currently, the version of ``protobuf`` should be under 3.20.x and the version of ``numpy`` should be under 1.24.4.
-   * If you want to develop ``GammaGL``, you may use the following command to build package:
-   .. code:: bash
-      python setup.py bulid_ext --inplace
+    .. note::
+    * ``pybind11`` and ``pyparsing`` is required, otherwise, you cannot install ``GammaGL`` properly.
+    * Currently, the version of ``protobuf`` should be under 3.20.x and the version of ``numpy`` should be under 1.24.4.
+    * If you want to develop ``GammaGL``, you may use the following command to build package:
+    .. code:: bash
+       python setup.py bulid_ext --inplace
 
 How to Run
 ----------
