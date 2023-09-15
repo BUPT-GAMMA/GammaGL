@@ -14,3 +14,4 @@ tensorlayerx==0.5.8
 pytest
 pyparsing
 pybind11
+pandas==2.0.3
