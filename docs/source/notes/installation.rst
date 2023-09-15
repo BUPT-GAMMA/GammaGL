@@ -97,6 +97,7 @@ Install from source
 **4. GammaGL:** Install `GammaGL <https://github.com/BUPT-GAMMA/GammaGL>`_ and its dependencies.
 
     .. code:: bash
+
        pip install pybind11 pyparsing
        git clone --recursive https://github.com/BUPT-GAMMA/GammaGL.git
        cd GammaGL
