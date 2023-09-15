@@ -36,7 +36,7 @@ Install from pip
     pip install tensorflow-gpu # GPU version
     pip install tensorflow # CPU version
     # pytorch
-    pip install torch==1.10.1+cu111 torchvision==0.11.2+cu111 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu111/
+    pip install torch==1.10.1+cu111 torchvision==0.11.2+cu111 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu111/torch_stable.html
     # paddlepaddle
     python -m pip install paddlepaddle-gpu
     # mindspore
@@ -79,7 +79,7 @@ Install from source
     pip install https://ms-release.obs.cn-north-4.myhuaweicloud.com/1.8.1/MindSpore/gpu/x86_64/cuda-11.1/mindspore_gpu-1.8.1-cp37-cp37m-linux_x86_64.whl --trusted-host ms-release.obs.cn-north-4.myhuaweicloud.com -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 .. note::
-   * For tensorflow, we recommend you to use version under 2.11.
+   * For tensorflow, we recommend you to use version under 2.11 (For Windows users, please install version 2.10.1 as 2.11 is not supported on Windows).
    * For pytorch, version under 1.10 is supported.
    * For paddlepaddle, we recommend you to use version under 2.3.2.
    * For mindspore, GammaGL only support version 1.8.1, GPU-CUDA 11.1.
