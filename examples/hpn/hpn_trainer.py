@@ -3,15 +3,12 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'torch'
-import sys
-sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
-import os.path as osp
 import gammagl.transforms as T
 from gammagl.datasets import IMDB
 from gammagl.models import HPN
-from gammagl.utils import mask_to_index, set_device
+from gammagl.utils import mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss
 
 class SemiSpvzLoss(WithLoss):

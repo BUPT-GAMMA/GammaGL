@@ -2,13 +2,11 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'torch'
-import sys
-sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
 from gammagl.models import GCNModel
-from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index, set_device
+from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.transforms import DropEdge
 

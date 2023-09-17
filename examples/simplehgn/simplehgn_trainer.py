@@ -1,10 +1,7 @@
 import argparse
 import os
-import sys
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'torch'
-sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
-sys.path.insert(0, os.path.abspath('./')) # adds path2gammagl to execute in command line.
 import tensorlayerx as tlx
 from sklearn.metrics import f1_score
 from gammagl.datasets import HGBDataset

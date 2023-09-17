@@ -1,6 +1,4 @@
-from re import I
 import numpy as np
-import argparse
 
 with open('./test_accuracy', 'r+') as f:
     # data = f.read().split('\n')[-10:-1]

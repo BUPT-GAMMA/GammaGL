@@ -1,11 +1,9 @@
 import os
-import sys
-sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'torch'
 import argparse
 import tensorlayerx as tlx
-from gammagl.utils import add_self_loops, mask_to_index, degree, set_device
+from gammagl.utils import mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss
 import gammagl.transforms as T
 from gammagl.datasets import HGBDataset, IMDB

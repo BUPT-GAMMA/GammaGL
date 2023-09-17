@@ -1,17 +1,15 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'torch'
-import sys
 import numpy as np
 import scipy.sparse as sp
-sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
 from sklearn.metrics import roc_auc_score, average_precision_score
 from gammagl.datasets import Planetoid
 from gammagl.models import VGAEModel, GAEModel
 from gammagl.transforms import mask_test_edges, sparse_to_tuple
-from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index, set_device
+from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss
 
 class SemiSpvzLoss(WithLoss):

@@ -9,7 +9,7 @@ from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.loader.node_neighbor_loader import NodeNeighborLoader as NeighborLoader
 import numpy as np
 from sklearn.metrics import average_precision_score
-from gammagl.utils.platform_utils import with_dtype, as_int64
+from gammagl.utils.platform_utils import as_int64
 
 class RGCN(tlx.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, num_relations, num_bases, n_layers=2):

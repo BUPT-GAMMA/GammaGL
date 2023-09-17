@@ -15,9 +15,6 @@ import argparse
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'torch'
-import sys
-# adds path2gammagl to execute in command line.
-sys.path.insert(0, os.path.abspath('../../'))
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):

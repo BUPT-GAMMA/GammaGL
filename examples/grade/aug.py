@@ -1,5 +1,5 @@
 import tensorlayerx as tlx
-from gammagl.utils.corrupt_graph import drop_feature, add_self_loops, mask_edge
+from gammagl.utils.corrupt_graph import drop_feature, add_self_loops
 from gammagl.data import Graph
 import numpy as np
 

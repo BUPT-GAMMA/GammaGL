@@ -1,11 +1,9 @@
 import os
-import sys
 import time
 import argparse
 import numpy as np
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'torch'
-sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import tensorlayerx as tlx
 from gammagl.layers.conv import GCNConv
 from gammagl.datasets import Planetoid

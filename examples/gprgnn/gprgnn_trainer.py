@@ -2,8 +2,6 @@ import os
 import os.path as osp
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'torch'
-import sys
-sys.path.insert(0, osp.abspath('../../')) # adds path2gammagl to execute in command line.
 import argparse
 from tqdm import tqdm
 import numpy as np

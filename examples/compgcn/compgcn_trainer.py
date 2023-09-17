@@ -7,15 +7,12 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'torch'
-import sys
-sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
 from gammagl.models import CompGCN
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.datasets import Entities
 import os.path as osp
-import numpy as np
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):

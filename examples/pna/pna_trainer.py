@@ -10,15 +10,12 @@ import os
 # os.environ['TL_BACKEND'] = 'torch'
 import os.path as osp
 import argparse
-import sys
-sys.path.insert(0, osp.abspath('../../'))  # adds path2gammagl to execute in command line.
 import numpy as np
 import tensorlayerx as tlx
 from tensorlayerx import convert_to_tensor, convert_to_numpy
 from gammagl.datasets import ZINC
 from gammagl.loader import DataLoader
 from gammagl.models import PNAModel
-from gammagl.utils.degree import degree
 from tensorlayerx.model import TrainOneStep, WithLoss
 from tensorlayerx.losses import absolute_difference_error
 from tensorlayerx.optimizers.lr import ReduceOnPlateau

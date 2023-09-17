@@ -2,15 +2,13 @@ import os
 # os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'torch'
-import sys
-sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
 import time
 import numpy as np
 # Classes WebKB and WikipediaNetwork that specialize in reading data
 from gammagl.datasets import WebKB, WikipediaNetwork
-from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index, set_device
+from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
 from gammagl.models import MGNNI_m_MLP, MGNNI_m_att
 from tensorlayerx.model import TrainOneStep, WithLoss
 import gammagl.transforms as T

@@ -1,7 +1,7 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'torch'
-from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
+from gammagl.utils import add_self_loops, calc_gcn_norm
 import argparse
 from tqdm import tqdm
 from gammagl.data import Graph

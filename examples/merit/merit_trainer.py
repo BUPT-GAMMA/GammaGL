@@ -13,11 +13,9 @@ from process import compute_diff
 from gammagl.datasets import Planetoid
 from tensorlayerx.model import TrainOneStep, WithLoss
 from eval import evaluation
-from gammagl.data import Graph
 from tqdm import tqdm
 from gammagl.utils.corrupt_graph import dfde_norm_g
 from gammagl.utils.norm import calc_gcn_norm
-from gammagl.datasets.amazon import Amazon
 
 class Unsupervised_Loss(WithLoss):
     def __init__(self, net):
