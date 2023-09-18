@@ -1,4 +1,3 @@
-import numpy as np
 import tensorlayerx as tlx
 
 def test_imdb(get_dataset):
