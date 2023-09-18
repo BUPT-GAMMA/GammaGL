@@ -38,7 +38,7 @@ jobs:
       - run:
           command: pip install torch==1.12.1+cpu torchvision==0.13.1+cpu torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cpu
       - run:
-          command: pip install protobuf==3.19.6
+          command: pip install llvmlite
       - run:
           command: python setup.py install
       - run:

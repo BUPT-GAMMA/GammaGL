@@ -4,6 +4,7 @@ scipy
 tensorflow==2.11.0
 paddlepaddle==2.3.2
 pytest
+numba==0.5.8
 tqdm
 rich
 django
