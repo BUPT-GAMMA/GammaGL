@@ -51,7 +51,7 @@ class NeighborSampler(tlx.dataflow.DataLoader):
             if num_nodes is None:
                 num_nodes = int(tlx.reduce_max(edge_index)) + 1
 
-            value = tlx.arange(edge_index.shape[1]) if return_e_id else None
+            value = tlx.arange(start = 0, limit = tlx.get_tensor_shape(edge_index)[1]) if return_e_id else None
             self.adj_t = SparseGraph(row=edge_index[0], col=edge_index[1],
                                      value=value,
                                      sparse_sizes=(num_nodes, num_nodes)).t()
@@ -60,18 +60,18 @@ class NeighborSampler(tlx.dataflow.DataLoader):
             adj_t = edge_index
             if return_e_id:
                 self.__val__ = adj_t.storage.value()
-                value = tlx.arange(adj_t.nnz())
+                value = tlx.arange(start = 0, limit = adj_t.nnz())
                 adj_t = adj_t.set_value(value, layout='coo')
             self.adj_t = adj_t
 
         self.adj_t.storage.rowptr()
 
         if node_idx is None:
-            node_idx = tlx.arange(self.adj_t.sparse_size(0))
+            node_idx = tlx.arange(start = 0, limit = self.adj_t.sparse_size(0))
         elif node_idx.dtype == tlx.bool:
             node_idx = tlx.convert_to_tensor(np.reshape(tlx.convert_to_numpy(node_idx).nonzero(), -1))
 
-        super().__init__(to_list(tlx.reshape(node_idx, -1)), collate_fn=self.sample, **kwargs)
+        super().__init__(to_list(tlx.reshape(node_idx, (-1,))), collate_fn=self.sample, **kwargs)
 
     def sample(self, batch):
         if not isinstance(batch, Tensor):
