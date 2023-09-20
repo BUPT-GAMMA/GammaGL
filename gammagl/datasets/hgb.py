@@ -74,8 +74,16 @@ class HGBDataset(InMemoryDataset):
             being saved to disk. (default: :obj:`None`)
     """
 
-    url = ('https://cloud.tsinghua.edu.cn/d/2d965d2fc2ee41d09def/files/'
-           '?p=%2F{}.zip&dl=1')
+    urls = {
+        'acm': ('https://drive.google.com/uc?'
+                'export=download&id=1xbJ4QE9pcDJOcALv7dYhHDCPITX2Iddz'),
+        'dblp': ('https://drive.google.com/uc?'
+                 'export=download&id=1fLLoy559V7jJaQ_9mQEsC06VKd6Qd3SC'),
+        'freebase': ('https://drive.google.com/uc?'
+                     'export=download&id=1vw-uqbroJZfFsWpriC1CWbtHCJMGdWJ7'),
+        'imdb': ('https://drive.google.com/uc?'
+                 'export=download&id=18qXmmwKJBrEJxVQaYwKTL3Ny3fPqJeJ2'),
+    }
 
     names = {
         'acm': 'ACM',
@@ -102,7 +110,12 @@ class HGBDataset(InMemoryDataset):
 
     @property
     def raw_file_names(self) -> List[str]:
-        x = ['info.dat', 'node.dat', 'link.dat', 'label.dat', 'label.dat.test', 'label.dat.test_full', 'meta.dat']
+        x = ['info.dat', 'node.dat', 'link.dat', 'label.dat', 'label.dat.test']
+        if self.names[self.name] == 'DBLP':
+            x.append('meta.dat')
+        elif self.names[self.name] == 'IMDB':
+            x.append('meta.dat')
+            x.append('url.dat')
         return x
 
     @property
@@ -110,7 +123,8 @@ class HGBDataset(InMemoryDataset):
         return tlx.BACKEND + '_data.pt'
 
     def download(self):
-        url = self.url.format(self.names[self.name])
+        # url = self.url.format(self.names[self.name])
+        url = self.urls[self.name]
         path = download_url(url, self.raw_dir, self.names[self.name] + '.zip')
         extract_zip(path, self.raw_dir)
         shutil.rmtree(osp.join(self.raw_dir, "__MACOSX"))
