@@ -101,3 +101,4 @@ Model
     gammagl.models.GAEModel
     gammagl.models.HPN
     gammagl.models.GMMModel
+    gammagl.models.CAGCNModel
