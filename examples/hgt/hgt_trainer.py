@@ -59,7 +59,7 @@ class SemiSpvzLoss(WithLoss):
 
 
 def main(args):
-    if (str.lower(args.dataset) not in ['imdb', 'dblp']):
+    if (str.lower(args.dataset) not in ['imdb', 'dblp_hgb']):
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     if str.lower(args.dataset) == 'imdb':
         targetType = {
@@ -76,7 +76,7 @@ def main(args):
         num_classes = max(y) + 1
     else:
         targetType = {
-            'dblp': 'author',
+            'dblp_hgb': 'author',
         }
         dataset = HGBDataset(args.dataset_path, args.dataset)
         heterograph = dataset[0]
