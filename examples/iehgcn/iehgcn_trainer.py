@@ -1,8 +1,6 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
-
 # os.environ['TL_BACKEND'] = 'torch'
 # os.environ['TL_BACKEND'] = 'paddle'
 # os.environ['TL_BACKEND'] = 'mindspore'  # unsupported

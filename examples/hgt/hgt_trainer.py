@@ -11,8 +11,6 @@ import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = ''
 # os.environ['TL_BACKEND'] = 'tensorflow'  # set your backend here, default `tensorflow`
 import sys
-
-sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import tensorlayerx as tlx
 import os.path as osp
 import argparse
