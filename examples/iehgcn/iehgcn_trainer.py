@@ -12,8 +12,8 @@ from gammagl.models import ieHGCNModel
 # This model only support dataset DBLP and IMDB.
 targetType = {
     'imdb': 'movie',
-    'dblp': 'author'
-    }
+    'dblp_hgb': 'author'
+}
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -45,7 +45,7 @@ def calculate_acc(logits, y, metrics):
 
 
 def main(args):
-    if (str.lower(args.dataset) not in ['imdb', 'dblp']):
+    if (str.lower(args.dataset) not in ['imdb', 'dblp_hgb']):
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     # load dataset
     if str.lower(args.dataset) == 'imdb':
@@ -68,10 +68,10 @@ def main(args):
         if tlx.BACKEND == 'tensorflow':
             path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../DBLP')
             metapaths = [[('author', 'paper'), ('paper', 'author')],
-                        [('author', 'paper'), ('paper', 'term'), ('term', 'paper'), ('paper', 'author')],
-                        [('author', 'paper'), ('paper', 'venue'), ('venue', 'paper'), ('paper', 'author')]]
+                         [('author', 'paper'), ('paper', 'term'), ('term', 'paper'), ('paper', 'author')],
+                         [('author', 'paper'), ('paper', 'venue'), ('venue', 'paper'), ('paper', 'author')]]
             transform = T.AddMetaPaths(metapaths=metapaths, drop_orig_edges=True,
-                                    drop_unconnected_nodes=True)
+                                       drop_unconnected_nodes=True)
 
             dataset = HGBDataset(path, args.dataset, transform=transform)
             graph = dataset[0]
@@ -96,13 +96,13 @@ def main(args):
             val_idx = train[:split]
             test_idx = mask_to_index(graph[targetType[str.lower(args.dataset)]].test_mask)
             num_nodes_dict = {'author': graph['author'].num_nodes, 'paper': graph['paper'].num_nodes,
-                            'term': graph['term'].num_nodes, 'venue': graph['venue'].num_nodes}
+                              'term': graph['term'].num_nodes, 'venue': graph['venue'].num_nodes}
 
     if tlx.BACKEND == 'tensorflow':
         edge_index_dict = graph.edge_index_dict
     else:
         edge_index_dict = {graph.edge_types[i]: graph.edge_stores[i]['edge_index'] for i in
-                            range(len(graph.edge_stores))}
+                           range(len(graph.edge_stores))}
 
     # for IMDB: train test val = 400, 3478, 400
     # for DBLP: train test val = 974, 1420, 243
@@ -188,7 +188,7 @@ if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset, not work")
-    parser.add_argument('--dataset', type=str, default='DBLP', help='dataset, IMDB or DBLP')
+    parser.add_argument('--dataset', type=str, default='DBLP_hgb', help='dataset, IMDB or DBLP')
     parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
     parser.add_argument("--n_epoch", type=int, default=30, help="number of epoch")
     parser.add_argument("--num_layers", type=int, default=4, help="number of layers")
@@ -201,7 +201,3 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     main(args)
-
-
-
-
