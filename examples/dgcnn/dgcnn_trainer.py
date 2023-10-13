@@ -5,15 +5,9 @@
 @Time    :   2022/8/16 0:32:45
 @Author  :   Wang Xianglong
 """
-import copy
 import os
-
-# os.environ['CUDA_VISIBLE_DEVICES']='0'
-# os.environ['TL_BACKEND'] = 'paddle'
-
-import sys
-
-sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 import argparse
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
@@ -23,14 +17,6 @@ from gammagl.models import DGCNNModel
 from gammagl.loader import DataLoader
 from tensorlayerx.model import TrainOneStep, WithLoss
 import sklearn.metrics as metrics
-# tlx.set_device("GPU", 2)
-
-# if tlx.BACKEND == 'torch':  # when the backend is torch and you want to use GPU
-#     try:
-#         tlx.set_device(device='GPU', id=0)
-#     except:
-#         print("GPU is not available")
-
 
 class CalLoss(WithLoss):
     def __init__(self, net):
@@ -167,7 +153,7 @@ if __name__ == "__main__":
     parser.add_argument('--dropout', type=float, default=0.5, help='dropout rate')
     parser.add_argument('--emb_dims', type=int, default=1024, metavar='N', help='Dimension of embeddings')
     parser.add_argument('--k', type=int, default=20, metavar='N', help='Num of nearest neighbors to use')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     args = parser.parse_args()

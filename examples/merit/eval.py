@@ -1,7 +1,7 @@
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score,f1_score
+from sklearn.metrics import accuracy_score
 import tensorlayerx as tlx
-import numpy as np
+
 def evaluation(adj,adj_weight, diff,diff_weight, feat, gnn, idx_train, idx_test,labels,act):
     clf = LogisticRegression(random_state=0, max_iter=2000)        
     model = gnn

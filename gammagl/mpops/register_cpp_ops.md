@@ -66,7 +66,7 @@ If need to support cuda, create two other files:
 
     * `segment_op_cpu_backward` function:
     ```c++
-    torch::Tensor segment_max_cpu_forward(torch::Tensor& x,
+    torch::Tensor segment_max_cpu_backward(torch::Tensor& x,
                                           torch::Tensor& grad_out) {
         TORCH_CHECK(x.device().is_cpu(), "x must be CPU tensor");
         auto grad_x = torch::zeros(x.sizes(), x.options());

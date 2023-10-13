@@ -41,6 +41,9 @@ Convolutional Layers
     gammagl.layers.conv.GINConv
     gammagl.layers.conv.HypergraphConv
     gammagl.layers.conv.GMMConv
+    gammagl.layers.conv.ieHGCNConv
+    gammagl.layers.conv.MGNNI_m_iter
+    gammagl.layers.conv.MAGCLConv
 
 Pooling Layers
 --------------
@@ -101,3 +104,4 @@ Model
     gammagl.models.GAEModel
     gammagl.models.HPN
     gammagl.models.GMMModel
+    gammagl.models.CAGCNModel

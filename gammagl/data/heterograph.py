@@ -26,9 +26,9 @@ class HeteroGraph(BaseGraph):
     behaviour of a regular **nested** Python dictionary.
     In addition, it provides useful functionality for analyzing graph
     structures, and provides basic tensor functionalities.
-    
+
     .. code:: python
-    
+
         >>> from gammagl.data import HeteroGraph
         >>> import tensorlayerx as tlx
         >>> data = HeteroGraph()
@@ -44,7 +44,7 @@ class HeteroGraph(BaseGraph):
         >>> edge = tlx.convert_to_tensor([
         ... [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2],
         ... [0, 1, 3, 5, 0, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5]
-        ])
+        ... ])
         >>> data['author', 'writes', 'paper'].edge_index = edge
         >>> data['paper'].num_nodes
         3
@@ -192,7 +192,7 @@ class HeteroGraph(BaseGraph):
         info = f'\n{info}\n' if len(info) > 0 else info
         return f'{self.__class__.__name__}({info})'
 
-    def stores_as(self, data: 'Hetero'):
+    def stores_as(self, data: 'HeteroGraph'):
         for node_type in data.node_types:
             self.get_node_store(node_type)
         for edge_type in data.edge_types:
@@ -322,7 +322,7 @@ class HeteroGraph(BaseGraph):
             return sp_coo.tocsr()
         else:
             return sp_coo.tocsc()
-        
+
     def debug(self):
         pass  # TODO
 

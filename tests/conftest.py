@@ -20,6 +20,10 @@ def load_dataset(root: str, name: str, *args, **kwargs) -> Dataset:
         from gammagl.datasets import DBLP
         path = osp.join(root, 'DBLP')
         return DBLP(path, *args, **kwargs)
+    if name.lower() in ['modelnet40']:
+        from gammagl.datasets import ModelNet40
+        path = osp.join(root, 'ModelNet40')
+        return ModelNet40(path, *args, **kwargs)
 @pytest.fixture(scope='session')
 def get_dataset():
     root = osp.join('/', 'tmp', 'ggl_test_datasets')

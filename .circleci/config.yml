@@ -29,6 +29,8 @@ jobs:
     # CircleCI will report the results back to your VCS provider.
     steps:
       - checkout
+      - run: git submodule sync
+      - run: git submodule update --init
       - python/install-packages:
           pkg-manager: pip
           app-dir: ~/project/.circleci/  # If you're requirements.txt isn't in the root directory.
@@ -36,11 +38,9 @@ jobs:
       - run:
           command: pip install torch==1.12.1+cpu torchvision==0.13.1+cpu torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cpu
       - run:
-          command: pip install git+https://github.com/tensorlayer/tensorlayerx.git 
+          command: pip install llvmlite
       - run:
           command: python setup.py install
-      - run:
-          command: pip install protobuf==3.19.6
       - run:
           name: Run TF tests
           # This assumes pytest is installed via the install-package step above

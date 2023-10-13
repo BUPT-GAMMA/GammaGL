@@ -122,7 +122,11 @@ class SparseStorage:
         self._csc2csr = csc2csr
 
         if not is_sorted:
-            idx = all_to_numpy(tlx.zeros(tlx.numel(self._col) + 1, dtype=self._col.dtype))
+            
+            idx = all_to_numpy(
+                tlx.zeros(shape = (tlx.numel(self._col) + 1, ),
+                          dtype=self._col.dtype)
+                )
             idx[1:] = all_to_numpy(self.row())
             idx[1:] *= all_to_numpy(self._sparse_sizes[1])
             idx[1:] += all_to_numpy(self._col)

@@ -1,25 +1,16 @@
 import argparse
-
 import os
-# os.environ['TL_BACKEND'] = 'paddle'
-# os.environ['CUDA_VISIBLE_DEVICES'] = ' '
-
-
-
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 import tensorlayerx as tlx
 from tensorlayerx.dataflow import DataLoader
 from tensorlayerx.model import WithLoss, TrainOneStep
 import numpy as np
 from load_data import mvgrl_load
 from tqdm import tqdm
-
-
 from gammagl.data import BatchGraph
-
-
 from gammagl.models.mvgrl import MVGRL_Graph
 from gammagl.utils.tu_utils import linearsvc
-
 
 class Unsupervised_Loss(WithLoss):
     def __init__(self, net):
@@ -122,7 +113,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=64, help='batch size')
     parser.add_argument('--patience', type=int, default=20, help='Early stopping steps.')
     parser.add_argument('--num_layers', type=int, default=4, help='the number of GCNConv layer')
-    parser.add_argument("--dataset_path", type=str, default=r'./', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
 
     args = parser.parse_args()

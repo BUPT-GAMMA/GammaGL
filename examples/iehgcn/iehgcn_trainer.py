@@ -1,13 +1,9 @@
 import os
-import sys
-
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'torch'
-# os.environ['TL_BACKEND'] = 'paddle'
-# os.environ['TL_BACKEND'] = 'mindspore'  # unsupported
-
 import argparse
 import tensorlayerx as tlx
-from gammagl.utils import add_self_loops, mask_to_index, degree, set_device
+from gammagl.utils import mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss
 import gammagl.transforms as T
 from gammagl.datasets import HGBDataset, IMDB
@@ -18,7 +14,6 @@ targetType = {
     'imdb': 'movie',
     'dblp_hgb': 'author'
 }
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -192,7 +187,7 @@ def main(args):
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset, not work")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset, not work")
     parser.add_argument('--dataset', type=str, default='DBLP_hgb', help='dataset, IMDB or DBLP')
     parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
     parser.add_argument("--n_epoch", type=int, default=30, help="number of epoch")

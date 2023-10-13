@@ -7,10 +7,8 @@
 """
 
 import os
-
-# os.environ['CUDA_VISIBLE_DEVICES'] = ''
-# os.environ['TL_BACKEND'] = 'tensorflow'  # set your backend here, default `tensorflow`
-import sys
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 import tensorlayerx as tlx
 import os.path as osp
 import argparse
@@ -153,7 +151,7 @@ if __name__ == '__main__':
     parser.add_argument("--num_layers", type=int, default=2, help="number of hgt layers")
     parser.add_argument("--drop_rate", type=float, default=0.5, help="drop_rate")
     parser.add_argument('--dataset', type=str, default='IMDB', help='dataset, not work')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset, not work")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset, not work")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     args = parser.parse_args()
     main(args)

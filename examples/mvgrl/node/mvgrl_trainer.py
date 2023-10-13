@@ -1,10 +1,6 @@
 import os
-
-# os.environ['TL_BACKEND'] = 'paddle'
-# os.environ['CUDA_VISIBLE_DEVICES'] = ' '
-# # set your backend here, default `tensorflow`
-
-
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 import argparse
 import tensorlayerx as tlx
 import numpy as np
@@ -12,7 +8,6 @@ from tensorlayerx.model import TrainOneStep, WithLoss
 from preprocess import process_dataset
 from gammagl.models.mvgrl import MVGRL, LogReg
 from gammagl.datasets import Planetoid
-
 
 class Unsupervised_Loss(WithLoss):
     def __init__(self, net):
@@ -115,7 +110,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
 
-    parser.add_argument("--dataset_path", type=str, default=r'../../', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--hidden_dim", type=int, default=512, help="dimention of hidden layers")
     parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")

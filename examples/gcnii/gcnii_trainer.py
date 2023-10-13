@@ -7,11 +7,8 @@
 '''
 
 import os
-# os.environ['CUDA_VISIBLE_DEVICES']='0'
-# os.environ['TL_BACKEND'] = 'paddle'
-
-import sys
-sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
@@ -136,7 +133,7 @@ if __name__ == '__main__':
     parser.add_argument("--num_layers", type=int, default=64, help="number of layers")
     parser.add_argument("--variant", type=bool, default=True, help="variant")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     args = parser.parse_args()

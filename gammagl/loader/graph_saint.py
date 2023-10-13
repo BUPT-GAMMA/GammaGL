@@ -23,7 +23,7 @@ class GraphSAINTSampler(DataLoader):
 
         self.adj = SparseGraph(
             row=graph.edge_index[0], col=graph.edge_index[1],
-            value=tlx.arange(self.E),
+            value=tlx.arange(start = 0, limit = self.E),
             sparse_sizes=(N, N)
         )
 
@@ -82,4 +82,4 @@ class GraphSAINTRandomWalkSampler(GraphSAINTSampler):
     def __sample_nodes__(self, batch_size):
         start = np.random.randint(0, self.N, (batch_size,))
         node_idx = self.adj.random_walk(tlx.convert_to_tensor(start.flatten()), self.walk_length)
-        return tlx.reshape(node_idx, -1)
+        return tlx.reshape(node_idx, (-1,))
