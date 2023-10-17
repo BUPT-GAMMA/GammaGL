@@ -17,17 +17,18 @@ def get_exts():
             CUDAExtension(
                 name='torch_operator',  # Note: same with TORCH_LIBRARY (import)
                 sources=[
-                    'operators.cpp',
-                    'segment_max.cpp',
-                    'segment_sum.cpp',
-                    'segment_mean.cpp',
-                    'gspmm.cpp',
+                    'src/operators.cpp',
+                    'src/segment_max.cpp',
+                    'src/segment_sum.cpp',
+                    'src/segment_mean.cpp',
+                    'src/gspmm.cpp',
                     'cpu/segment_max_cpu.cpp',
                     'cpu/segment_sum_cpu.cpp',
                     'cpu/segment_mean_cpu.cpp',
                     'cuda/segment_max_cuda.cu',
                     'cpu/spmm_sum_cpu.cpp',
-                    'cuda/spmm_sum_cuda.cu'
+                    'cuda/spmm_sum_cuda.cu',
+                    'src/utils.cpp'
                 ],
                 define_macros=[
                     cuda_macro,
@@ -41,15 +42,16 @@ def get_exts():
             CppExtension(
                 name='torch_operator',
                 sources=[
-                    'operators.cpp',
-                    'segment_max.cpp',
-                    'segment_sum.cpp',
-                    'segment_mean.cpp',
-                    'gspmm.cpp',
+                    'src/operators.cpp',
+                    'src/segment_max.cpp',
+                    'src/segment_sum.cpp',
+                    'src/segment_mean.cpp',
+                    'src/gspmm.cpp',
                     'cpu/segment_max_cpu.cpp',
                     'cpu/segment_sum_cpu.cpp',
                     'cpu/segment_mean_cpu.cpp',
-                    'cpu/spmm_sum_cpu.h'
+                    'cpu/spmm_sum_cpu.cpp',
+                    'src/utils.cpp'
                 ],
                 # define_macros=[omp_macro],
                 # extra_compile_args=compile_args

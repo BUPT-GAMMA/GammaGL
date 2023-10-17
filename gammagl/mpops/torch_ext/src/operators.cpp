@@ -1,7 +1,7 @@
-#include "segment_max.h"
-#include "segment_sum.h"
-#include "segment_mean.h"
-#include "gspmm.h"
+#include "../include/segment_max.h"
+#include "../include/segment_sum.h"
+#include "../include/segment_mean.h"
+#include "../include/gspmm.h"
 #include <assert.h>
 #include <torch/extension.h>
 #include <torch/script.h>
