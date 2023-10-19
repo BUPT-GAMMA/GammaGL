@@ -2,10 +2,25 @@ from typing import Optional
 import numpy as np
 import tensorlayerx as tlx
 from tensorlayerx.optimizers import Adam
+from tensorlayerx import nn
 import torch
-from model_ggl import LogReg
 from sklearn.metrics import f1_score
 import tensorflow
+
+class LogReg(nn.Module):
+    def __init__(self, ft_in, nb_classes):
+        super(LogReg, self).__init__()
+        self.fc = nn.Linear(
+            in_features=ft_in, 
+            out_features=nb_classes, 
+            W_init=tlx.initializers.xavier_uniform(nb_classes)
+        )
+
+    def forward(self, seq):
+        ret = self.fc(seq)
+        ret = nn.LogSoftmax(dim=-1)(ret) 
+        return ret
+
 def get_idx_split(dataset, split, preload_split):
     if split[:4] == 'rand':
         train_ratio = float(split.split(':')[1])

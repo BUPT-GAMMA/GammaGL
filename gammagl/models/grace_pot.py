@@ -14,23 +14,6 @@ from time import perf_counter as t
 from gammagl.mpops import unsorted_segment_sum
 import tensorflow
 
-def BCEWithLogitsLoss(output, target):
-    return torch.nn.BCEWithLogitsLoss()(output, target)
-
-class LogReg(nn.Module):
-    def __init__(self, ft_in, nb_classes):
-        super(LogReg, self).__init__()
-        self.fc = nn.Linear(
-            in_features=ft_in, 
-            out_features=nb_classes, 
-            W_init=tlx.initializers.xavier_uniform(nb_classes)
-        )
-
-    def forward(self, seq):
-        ret = self.fc(seq)
-        ret = nn.LogSoftmax(dim=-1)(ret) 
-        return ret
-
 class Encoder(tlx.nn.Module):
     def __init__(self, in_channels: int, out_channels: int, activation,
                  base_model=GCNConv, k: int = 2):
@@ -47,7 +30,7 @@ class Encoder(tlx.nn.Module):
 
         self.activation = activation
 
-    def forward(self, x:tlx.convert_to_tensor, edge_index:tlx.convert_to_tensor):
+    def forward(self, x, edge_index):
         for i in range(self.k):
             x = self.activation()(self.conv[i](x, edge_index))
         return x
@@ -66,7 +49,7 @@ class Model(tlx.nn.Module):
     def forward(self, x, edge_index):
         return self.encoder(x, edge_index)
 
-    def projection(self, z: tlx.convert_to_tensor)->tlx.convert_to_tensor:
+    def projection(self, z):
         z = tlx.nn.activation.ELU()(self.fc1(z))
         return self.fc2(z)
 
@@ -198,7 +181,7 @@ class Model(tlx.nn.Module):
         pot_score = mm(An_ptb, H_tilde) + b_tilde_2.reshape(-1,1)
         pot_score = tlx.squeeze(pot_score,axis=1)
         target = tlx.zeros(tlx.get_tensor_shape(pot_score)) + 1
-        pot_loss = BCEWithLogitsLoss(pot_score, target)
+        pot_loss = tlx.losses.sigmoid_cross_entropy(pot_score, target)
         return pot_loss
     
 def get_alpha_beta(l, u, alpha):
@@ -237,9 +220,9 @@ def get_crown_weights(l1, u1, l2, u2, alpha, gcn_weights, Wcl):
     return W_tilde_1, b_tilde_1, W_tilde_2, b_tilde_2
 
 def to_dense_adj(
-    edge_index:tlx.convert_to_tensor,
-    batch:tlx.convert_to_tensor = None,
-    edge_attr:tlx.convert_to_tensor = None,
+    edge_index,
+    batch = None,
+    edge_attr = None,
     max_num_nodes: Optional[int] = None,
 ):
 

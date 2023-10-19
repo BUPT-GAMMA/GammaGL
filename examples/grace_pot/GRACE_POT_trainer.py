@@ -16,7 +16,7 @@ from gammagl.layers.conv import GCNConv
 from gammagl.datasets import Planetoid, Coauthor, Amazon
 import gammagl.transforms as T
 
-from grace_pot import Encoder, Model
+from gammagl.models.grace_pot import Encoder, Model
 from eval_gracepot import log_regression, MulticlassEvaluator
 
 A_upper_1 = None
@@ -203,8 +203,8 @@ def filter_adj(row, col, edge_attr,
     return row[mask], col[mask], None if edge_attr is None else edge_attr[mask]
 
 def dropout_adj(
-    edge_index:tlx.convert_to_tensor,
-    edge_attr:tlx.convert_to_tensor= None,
+    edge_index,
+    edge_attr= None,
     p: float = 0.5,
     force_undirected: bool = False,
     num_nodes: Optional[int] = None,
