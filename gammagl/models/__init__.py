@@ -44,6 +44,7 @@ from .iehgcn import ieHGCNModel
 from .tadw import TADWModel
 from .mgnni import MGNNI_m_MLP, MGNNI_m_att 
 from .magcl import NewGrace
+from .mlp import MLP
 
 
 __all__ = [
@@ -89,13 +90,13 @@ __all__ = [
     'HPN',
     'GMMModel',
     'HERec',
-    'MetaPath2Vec'
+    'MetaPath2Vec',
     'ieHGCNModel',
     'TADWModel',
     'MGNNI_m_MLP', 
     'MGNNI_m_att', 
     'NewGrace',
-
+    'MLP'
 ]
 
 classes = __all__

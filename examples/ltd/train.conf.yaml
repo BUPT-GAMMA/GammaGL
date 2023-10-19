@@ -1,0 +1,71 @@
+# global configurations
+global:
+  max_epoch: 600
+  patience: 50  #100  
+  # Disables CUDA training.
+  no_cuda: False
+  # Validate during training pass.
+  fastmode: False
+  # divide test data into two parts
+  div_test: False
+  seed: 12 #1234 
+  # Weight of distillation loss
+  loss_alpha: 0.1
+  optimizer: "Adam"
+  ground: False
+
+# specific configurations of each model
+GCN:
+  hidden: 64
+  learning_rate: 0.01
+  dropout: 0.8
+  weight_decay: 0.001
+  temp: 1.0
+  att: False
+  layer_flag: False
+GAT:
+  num_layers: 2
+  hidden: 64
+  learning_rate: 0.01
+  dropout: 0.6
+  att_dropout: 0.3
+  alpha: 0.2
+  weight_decay: 0.01
+  temp: 1.0
+  num_heads: 8
+  att: True
+  layer_flag: False
+MLP:
+  num_layers: 2
+  hidden: 64
+  learning_rate: 0.005
+  dropout: 0.8
+  weight_decay: 0.01
+  temp: 1.0
+  att: False
+  layer_flag: False
+GraphSAGE:
+  agg_type: "gcn" # mean/gcn/pool/lstm
+  embed_dim: 128
+  batch_size: 256
+  num_samples: 5
+  learning_rate: 0.01
+  weight_decay: 0.0005
+  #  optimizer: 'SGD'
+  att: False
+  layer_flag: False
+APPNP:
+  hiddenunits: 64
+  drop_prob: 0.5
+  alpha: 0.2
+  niter: 10
+  reg_lambda: 5e-3
+  learning_rate: 0.01
+  weight_decay: 0.01
+  att: False
+  layer_flag: False
+SGC:
+  learning_rate: 0.1
+  weight_decay: 0.001
+  att: False
+  layer_flag: False
