@@ -12,8 +12,8 @@
 
 using torch::autograd::AutogradContext;
 
-inline std::tuple<torch::Tensor, torch::Tensor>
-device_dispatch_forward(torch::Tensor &x, torch::Tensor &index, int64_t &N) {
+std::tuple<torch::Tensor, torch::Tensor>
+inline max_device_dispatch_forward(torch::Tensor &x, torch::Tensor &index, int64_t &N) {
   if (x.is_cuda() && index.is_cuda()) {
 #ifdef COMPILE_WITH_CUDA
     return segment_max_cuda_forward(x, index, N);
@@ -30,7 +30,7 @@ device_dispatch_forward(torch::Tensor &x, torch::Tensor &index, int64_t &N) {
 torch::Tensor SegmentMax::forward(AutogradContext *ctx, torch::Tensor x,
                                   torch::Tensor index, int64_t N) {
   ctx->saved_data["x_shape"] = x.sizes();
-  auto result = device_dispatch_forward(x, index, N);
+  auto result = max_device_dispatch_forward(x, index, N);
   auto out = std::get<0>(result);
   auto arg_out = std::get<1>(result);
   ctx->save_for_backward({index, arg_out});
