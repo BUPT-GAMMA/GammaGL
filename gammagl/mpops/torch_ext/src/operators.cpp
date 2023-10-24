@@ -31,9 +31,9 @@ torch::Tensor spmm_sum(torch::Tensor index, torch::Tensor weight,
   return result;
 }
 
-PYBIND11_MODULE(torch_operator, m) {
-  m.def("segment_max", segment_max);
-  m.def("segment_sum", segment_sum);
-  m.def("segment_mean", segment_mean);
-  m.def("spmm_sum", spmm_sum);
+PYBIND11_MODULE(_torch_ext, m) {
+  m.def("c_segment_max", &segment_max);
+  m.def("c_segment_sum", &segment_sum);
+  m.def("c_segment_mean", &segment_mean);
+  m.def("c_spmm_sum", &spmm_sum);
 }
