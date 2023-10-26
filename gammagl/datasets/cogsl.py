@@ -26,9 +26,9 @@ class CoGSLDataset(InMemoryDataset):
                 The name of the dataset (:obj:`"wine"`, :obj:`"breast_cancer"`,
                 :obj:`"digits"`, :obj:`"polblogs"`, :obj:`"citeseer"`,
                 :obj:`"wikics"`, :obj:`"ms"`).
-            v1_p: str
+            v1_p: int
                 Hyper-parameter of view1 scope
-            v2_p: str
+            v2_p: int
                 Hyper-parameter of view2 scope
             transform: callable, optional
                 A function/transform that takes in an
@@ -90,10 +90,9 @@ class CoGSLDataset(InMemoryDataset):
         """
 
     url = 'https://github.com/yuan429010/CoGSL/raw/main/dataset'
-    ptb_url = 'https://github.com/yuan429010/CoGSL/raw/main/ptb'
 
     def __init__(self, root: str = None, name:str = 'citeseer',
-                 v1_p: str = '2', v2_p: str = '40',
+                 v1_p: int = 2, v2_p: int = 40,
                  transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None):
         self.root = root
@@ -102,12 +101,12 @@ class CoGSLDataset(InMemoryDataset):
         self.v2_p = v2_p
         super().__init__(root, transform, pre_transform)
         self.data, self.slices = self.load_data(self.processed_paths[0])
-        self.view1 = sp.load_npz(self.processed_dir+'/view1.npz')
-        self.view2 = sp.load_npz(self.processed_dir+'/view2.npz')
-        with open(self.processed_dir+'/'+tlx.BACKEND+'_v1_indice_'+self.v1_p+'.pt', 'rb') as f:
-            self.v1_indice = tlx.convert_to_tensor(pickle.load(f))
-        with open(self.processed_dir+'/'+tlx.BACKEND+'_v2_indice_'+self.v2_p+'.pt', 'rb') as f:
-            self.v2_indice = tlx.convert_to_tensor(pickle.load(f))
+        self.view1 = sp.load_npz(self.raw_dir+'/view1.npz')
+        self.view2 = sp.load_npz(self.raw_dir+'/view2.npz')
+        with open(self.processed_dir+'/'+tlx.BACKEND+'_v1_indice_'+str(self.v1_p)+'.pt', 'rb') as f:
+            self.v1_indice = tlx.convert_to_tensor(pickle.load(f), dtype=tlx.int64)
+        with open(self.processed_dir+'/'+tlx.BACKEND+'_v2_indice_'+str(self.v2_p)+'.pt', 'rb') as f:
+            self.v2_indice = tlx.convert_to_tensor(pickle.load(f), dtype=tlx.int64)
 
 
     @property
@@ -120,8 +119,7 @@ class CoGSLDataset(InMemoryDataset):
 
     @property
     def raw_file_names(self) -> List[str]:
-        names = ['feat.npz', 'label.npy', 'test.npy', 'train.npy', 'val.npy', 'ori_adj.npz']
-        # return [f'{name}' for name in names]
+        names = ['feat.npz', 'label.npy', 'test.npy', 'train.npy', 'val.npy', 'ori_adj.npz', 'view1.npz', 'view2.npz']
         return [f'{name}' for name in names]
 
     @property
@@ -132,15 +130,11 @@ class CoGSLDataset(InMemoryDataset):
         return [f'{tlx.BACKEND}_{name}' for name in names]
 
     def download(self):
-        if self.name =='wikics' or self.name =='ms':
-            download_url(f'{self.url}/{self.name}/v2_sub.npz', self.raw_dir)
         for fname in self.raw_file_names:
             download_url(f'{self.url}/{self.name}/{fname}', self.raw_dir)
 
     def process(self):
-        print(self.raw_dir)
         feature = sp.load_npz(self.raw_dir + "/feat.npz")
-        print(self.raw_dir)
         if self.name == "breast_cancer" or self.name == "digits" or self.name == "wine" or self.name == "wikics":
             feature = feature.todense()
         else:
@@ -150,7 +144,7 @@ class CoGSLDataset(InMemoryDataset):
         train_idx = np.load(self.raw_dir + "/train.npy")
         val_idx = np.load(self.raw_dir + "/val.npy")
         test_idx = np.load(self.raw_dir + "/test.npy")
-        ori_adj = sp.load_npz(self.raw_dir + "/feat.npz")
+        ori_adj = sp.load_npz(self.raw_dir + "/ori_adj.npz")
         ori_adj = ori_adj.tocoo()
         edge_index = tlx.convert_to_tensor([ori_adj.row, ori_adj.col])
 
@@ -166,30 +160,22 @@ class CoGSLDataset(InMemoryDataset):
 
         self.save_data(self.collate([data]), self.processed_paths[0])
 
-        ori_adj = sp.load_npz(self.raw_dir + "/ori_adj.npz")
         num_node = ori_adj.shape[0]
-        if self.name == 'breast_cancer' or self.name == 'wine':
-            view1 = knn(ori_adj, num_node, 9)
-        else:
-            view1 = sp.coo_matrix(ori_adj)
 
-        v1_indice = get_khop_indices(int(self.v1_p), view1)
+        view1 = sp.load_npz(self.raw_dir + '/view1.npz')
+        v1_indice = get_khop_indices(self.v1_p, view1)
 
+        view2 = sp.load_npz(self.raw_dir + '/view2.npz')
         if self.name =='wikics' or self.name =='ms':
-            view2 = sp.load_npz(self.raw_dir + '/v2_sub.npz')
-            v2_indice = get_khop_indices(1, view2)
+            v2_indice = get_khop_indices(self.v1_p, view2)
         else:
-            view2 = diff(ori_adj, 0.1)
             kn = topk(int(self.v2_p), view2)
             kn = sp.coo_matrix(kn)
             v2_indice = get_khop_indices(1, kn)
 
-        sp.save_npz(self.processed_dir+'/view1.npz', view1)
-        sp.save_npz(self.processed_dir+'/view2.npz', view2)
-
-        with open(self.processed_dir+'/'+tlx.BACKEND+'_v1_indice_'+self.v1_p+'.pt', 'wb') as f:
+        with open(self.processed_dir+'/'+tlx.BACKEND+'_v1_indice_'+str(self.v1_p)+'.pt', 'wb') as f:
             pickle.dump(tlx.convert_to_numpy(v1_indice), f)
-        with open(self.processed_dir+'/'+tlx.BACKEND+'_v2_indice_'+self.v2_p+'.pt', 'wb') as f:
+        with open(self.processed_dir+'/'+tlx.BACKEND+'_v2_indice_'+str(self.v2_p)+'.pt', 'wb') as f:
             pickle.dump(tlx.convert_to_numpy(v2_indice), f)
 
 
@@ -236,21 +222,3 @@ def topk(k, adj):
       else:
         pos[i, one] = adj[i, one]
     return pos
-
-def knn(feat, num_node, k):
-    adj = np.zeros((num_node, num_node), dtype=np.int64)
-    dist = cos(feat)
-    col = np.argpartition(dist, -(k + 1), axis=1)[:, -(k + 1):].flatten()
-    adj[np.arange(num_node).repeat(k + 1), col] = 1
-    adj = sp.coo_matrix(adj)
-    return adj
-
-def diff(adj, alpha):
-    # adj = sp.coo_matrix((tlx.convert_to_numpy(tlx.ones(adj[0].shape)), (tlx.convert_to_numpy(adj[0]), tlx.convert_to_numpy(adj[1]))))
-    d = np.diag(np.array(np.sum(adj, 1)).flatten())
-    dinv = fractional_matrix_power(d, -0.5)
-    at = np.matmul(np.matmul(dinv, adj.toarray()), dinv)
-    adj = alpha * inv((np.eye(adj.shape[0]) - (1 - alpha) * at))
-    adj = sp.coo_matrix(adj)
-    return adj
-

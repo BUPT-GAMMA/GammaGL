@@ -1,9 +1,8 @@
 import os
-# os.environ['CUDA_VISIBLE_DEVICES']='0'
-os.environ['TL_BACKEND'] = 'torch'
+os.environ['CUDA_VISIBLE_DEVICES']=''
+os.environ['TL_BACKEND'] = 'paddle'
 
 import sys
-sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 
 import argparse
 import numpy as np
@@ -18,18 +17,7 @@ from gammagl.datasets.cogsl import CoGSLDataset
 from gammagl.models.cogsl import CoGSLModel
 from gammagl.utils import  mask_to_index, set_device
 from tensorlayerx.model import TrainOneStep, WithLoss
-from copy import deepcopy
 
-class SemiSpvzLoss(WithLoss):
-    def __init__(self, net, loss_fn):
-        super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
-
-    def forward(self, data, y):
-        _, logits = self.backbone_network(data['x'], data['edge_index'])
-        train_logits = tlx.gather(logits, data['train_idx'])
-        train_y = tlx.gather(data['y'], data['train_idx'])
-        loss = self._loss_fn(train_logits, train_y)
-        return loss
 
 class VeLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -52,7 +40,7 @@ class VeLoss(WithLoss):
 
         vv1, vv2, v1v2 = self.net.get_mi_loss(data['x'], views)
         mi_loss = args.mi_coe * v1v2 + (vv1 + vv2) * (1 - args.mi_coe) / 2
-        loss = cls_loss - 0.05 * mi_loss
+        loss = cls_loss - data['curr'] * mi_loss
         return loss
 
 class MiLoss(WithLoss):
@@ -106,8 +94,9 @@ def gen_auc_mima(logits, label):
     return test_f1_macro, test_f1_micro, auc
 
 def accuracy(output, label):
-    preds = output.max(1)[1].type_as(label)
-    correct = preds.eq(label).double()
+    # preds = output.max(1)[1]
+    preds = tlx.argmax(output, axis=1)
+    correct = tlx.convert_to_tensor(tlx.equal(preds, label), dtype=tlx.float32)
     correct = correct.sum()
     return correct / len(label)
 
@@ -115,11 +104,6 @@ def loss_acc(output, y):
     loss = tlx.losses.softmax_cross_entropy_with_logits(output, y)
     acc = accuracy(output, y)
     return loss, acc
-
-def train_mi(main_model, x, views):
-    vv1, vv2, v1v2 = main_model.get_mi_loss(x, views)
-    loss = args.mi_coe * v1v2 + (vv1 + vv2) * (1 - args.mi_coe) / 2
-    return tlx.convert_to_tensor(loss)
 
 def train_cls(main_model, data):
     new_v1, new_v2 = main_model.get_view(data)
@@ -135,11 +119,12 @@ def train_cls(main_model, data):
     return args.cls_coe * loss_v + (loss_v1 + loss_v2) * (1 - args.cls_coe) / 2, views
 
 def main(args):
-    set_device(int(args.gpu))
+    if tlx.BACKEND == 'torch' and args.gpu >= 0:
+        set_device(int(args.gpu))
 
-    np.random.seed(args.seed)
-    random.seed(args.seed)
-    tlx.set_seed(args.seed)
+    # np.random.seed(args.seed)
+    # random.seed(args.seed)
+    # tlx.set_seed(args.seed)
 
     dataset = CoGSLDataset('', args.dataset, args.v1_p, args.v2_p)
     graph = dataset.data
@@ -149,9 +134,9 @@ def main(args):
     view1 = tlx.convert_to_tensor(dataset.view1.todense(), dtype=tlx.float32)
     view2 = tlx.convert_to_tensor(dataset.view2.todense(), dtype=tlx.float32)
 
-    net = CoGSLModel(dataset.num_node_features, args.cls_hid_1, dataset.num_classes,
-                                     args.gen_hid, args.mi_hid_1, args.com_lambda_v1, args.com_lambda_v2,
-                           args.lam, args.alpha, args.cls_dropout, args.ve_dropout, args.tau, args.ggl, args.big, args.batch, args.dataset)
+    net = CoGSLModel(dataset.num_node_features, args.cls_hid, dataset.num_classes,
+                                     args.gen_hid, args.mi_hid, args.com_lambda_v1, args.com_lambda_v2,
+                           args.lam, args.alpha, args.cls_dropout, args.ve_dropout, args.tau, args.ggl, args.big, args.batch)
 
     scheduler = tlx.optimizers.lr.ExponentialDecay(learning_rate=args.ve_lr, gamma=0.99)
     opti_ve = tlx.optimizers.Adam(lr=scheduler, weight_decay=args.ve_weight_decay)
@@ -175,7 +160,7 @@ def main(args):
         "x": graph.x,
         "y": graph.y,
         "edge_index": graph.edge_index,
-        "edge_weight": graph.edge_weight,
+        # "edge_weight": graph.edge_weight,
         "train_idx": train_idx,
         "test_idx": test_idx,
         "val_idx": val_idx,
@@ -184,47 +169,48 @@ def main(args):
         "v1_indice": dataset.v1_indice,
         "v2_indice": dataset.v2_indice,
         "num_nodes": graph.num_nodes,
+        "curr": 0,
     }
 
     best_acc_val = 0
     best_loss_val = 1e9
     best_test = 0
     best_v = None
-    best_v_cls_weight = None
 
     for epoch in range(args.main_epoch):
-        # curr = np.log(1 + args.temp_r * epoch)
-        # curr = min(max(0.05, curr), 0.1)
+        curr = np.log(1 + args.temp_r * epoch)
+        curr = min(max(0.05, curr), 0.1)
+        data['curr'] = curr
 
         net.set_train()
         for inner_ve in range(args.inner_ve_epoch):
             ve_loss=ve_train_one_step(data, graph.y)
-            # print('ve_loss=', ve_loss)
+            print('ve_loss=', ve_loss)
 
         for inner_cls in range(args.inner_cls_epoch):
             cls_loss=cls_train_one_step(data, graph.y)
-            # print('cls_loss=',  cls_loss)
+            print('cls_loss=',  cls_loss)
 
         for inner_mi in range(args.inner_mi_epoch):
             mi_loss=mi_train_one_step(data, graph.y)
-            # print('mi_loss=', mi_loss)
+            print('mi_loss=', mi_loss)
 
         ## validation ##
         net.set_eval()
         _, views = train_cls(net, data)
         logits_v_val = net.get_v_cls_loss(views[0], data['x'])
         loss_val, acc_val = loss_acc(logits_v_val[data['val_idx']], data['y'][data['val_idx']])
-        if acc_val >= best_acc_val and best_loss_val > loss_val:
+        if acc_val>best_acc_val or (acc_val == best_acc_val and best_loss_val > loss_val):
             print("better v!")
             best_acc_val = max(acc_val, best_acc_val)
             best_loss_val = loss_val
-            best_v_cls_weight = deepcopy(net.cls.encoder_v.state_dict())
+            net.cls.encoder_v.save_weights(data['name'] + ".npz", format='npz_dict')
             best_v = views[0]
-        print("EPOCH ", epoch, "\tCUR_LOSS_VAL ", loss_val.data.cpu().numpy(), "\tCUR_ACC_Val ",
-              acc_val.data.cpu().numpy(), "\tBEST_ACC_VAL ", best_acc_val.data.cpu().numpy())
+        print("EPOCH ", epoch, "\tCUR_LOSS_VAL ", loss_val.item(), "\tCUR_ACC_Val ",
+              acc_val.item(), "\tBEST_ACC_VAL ", best_acc_val.item())
 
     ## test ##
-    net.cls.encoder_v.load_state_dict(best_v_cls_weight)
+    net.cls.encoder_v.load_weights(data['name'] + ".npz", format='npz_dict')
     net.set_eval()
 
     probs = net.cls.encoder_v(data['x'], best_v)
@@ -232,7 +218,7 @@ def main(args):
     print("Test_Macro: ", test_f1_macro, "\tTest_Micro: ", test_f1_micro, "\tAUC: ", auc)
 
     f = open(f'{tlx.BACKEND}_{args.dataset}_'+'results' + ".txt", "a")
-    f.write(str(args.seed) + "\t" + "v1_p=" + str(args.v1_p) + "\t" + "v2_p=" + str(args.v2_p) + "\t" + str(test_f1_macro) + "\t" + str(test_f1_micro) + "\t" + str(auc) + "\n")
+    f.write("v1_p=" + str(args.v1_p) + "\t" + "v2_p=" + str(args.v2_p) + "\t" + str(test_f1_macro) + "\t" + str(test_f1_micro) + "\t" + str(auc) + "\n")
     f.close()
 
 
@@ -242,58 +228,39 @@ def wine_params():
     ## basic info
     parser.add_argument('--dataset', type=str, default="wine")
     parser.add_argument('--batch', type=int, default=0)
-
     parser.add_argument('--gpu', type=int, default=0)
     parser.add_argument('--seed', type=int, default=30)
-
-    parser.add_argument('--v1_p', type=str, default="2")
-    parser.add_argument('--v2_p', type=str, default="100")
-
-    parser.add_argument('--cls_hid_1', type=int, default=16)
-
+    parser.add_argument('--v1_p', type=int, default=2)
+    parser.add_argument('--v2_p', type=int, default=80)
+    parser.add_argument('--cls_hid', type=int, default=16)
     ## gen
     parser.add_argument('--com_lambda_v1', type=float, default=0.5)
     parser.add_argument('--com_lambda_v2', type=float, default=0.5)
     parser.add_argument('--gen_hid', type=int, default=64)
-
     ## fusion
     parser.add_argument('--lam', type=float, default=0.5)
     parser.add_argument('--alpha', type=float, default=0.1)
-
     ## mi
-    parser.add_argument('--mi_hid_1', type=int, default=128)
-
+    parser.add_argument('--mi_hid', type=int, default=128)
     ## optimizer
     parser.add_argument('--cls_lr', type=float, default=0.01)
     parser.add_argument('--cls_weight_decay', type=float, default=5e-4)
     parser.add_argument('--cls_dropout', type=float, default=0.5)
-
     parser.add_argument('--ve_lr', type=float, default=0.001)
     parser.add_argument('--ve_weight_decay', type=float, default=0.)
     parser.add_argument('--ve_dropout', type=float, default=0.8)
-
     parser.add_argument('--mi_lr', type=float, default=0.01)
-    parser.add_argument('--mi_weight_decay', type=float, default=0)
-
+    parser.add_argument('--mi_weight_decay', type=float, default=0.)
     ## iter
     parser.add_argument('--main_epoch', type=int, default=100)
     parser.add_argument('--inner_ve_epoch', type=int, default=1)
     parser.add_argument('--inner_cls_epoch', type=int, default=1)
     parser.add_argument('--inner_mi_epoch', type=int, default=5)
     parser.add_argument('--temp_r', type=float, default=1e-3)
-
     ## coe
     parser.add_argument('--cls_coe', type=float, default=0.3)
     parser.add_argument('--mi_coe', type=float, default=0.3)
     parser.add_argument('--tau', type=float, default=0.5)
-
-    ## ptb
-    parser.add_argument('--add', action="store_true")
-    parser.add_argument('--dele', action="store_true")
-    parser.add_argument('--ptb_feat', action='store_true')
-
-    parser.add_argument('--ratio', type=float, default=0.)
-    parser.add_argument('--flag', type=int, default=1)
     #####################################
 
     args, _ = parser.parse_known_args()
@@ -306,58 +273,39 @@ def breast_cancer_params():
     ## basic info
     parser.add_argument('--dataset', type=str, default="breast_cancer")
     parser.add_argument('--batch', type=int, default=0)
-
     parser.add_argument('--gpu', type=int, default=0)
     parser.add_argument('--seed', type=int, default=68)
-
-    parser.add_argument('--v1_p', type=str, default="1")
-    parser.add_argument('--v2_p', type=str, default="300")
-
-    parser.add_argument('--cls_hid_1', type=int, default=16)
-
+    parser.add_argument('--v1_p', type=int, default=2)
+    parser.add_argument('--v2_p', type=int, default=40)
+    parser.add_argument('--cls_hid', type=int, default=16)
     ## gen
     parser.add_argument('--com_lambda_v1', type=float, default=0.1)
     parser.add_argument('--com_lambda_v2', type=float, default=0.1)
     parser.add_argument('--gen_hid', type=int, default=64)
-
     ## fusion
-    parser.add_argument('--lam', type=float, default=0.9)
+    parser.add_argument('--lam', type=float, default=0.1)
     parser.add_argument('--alpha', type=float, default=0.1)
-
     ## mi
-    parser.add_argument('--mi_hid_1', type=int, default=128)
-
+    parser.add_argument('--mi_hid', type=int, default=128)
     ## optimizer
     parser.add_argument('--cls_lr', type=float, default=0.01)
     parser.add_argument('--cls_weight_decay', type=float, default=5e-4)
     parser.add_argument('--cls_dropout', type=float, default=0.5)
-
     parser.add_argument('--ve_lr', type=float, default=0.01)
     parser.add_argument('--ve_weight_decay', type=float, default=0.)
-    parser.add_argument('--ve_dropout', type=float, default=0.5)
-
+    parser.add_argument('--ve_dropout', type=float, default=0.7)
     parser.add_argument('--mi_lr', type=float, default=0.01)
-    parser.add_argument('--mi_weight_decay', type=float, default=0)
-
+    parser.add_argument('--mi_weight_decay', type=float, default=0.)
     ## iter
     parser.add_argument('--main_epoch', type=int, default=150)
     parser.add_argument('--inner_ve_epoch', type=int, default=1)
     parser.add_argument('--inner_cls_epoch', type=int, default=1)
     parser.add_argument('--inner_mi_epoch', type=int, default=5)
     parser.add_argument('--temp_r', type=float, default=1e-3)
-
     ## coe
     parser.add_argument('--cls_coe', type=float, default=0.3)
     parser.add_argument('--mi_coe', type=float, default=0.3)
     parser.add_argument('--tau', type=float, default=0.5)
-
-    ## ptb
-    parser.add_argument('--add', action="store_true")
-    parser.add_argument('--dele', action="store_true")
-    parser.add_argument('--ptb_feat', action='store_true')
-
-    parser.add_argument('--ratio', type=float, default=0.)
-    parser.add_argument('--flag', type=int, default=1)
     #####################################
 
     args, _ = parser.parse_known_args()
@@ -370,58 +318,39 @@ def digits_params():
     ## basic info
     parser.add_argument('--dataset', type=str, default="digits")
     parser.add_argument('--batch', type=int, default=0)
-
-    parser.add_argument('--gpu', type=int, default=0)
-    parser.add_argument('--seed', type=int, default=2)
-
-    parser.add_argument('--v1_p', type=str, default="1")
-    parser.add_argument('--v2_p', type=str, default="100")
-
-    parser.add_argument('--cls_hid_1', type=int, default=16)
-
+    parser.add_argument('--gpu', type=int, default=1)
+    parser.add_argument('--seed', type=int, default=13)
+    parser.add_argument('--v1_p', type=int, default=2)
+    parser.add_argument('--v2_p', type=int, default=80)
+    parser.add_argument('--cls_hid', type=int, default=16)
     ## gen
     parser.add_argument('--com_lambda_v1', type=float, default=0.5)
     parser.add_argument('--com_lambda_v2', type=float, default=0.5)
     parser.add_argument('--gen_hid', type=int, default=32)
-
     ## fusion
     parser.add_argument('--lam', type=float, default=0.5)
     parser.add_argument('--alpha', type=float, default=0.1)
-
     ## mi
-    parser.add_argument('--mi_hid_1', type=int, default=128)
-
+    parser.add_argument('--mi_hid', type=int, default=128)
     ## optimizer
     parser.add_argument('--cls_lr', type=float, default=0.01)
     parser.add_argument('--cls_weight_decay', type=float, default=5e-4)
     parser.add_argument('--cls_dropout', type=float, default=0.5)
-
     parser.add_argument('--ve_lr', type=float, default=0.01)
     parser.add_argument('--ve_weight_decay', type=float, default=0.)
     parser.add_argument('--ve_dropout', type=float, default=0.5)
-
     parser.add_argument('--mi_lr', type=float, default=0.01)
-    parser.add_argument('--mi_weight_decay', type=float, default=0)
-
+    parser.add_argument('--mi_weight_decay', type=float, default=0.)
     ## iter
     parser.add_argument('--main_epoch', type=int, default=200)
     parser.add_argument('--inner_ve_epoch', type=int, default=1)
     parser.add_argument('--inner_cls_epoch', type=int, default=10)
     parser.add_argument('--inner_mi_epoch', type=int, default=10)
     parser.add_argument('--temp_r', type=float, default=1e-4)
-
     ## coe
     parser.add_argument('--cls_coe', type=float, default=0.3)
     parser.add_argument('--mi_coe', type=float, default=0.3)
     parser.add_argument('--tau', type=float, default=0.2)
-
-    ## ptb
-    parser.add_argument('--add', action="store_true")
-    parser.add_argument('--dele', action="store_true")
-    parser.add_argument('--ptb_feat', action='store_true')
-
-    parser.add_argument('--ratio', type=float, default=0.)
-    parser.add_argument('--flag', type=int, default=1)
     #####################################
 
     args, _ = parser.parse_known_args()
@@ -434,58 +363,39 @@ def polblogs_params():
     ## basic info
     parser.add_argument('--dataset', type=str, default="polblogs")
     parser.add_argument('--batch', type=int, default=0)
-
     parser.add_argument('--gpu', type=int, default=0)
     parser.add_argument('--seed', type=int, default=3)
-
-    parser.add_argument('--v1_p', type=str, default="1")
-    parser.add_argument('--v2_p', type=str, default="300")
-
-    parser.add_argument('--cls_hid_1', type=int, default=16)
-
+    parser.add_argument('--v1_p', type=int, default=1)
+    parser.add_argument('--v2_p', type=int, default=300)
+    parser.add_argument('--cls_hid', type=int, default=16)
     ## gen
     parser.add_argument('--com_lambda_v1', type=float, default=0.1)
     parser.add_argument('--com_lambda_v2', type=float, default=1.0)
     parser.add_argument('--gen_hid', type=int, default=64)
-
     ## fusion
     parser.add_argument('--lam', type=float, default=0.1)
     parser.add_argument('--alpha', type=float, default=0.1)
-
     ## mi
-    parser.add_argument('--mi_hid_1', type=int, default=128)
-
+    parser.add_argument('--mi_hid', type=int, default=128)
     ## optimizer
     parser.add_argument('--cls_lr', type=float, default=0.01)
     parser.add_argument('--cls_weight_decay', type=float, default=5e-4)
     parser.add_argument('--cls_dropout', type=float, default=0.5)
-
     parser.add_argument('--ve_lr', type=float, default=0.1)
     parser.add_argument('--ve_weight_decay', type=float, default=0.)
     parser.add_argument('--ve_dropout', type=float, default=0.8)
-
     parser.add_argument('--mi_lr', type=float, default=0.01)
-    parser.add_argument('--mi_weight_decay', type=float, default=0)
-
+    parser.add_argument('--mi_weight_decay', type=float, default=0.)
     ## iter
     parser.add_argument('--main_epoch', type=int, default=150)
     parser.add_argument('--inner_ve_epoch', type=int, default=1)
     parser.add_argument('--inner_cls_epoch', type=int, default=5)
     parser.add_argument('--inner_mi_epoch', type=int, default=5)
     parser.add_argument('--temp_r', type=float, default=1e-4)
-
     ## coe
     parser.add_argument('--cls_coe', type=float, default=0.3)
     parser.add_argument('--mi_coe', type=float, default=0.3)
     parser.add_argument('--tau', type=float, default=0.8)
-
-    ## ptb
-    parser.add_argument('--add', action="store_true")
-    parser.add_argument('--dele', action="store_true")
-    parser.add_argument('--ptb_feat', action='store_true')
-
-    parser.add_argument('--ratio', type=float, default=0.)
-    parser.add_argument('--flag', type=int, default=1)
     #####################################
 
     args, _ = parser.parse_known_args()
@@ -498,58 +408,39 @@ def citeseer_params():
     ## basic info
     parser.add_argument('--dataset', type=str, default="citeseer")
     parser.add_argument('--batch', type=int, default=0)
-
     parser.add_argument('--gpu', type=int, default=0)
     parser.add_argument('--seed', type=int, default=3)
-
-    parser.add_argument('--v1_p', type=str, default="2")
-    parser.add_argument('--v2_p', type=str, default="40")
-
-    parser.add_argument('--cls_hid_1', type=int, default=16)
-
+    parser.add_argument('--v1_p', type=int, default=2)
+    parser.add_argument('--v2_p', type=int, default=40)
+    parser.add_argument('--cls_hid', type=int, default=16)
     ## gen
     parser.add_argument('--com_lambda_v1', type=float, default=0.1)
     parser.add_argument('--com_lambda_v2', type=float, default=0.1)
     parser.add_argument('--gen_hid', type=int, default=32)
-
     ## fusion
     parser.add_argument('--lam', type=float, default=0.5)
     parser.add_argument('--alpha', type=float, default=0.1)
-
     ## mi
-    parser.add_argument('--mi_hid_1', type=int, default=128)
-
+    parser.add_argument('--mi_hid', type=int, default=128)
     ## optimizer
     parser.add_argument('--cls_lr', type=float, default=0.01)
     parser.add_argument('--cls_weight_decay', type=float, default=5e-4)
     parser.add_argument('--cls_dropout', type=float, default=0.5)
-
     parser.add_argument('--ve_lr', type=float, default=0.001)
     parser.add_argument('--ve_weight_decay', type=float, default=0.)
     parser.add_argument('--ve_dropout', type=float, default=0.5)
-
     parser.add_argument('--mi_lr', type=float, default=0.01)
-    parser.add_argument('--mi_weight_decay', type=float, default=0)
-
+    parser.add_argument('--mi_weight_decay', type=float, default=0.)
     ## iter
     parser.add_argument('--main_epoch', type=int, default=200)
     parser.add_argument('--inner_ve_epoch', type=int, default=5)
     parser.add_argument('--inner_cls_epoch', type=int, default=5)
     parser.add_argument('--inner_mi_epoch', type=int, default=10)
     parser.add_argument('--temp_r', type=float, default=1e-4)
-
     ## coe
     parser.add_argument('--cls_coe', type=float, default=0.3)
     parser.add_argument('--mi_coe', type=float, default=0.3)
     parser.add_argument('--tau', type=float, default=0.8)
-
-    ## ptb
-    parser.add_argument('--add', action="store_true")
-    parser.add_argument('--dele', action="store_true")
-    parser.add_argument('--ptb_feat', action='store_true')
-
-    parser.add_argument('--ratio', type=float, default=0.)
-    parser.add_argument('--flag', type=int, default=1)
     #####################################
 
     args, _ = parser.parse_known_args()
@@ -561,59 +452,40 @@ def wikics_params():
     #####################################
     ## basic info
     parser.add_argument('--dataset', type=str, default="wikics")
-    parser.add_argument('--batch', type=int, default=1000)
-
+    parser.add_argument('--batch', type=int, default=4000)
     parser.add_argument('--gpu', type=int, default=1)
     parser.add_argument('--seed', type=int, default=6)
-
-    parser.add_argument('--v1_p', type=str, default="1")
-    parser.add_argument('--v2_p', type=str, default="1")
-
-    parser.add_argument('--cls_hid_1', type=int, default=16)
-
+    parser.add_argument('--v1_p', type=int, default=1)
+    parser.add_argument('--v2_p', type=int, default=1)
+    parser.add_argument('--cls_hid', type=int, default=16)
     ## gen
     parser.add_argument('--com_lambda_v1', type=float, default=0.5)
     parser.add_argument('--com_lambda_v2', type=float, default=0.5)
     parser.add_argument('--gen_hid', type=int, default=16)
-
     ## fusion
     parser.add_argument('--lam', type=float, default=0.1)
     parser.add_argument('--alpha', type=float, default=0.1)
-
     ## mi
-    parser.add_argument('--mi_hid_1', type=int, default=32)
-
+    parser.add_argument('--mi_hid', type=int, default=32)
     ## optimizer
     parser.add_argument('--cls_lr', type=float, default=0.01)
     parser.add_argument('--cls_weight_decay', type=float, default=5e-4)
     parser.add_argument('--cls_dropout', type=float, default=0.5)
-
     parser.add_argument('--ve_lr', type=float, default=0.01)
     parser.add_argument('--ve_weight_decay', type=float, default=0)
     parser.add_argument('--ve_dropout', type=float, default=0.2)
-
     parser.add_argument('--mi_lr', type=float, default=0.01)
-    parser.add_argument('--mi_weight_decay', type=float, default=0)
-
+    parser.add_argument('--mi_weight_decay', type=float, default=0.)
     ## iter
     parser.add_argument('--main_epoch', type=int, default=200)
     parser.add_argument('--inner_ve_epoch', type=int, default=1)
     parser.add_argument('--inner_cls_epoch', type=int, default=1)
-    parser.add_argument('--inner_mi_epoch', type=int, default=5)
+    parser.add_argument('--inner_mi_epoch', type=int, default=1)
     parser.add_argument('--temp_r', type=float, default=1e-3)
-
     ## coe
     parser.add_argument('--cls_coe', type=float, default=0.3)
     parser.add_argument('--mi_coe', type=float, default=0.3)
     parser.add_argument('--tau', type=float, default=0.5)
-
-    ## ptb
-    parser.add_argument('--add', action="store_true")
-    parser.add_argument('--dele', action="store_true")
-    parser.add_argument('--ptb_feat', action='store_true')
-
-    parser.add_argument('--ratio', type=float, default=0.)
-    parser.add_argument('--flag', type=int, default=1)
     #####################################
 
     args, _ = parser.parse_known_args()
@@ -626,65 +498,46 @@ def ms_params():
     ## basic info
     parser.add_argument('--dataset', type=str, default="ms")
     parser.add_argument('--batch', type=int, default=1000)
-
     parser.add_argument('--gpu', type=int, default=1)
     parser.add_argument('--seed', type=int, default=4)
-
-    parser.add_argument('--v1_p', type=str, default="1")
-    parser.add_argument('--v2_p', type=str, default="1")
-
-    parser.add_argument('--cls_hid_1', type=int, default=16)
-
+    parser.add_argument('--v1_p', type=int, default=1)
+    parser.add_argument('--v2_p', type=int, default=1)
+    parser.add_argument('--cls_hid', type=int, default=16)
     ## gen
     parser.add_argument('--com_lambda_v1', type=float, default=0.5)
     parser.add_argument('--com_lambda_v2', type=float, default=0.5)
     parser.add_argument('--gen_hid', type=int, default=32)
-
     ## fusion
     parser.add_argument('--lam', type=float, default=0.2)
     parser.add_argument('--alpha', type=float, default=1.0)
-
     ## mi
-    parser.add_argument('--mi_hid_1', type=int, default=256)
-
+    parser.add_argument('--mi_hid', type=int, default=256)
     ## optimizer
     parser.add_argument('--cls_lr', type=float, default=0.01)
     parser.add_argument('--cls_weight_decay', type=float, default=5e-4)
     parser.add_argument('--cls_dropout', type=float, default=0.5)
-
     parser.add_argument('--ve_lr', type=float, default=0.0001)
     parser.add_argument('--ve_weight_decay', type=float, default=1e-10)
     parser.add_argument('--ve_dropout', type=float, default=0.8)
-
     parser.add_argument('--mi_lr', type=float, default=0.01)
-    parser.add_argument('--mi_weight_decay', type=float, default=0)
-
+    parser.add_argument('--mi_weight_decay', type=float, default=0.)
     ## iter
     parser.add_argument('--main_epoch', type=int, default=200)
     parser.add_argument('--inner_ve_epoch', type=int, default=1)
     parser.add_argument('--inner_cls_epoch', type=int, default=15)
     parser.add_argument('--inner_mi_epoch', type=int, default=10)
     parser.add_argument('--temp_r', type=float, default=1e-4)
-
     ## coe
     parser.add_argument('--cls_coe', type=float, default=0.3)
     parser.add_argument('--mi_coe', type=float, default=0.3)
     parser.add_argument('--tau', type=float, default=0.5)
-
-    ## ptb
-    parser.add_argument('--add', action="store_true")
-    parser.add_argument('--dele', action="store_true")
-    parser.add_argument('--ptb_feat', action='store_true')
-
-    parser.add_argument('--ratio', type=float, default=0.)
-    parser.add_argument('--flag', type=int, default=1)
     #####################################
 
     args, _ = parser.parse_known_args()
     return args
 
 argv = sys.argv
-dataset = argv[1].split('=')[1]
+dataset = argv[1].split(' ')[0]
 
 def set_params():
     args = wine_params()

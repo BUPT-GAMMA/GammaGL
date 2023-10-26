@@ -7,13 +7,38 @@ from scipy.special import softmax
 
 
 class CoGSLModel(nn.Module):
-    def __init__(self, num_feature, cls_hid_1, num_class, gen_hid, mi_hid_1,
-                 com_lambda_v1, com_lambda_v2, lam, alpha, cls_dropout, ve_dropout, tau, ggl, big, batch, name):
+    r"""
+    CoGSL Model proposed in 'Compact Graph Structure Learning via Mutual Information Compression'.
+
+    Compact Graph Structure Learning via Mutual Information Compression:
+    https://arxiv.org/pdf/2201.05540.pdf
+        
+    Parameters
+    ----------
+        num_feature (int): input feature dimension
+        cls_hid (int): Classification hidden dimension
+        num_class (int): number of classes
+        gen_hid (int): GenView hidden dimension
+        mi_hid (int): Mi_NCE hidden dimension
+        com_lambda_v1 (float): hyperparameter used to generate estimated view 1
+        com_lambda_v2 (float): hyperparameter used to generate estimated view 2
+        lam (float): hyperparameter used to fusion views
+        alpha (float): hyperparameter used to fusion views
+        cls_dropout (float): Classification dropout rate
+        ve_dropout (float): View_Estimator dropout rate
+        tau (float): hyperparameter used to generate sim_matrix to get mi loss
+        ggl (bool): whether to use gcnconv of gammagl
+        big (bool): whether the dataset is too big
+        batch (int): determine the sampling size when the dataset is too big
+    """
+
+    def __init__(self, num_feature, cls_hid, num_class, gen_hid, mi_hid,
+                 com_lambda_v1, com_lambda_v2, lam, alpha, cls_dropout, ve_dropout, tau, ggl, big, batch):
         super(CoGSLModel, self).__init__()
-        self.cls = Classification(num_feature, cls_hid_1, num_class, cls_dropout, ggl)
+        self.cls = Classification(num_feature, cls_hid, num_class, cls_dropout, ggl)
         self.ve = View_Estimator(num_feature, gen_hid, com_lambda_v1, com_lambda_v2, ve_dropout, ggl)
-        self.mi = MI_NCE(num_feature, mi_hid_1, tau, ggl, big, batch)
-        self.fusion = Fusion(lam, alpha, name)
+        self.mi = MI_NCE(num_feature, mi_hid, tau, ggl, big, batch)
+        self.fusion = Fusion(lam, alpha)
 
     def get_view(self, data):
         new_v1, new_v2 = self.ve(data)
@@ -102,7 +127,7 @@ class GCN_two_ggl(nn.Module):
     def forward(self, feature, adj):
         adj = tlx.convert_to_numpy(adj)
         non_zero_rows, non_zero_cols = np.nonzero(adj)
-        edge_index = tlx.convert_to_tensor([non_zero_rows, non_zero_cols], dtype=tlx.int64)
+        edge_index = tlx.convert_to_tensor([non_zero_rows, non_zero_cols])
         x1 = self.activation(self.conv1(feature, edge_index))
         x1 = self.dropout(x1)
         x2 = self.conv2(x1, edge_index)
@@ -122,7 +147,7 @@ class GCN_one_ggl(nn.Module):
     def forward(self, feat, adj):
         adj = tlx.convert_to_numpy(adj)
         non_zero_rows, non_zero_cols = np.nonzero(adj)
-        edge_index = tlx.convert_to_tensor([non_zero_rows, non_zero_cols], dtype=tlx.int64)
+        edge_index = tlx.convert_to_tensor([non_zero_rows, non_zero_cols])
         out = self.conv1(feat, edge_index)
         if self.bias is not None:
             out += self.bias
@@ -132,16 +157,16 @@ class GCN_one_ggl(nn.Module):
 
 # cls
 class Classification(nn.Module):
-    def __init__(self, num_feature, cls_hid_1, num_class, dropout, ggl):
+    def __init__(self, num_feature, cls_hid, num_class, dropout, ggl):
         super(Classification, self).__init__()
         if ggl==False:
-            self.encoder_v1 = GCN_two(num_feature, cls_hid_1, num_class, dropout)
-            self.encoder_v2 = GCN_two(num_feature, cls_hid_1, num_class, dropout)
-            self.encoder_v = GCN_two(num_feature, cls_hid_1, num_class, dropout)
+            self.encoder_v1 = GCN_two(num_feature, cls_hid, num_class, dropout)
+            self.encoder_v2 = GCN_two(num_feature, cls_hid, num_class, dropout)
+            self.encoder_v = GCN_two(num_feature, cls_hid, num_class, dropout)
         else:
-            self.encoder_v1 = GCN_two_ggl(num_feature, cls_hid_1, num_class, dropout)
-            self.encoder_v2 = GCN_two_ggl(num_feature, cls_hid_1, num_class, dropout)
-            self.encoder_v = GCN_two_ggl(num_feature, cls_hid_1, num_class, dropout)
+            self.encoder_v1 = GCN_two_ggl(num_feature, cls_hid, num_class, dropout)
+            self.encoder_v2 = GCN_two_ggl(num_feature, cls_hid, num_class, dropout)
+            self.encoder_v = GCN_two_ggl(num_feature, cls_hid, num_class, dropout)
 
     def forward(self, feat, view, flag):
         if flag == "v1":
@@ -179,11 +204,10 @@ class Contrast:
 
 # fusion
 class Fusion(nn.Module):
-    def __init__(self, lam, alpha, name):
+    def __init__(self, lam, alpha):
         super(Fusion, self).__init__()
         self.lam = lam
         self.alpha = alpha
-        self.name = name
 
     def get_weight(self, prob):
         out, _ = tlx.topk(prob, 2, dim=1, largest=True, sorted=True)
@@ -204,21 +228,21 @@ class Fusion(nn.Module):
 
 # mi_nce
 class MI_NCE(nn.Module):
-    def __init__(self, num_feature, mi_hid_1, tau, ggl, big, batch):
+    def __init__(self, num_feature, mi_hid, tau, ggl, big, batch):
         super(MI_NCE, self).__init__()
         if ggl == False:
-            self.gcn = GCN_one(num_feature, mi_hid_1, activation=nn.PRelu())
-            self.gcn1 = GCN_one(num_feature, mi_hid_1, activation=nn.PRelu())
-            self.gcn2 = GCN_one(num_feature, mi_hid_1, activation=nn.PRelu())
+            self.gcn = GCN_one(num_feature, mi_hid, activation=nn.PRelu())
+            self.gcn1 = GCN_one(num_feature, mi_hid, activation=nn.PRelu())
+            self.gcn2 = GCN_one(num_feature, mi_hid, activation=nn.PRelu())
         else:
-            self.gcn = GCN_one_ggl(num_feature, mi_hid_1, activation=nn.PRelu())
-            self.gcn1 = GCN_one_ggl(num_feature, mi_hid_1, activation=nn.PRelu())
-            self.gcn2 = GCN_one_ggl(num_feature, mi_hid_1, activation=nn.PRelu())
+            self.gcn = GCN_one_ggl(num_feature, mi_hid, activation=nn.PRelu())
+            self.gcn1 = GCN_one_ggl(num_feature, mi_hid, activation=nn.PRelu())
+            self.gcn2 = GCN_one_ggl(num_feature, mi_hid, activation=nn.PRelu())
 
         self.proj = nn.Sequential(
-            nn.Linear(in_features=mi_hid_1, out_features=mi_hid_1),
+            nn.Linear(in_features=mi_hid, out_features=mi_hid),
             nn.ELU(),
-            nn.Linear(in_features=mi_hid_1, out_features=mi_hid_1)
+            nn.Linear(in_features=mi_hid, out_features=mi_hid)
         )
         self.con = Contrast(tau)
         self.big = big
@@ -259,8 +283,6 @@ class GenView(nn.Module):
 
     def forward(self, v_ori, feat, v_indices, num_node):
         emb = self.gen_gcn(feat, v_ori)
-        a = tlx.convert_to_numpy(v_indices)
-        v_indices = tlx.convert_to_tensor(a, dtype=tlx.int64)
         f1 = tlx.gather(emb, v_indices[0])
         f2 = tlx.gather(emb, v_indices[1])
         ff = tlx.concat([f1, f2], axis=1)
@@ -289,7 +311,7 @@ class View_Estimator(nn.Module):
         return new_v1, new_v2
 
     def normalize(self, dataset, adj):
-        if dataset in ["wikics", "ms"]:
+        if dataset in ["wikics", "ms", "citeseer"]:
             adj_ = (adj + tlx.transpose(adj))
             normalized_adj = adj_
         else:
