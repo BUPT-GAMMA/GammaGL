@@ -38,8 +38,9 @@ class MessagePassing(tlx.nn.Module):
             x (Tensor): input node feature
             edge_index (Tensor): edges from src to dst
             edge_weight (Tensor): weight of each edge
-        Returns:
 
+        Returns:
+            the message matrix, and the shape is [num_edges, message_dim]
         """
         msg = tlx.gather(x, edge_index[0, :])
         if edge_weight is not None:
@@ -58,7 +59,7 @@ class MessagePassing(tlx.nn.Module):
             aggr (str): aggregation type, default = 'sum', optional=['sum', 'mean', 'max']
  
         Returns:
-
+            the feature matrix after aggregation, the shape is [num_nodes, feature_dim]
         """
         dst_index = edge_index[1, :]
         if aggr == 'sum':
