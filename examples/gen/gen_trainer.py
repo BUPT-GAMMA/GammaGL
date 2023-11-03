@@ -1,21 +1,16 @@
 import os
-import sys
 import time
 import argparse
 import numpy as np
-# os.environ['CUDA_VISIBLE_DEVICES']='1'
-# os.environ['TL_BACKEND'] = 'paddle'
-
-sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 import tensorlayerx as tlx
-tlx.set_device('GPU', 0)
 from gammagl.layers.conv import GCNConv
 from gammagl.datasets import Planetoid
 from gammagl.models import GEstimationN
 from gammagl.utils import add_self_loops, mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss
 from sklearn.metrics.pairwise import cosine_similarity as cos
-
 
 class GCN(tlx.nn.Module):
     def __init__(self, num_feature, num_class, hidden_size, dropout=0.5, activation="relu"):
@@ -180,7 +175,7 @@ if __name__ == '__main__':
     parser.add_argument('--activation', type=str, default='relu', choices=['relu', 'leaky_relu', 'elu'])
     parser.add_argument('--dataset', type=str, default='citeseer',
                         choices=['cora', 'citeseer', 'pubmed'])
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to"
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to"
                                                                          " save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument('--epoch', type=int, default=200, help='number of epochs to train the base model')

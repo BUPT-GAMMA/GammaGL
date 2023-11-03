@@ -370,9 +370,9 @@ class Graph(BaseGraph):
 
     Parameters
     ----------
-    x: Tensor
+    x: Tensor or List or numpy.array
         Node feature matrix with shape :obj:`[num_nodes, num_node_features]`. (default: :obj:`None`)
-    edge_index: LongTensor
+    edge_index: LongTensor or List or numpy.array
         Graph connectivity in COO format with shape :obj:`[2, num_edges]`. (default: :obj:`None`)
     edge_attr: Tensor
         Edge feature matrix with shape :obj:`[num_edges, num_edge_features]`. (default: :obj:`None`)
@@ -573,7 +573,7 @@ class Graph(BaseGraph):
         edge_attr: FloatTensor
             attributes of edges.
         """
-        return add_self_loops(self.edge_index, n_loops, self.edge_attr, num_nodes=self.num_nodes)
+        return add_self_loops(self.edge_index, self.edge_attr, n_loops, num_nodes=self.num_nodes)
 
     def sorted_edges(self, sort_by="src"):
         """Return sorted edges with different strategies.

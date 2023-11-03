@@ -1,6 +1,7 @@
 import scipy.sparse as sp
 import numpy as np
 import tensorlayerx as tlx
+
 def compute_diff(A: sp.csr_matrix, alpha: float, eps: float):
     N = A.shape[0]
     A_loop = sp.eye(N) + A

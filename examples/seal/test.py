@@ -3,10 +3,9 @@ import math
 import warnings
 warnings.filterwarnings('ignore')
 
-os.environ['TL_BACKEND']='torch'
+# os.environ['TL_BACKEND']='torch'
 import tensorlayerx as tlx
 from sklearn.metrics import roc_auc_score
-import numpy as np
 
 from gammagl.datasets import Planetoid
 from gammagl.loader import DataLoader

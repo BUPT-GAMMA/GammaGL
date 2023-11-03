@@ -18,3 +18,4 @@ def test_agnn_conv():
     out = conv(x, edge_index=edge_index, num_nodes=4)
     assert tlx.get_tensor_shape(out) == [4, 64]
 
+test_agnn_conv()

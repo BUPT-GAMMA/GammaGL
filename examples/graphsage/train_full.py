@@ -1,16 +1,12 @@
 import os
-# os.environ['TL_BACKEND'] = 'paddle'
-# os.environ['CUDA_VISIBLE_DEVICES'] = ' '
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 from gammagl.models.graphsage import GraphSAGE_Full_Model
-
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
-
 from tensorlayerx.model import TrainOneStep, WithLoss
-
 from gammagl.utils import mask_to_index
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -119,7 +115,7 @@ if __name__ == '__main__':
     parser.add_argument("--drop_rate", type=float, default=0.5, help="drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--n_layers", type=int, default=1, help="number of hidden gcn layers")
     parser.add_argument("--aggregator_type", type=str, default="gcn", help="Aggregator type: mean/gcn/pool/lstm")

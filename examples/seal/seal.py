@@ -1,4 +1,6 @@
 import os
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 import os.path as osp
 import time
 import argparse
@@ -6,15 +8,12 @@ import logging
 from tqdm import tqdm
 import warnings
 warnings.filterwarnings('ignore')
-
 import tensorlayerx as tlx
 from sklearn.metrics import roc_auc_score
 import numpy as np
-
 from gammagl.datasets import Planetoid
 from gammagl.loader import DataLoader
 from gammagl.models import DGCNN, GINModel
-
 from data import SEALDataset
 
 class WithLoss(tlx.model.WithLoss):
@@ -113,7 +112,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="SEAL")
     # data
-    parser.add_argument("--data_dir", type=str, default="../data")
+    parser.add_argument("--data_dir", type=str, default="")
     parser.add_argument("--dataset", type=str, default="Cora")
 
     # seal preprocess

@@ -10,7 +10,9 @@ tensorflow<=2.11.0
 torch
 tqdm
 hyperdash
-git+https://github.com/tensorlayer/tensorlayerx.git
+tensorlayerx==0.5.8
 pytest
 pyparsing
 pybind11
+pybind11
+pandas==2.0.3

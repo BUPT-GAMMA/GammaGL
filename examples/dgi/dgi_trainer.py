@@ -1,18 +1,14 @@
 import math
 import os
-
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'torch'
-# os.environ['CUDA_VISIBLE_DEVICES'] = '5'
 from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index, remove_self_loops
-
 import argparse
 from tqdm import tqdm
-
 from gammagl.datasets import Planetoid
 import tensorlayerx as tlx
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.models.dgi import DGIModel
-
 
 class Unsupervised_Loss(WithLoss):
     def __init__(self, net):
@@ -162,7 +158,7 @@ if __name__ == '__main__':
     parser.add_argument("--classifier_epochs", type=int, default=100, help="the epoch to train classifier")
     parser.add_argument("--l2_coef", type=float, default=0., help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset, pubmed, cora, citeseer')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--clf_l2_coef", type=float, default=0.)
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
