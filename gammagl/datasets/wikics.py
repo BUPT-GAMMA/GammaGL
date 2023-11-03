@@ -87,5 +87,4 @@ class WikiCS(InMemoryDataset):
 
         if self.pre_transform is not None:
             data = self.pre_transform(data)
-
         self.save_data(self.collate([data]), self.processed_paths[0])

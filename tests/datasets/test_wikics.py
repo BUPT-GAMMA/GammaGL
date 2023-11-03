@@ -12,6 +12,3 @@ def test_wikics_dataset():
     node_num = tlx.get_tensor_shape(wikics.data["x"])[0]
     assert node_num == 11701
     print(wikics.data["x"])
-
-
-test_wikics_dataset()

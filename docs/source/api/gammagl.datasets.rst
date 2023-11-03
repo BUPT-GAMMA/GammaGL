@@ -23,6 +23,7 @@ gammagl.datasets
     gammagl.datasets.DBLP
     gammagl.datasets.CA_GrQc
     gammagl.datasets.ZINC
+    gammagl.datasets.AMiner
     gammagl.datasets.PolBlogs
     gammagl.datasets.WikiCs
 

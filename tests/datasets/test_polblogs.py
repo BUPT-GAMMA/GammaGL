@@ -13,5 +13,3 @@ def test_polblogs_dataset():
     assert polblogs.num_features == 1490
     node_num = tlx.get_tensor_shape(polblogs.data["x"])[0]
     assert node_num == 1490
-
-test_polblogs_dataset()
