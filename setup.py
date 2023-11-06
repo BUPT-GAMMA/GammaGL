@@ -104,8 +104,8 @@ def load_extensions():
     return extensions
 
 
-install_requires = ['numpy<=1.24.7', 'pandas', 'numba', 'scipy', 'protobuf==3.19.6', 'pyparsing',
-                    'tensorboardx<=2.5', 'pytest', 'tensorlayerx', 'rich', 'tqdm', 'pybind11']
+install_requires = ['numpy<=1.23.5', 'pandas', 'numba', 'scipy', 'protobuf==3.19.6', 'pyparsing',
+                    'tensorboardx<=2.5', 'pytest', 'tensorlayerx', 'rich', 'tqdm', 'pybind11', 'panda<=2.0.3']
 
 classifiers = [
     'Development Status :: 3 - Alpha',
@@ -124,7 +124,7 @@ setup(
     description=" ",
     url="https://github.com/BUPT-GAMMA/GammaGL",
     download_url="https://github.com/BUPT-GAMMA/GammaGL",
-    python_requires='>=3.7',
+    python_requires='>=3.8',
     packages=find_packages(),
     install_requires=install_requires,
     classifiers=classifiers,

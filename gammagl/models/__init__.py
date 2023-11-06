@@ -44,7 +44,8 @@ from .iehgcn import ieHGCNModel
 from .tadw import TADWModel
 from .mgnni import MGNNI_m_MLP, MGNNI_m_att 
 from .magcl import NewGrace
-from .cogsl import CoGSLModel
+from .cagcn import CAGCNModel
+
 
 __all__ = [
     'GCNModel',
@@ -95,7 +96,9 @@ __all__ = [
     'MGNNI_m_MLP', 
     'MGNNI_m_att', 
     'NewGrace',
-    'CoGSLModel',
+    'CAGCNModel',
+
+
 ]
 
 classes = __all__

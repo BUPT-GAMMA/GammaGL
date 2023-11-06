@@ -6,10 +6,8 @@
 @Author  :   Yang Yuxiang
 """
 import os
-
-# os.environ['TL_BACKEND'] = 'paddle'
-# os.environ['CUDA_VISIBLE_DEVICES'] = ' '
-# set your backend here, default `tensorflow`, you can choose 'paddle'、'tensorflow'、'torch'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 from gammagl.datasets import TUDataset
 from tqdm import tqdm
 import tensorlayerx as tlx
@@ -18,8 +16,6 @@ from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.models.infograph import InfoGraph
 from gammagl.loader import DataLoader
 from infograph_eval import evaluate_embedding
-# tlx.set_device("GPU", 4)
-
 
 class Unsupervised_Loss(WithLoss):
     def __init__(self, net):
@@ -75,7 +71,7 @@ if __name__ == '__main__':
     # data source params
     parser.add_argument('--dataset', type=str, default='MUTAG',
                         help='Name of dataset.eg:MUTAG,IMDB-BINARY,REDDIT-BINARY')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     # training params
     parser.add_argument('--epochs', type=int, default=20, help='Training epochs.')
     parser.add_argument('--batch_size', type=int, default=128, help='Training batch size.')

@@ -3,7 +3,6 @@
 # @created 2023/4/18
 
 from gammagl.utils import mask_to_index
-
 from tensorlayerx.model import WithLoss, TrainOneStep
 from tqdm import tqdm
 from gammagl.datasets import Reddit
@@ -11,7 +10,6 @@ import tensorlayerx as tlx
 import argparse
 from gammagl.loader.neighbor_sampler import NeighborSampler
 from gammagl.models import GraphSAGE_Sample_Model
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -42,7 +40,7 @@ def calculate_acc(logits, y, metrics):
 
 def main(args):
     # load reddit dataset
-    dataset = Reddit()
+    dataset = Reddit(args.dataset_path)
     # dataset.process()  # suggest to execute explicitly so far
     graph = dataset[0]
     # for mindspore, it should be passed into node indices
@@ -116,7 +114,7 @@ if __name__ == '__main__':
     parser.add_argument("--num_layers", type=int, default=2)
     parser.add_argument("--l2_coef", type=float, default=0., help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='reddit', help='dataset')
-    parser.add_argument("--dataset_path", type=str, default=r'../reddit', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     # parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     args = parser.parse_args()
 

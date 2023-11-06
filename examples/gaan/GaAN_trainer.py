@@ -13,13 +13,8 @@ from gammagl.datasets import Planetoid
 import tensorlayerx as tlx
 import argparse
 import os
-# os.environ['CUDA_VISIBLE_DEVICES']='1'
-# os.environ['TL_BACKEND'] = 'paddle'
-
-import sys
-# adds path2gammagl to execute in command line.
-sys.path.insert(0, os.path.abspath('../../'))
-
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -144,7 +139,7 @@ if __name__ == "__main__":
                         help="parameter to compute gate")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
     parser.add_argument("--dataset_path", type=str,
-                        default=r'../', help="path to save dataset")
+                        default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str,
                         default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1,
