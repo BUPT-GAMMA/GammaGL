@@ -1,21 +1,24 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES']=''
-os.environ['TL_BACKEND'] = 'paddle'
+# os.environ['CUDA_VISIBLE_DEVICES']='0'
+# os.environ['TL_BACKEND'] = 'paddle'
 
 import sys
 
 import argparse
 import numpy as np
-import random
-from sklearn.metrics import f1_score
-from sklearn.metrics import roc_auc_score
-
+import scipy.sparse as sp
+from sklearn.metrics import f1_score, roc_auc_score
+from sklearn.metrics.pairwise import cosine_similarity as cos
+from scipy.linalg import fractional_matrix_power, inv
 
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
-from gammagl.datasets.cogsl import CoGSLDataset
+from gammagl.datasets.wikics import WikiCS
+from gammagl.datasets.polblogs import PolBlogs
+from gammagl.datasets.planetoid import Planetoid
+from gammagl.datasets.coauthor import Coauthor
 from gammagl.models.cogsl import CoGSLModel
-from gammagl.utils import  mask_to_index, set_device
+from gammagl.utils import  mask_to_index, set_device, add_self_loops
 from tensorlayerx.model import TrainOneStep, WithLoss
 
 
@@ -94,9 +97,11 @@ def gen_auc_mima(logits, label):
     return test_f1_macro, test_f1_micro, auc
 
 def accuracy(output, label):
-    # preds = output.max(1)[1]
     preds = tlx.argmax(output, axis=1)
-    correct = tlx.convert_to_tensor(tlx.equal(preds, label), dtype=tlx.float32)
+    if tlx.BACKEND == 'torch':
+        correct = preds.eq(label).double()
+    else:
+        correct = tlx.convert_to_tensor(tlx.equal(preds, label), dtype=tlx.float32)
     correct = correct.sum()
     return correct / len(label)
 
@@ -118,21 +123,83 @@ def train_cls(main_model, data):
     loss_v, _ = loss_acc(logits_v[data['train_idx']], data['y'][data['train_idx']])
     return args.cls_coe * loss_v + (loss_v1 + loss_v2) * (1 - args.cls_coe) / 2, views
 
+def get_khop_indices(k, view):
+    view = sp.csr_matrix((view.A > 0).astype("int32"))
+    view_ = view
+    for i in range(1, k):
+        view_ = sp.csr_matrix((np.matmul(view_.toarray(), view.T.toarray()) > 0).astype("int32"))
+    return tlx.convert_to_tensor(view_.nonzero())
+
+def topk(k, adj):
+    adj = adj.toarray()
+    pos = np.zeros(adj.shape)
+    for i in range(adj.shape[0]):
+      one = adj[i].nonzero()[0]
+      if len(one)>k:
+        oo = np.argsort(-adj[i, one])
+        sele = one[oo[:k]]
+        pos[i, sele] = adj[i, sele]
+      else:
+        pos[i, one] = adj[i, one]
+    return pos
+
+def knn(feat, num_node, k):
+    adj = np.zeros((num_node, num_node), dtype=np.int64)
+    dist = cos(feat)
+    col = np.argpartition(dist, -(k + 1), axis=1)[:, -(k + 1):].flatten()
+    adj[np.arange(num_node).repeat(k + 1), col] = 1
+    adj = sp.coo_matrix(adj)
+    return adj
+
+def diff(adj, alpha):
+    d = np.diag(np.array(np.sum(adj, 1)).flatten())
+    dinv = fractional_matrix_power(d, -0.5)
+    at = np.matmul(np.matmul(dinv, adj.toarray()), dinv)
+    at[np.isnan(at)] = 0
+    at[np.isinf(at)] = 0
+    adj = alpha * inv((np.eye(adj.shape[0]) - (1 - alpha) * at))
+    adj = sp.coo_matrix(adj)
+    return adj
+
 def main(args):
     if tlx.BACKEND == 'torch' and args.gpu >= 0:
         set_device(int(args.gpu))
 
-    # np.random.seed(args.seed)
-    # random.seed(args.seed)
-    # tlx.set_seed(args.seed)
-
-    dataset = CoGSLDataset('', args.dataset, args.v1_p, args.v2_p)
+    if args.dataset == 'citeseer':
+        dataset = Planetoid('', args.dataset)
+    elif args.dataset == 'polblogs':
+        dataset = PolBlogs('', args.dataset)
+    elif args.dataset == 'wikics':
+        dataset = WikiCS('', args.dataset)
+    elif args.dataset == 'ms':
+        dataset = Coauthor('', 'cs')
     graph = dataset.data
-    train_idx = mask_to_index(graph.train_mask)
-    test_idx = mask_to_index(graph.test_mask)
-    val_idx = mask_to_index(graph.val_mask)
-    view1 = tlx.convert_to_tensor(dataset.view1.todense(), dtype=tlx.float32)
-    view2 = tlx.convert_to_tensor(dataset.view2.todense(), dtype=tlx.float32)
+
+    if args.dataset == 'polblogs':
+        train_idx = tlx.convert_to_tensor(np.arange(121))
+        val_idx = tlx.convert_to_tensor(np.arange(121, 244))
+        test_idx = tlx.convert_to_tensor(np.arange(244, 1490))
+    else:
+        train_idx = mask_to_index(graph.train_mask)
+        test_idx = mask_to_index(graph.test_mask)
+        val_idx = mask_to_index(graph.val_mask)
+
+    edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=1)
+    value = np.ones(edge_index[0].shape)
+    view1 = sp.coo_matrix((value, (edge_index.cpu())), shape=(graph.num_nodes, graph.num_nodes))
+    v1_indice = get_khop_indices(args.v1_p, view1)
+    if args.dataset == 'wikics' or args.dataset == 'ms':
+        view2 = view1
+        v2_indice = get_khop_indices(1, view2)
+    else:
+        view2 = diff(view1, 0.1)
+        kn = topk(args.v2_p, view2)
+        kn = sp.coo_matrix(kn)
+        v2_indice = get_khop_indices(1, kn)
+    view1 = tlx.convert_to_tensor(view1.todense(), dtype=tlx.float32)
+    view2 = tlx.convert_to_tensor(view2.todense(), dtype=tlx.float32)
+    v1_indice = tlx.convert_to_tensor(v1_indice, dtype=tlx.int64)
+    v2_indice = tlx.convert_to_tensor(v2_indice, dtype=tlx.int64)
 
     net = CoGSLModel(dataset.num_node_features, args.cls_hid, dataset.num_classes,
                                      args.gen_hid, args.mi_hid, args.com_lambda_v1, args.com_lambda_v2,
@@ -160,21 +227,19 @@ def main(args):
         "x": graph.x,
         "y": graph.y,
         "edge_index": graph.edge_index,
-        # "edge_weight": graph.edge_weight,
         "train_idx": train_idx,
         "test_idx": test_idx,
         "val_idx": val_idx,
         "view1": view1,
         "view2": view2,
-        "v1_indice": dataset.v1_indice,
-        "v2_indice": dataset.v2_indice,
+        "v1_indice": v1_indice,
+        "v2_indice": v2_indice,
         "num_nodes": graph.num_nodes,
         "curr": 0,
     }
 
     best_acc_val = 0
     best_loss_val = 1e9
-    best_test = 0
     best_v = None
 
     for epoch in range(args.main_epoch):
@@ -185,15 +250,15 @@ def main(args):
         net.set_train()
         for inner_ve in range(args.inner_ve_epoch):
             ve_loss=ve_train_one_step(data, graph.y)
-            print('ve_loss=', ve_loss)
+            # print('ve_loss=', ve_loss)
 
         for inner_cls in range(args.inner_cls_epoch):
             cls_loss=cls_train_one_step(data, graph.y)
-            print('cls_loss=',  cls_loss)
+            # print('cls_loss=',  cls_loss)
 
         for inner_mi in range(args.inner_mi_epoch):
             mi_loss=mi_train_one_step(data, graph.y)
-            print('mi_loss=', mi_loss)
+            # print('mi_loss=', mi_loss)
 
         ## validation ##
         net.set_eval()
@@ -217,145 +282,9 @@ def main(args):
     test_f1_macro, test_f1_micro, auc = gen_auc_mima(probs[data['test_idx']], data['y'][data['test_idx']])
     print("Test_Macro: ", test_f1_macro, "\tTest_Micro: ", test_f1_micro, "\tAUC: ", auc)
 
-    f = open(f'{tlx.BACKEND}_{args.dataset}_'+'results' + ".txt", "a")
+    f = open(f'{tlx.BACKEND}_results/{args.dataset}' + ".txt", "a")
     f.write("v1_p=" + str(args.v1_p) + "\t" + "v2_p=" + str(args.v2_p) + "\t" + str(test_f1_macro) + "\t" + str(test_f1_micro) + "\t" + str(auc) + "\n")
     f.close()
-
-
-def wine_params():
-    parser = argparse.ArgumentParser()
-    #####################################
-    ## basic info
-    parser.add_argument('--dataset', type=str, default="wine")
-    parser.add_argument('--batch', type=int, default=0)
-    parser.add_argument('--gpu', type=int, default=0)
-    parser.add_argument('--seed', type=int, default=30)
-    parser.add_argument('--v1_p', type=int, default=2)
-    parser.add_argument('--v2_p', type=int, default=80)
-    parser.add_argument('--cls_hid', type=int, default=16)
-    ## gen
-    parser.add_argument('--com_lambda_v1', type=float, default=0.5)
-    parser.add_argument('--com_lambda_v2', type=float, default=0.5)
-    parser.add_argument('--gen_hid', type=int, default=64)
-    ## fusion
-    parser.add_argument('--lam', type=float, default=0.5)
-    parser.add_argument('--alpha', type=float, default=0.1)
-    ## mi
-    parser.add_argument('--mi_hid', type=int, default=128)
-    ## optimizer
-    parser.add_argument('--cls_lr', type=float, default=0.01)
-    parser.add_argument('--cls_weight_decay', type=float, default=5e-4)
-    parser.add_argument('--cls_dropout', type=float, default=0.5)
-    parser.add_argument('--ve_lr', type=float, default=0.001)
-    parser.add_argument('--ve_weight_decay', type=float, default=0.)
-    parser.add_argument('--ve_dropout', type=float, default=0.8)
-    parser.add_argument('--mi_lr', type=float, default=0.01)
-    parser.add_argument('--mi_weight_decay', type=float, default=0.)
-    ## iter
-    parser.add_argument('--main_epoch', type=int, default=100)
-    parser.add_argument('--inner_ve_epoch', type=int, default=1)
-    parser.add_argument('--inner_cls_epoch', type=int, default=1)
-    parser.add_argument('--inner_mi_epoch', type=int, default=5)
-    parser.add_argument('--temp_r', type=float, default=1e-3)
-    ## coe
-    parser.add_argument('--cls_coe', type=float, default=0.3)
-    parser.add_argument('--mi_coe', type=float, default=0.3)
-    parser.add_argument('--tau', type=float, default=0.5)
-    #####################################
-
-    args, _ = parser.parse_known_args()
-    return args
-
-
-def breast_cancer_params():
-    parser = argparse.ArgumentParser()
-    #####################################
-    ## basic info
-    parser.add_argument('--dataset', type=str, default="breast_cancer")
-    parser.add_argument('--batch', type=int, default=0)
-    parser.add_argument('--gpu', type=int, default=0)
-    parser.add_argument('--seed', type=int, default=68)
-    parser.add_argument('--v1_p', type=int, default=2)
-    parser.add_argument('--v2_p', type=int, default=40)
-    parser.add_argument('--cls_hid', type=int, default=16)
-    ## gen
-    parser.add_argument('--com_lambda_v1', type=float, default=0.1)
-    parser.add_argument('--com_lambda_v2', type=float, default=0.1)
-    parser.add_argument('--gen_hid', type=int, default=64)
-    ## fusion
-    parser.add_argument('--lam', type=float, default=0.1)
-    parser.add_argument('--alpha', type=float, default=0.1)
-    ## mi
-    parser.add_argument('--mi_hid', type=int, default=128)
-    ## optimizer
-    parser.add_argument('--cls_lr', type=float, default=0.01)
-    parser.add_argument('--cls_weight_decay', type=float, default=5e-4)
-    parser.add_argument('--cls_dropout', type=float, default=0.5)
-    parser.add_argument('--ve_lr', type=float, default=0.01)
-    parser.add_argument('--ve_weight_decay', type=float, default=0.)
-    parser.add_argument('--ve_dropout', type=float, default=0.7)
-    parser.add_argument('--mi_lr', type=float, default=0.01)
-    parser.add_argument('--mi_weight_decay', type=float, default=0.)
-    ## iter
-    parser.add_argument('--main_epoch', type=int, default=150)
-    parser.add_argument('--inner_ve_epoch', type=int, default=1)
-    parser.add_argument('--inner_cls_epoch', type=int, default=1)
-    parser.add_argument('--inner_mi_epoch', type=int, default=5)
-    parser.add_argument('--temp_r', type=float, default=1e-3)
-    ## coe
-    parser.add_argument('--cls_coe', type=float, default=0.3)
-    parser.add_argument('--mi_coe', type=float, default=0.3)
-    parser.add_argument('--tau', type=float, default=0.5)
-    #####################################
-
-    args, _ = parser.parse_known_args()
-    return args
-
-
-def digits_params():
-    parser = argparse.ArgumentParser()
-    #####################################
-    ## basic info
-    parser.add_argument('--dataset', type=str, default="digits")
-    parser.add_argument('--batch', type=int, default=0)
-    parser.add_argument('--gpu', type=int, default=1)
-    parser.add_argument('--seed', type=int, default=13)
-    parser.add_argument('--v1_p', type=int, default=2)
-    parser.add_argument('--v2_p', type=int, default=80)
-    parser.add_argument('--cls_hid', type=int, default=16)
-    ## gen
-    parser.add_argument('--com_lambda_v1', type=float, default=0.5)
-    parser.add_argument('--com_lambda_v2', type=float, default=0.5)
-    parser.add_argument('--gen_hid', type=int, default=32)
-    ## fusion
-    parser.add_argument('--lam', type=float, default=0.5)
-    parser.add_argument('--alpha', type=float, default=0.1)
-    ## mi
-    parser.add_argument('--mi_hid', type=int, default=128)
-    ## optimizer
-    parser.add_argument('--cls_lr', type=float, default=0.01)
-    parser.add_argument('--cls_weight_decay', type=float, default=5e-4)
-    parser.add_argument('--cls_dropout', type=float, default=0.5)
-    parser.add_argument('--ve_lr', type=float, default=0.01)
-    parser.add_argument('--ve_weight_decay', type=float, default=0.)
-    parser.add_argument('--ve_dropout', type=float, default=0.5)
-    parser.add_argument('--mi_lr', type=float, default=0.01)
-    parser.add_argument('--mi_weight_decay', type=float, default=0.)
-    ## iter
-    parser.add_argument('--main_epoch', type=int, default=200)
-    parser.add_argument('--inner_ve_epoch', type=int, default=1)
-    parser.add_argument('--inner_cls_epoch', type=int, default=10)
-    parser.add_argument('--inner_mi_epoch', type=int, default=10)
-    parser.add_argument('--temp_r', type=float, default=1e-4)
-    ## coe
-    parser.add_argument('--cls_coe', type=float, default=0.3)
-    parser.add_argument('--mi_coe', type=float, default=0.3)
-    parser.add_argument('--tau', type=float, default=0.2)
-    #####################################
-
-    args, _ = parser.parse_known_args()
-    return args
-
 
 def polblogs_params():
     parser = argparse.ArgumentParser()
@@ -364,7 +293,6 @@ def polblogs_params():
     parser.add_argument('--dataset', type=str, default="polblogs")
     parser.add_argument('--batch', type=int, default=0)
     parser.add_argument('--gpu', type=int, default=0)
-    parser.add_argument('--seed', type=int, default=3)
     parser.add_argument('--v1_p', type=int, default=1)
     parser.add_argument('--v2_p', type=int, default=300)
     parser.add_argument('--cls_hid', type=int, default=16)
@@ -409,7 +337,6 @@ def citeseer_params():
     parser.add_argument('--dataset', type=str, default="citeseer")
     parser.add_argument('--batch', type=int, default=0)
     parser.add_argument('--gpu', type=int, default=0)
-    parser.add_argument('--seed', type=int, default=3)
     parser.add_argument('--v1_p', type=int, default=2)
     parser.add_argument('--v2_p', type=int, default=40)
     parser.add_argument('--cls_hid', type=int, default=16)
@@ -454,7 +381,6 @@ def wikics_params():
     parser.add_argument('--dataset', type=str, default="wikics")
     parser.add_argument('--batch', type=int, default=4000)
     parser.add_argument('--gpu', type=int, default=1)
-    parser.add_argument('--seed', type=int, default=6)
     parser.add_argument('--v1_p', type=int, default=1)
     parser.add_argument('--v2_p', type=int, default=1)
     parser.add_argument('--cls_hid', type=int, default=16)
@@ -499,7 +425,6 @@ def ms_params():
     parser.add_argument('--dataset', type=str, default="ms")
     parser.add_argument('--batch', type=int, default=1000)
     parser.add_argument('--gpu', type=int, default=1)
-    parser.add_argument('--seed', type=int, default=4)
     parser.add_argument('--v1_p', type=int, default=1)
     parser.add_argument('--v2_p', type=int, default=1)
     parser.add_argument('--cls_hid', type=int, default=16)
@@ -540,20 +465,8 @@ argv = sys.argv
 dataset = argv[1].split(' ')[0]
 
 def set_params():
-    args = wine_params()
-    if dataset == "wine":
-        args = wine_params()
-        args.ggl = False
-        args.big = False
-    elif dataset == "breast_cancer":
-        args = breast_cancer_params()
-        args.ggl = False
-        args.big = False
-    elif dataset == "digits":
-        args = digits_params()
-        args.ggl = False
-        args.big = False
-    elif dataset == "polblogs":
+    args = polblogs_params()
+    if dataset == "polblogs":
         args = polblogs_params()
         args.ggl = False
         args.big = False
