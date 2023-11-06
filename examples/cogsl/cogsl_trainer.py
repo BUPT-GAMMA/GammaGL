@@ -3,7 +3,6 @@ import os
 # os.environ['TL_BACKEND'] = 'paddle'
 
 import sys
-
 import argparse
 import numpy as np
 import scipy.sparse as sp

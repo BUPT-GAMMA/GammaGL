@@ -293,8 +293,6 @@ class GenView(nn.Module):
         dense[dense == 0] = np.NINF
         pi = tlx.convert_to_tensor(softmax(dense,axis=1))
 
-        # z_matrix = torch.sparse.FloatTensor(v_indices, temp, (num_node, num_node))
-        # pi = torch.sparse.softmax(z_matrix, dim=1)
         gen_v = v_ori + self.com_lambda * pi
         return gen_v
 
@@ -323,7 +321,6 @@ class View_Estimator(nn.Module):
         rowsum = tlx.reduce_sum(mx, axis=1) + 1e-6  # avoid NaN
         r_inv = tlx.pow(rowsum, -1/2)
         r_inv = tlx.convert_to_tensor(r_inv)
-        # r_inv[tlx.is_inf(r_inv)] = 0.
         r_mat_inv = tlx.diag(r_inv)
         mx = r_mat_inv @ mx
         mx = mx @ r_mat_inv
