@@ -242,8 +242,10 @@ def dropout_adj(
 
 
 def main(args):
-    # assert args.gpu_id in range(0, 9)
-    tlx.set_device(device='GPU',id=args.gpu_id)
+    if args.gpu_id >= 0:
+        tlx.set_device(device='GPU', id=args.gpu_id)
+    else:
+        tlx.set_device(device='CPU')
 
     config = yaml.load(open(args.config), Loader=SafeLoader)[args.dataset]
     # for hyperparameter tuning
