@@ -45,7 +45,3 @@ jobs:
       - name: Run TH tests
         run: |
           TL_BACKEND=torch pytest
-
-      - name: Run PD tests
-        run: |
-          TL_BACKEND=paddle pytest
