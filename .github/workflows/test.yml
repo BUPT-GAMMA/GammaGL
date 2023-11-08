@@ -16,10 +16,10 @@ jobs:
         run: |
           git checkout ${{ github.event.pull_request.head.sha }}
 
-      - name: Set up Python 3.9
+      - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.10'
 
       - name: Install Python dependencies
         run: |
@@ -36,7 +36,7 @@ jobs:
 
       - name: Install package
         run: |
-          python setup.py install build_ext --inplace
+          python setup.py install
 
       - name: Run TF tests
         run: |
