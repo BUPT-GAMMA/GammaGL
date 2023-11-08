@@ -13,7 +13,7 @@ jobs:
 
       - name: Checkout master and HEAD
         run: |
-          git checkout -t origin/master
+          git checkout -t origin/main
           git checkout ${{ github.event.pull_request.head.sha }}
 
       - name: Set up Python 3.10
