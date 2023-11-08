@@ -74,7 +74,7 @@ class WikiCS(InMemoryDataset):
         edges = list(chain(*edges))
         edge_index = np.ascontiguousarray(np.array(edges, dtype=np.int64).T)
         if self.is_undirected:
-            edge_index = to_undirected(edge_index, num_nodes=tlx.get_tensor_shape(x[0]))
+            edge_index = to_undirected(tlx.convert_to_tensor(edge_index), num_nodes=tlx.get_tensor_shape(x[0]))
 
         train_mask = np.ascontiguousarray(np.array(data['train_masks'], dtype=np.bool).T)
         val_mask = np.ascontiguousarray(np.array(data['val_masks'], dtype=np.bool).T)
