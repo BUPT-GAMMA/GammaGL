@@ -269,8 +269,6 @@ def main(args):
 
     drop_edge_rate_1 = config['drop_edge_rate_1']
     drop_edge_rate_2 = config['drop_edge_rate_2']
-    drop_feature_rate_1 = config['drop_feature_rate_1']
-    drop_feature_rate_2 = config['drop_feature_rate_2']
     tau = config['tau']
     num_epochs = config['num_epochs']
     weight_decay = config['weight_decay']
@@ -299,15 +297,6 @@ def main(args):
     loss_func = train_loss(model, drop_edge_rate_1, drop_edge_rate_2, use_pot, pot_batch, kappa)
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
-    if use_pot:
-        fp = osp.join(osp.expanduser('~/datasets'),f"bounds/{args.dataset}_{drop_edge_rate_1}_upper_lower.pkl")
-        if os.path.exists(fp):
-            with open(fp, 'rb') as file: 
-                A_upper_1_, A_lower_1_=pickle.load(file)
-            # A_upper_1_, A_lower_1_ = tlx.model.load_weights(fp)
-        else:
-            A_upper_1, A_lower_1 = get_A_bounds(args.dataset, drop_edge_rate_1)
-            A_upper_2, A_lower_2 = get_A_bounds(args.dataset, drop_edge_rate_2)
     #timing        
     start = t()
     prev = start
@@ -326,19 +315,19 @@ def main(args):
     res = test(model, data, dataset, split)
     print(res)
 
-    res_file = f"res/{args.dataset}_pot_temp.csv" if use_pot else f"res/{args.dataset}_base_temp.csv"
-    if args.save_file == '.':
-        f = open(res_file,"a+")
-    else:
-        f = open(args.save_file, "a+")
-    res_str = f'{res["F1Mi"]:.4f}, {res["F1Ma"]:.4f}' 
-    if use_pot:
-        f.write(f'{config["drop_edge_rate_1"]}, {config["drop_edge_rate_2"]}, {config["tau"]}, {kappa}, '
-                f'{res_str}\n')
-    else:
-        f.write(f'{config["drop_edge_rate_1"]}, {config["drop_edge_rate_2"]}, {config["tau"]}, '
-                f'{res_str}\n')
-    f.close()
+    # res_file = f"res/{args.dataset}_pot_temp.csv" if use_pot else f"res/{args.dataset}_base_temp.csv"
+    # if args.save_file == '.':
+    #     f = open(res_file,"a+")
+    # else:
+    #     f = open(args.save_file, "a+")
+    # res_str = f'{res["F1Mi"]:.4f}, {res["F1Ma"]:.4f}' 
+    # if use_pot:
+    #     f.write(f'{config["drop_edge_rate_1"]}, {config["drop_edge_rate_2"]}, {config["tau"]}, {kappa}, '
+    #             f'{res_str}\n')
+    # else:
+    #     f.write(f'{config["drop_edge_rate_1"]}, {config["drop_edge_rate_2"]}, {config["tau"]}, '
+    #             f'{res_str}\n')
+    # f.close()
 
 
 if __name__ == '__main__':
@@ -346,7 +335,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='Cora')
     parser.add_argument('--gpu_id', type=int, default=5)
-    parser.add_argument('--config', type=str, default='/home/lyq/gf/GRACE/config.yaml')
+    parser.add_argument('--config', type=str, default='./config.yaml')
     parser.add_argument('--use_pot', default=False, action="store_true") # whether to use pot in loss
     parser.add_argument('--kappa', type=float, default=0.5)
     parser.add_argument('--pot_batch', type=int, default=-1)

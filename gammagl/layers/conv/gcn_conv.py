@@ -84,10 +84,9 @@ class GCNConv(MessagePassing):
             edge_weight = tlx.ones(shape=(edge_index.shape[1], 1))
         edge_weight = tlx.reshape(edge_weight,(-1,))
         weights = edge_weight
+        num_nodes = tlx.reduce_max(edge_index) + 1
         
         if self._norm in ['left', 'both']:
-            max_num = tlx.reduce_max(src)
-            num_nodes = max_num + 1
             deg = degree(src, num_nodes=num_nodes, dtype = tlx.float32)
             if self._norm == 'both':
                 norm = tlx.pow(deg, -0.5)
@@ -96,8 +95,6 @@ class GCNConv(MessagePassing):
             weights = tlx.ops.gather(norm, src) * tlx.reshape(edge_weight, (-1,))
 
         if self._norm in ['right', 'both']:
-            max_num = tlx.reduce_max(dst)
-            num_nodes = max_num + 1
             deg = degree(dst, num_nodes=num_nodes, dtype = tlx.float32)
             if self._norm == 'both':
                 norm = tlx.pow(deg, -0.5)

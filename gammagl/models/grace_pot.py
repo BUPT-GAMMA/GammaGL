@@ -1,5 +1,4 @@
 from typing import Optional
-import torch
 import tensorlayerx as tlx
 from tensorlayerx import nn
 from torch.sparse import mm
@@ -12,7 +11,6 @@ from scipy.sparse import coo_matrix
 import os.path as osp
 from time import perf_counter as t
 from gammagl.mpops import unsorted_segment_sum
-import tensorflow
 
 class Encoder(tlx.nn.Module):
     def __init__(self, in_channels: int, out_channels: int, activation,
