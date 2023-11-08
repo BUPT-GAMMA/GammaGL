@@ -12,11 +12,8 @@ from scipy.linalg import fractional_matrix_power, inv
 
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
-from gammagl.datasets.wikics import WikiCS
-from gammagl.datasets.polblogs import PolBlogs
-from gammagl.datasets.planetoid import Planetoid
-from gammagl.datasets.coauthor import Coauthor
-from gammagl.models.cogsl import CoGSLModel
+from gammagl.datasets import WikiCS, PolBlogs, Planetoid, Coauthor
+from gammagl.models import CoGSLModel
 from gammagl.utils import  mask_to_index, set_device, add_self_loops
 from tensorlayerx.model import TrainOneStep, WithLoss
 
@@ -167,22 +164,28 @@ def main(args):
     if args.dataset == 'citeseer':
         dataset = Planetoid('', args.dataset)
     elif args.dataset == 'polblogs':
-        dataset = PolBlogs('', args.dataset)
+        dataset = PolBlogs('')
     elif args.dataset == 'wikics':
-        dataset = WikiCS('', args.dataset)
+        dataset = WikiCS('')
     elif args.dataset == 'ms':
         dataset = Coauthor('', 'cs')
     graph = dataset.data
-
     if args.dataset == 'polblogs':
-        train_idx = tlx.convert_to_tensor(np.arange(121))
-        val_idx = tlx.convert_to_tensor(np.arange(121, 244))
-        test_idx = tlx.convert_to_tensor(np.arange(244, 1490))
+        arr = np.arange(1490)
+        random_indices = np.random.permutation(len(arr))
+        train_idx = tlx.convert_to_tensor(arr[random_indices[:121]])
+        val_idx = tlx.convert_to_tensor(arr[random_indices[121:224]])
+        test_idx = tlx.convert_to_tensor(arr[random_indices[244:1490]])
+    elif args.dataset == 'ms':
+        arr = np.arange(18333)
+        random_indices = np.random.permutation(len(arr))
+        train_idx = tlx.convert_to_tensor(arr[random_indices[:300]])
+        val_idx = tlx.convert_to_tensor(arr[random_indices[300:800]])
+        test_idx = tlx.convert_to_tensor(arr[random_indices[800:1800]])
     else:
         train_idx = mask_to_index(graph.train_mask)
         test_idx = mask_to_index(graph.test_mask)
         val_idx = mask_to_index(graph.val_mask)
-
     edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=1)
     value = np.ones(edge_index[0].shape)
     view1 = sp.coo_matrix((value, (edge_index.cpu())), shape=(graph.num_nodes, graph.num_nodes))
@@ -222,7 +225,7 @@ def main(args):
     mi_loss = MiLoss(net, tlx.losses.softmax_cross_entropy_with_logits)
     mi_train_one_step = TrainOneStep(mi_loss, opti_mi, mi_train_weights)
     data = {
-        "name" : dataset.name,
+        "name" : args.dataset,
         "x": graph.x,
         "y": graph.y,
         "edge_index": graph.edge_index,
