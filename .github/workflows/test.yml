@@ -1,0 +1,51 @@
+name: Build and Test
+
+on: [push, pull_request]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Checkout master and HEAD
+        run: |
+          git checkout -t origin/master
+          git checkout ${{ github.event.pull_request.head.sha }}
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10.2'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r .circleci/requirements.txt  # Assuming requirements.txt is located in the .circleci directory
+
+      - name: Install PyTorch, torchvision and torchaudio
+        run: |
+          pip install torch==1.12.1+cpu torchvision==0.13.1+cpu torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install llvmlite
+        run: |
+          pip install llvmlite
+
+      - name: Install package
+        run: |
+          python setup.py install build_ext --inplace
+
+      - name: Run TF tests
+        run: |
+          TL_BACKEND=tensorflow pytest
+
+      - name: Run TH tests
+        run: |
+          TL_BACKEND=torch pytest
+
+      - name: Run PD tests
+        run: |
+          TL_BACKEND=paddle pytest
