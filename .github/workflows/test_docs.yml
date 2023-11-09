@@ -1,0 +1,39 @@
+name: Build and Test
+
+#on: [push, pull_request]
+on:
+  workflow_dispatch:
+
+jobs:
+  test-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - name: Checkout master and HEAD
+        run: |
+          git checkout ${{ github.event.pull_request.head.sha }}
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r docs/requirements.txt
+          python setup.py install build_ext --inplace
+
+      - name: Build Docs
+        run: |
+          sh docs/build.sh
+
+      - name: Start Local Server
+        run: |
+          cd docs/
+          python -m http.server 8000
