@@ -36,6 +36,4 @@ jobs:
 
       - name: Run Examples
         run: |
-          echo "***************"
-          echo examples/**/*.py
-          echo "***************"
+          find examples/ -name "*.py" -type f -exec python {} \;
