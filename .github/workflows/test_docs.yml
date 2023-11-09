@@ -1,7 +1,7 @@
 name: Test the Docs
 
-on:
-  workflow_dispatch:
+on: [push]
+#  workflow_dispatch:
 
 jobs:
   test-docs:
