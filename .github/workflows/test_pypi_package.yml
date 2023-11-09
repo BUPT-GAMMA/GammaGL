@@ -3,9 +3,15 @@ name: Test Pypi Package
 on: [push]
 
 jobs:
-  build-and-test:
+  test-pypi:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out repository code
+          uses: actions/checkout@v3
+          with:
+            fetch-depth: 0
+            submodules: 'recursive'
+
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
@@ -30,4 +36,4 @@ jobs:
 
       - name: Run Examples
         run: |
-          python **/*.py
+          python examples/**/*.py
