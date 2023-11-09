@@ -1,21 +1,11 @@
-name: Build and Test
+name: Test Pypi Package
 
-on: [push, pull_request]
+on: [push]
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          submodules: 'recursive'
-
-      - name: Checkout master and HEAD
-        run: |
-          git checkout ${{ github.event.pull_request.head.sha }}
-
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
@@ -36,12 +26,8 @@ jobs:
 
       - name: Install package
         run: |
-          python setup.py install
+          pip install gammagl
 
-      - name: Run TF tests
+      - name: Run Examples
         run: |
-          TL_BACKEND=tensorflow pytest
-
-      - name: Run TH tests
-        run: |
-          TL_BACKEND=torch pytest
+          python **/*.py
