@@ -1,6 +1,7 @@
 name: Test Pypi Package
 
-on: [push]
+on:
+  workflow_dispatch:
 
 jobs:
   test-pypi:
