@@ -1,7 +1,7 @@
 #!/bin/sh
 
-sh clean.sh
+sh docs/clean.sh
 make html
-cd build/html
+cd docs/build/html
 python -m http.server 8000
 
