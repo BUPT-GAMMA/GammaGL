@@ -1,38 +1,53 @@
-name: Test the Docs
+name: Test Build Documentation
 
-on: [push]
-#  workflow_dispatch:
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'setup.py'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'setup.py'
 
 jobs:
-  test-docs:
+  build-docs:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Check out repository code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          submodules: 'recursive'
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      - name: Checkout master and HEAD
-        run: |
-          git checkout ${{ github.event.pull_request.head.sha }}
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
 
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+    - name: Install project
+      run: python setup.py install build_ext --inplace
 
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r docs/requirements.txt
-          python setup.py install build_ext --inplace
+    - name: Install dependencies
+      run: pip install -r docs/requirements.txt
 
-      - name: Build Docs
-        run: |
-          sh docs/build.sh
+    - name: Build docs
+      run: |
+        cd docs
+        sh build.sh
 
-      - name: Start Local Server
-        run: |
-          cd docs/
-          python -m http.server 8000
+    # 如果你的 build.sh 脚本不启动本地服务器，或者你不需要在构建过程中实际运行服务器，
+    # 你可以忽略下面的步骤。
+    # 如果你需要服务器运行来进行某些测试，你可以加上以下步骤：
+
+    #- name: Serve docs
+    #  run: |
+    #    cd docs
+    #    python -m http.server &
+    #    sleep 3  # 给服务器一点时间启动
+
+    #- name: Run tests
+    #  run: |
+    #    # 这里写入测试文档的命令，比如使用 curl 检查页面的返回状态码等
