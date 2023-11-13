@@ -40,22 +40,22 @@ jobs:
           pip install gammagl
 
       - name: Run Trainer Examples
-        id: trainer_examples
         run: |
           FAILURES=""
           for file in examples/*_trainer.py; do
-            python $file --n_epoch 1 || FAILURES="$FAILURES$file "
+            python "$file" --n_epoch 1 || FAILURES="$FAILURES$file "
           done
           echo "FAILURES=$FAILURES" >> $GITHUB_ENV
+        shell: bash
 
       - name: Run Sampler Examples
-        id: sampler_examples
         run: |
           FAILURES=""
           for file in examples/*_sampler.py; do
-            python $file || FAILURES="$FAILURES$file "
+            python "$file" || FAILURES="$FAILURES$file "
           done
           echo "FAILURES=$FAILURES" >> $GITHUB_ENV
+        shell: bash
 
       - name: Check for Failures
         run: |
@@ -63,3 +63,4 @@ jobs:
             echo "Some examples failed to run: $FAILURES"
             exit 1
           fi
+        shell: bash
