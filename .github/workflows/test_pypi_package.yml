@@ -42,19 +42,27 @@ jobs:
       - name: Run Trainer Examples
         run: |
           FAILURES=""
-          for file in examples/*_trainer.py; do
+          FILES=$(find examples/ -type f -name "*_trainer.py")
+          for file in $FILES; do
             python "$file" --n_epoch 1 || FAILURES="$FAILURES$file "
           done
-          echo "FAILURES=$FAILURES" >> $GITHUB_ENV
+          if [ -n "$FAILURES" ]; then
+            echo "The following trainer scripts failed: $FAILURES"
+            exit 1
+          fi
         shell: bash
 
       - name: Run Sampler Examples
         run: |
           FAILURES=""
-          for file in examples/*_sampler.py; do
+          FILES=$(find examples/ -type f -name "*_sampler.py")
+          for file in $FILES; do
             python "$file" || FAILURES="$FAILURES$file "
           done
-          echo "FAILURES=$FAILURES" >> $GITHUB_ENV
+          if [ -n "$FAILURES" ]; then
+            echo "The following sampler scripts failed: $FAILURES"
+            exit 1
+          fi
         shell: bash
 
       - name: Check for Failures
