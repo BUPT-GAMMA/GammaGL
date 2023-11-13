@@ -40,9 +40,26 @@ jobs:
           pip install gammagl
 
       - name: Run Trainer Examples
+        id: trainer_examples
         run: |
-          find examples/ -name "*_trainer.py" -type f -exec python {} --n_epoch 1\;
+          FAILURES=""
+          for file in examples/*_trainer.py; do
+            python $file --n_epoch 1 || FAILURES="$FAILURES$file "
+          done
+          echo "FAILURES=$FAILURES" >> $GITHUB_ENV
 
       - name: Run Sampler Examples
+        id: sampler_examples
         run: |
-          find examples/ -name "*_sampler.py" -type f -exec python {}\;
+          FAILURES=""
+          for file in examples/*_sampler.py; do
+            python $file || FAILURES="$FAILURES$file "
+          done
+          echo "FAILURES=$FAILURES" >> $GITHUB_ENV
+
+      - name: Check for Failures
+        run: |
+          if [ -n "$FAILURES" ]; then
+            echo "Some examples failed to run: $FAILURES"
+            exit 1
+          fi
