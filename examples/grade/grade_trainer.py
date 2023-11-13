@@ -35,7 +35,7 @@ def main(args):
     drop_feature_rate_2 = args.dfr2
 
     temp = args.temp
-    epochs = args.epochs
+    epochs = args.n_epoch
     wd = args.wd
 
     edge_index, feat, labels, train_mask, test_mask, degree, num_nodes = load(args.dataset, args.mode, args.dataset_path)
@@ -83,7 +83,7 @@ if __name__ == '__main__':
     parser.add_argument('--act_fn', type=str, default='relu')
     parser.add_argument('--threshold', type=int, default=9, help='Definition of low-degree nodes.')
     parser.add_argument('--wd', type=float, default=1e-5, help='Weight decay.')
-    parser.add_argument('--epochs', type=int, default=400, help='Number of training epochs.')
+    parser.add_argument('--n_epoch', type=int, default=400, help='Number of training epochs.')
     parser.add_argument("--hid_dim", type=int, default=256, help='Hidden layer dim.')
     parser.add_argument("--out_dim", type=int, default=256, help='Output layer dim.')
     parser.add_argument('--der1', type=float, default=0.20, help='Drop edge ratio of the 1st augmentation.')

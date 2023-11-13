@@ -43,7 +43,7 @@ def main(args):
     accuracies = {args.name_eval: []}
     log_interval = 1
     accuracies[args.name_eval]
-    for epoch in tqdm(range(args.epochs)):
+    for epoch in tqdm(range(args.n_epoch)):
         loss_all = 0
         for data in dataloader:
             loss = train_one_step(data, tlx.convert_to_tensor([1]))
@@ -73,7 +73,7 @@ if __name__ == '__main__':
                         help='Name of dataset.eg:MUTAG,IMDB-BINARY,REDDIT-BINARY')
     parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     # training params
-    parser.add_argument('--epochs', type=int, default=20, help='Training epochs.')
+    parser.add_argument('--n_epoch', type=int, default=20, help='Training epochs.')
     parser.add_argument('--batch_size', type=int, default=128, help='Training batch size.')
     parser.add_argument('--lr', type=float, default=0.01, help='Learning rate.')
     parser.add_argument('--log_interval', type=int, default=1, help='Interval between two evaluations.')

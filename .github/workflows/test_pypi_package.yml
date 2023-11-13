@@ -39,6 +39,10 @@ jobs:
         run: |
           pip install gammagl
 
-      - name: Run Examples
+      - name: Run Trainer Examples
         run: |
-          find examples/ -name "*.py" -type f -exec python {} \;
+          find examples/ -name "*_trainer.py" -type f -exec python {} --n_epoch 1\;
+
+      - name: Run Sampler Examples
+        run: |
+          find examples/ -name "*_sampler.py" -type f -exec python {}\;
