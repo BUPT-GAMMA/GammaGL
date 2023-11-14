@@ -29,12 +29,16 @@ class ChebConv(MessagePassing):
        and :math:`\mathbf{\hat{L}}` denotes the scaled and normalized Laplacian
        :math:`\frac{2\mathbf{L}}{\lambda_{\max}} - \mathbf{I}`.
 
-       Args:
-           in_channels (int): Size of each input sample
-           out_channels (int): Size of each output sample.
-           K (int): Chebyshev filter size :math:`K`.
-           normalization (str, optional): The normalization scheme for the graph
-               Laplacian (default: :obj:`"sym"`):
+        Parameters
+        ----------
+        in_channels: int
+            Size of each input sample
+        out_channels: int
+            Size of each output sample.
+        K: int
+            Chebyshev filter size :math:`K`.
+        normalization: str, optional
+            The normalization scheme for the graph Laplacian (default: :obj:`"sym"`):
 
                1. :obj:`None`: No normalization
                :math:`\mathbf{L} = \mathbf{D} - \mathbf{A}`
@@ -47,8 +51,8 @@ class ChebConv(MessagePassing):
 
                You need to pass :obj:`lambda_max` to the :meth:`forward` method of
                this operator in case the normalization is non-symmetric.
-           **kwargs (optional): Additional arguments of
-               :class:`gammagl.layers.conv.MessagePassing`.
+        **kwargs: optional
+            Additional arguments of :class:`gammagl.layers.conv.MessagePassing`.
 
        Shapes:
            - **input:**
@@ -60,7 +64,7 @@ class ChebConv(MessagePassing):
 
        """
 
-    def __init__(self, in_channels: int, out_channels: int, K: int, normalization: Optional = 'sym', **kwargs):
+    def __init__(self, in_channels: int, out_channels: int, K: int, normalization: Optional[list] = 'sym', **kwargs):
         kwargs.setdefault('aggr', 'add')
         super(ChebConv, self).__init__()
 
@@ -92,8 +96,8 @@ class ChebConv(MessagePassing):
         assert edge_weight is not None
         return edge_index, edge_weight
 
-    def forward(self, x, edge_index, num_nodes, edge_weight: Optional = None, lambda_max: Optional = None,
-                batch: Optional = None):
+    def forward(self, x, edge_index, num_nodes, edge_weight = None, lambda_max = None,
+                batch = None):
         if self.normalization != 'sym' and lambda_max is None:
             raise ValueError('You need to pass `lambda_max` to `forward() in`'
                              'case the normalization is non-symmetric.')

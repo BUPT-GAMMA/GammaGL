@@ -24,17 +24,23 @@ class GCNIIConv(MessagePassing):
     The adjacency matrix can include other values than :obj:`1` representing
     edge weights via the optional :obj:`edge_weight` tensor.
 
-    Args:
-        in_channels (int): Size of each input sample.
-        out_channels (int): Size of each outoput sample.
-        alpha (float): The strength of the initial residual connection
-            :math:`\alpha`.
-        beta (float, optional): The hyperparameter :math:`\beta` to compute \
-            the strength of the identity mapping 
-            :math:`\beta = \log \left( \frac{\beta}{\ell} + 1 \right)`.
-            (default: :obj:`None`)
-        variant (bool): use GCNII*, which can be fomuliazed as following: :math:`\mathbf{H}^{(\ell+1)}= \sigma\left(\left(1-\alpha_{\ell}\right) \tilde{\mathbf{P}} \mathbf{H}^{(\ell)}\left(\left(1-\beta_{\ell}\right) \mathbf{I}_{n}+\beta_{\ell} \mathbf{W}_{1}^{(\ell)}\right)+\right.\\
-            \left.+\alpha_{\ell} \mathbf{H}^{(0)}\left(\left(1-\beta_{\ell}\right) \mathbf{I}_{n}+\beta_{\ell} \mathbf{W}_{2}^{(\ell)}\right)\right)`
+    Parameters
+    ----------
+    in_channels: int
+        Size of each input sample.
+    out_channels: int
+        Size of each outoput sample.
+    alpha: float
+        The strength of the initial residual connection
+        :math:`\alpha`.
+    beta: float
+        The hyperparameter :math:`\beta` to compute \
+        the strength of the identity mapping 
+        :math:`\beta = \log \left( \frac{\beta}{\ell} + 1 \right)`.
+        (default: :obj:`None`)
+    variant: bool, optional
+        use GCNII*, which can be fomuliazed as following: :math:`\mathbf{H}^{(\ell+1)}= \sigma\left(\left(1-\alpha_{\ell}\right) \tilde{\mathbf{P}} \mathbf{H}^{(\ell)}\left(\left(1-\beta_{\ell}\right) \mathbf{I}_{n}+\beta_{\ell} \mathbf{W}_{1}^{(\ell)}\right)+\right.\\
+        \left.+\alpha_{\ell} \mathbf{H}^{(0)}\left(\left(1-\beta_{\ell}\right) \mathbf{I}_{n}+\beta_{\ell} \mathbf{W}_{2}^{(\ell)}\right)\right)`
 
     """
 

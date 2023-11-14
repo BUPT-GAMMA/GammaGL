@@ -10,20 +10,27 @@ def coalesce(edge_index, edge_attr=None, num_nodes=None, reduce="add", is_sorted
     Duplicate entries in :obj:`edge_attr` are merged by scattering them
     together according to the given :obj:`reduce` option.
 
-    Args:
-        edge_index (LongTensor): The edge indices.
-        edge_attr (Tensor or List[Tensor], optional): Edge weights or multi-
+    Parameters
+    ----------
+        edge_index: tensor
+            The edge indices.
+        edge_attr: tensor, list[tensor], optional
+            Edge weights or multi-
             dimensional edge features.
             If given as a list, will re-shuffle and remove duplicates for all
             its entries. (default: :obj:`None`)
-        num_nodes (int, optional): The number of nodes, *i.e.*
+        num_nodes: int, optional
+            The number of nodes, *i.e.*
             :obj:`max_val + 1` of :attr:`edge_index`. (default: :obj:`None`)
-        reduce (string, optional): The reduce operation to use for merging edge
+        reduce: str, optional
+            The reduce operation to use for merging edge
             features (:obj:`"add"`, :obj:`"mean"`, :obj:`"min"`, :obj:`"max"`,
             :obj:`"mul"`). (default: :obj:`"add"`)
-        is_sorted (bool, optional): If set to :obj:`True`, will expect
+        is_sorted: bool, optional
+            If set to :obj:`True`, will expect
             :obj:`edge_index` to be already sorted row-wise.
-        sort_by_row (bool, optional): If set to :obj:`False`, will sort
+        sort_by_row: bool, optional
+            If set to :obj:`False`, will sort
             :obj:`edge_index` column-wise.
 
     :rtype: :class:`LongTensor` if :attr:`edge_attr` is :obj:`None`, else

@@ -19,70 +19,71 @@ NodeOrEdgeStorage = Union[NodeStorage, EdgeStorage]
 
 class HeteroGraph(BaseGraph):
     r"""A data object describing a heterogeneous graph, holding multiple node
-    and/or edge types in disjunct storage objects.
-    Storage objects can hold either node-level, link-level or graph-level
-    attributes.
-    In general, :class:`~gammagl.data.HeteroGraph` tries to mimic the
-    behaviour of a regular **nested** Python dictionary.
-    In addition, it provides useful functionality for analyzing graph
-    structures, and provides basic tensor functionalities.
+        and/or edge types in disjunct storage objects.
+        Storage objects can hold either node-level, link-level or graph-level
+        attributes.
+        In general, :class:`~gammagl.data.HeteroGraph` tries to mimic the
+        behaviour of a regular **nested** Python dictionary.
+        In addition, it provides useful functionality for analyzing graph
+        structures, and provides basic tensor functionalities.
 
-    .. code:: python
+        .. code:: python
 
-        >>> from gammagl.data import HeteroGraph
-        >>> import tensorlayerx as tlx
-        >>> data = HeteroGraph()
-        # Create two node types "paper" and "author" holding a feature matrix:
-        >>> num_papers = 6
-        >>> num_paper_features = 16
-        >>> num_authors = 3
-        >>> num_authors_features = 8
-        >>> data['paper'].x = tlx.random_uniform((num_papers, num_paper_features))
-        >>> data['author'].x =  tlx.random_uniform((num_authors, num_authors_features))
-        # Create an edge type "(author, writes, paper)" and building the
-        # graph connectivity:
-        >>> edge = tlx.convert_to_tensor([
-        ... [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2],
-        ... [0, 1, 3, 5, 0, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5]
-        ... ])
-        >>> data['author', 'writes', 'paper'].edge_index = edge
-        >>> data['paper'].num_nodes
-        3
-        >>> data.num_nodes
-        9
-        >>> data['author', 'writes', 'paper'].num_edges
-        15
-        >>> data.num_edges
-        15
-        
-    Note that there exists multiple ways to create a heterogeneous graph data,
-    *e.g.*:
-    * To initialize a node of type :obj:`"paper"` holding a node feature matrix :obj:`x_paper` named :obj:`x`:
+            >>> from gammagl.data import HeteroGraph
+            >>> import tensorlayerx as tlx
+            >>> data = HeteroGraph()
+            # Create two node types "paper" and "author" holding a feature matrix:
+            >>> num_papers = 6
+            >>> num_paper_features = 16
+            >>> num_authors = 3
+            >>> num_authors_features = 8
+            >>> data['paper'].x = tlx.random_uniform((num_papers, num_paper_features))
+            >>> data['author'].x =  tlx.random_uniform((num_authors, num_authors_features))
+            # Create an edge type "(author, writes, paper)" and building the
+            # graph connectivity:
+            >>> edge = tlx.convert_to_tensor([
+            ... [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2],
+            ... [0, 1, 3, 5, 0, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5]
+            ... ])
+            >>> data['author', 'writes', 'paper'].edge_index = edge
+            >>> data['paper'].num_nodes
+            3
+            >>> data.num_nodes
+            9
+            >>> data['author', 'writes', 'paper'].num_edges
+            15
+            >>> data.num_edges
+            15
+            
+        Note that there exists multiple ways to create a heterogeneous graph data,
+        *e.g.*:
+        * To initialize a node of type :obj:`"paper"` holding a node feature matrix :obj:`x_paper` named :obj:`x`:
 
-    .. code:: python
+        .. code:: python
 
-        >>> from gammagl.data import HeteroGraph
-        >>> data = HeteroGraph()
-        >>> data['paper'].x = x_paper
-        >>> data = HeteroGraph(paper={ 'x': x_paper })
-        >>> data = HeteroGraph({'paper': { 'x': x_paper }})
+            >>> from gammagl.data import HeteroGraph
+            >>> data = HeteroGraph()
+            >>> data['paper'].x = x_paper
+            >>> data = HeteroGraph(paper={ 'x': x_paper })
+            >>> data = HeteroGraph({'paper': { 'x': x_paper }})
 
-    * To initialize an edge from source node type :obj:`"author"` to
-      destination node type :obj:`"paper"` with relation type :obj:`"writes"`
-      holding a graph connectivity matrix :obj:`edge_index_author_paper` named
-      :obj:`edge_index`:
+        * To initialize an edge from source node type :obj:`"author"` to
+        destination node type :obj:`"paper"` with relation type :obj:`"writes"`
+        holding a graph connectivity matrix :obj:`edge_index_author_paper` named
+        :obj:`edge_index`:
 
-      .. code:: python
+        .. code:: python
 
-        >>> data = HeteroGraph()
-        >>> data['author', 'writes', 'paper'].edge_index = edge_index_author_paper
-        >>> data = HeteroGraph(author__writes__paper={
-            'edge_index': edge_index_author_paper
-        })
-        >>> data = HeteroGraph({
-            ('author', 'writes', 'paper'):
-            { 'edge_index': edge_index_author_paper }
-        })
+            >>> data = HeteroGraph()
+            >>> data['author', 'writes', 'paper'].edge_index = edge_index_author_paper
+            >>> data = HeteroGraph(author__writes__paper={
+                'edge_index': edge_index_author_paper
+            })
+            >>> data = HeteroGraph({
+                ('author', 'writes', 'paper'):
+                { 'edge_index': edge_index_author_paper }
+            })
+
     """
 
     DEFAULT_REL = 'to'
@@ -400,16 +401,17 @@ class HeteroGraph(BaseGraph):
 
     def metadata(self) -> Tuple[List[NodeType], List[EdgeType]]:
         r"""Returns the heterogeneous meta-data, *i.e.* its node and edge
-        types.
+            types.
 
-        .. code:: python
+            .. code:: python
 
-            >>> data = HeteroGraph()
-            >>> data['paper'].x = ...
-            >>> data['author'].x = ...
-            >>> data['author', 'writes', 'paper'].edge_index = ...
-            >>> print(data.metadata())
-            (['paper', 'author'], [('author', 'writes', 'paper')])
+                >>> data = HeteroGraph()
+                >>> data['paper'].x = ...
+                >>> data['author'].x = ...
+                >>> data['author', 'writes', 'paper'].edge_index = ...
+                >>> print(data.metadata())
+                (['paper', 'author'], [('author', 'writes', 'paper')])
+
         """
         return self.node_types, self.edge_types
 
@@ -493,37 +495,43 @@ class HeteroGraph(BaseGraph):
                        edge_attrs: Optional[List[str]] = None,
                        add_node_type: bool = True,
                        add_edge_type: bool = True) -> Graph:
-        """Converts a :class:`~gammagl.data.HeteroGraph` object to a
-        homogeneous :class:`~gammagl.data.Graph` object.
-        By default, all features with same feature dimensionality across
-        different types will be merged into a single representation, unless
-        otherwise specified via the :obj:`node_attrs` and :obj:`edge_attrs`
-        arguments.
+        r"""Converts a :class:`~gammagl.data.HeteroGraph` object to a
+            homogeneous :class:`~gammagl.data.Graph` object.
+            By default, all features with same feature dimensionality across
+            different types will be merged into a single representation, unless
+            otherwise specified via the :obj:`node_attrs` and :obj:`edge_attrs`
+            arguments.
 
-        Furthermore, attributes named :obj:`node_type` and :obj:`edge_type`
-        will be added to the returned :class:`~gammagl.data.Graph`
-        object, denoting node-level and edge-level vectors holding the
-        node and edge type as integers, respectively.
+            Furthermore, attributes named :obj:`node_type` and :obj:`edge_type`
+            will be added to the returned :class:`~gammagl.data.Graph`
+            object, denoting node-level and edge-level vectors holding the
+            node and edge type as integers, respectively.
 
-        Args:
-            node_attrs (List[str], optional): The node features to combine
+            Parameters
+            ----------
+            node_attrs: list[str], optional
+                The node features to combine
                 across all node types. These node features need to be of the
                 same feature dimensionality. If set to :obj:`None`, will
                 automatically determine which node features to combine.
                 (default: :obj:`None`)
-            edge_attrs (List[str], optional): The edge features to combine
+            edge_attrs: list[str], optional
+                The edge features to combine
                 across all edge types. These edge features need to be of the
                 same feature dimensionality. If set to :obj:`None`, will
                 automatically determine which edge features to combine.
                 (default: :obj:`None`)
-            add_node_type (bool, optional): If set to :obj:`False`, will not
+            add_node_type: bool, optional
+                If set to :obj:`False`, will not
                 add the node-level vector :obj:`node_type` to the returned
                 :class:`~gammagl.data.Graph` object.
                 (default: :obj:`True`)
-            add_edge_type (bool, optional): If set to :obj:`False`, will not
+            add_edge_type: bool, optional
+                If set to :obj:`False`, will not
                 add the edge-level vector :obj:`edge_type` to the returned
                 :class:`~gammagl.data.Graph` object.
                 (default: :obj:`True`)
+
         """
 
         def _consistent_size(stores: List[BaseStorage]) -> List[str]:

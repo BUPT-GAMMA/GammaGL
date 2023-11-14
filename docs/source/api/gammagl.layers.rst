@@ -90,7 +90,7 @@ Model
     gammagl.models.FAGCNModel
     gammagl.models.GPRGNNModel
     gammagl.models.DGCNN
-    gammagl.models.MIXHOPModel
+    gammagl.models.MixHopModel
     gammagl.models.HCHA
     gammagl.models.HGTModel
     gammagl.models.PNAModel

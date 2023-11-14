@@ -1,5 +1,5 @@
 gammagl.datasets
-==============
+================
 
 .. currentmodule:: gammagl.datasets
 

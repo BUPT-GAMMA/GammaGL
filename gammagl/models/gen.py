@@ -6,11 +6,13 @@ from gammagl.utils import homophily, mask_to_index
 
 
 class GEstimationN():
-	"""
-	Provide adjacency matrix estimation implementation based on the Expectation-Maximization(EM) algorithm.
-	Parameters
-	----------
-	E: The actual observed number of edges between every pair of nodes (numpy.array)
+	r"""Provide adjacency matrix estimation implementation based on the Expectation-Maximization(EM) algorithm.
+
+		Parameters
+		----------
+		E: numpy.array
+  			The actual observed number of edges between every pair of nodes.
+
 	"""
 
 	def __init__(self, data):
@@ -46,20 +48,22 @@ class GEstimationN():
 		self.output[self.idx_train] = self.label[self.idx_train]
 
 	def E_step(self, Q):
-		"""Run the Expectation(E) step of the EM algorithm.
-		Parameters
-		----------
-		Q:
-			The current estimation that each edge is actually present (numpy.array)
+		r"""
+			Run the Expectation(E) step of the EM algorithm.
+	
+			Parameters
+			----------
+			Q: numpy.array
+				The current estimation that each edge is actually present
 
-		Returns
-		----------
-		alpha:
-			The estimation of true-positive rate (float)
-		beta：
-			The estimation of false-positive rate (float)
-		O:
-			The estimation of network model parameters (numpy.array)
+			Returns
+			----------
+			alpha: float
+				The estimation of true-positive rate
+			beta: float
+				The estimation of false-positive rate
+			O: numpy.array
+				The estimation of network model parameters
 		"""
 		# Temporary variables to hold the numerators and denominators of alpha and beta
 		an = Q * self.E
@@ -110,17 +114,20 @@ class GEstimationN():
 
 
 	def EM(self, output, tolerance=.000001):
-		"""Run the complete EM algorithm.
-		Parameters
-		----------
-		tolerance:
-			Determine the tolerance in the variantions of alpha, beta and O, which is acceptable to stop iterating (float)
-		seed:
-			seed for np.random.seed (int)
-		Returns
-		----------
-		iterations:
-			The number of iterations to achieve the tolerance on the parameters (int)
+		r"""
+			Run the complete EM algorithm.
+
+			Parameters
+			----------
+			tolerance: float
+				Determine the tolerance in the variantions of alpha, beta and O, which is acceptable to stop iterating
+			seed: int
+				seed for np.random.seed
+
+			Returns
+			----------
+			iterations: int
+				The number of iterations to achieve the tolerance on the parameters
 		"""
 		# Record previous values to confirm convergence
 		alpha_p = 0

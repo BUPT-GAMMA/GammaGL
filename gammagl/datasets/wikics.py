@@ -14,23 +14,28 @@ class WikiCS(InMemoryDataset):
         <https://arxiv.org/abs/2007.02901>`_ paper, containing 11,701 nodes,
         216,123 edges, 10 classes and 20 different training splits.
 
-        Args:
-            root (str): Root directory where the dataset should be saved.
-            transform (callable, optional): A function/transform that takes in an
-                :obj:`torch_geometric.data.Data` object and returns a transformed
-                version. The data object will be transformed before every access.
-                (default: :obj:`None`)
-            pre_transform (callable, optional): A function/transform that takes in
-                an :obj:`torch_geometric.data.Data` object and returns a
-                transformed version. The data object will be transformed before
-                being saved to disk. (default: :obj:`None`)
-            is_undirected (bool, optional): Whether the graph is undirected.
-                (default: :obj:`True`)
+        Parameters
+        ----------
+        root: str, optional
+            Root directory where the dataset should be saved.
+        transform: callable, optional
+            A function/transform that takes in an
+            :obj:`gammagl.data.Graph` object and returns a transformed
+            version. The data object will be transformed before every access.
+            (default: :obj:`None`)
+        pre_transform: callable, optional
+            A function/transform that takes in
+            an :obj:`gammagl.data.Graph` object and returns a
+            transformed version. The data object will be transformed before
+            being saved to disk. (default: :obj:`None`)
+        is_undirected: bool, optional
+            Whether the graph is undirected.
+            (default: :obj:`True`)
         """
 
     url = 'https://github.com/pmernyei/wiki-cs-dataset/raw/master/dataset'
 
-    def __init__(self, root: str, transform: Optional[Callable] = None,
+    def __init__(self, root: str = None, transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None,
                  is_undirected: Optional[bool] = None):
         if is_undirected is None:

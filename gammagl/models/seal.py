@@ -5,22 +5,28 @@ import math
 
 
 class DGCNN(tlx.nn.Module):
-    r"""
-    DGCNN proposed in `An End-to-End Deep Learning Architecture for Graph Classiﬁcation`_.
+    r"""DGCNN proposed in `"An End-to-End Deep Learning Architecture for Graph Classiﬁcation"
+        <https://dl.acm.org/doi/pdf/10.5555/3504035.3504579>`_ paper.
 
-    .. _An End-to-End Deep Learning Architecture for Graph Classiﬁcation:
-        https://dl.acm.org/doi/pdf/10.5555/3504035.3504579
+        Parameters
+        ----------
+        feature_dim: int
+            input feature dimension.
+        hidden_dim: int
+            hidden dimension.
+        num_layers: int
+            number of layers.
+        gcn_type: str
+            convolution layer type.
+        k: int or float
+            The number of nodes to hold for each graph in SortPooling.
+        train_dataset: dataset
+            train dataset to extract minimum number of nodes to generate k.
+        dropout: float
+            dropout rate.
+        name: str
+            model name.
 
-    Parameters
-    ----------
-        feature_dim (int): input feature dimension
-        hidden_dim (int): hidden dimension
-        num_layers (int): number of layers
-        gcn_type (str): convolution layer type
-        k (int or float): The number of nodes to hold for each graph in SortPooling
-        train_dataset (dataset): train dataset to extract minimum number of nodes to generate k
-        dropout (float): dropout rate
-        name (str): model name
     """
 
     def __init__(self, feature_dim,
