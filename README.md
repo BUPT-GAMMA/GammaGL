@@ -413,6 +413,7 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [ieHGCN [TKDE 2021]](./examples/iehgcn)      | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [MetaPath2Vec [KDD 2017]](./examples/metapath2vec) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | |
 | [HERec [TKDE 2018]](./examples/herec) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | |
+| [CoGSL [WWW 2022]](./examples/cogsl)  | | :heavy_check_mark: | :heavy_check_mark: | |
 
 > Note
 > 

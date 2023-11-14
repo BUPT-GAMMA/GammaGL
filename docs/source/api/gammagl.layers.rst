@@ -105,3 +105,4 @@ Model
     gammagl.models.HPN
     gammagl.models.GMMModel
     gammagl.models.CAGCNModel
+    gammagl.models.CoGSLModel
