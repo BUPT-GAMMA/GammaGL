@@ -2,39 +2,21 @@
 # -*- coding: utf-8 -*-
 import os
 import os.path as osp
-import platform
-from setuptools import setup, find_packages, Extension
-from setuptools.command.build_ext import build_ext as _build_ext
-# from pybind11.setup_helpers import Pybind11Extension, build_ext
-# from gammagl.utils.ggl_build_extension import BuildExtension, PyCudaExtension, PyCPUExtension
-from gammagl.utils.ggl_build_extension import PyCudaExtension, PyCPUExtension
-import subprocess
-import tensorlayerx as tlx
-import torch
+from setuptools import setup, find_packages
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtension
 
 # TODO will depend on different host
 WITH_CUDA = False
 
-ext_root = osp.join("gammagl", "ops")
 cuda_macro = ('COMPILE_WITH_CUDA', None)
-link_extra_args = []
 
 def is_src_file(filename: str):
     return filename.endswith("cpp") \
            or filename.endswith("cu")
-
-# Start to include cuda ops, if no cuda found, will only compile cpu ops
-# single-library
-def load_extensions():
-    ops_list = ["sparse", "segment", "tensor"]
-    ops_third_party_deps = [['parallel_hashmap'], [], []]  # 这里为啥会有两个空列表，直接[['par']]不行？
-
+           
+           
+def load_mpops_extensions():
     mpops_list = ["torch_ext"]
-
-    # 不直接使用gammagl/ops的原因是因为linux和win的路径所用符号不同
-    # linux为/ win为\
-    ops_root = osp.join('gammagl', 'ops')
     mpops_root = osp.join('gammagl', 'mpops')
 
     extensions = []
@@ -45,7 +27,7 @@ def load_extensions():
         if WITH_CUDA:
             mpops_types = ["src", "cpu", "cuda"]
         else:
-            mpops_types = ["src", "cpu"]
+            mpops_types = ["src", "cpu", "cuda"]
         mpops_dir = osp.join(mpops_root, mpops_prefix)
         for mpops_type in mpops_types:
             src_dir = osp.join(mpops_dir, mpops_type)
@@ -68,6 +50,16 @@ def load_extensions():
                     # omp_macro,
                 ]
             ))
+            
+    return extensions
+            
+def load_ops_extensions():
+    ops_list = ["sparse", "segment", "tensor"]
+    ops_third_party_deps = [['parallel_hashmap'], [], []]
+
+    ops_root = osp.join('gammagl', 'ops')
+
+    extensions = []
     
     for i in range(len(ops_list)):
         ops_prefix = ops_list[i]
@@ -101,6 +93,13 @@ def load_extensions():
     return extensions
 
 
+# Start to include cuda ops, if no cuda found, will only compile cpu ops
+def load_extensions():
+    extensions = load_mpops_extensions() + load_ops_extensions()
+
+    return extensions
+
+
 install_requires = ['numpy<=1.23.5', 'pandas', 'numba', 'scipy', 'protobuf==3.19.6', 'pyparsing',
                     'tensorboardx<=2.5', 'pytest', 'tensorlayerx', 'rich', 'tqdm', 'pybind11', 'panda<=2.0.3']
 
@@ -124,8 +123,7 @@ setup(
     maintainer="Tianyu Zhao",
     license="Apache-2.0 License",
     cmdclass={'build_ext': BuildExtension},
-    ext_modules=load_extensions(),  # 在这调用了gammagl写的extension模块，但是我们的目标是打包这个gammagl，这样子是否可行
-    setup_requires=[],  # import导入了platform、os，为什么不写
+    ext_modules=load_extensions(),
     description=" ",
     long_description=readme(),
     url="https://github.com/BUPT-GAMMA/GammaGL",
@@ -134,11 +132,7 @@ setup(
     packages=find_packages(),
     install_requires=install_requires,
     classifiers=classifiers,
-    include_package_data=True,
-    # 这里是否和MANIFEST.in重复了
-    # package_data={
-    #     "gammagl": ["*.json"]
-    # }
+    include_package_data=True
 )
 
 # python setup.py build_ext --inplace
