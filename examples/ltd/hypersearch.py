@@ -1,38 +1,77 @@
 import os
-import psutil
-from utils import choose_path, load_cascades
+from pathlib import Path
+import numpy as np
+import tensorlayerx as tlx
 from distill_dgl import choose_model, model_train
 import sys
-import torch
+import optuna
 
-sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
-from gammagl.datasets import Planetoid, Amazon
+sys.path.insert(0, os.path.abspath('../../'))
+from gammagl.datasets import Planetoid
+
+
+def choose_path(conf):
+    cascade_dir = Path.cwd().joinpath('outputs', conf['dataset'], conf['teacher'],
+                                      'logits.npy')
+    return cascade_dir
+
+
+def load_cascades(cascade_dir):
+    loaded_logits_array = np.load(cascade_dir)
+    loaded_logits = tlx.ops.convert_to_tensor(loaded_logits_array)
+    return loaded_logits
+
+
+class AutoML(object):
+    def __init__(self, kwargs, func_search):
+        self.default_params = kwargs
+        self.func_search = func_search
+        self.n_trials = kwargs['ntrials']
+        self.n_jobs = kwargs['njobs']
+        self.best_acc_test = None
+        self.mylr = None
+        self.tlr = None
+
+    def _objective(self, trials):
+        params = self.default_params
+        params.update(self.func_search(trials))
+        lr = params['my_lr']
+        tr = params['my_t_lr']
+        acc_test = raw_experiment(params)
+        if self.best_acc_test is None or acc_test > self.best_acc_test:
+            self.best_acc_test = acc_test
+            self.mylr = lr
+            self.tlr = tr
+        return acc_test
+
+    def run(self):
+        study = optuna.create_study(direction="maximize")
+        study.optimize(self._objective, n_trials=self.n_trials,
+                       n_jobs=self.n_jobs)
+        return self.best_acc_test, self.mylr, self.tlr
 
 
 def raw_experiment(configs):
-    print('*************************************')
-    print(psutil.Process(os.getpid()).memory_info().rss)  # 了解内存占用情况
-    output_dir, cascade_dir = choose_path(configs)
-    # load datasets
-    if str.lower(configs['dataset']) in ['cora', 'pubmed', 'citeseer']:
-        dataset = Planetoid(configs['dataset_path'], configs['dataset'], split="random", num_train_per_class=50, num_val=0, num_test=2358)
+    cascade_dir = choose_path(configs)
+    if str.lower(configs['dataset']) == 'cora':
+        dataset = Planetoid(configs['dataset_path'], configs['dataset'], split="random", num_train_per_class=50,
+                            num_val=0, num_test=2358)
         dataset.process()
         graph = dataset[0]
-    elif str.lower(configs['dataset']) in ['computers', 'photo']:
-        dataset = Amazon(configs['dataset_path'], configs['dataset'])
+    elif str.lower(configs['dataset']) == 'pubmed':
+        dataset = Planetoid(configs['dataset_path'], configs['dataset'], split="random", num_train_per_class=50,
+                            num_val=0, num_test=19000)
+        dataset.process()
+        graph = dataset[0]
+    elif str.lower(configs['dataset']) == 'citeseer':
+        dataset = Planetoid(configs['dataset_path'], configs['dataset'], split="random", num_train_per_class=50,
+                            num_val=0, num_test=3000)
         dataset.process()
         graph = dataset[0]
     else:
         raise ValueError('Unknown dataset: {}'.format(configs['dataset']))
-    # 获得教师模型的预测结果
     teacher_logits = load_cascades(cascade_dir)
-    # 查看教师模型预测结果
-    # print(teacher_logits.shape)
-    # print(torch.sum(teacher_logits[0]))
     model = choose_model(configs, dataset)
-    print(model)
-    # for p_name, p in model.named_parameters():
-    #     p.data = torch.zeros(p.shape)
-    # 查看学生模型
-    # print(model)
     acc_val = model_train(configs, model, graph, teacher_logits, dataset)
+
+    return acc_val
