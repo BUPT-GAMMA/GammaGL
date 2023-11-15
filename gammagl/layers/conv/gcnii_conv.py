@@ -39,8 +39,11 @@ class GCNIIConv(MessagePassing):
         :math:`\beta = \log \left( \frac{\beta}{\ell} + 1 \right)`.
         (default: :obj:`None`)
     variant: bool, optional
-        use GCNII*, which can be fomuliazed as following: :math:`\mathbf{H}^{(\ell+1)}= \sigma\left(\left(1-\alpha_{\ell}\right) \tilde{\mathbf{P}} \mathbf{H}^{(\ell)}\left(\left(1-\beta_{\ell}\right) \mathbf{I}_{n}+\beta_{\ell} \mathbf{W}_{1}^{(\ell)}\right)+\right.\\
-        \left.+\alpha_{\ell} \mathbf{H}^{(0)}\left(\left(1-\beta_{\ell}\right) \mathbf{I}_{n}+\beta_{\ell} \mathbf{W}_{2}^{(\ell)}\right)\right)`
+        use GCNII*, which can be fomuliazed as following:
+ 
+        .. math::
+           \mathbf{H}^{(\ell+1)}= \sigma\left(\left(1-\alpha_{\ell}\right) \tilde{\mathbf{P}} \mathbf{H}^{(\ell)}\left(\left(1-\beta_{\ell}\right) \mathbf{I}_{n}+\beta_{\ell} \mathbf{W}_{1}^{(\ell)}\right)+\right.\\
+           \left.+\alpha_{\ell} \mathbf{H}^{(0)}\left(\left(1-\beta_{\ell}\right) \mathbf{I}_{n}+\beta_{\ell} \mathbf{W}_{2}^{(\ell)}\right)\right)
 
     """
 
