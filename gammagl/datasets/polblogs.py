@@ -19,16 +19,21 @@ class PolBlogs(InMemoryDataset):
     Each vertex receives a label indicating the political leaning of the blog:
     liberal or conservative.
 
-    Args:
-        root (str): Root directory where the dataset should be saved.
-        transform (callable, optional): A function/transform that takes in an
-            :obj:`torch_geometric.data.Data` object and returns a transformed
-            version. The data object will be transformed before every access.
-            (default: :obj:`None`)
-        pre_transform (callable, optional): A function/transform that takes in
-            an :obj:`torch_geometric.data.Data` object and returns a
-            transformed version. The data object will be transformed before
-            being saved to disk. (default: :obj:`None`)
+    Parameters
+    ----------
+    root: str, optional
+        Root directory where the dataset should be saved.
+    transform: callable, optional
+        A function/transform that takes in an
+        :obj:`torch_geometric.data.Data` object and returns a transformed
+        version. The data object will be transformed before every access.
+        (default: :obj:`None`)
+    pre_transform: callable, optional
+        A function/transform that takes in
+        an :obj:`torch_geometric.data.Data` object and returns a
+        transformed version. The data object will be transformed before
+        being saved to disk. (default: :obj:`None`)
+
 
     **STATS:**
 
@@ -48,7 +53,7 @@ class PolBlogs(InMemoryDataset):
 
     url = 'https://netset.telecom-paris.fr/datasets/polblogs.tar.gz'
 
-    def __init__(self, root: str, transform: Optional[Callable] = None,
+    def __init__(self, root: str = None, transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None):
         super().__init__(root, transform, pre_transform)
         self.data, self.slices = self.load_data(self.processed_paths[0])

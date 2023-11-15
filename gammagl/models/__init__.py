@@ -24,7 +24,7 @@ from .seal import DGCNN
 from .hgt import HGTModel
 from .film import FILMModel
 from .pna import PNAModel
-from .mixhop import MIXHOPModel
+from .mixhop import MixHopModel
 from .hcha import HCHA
 from .hardgat import HardGATModel
 from .mlp import MLP
@@ -72,7 +72,7 @@ __all__ = [
     'FAGCNModel',
     'GPRGNNModel',
     'DGCNN',
-    'MIXHOPModel',
+    'MixHopModel',
     'HCHA',
     'HGTModel',
     'PNAModel',

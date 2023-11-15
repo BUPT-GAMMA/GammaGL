@@ -4,23 +4,26 @@ from gammagl.layers.conv import AGNNConv
 
 class AGNNModel(tlx.nn.Module):
     r"""The graph attention operator from the `"Attention-based Graph Neural Network for Semi-supervised Learning"
-    <http://arxiv.org/abs/1803.03735>`_ paper
+        <http://arxiv.org/abs/1803.03735>`_ paper.
 
 
-    Parameters
-    ----------
-    feature_dim: int
-        Dimension of feature vector in original input.
-    hidden_dim: intg
-        Dimension of feature vector in AGNN.
-    num_class: int
-        Dimension of feature vector in forward output.
-    n_att_layers: int
-        Number of attention layers.
-    dropout_rate: float
-        Dropout rate.
-    is_cora: bool,optional
-        Whether the dateset is cora. There is a special operation on cora that cora dataset contains two agnn_conv layers.
+        Parameters
+        ----------
+        feature_dim: int
+            Dimension of feature vector in original input.
+        hidden_dim: int
+            Dimension of feature vector in AGNN.
+        num_class: int
+            Dimension of feature vector in forward output.
+        n_att_layers: int
+            Number of attention layers.
+        dropout_rate: float
+            Dropout rate.
+        is_cora: bool, optional
+            Whether the dateset is cora. There is a special operation on cora that cora dataset contains two agnn_conv layers.
+        name: str, optional
+            The name of the model.
+
     """
 
     def __init__(self,

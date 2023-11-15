@@ -7,29 +7,42 @@ from scipy.special import softmax
 
 
 class CoGSLModel(nn.Module):
-    r"""
-    CoGSL Model proposed in 'Compact Graph Structure Learning via Mutual Information Compression'.
+    r"""CoGSL Model proposed in '"Compact Graph Structure Learning via Mutual Information Compression"
+        <https://arxiv.org/pdf/2201.05540.pdf>'_ paper.
+            
+        Parameters
+        ----------
+        num_feature: int
+            input feature dimension.
+        cls_hid: int
+            Classification hidden dimension.
+        num_class: int
+            number of classes.
+        gen_hid: int
+            GenView hidden dimension.
+        mi_hid: int
+            Mi_NCE hidden dimension.
+        com_lambda_v1: float
+            hyperparameter used to generate estimated view 1.
+        com_lambda_v2: float
+            hyperparameter used to generate estimated view 2.
+        lam: float
+            hyperparameter used to fusion views.
+        alpha: float
+            hyperparameter used to fusion views.
+        cls_dropout: float
+            Classification dropout rate.
+        ve_dropout: float
+            View_Estimator dropout rate.
+        tau: float
+            hyperparameter used to generate sim_matrix to get mi loss.
+        ggl: bool
+            whether to use gcnconv of gammagl.
+        big: bool
+            whether the dataset is too big.
+        batch: int
+            determine the sampling size when the dataset is too big.
 
-    Compact Graph Structure Learning via Mutual Information Compression:
-    https://arxiv.org/pdf/2201.05540.pdf
-        
-    Parameters
-    ----------
-        num_feature (int): input feature dimension
-        cls_hid (int): Classification hidden dimension
-        num_class (int): number of classes
-        gen_hid (int): GenView hidden dimension
-        mi_hid (int): Mi_NCE hidden dimension
-        com_lambda_v1 (float): hyperparameter used to generate estimated view 1
-        com_lambda_v2 (float): hyperparameter used to generate estimated view 2
-        lam (float): hyperparameter used to fusion views
-        alpha (float): hyperparameter used to fusion views
-        cls_dropout (float): Classification dropout rate
-        ve_dropout (float): View_Estimator dropout rate
-        tau (float): hyperparameter used to generate sim_matrix to get mi loss
-        ggl (bool): whether to use gcnconv of gammagl
-        big (bool): whether the dataset is too big
-        batch (int): determine the sampling size when the dataset is too big
     """
 
     def __init__(self, num_feature, cls_hid, num_class, gen_hid, mi_hid,

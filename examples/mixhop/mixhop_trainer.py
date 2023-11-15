@@ -4,7 +4,7 @@ import os
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
-from gammagl.models import MIXHOPModel
+from gammagl.models import MixHopModel
 from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss
 
@@ -51,7 +51,7 @@ def main(args):
     test_idx = mask_to_index(graph.test_mask)
     val_idx = mask_to_index(graph.val_mask)
 
-    net = MIXHOPModel(feature_dim=dataset.num_node_features,
+    net = MixHopModel(feature_dim=dataset.num_node_features,
                       hidden_dim=args.hidden_dim,
                       out_dim=dataset.num_classes,
                       p=args.p,

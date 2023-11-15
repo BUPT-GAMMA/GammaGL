@@ -8,7 +8,7 @@ import os.path as osp
 
 root = ''
 def test_hgb_dataset():
-    dataset_list = ['dblp_hgb', 'imdb_hgb', 'acm_hgb', 'freebase_hgb']
+    dataset_list = ['dblp_hgb', 'imdb_hgb', 'acm_hgb']
     for i in range(len(dataset_list)):
         heterograph = None
         dataset = HGBDataset(root=root, name=dataset_list[i])

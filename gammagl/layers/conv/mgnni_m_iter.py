@@ -11,14 +11,15 @@ class MGNNI_m_iter(MessagePassing):
     <https://arxiv.org/abs/2210.08353>`_ paper
 
     .. math::
-       Z^{(l+1)} =\gamma g(F)Z^{(l)}S^{(m)}+f(X;G),
+       Z^{(l+1)} =\gamma g(F)Z^{(l)}S^{(m)}+f(X;G)
+
     where :math `\gamma` denotes the contraction factor,
     :math `m` denotes a hyperparameter for graph scale(i.e., the power of adjacency matrix) and
     :math `f(X;G)` is a parameterized transformation on input features and graphs,
     the normalized weight matrix :math:`g(F)` are computed as
 
     .. math::
-       g(F) =\frac{1}{\|F^\top F\|_\text{F}+\epsilon_F}F^\top F.
+       g(F) =\frac{1}{\|F^\top F\|_\text{F}+\epsilon_F}F^\top F
 
     Parameters
     ----------
@@ -41,6 +42,7 @@ class MGNNI_m_iter(MessagePassing):
         the larger the capture range, but it is difficult to converge and inefficient
     layer_norm: bool, optional
         whether to use layer norm. (default: :obj:`False`)
+
     """
     def __init__(self, m, k, threshold, max_iter, gamma, layer_norm=False):
         super(MGNNI_m_iter, self).__init__()
