@@ -21,8 +21,9 @@ def sort_edge_index(edge_index, edge_attr=None, num_nodes=None, sort_by_row: boo
         If set to :obj:`False`, will sort
         :obj:`edge_index` column-wise.
 
-    :rtype: :class:`LongTensor` if :attr:`edge_attr` is :obj:`None`, else
-        (:class:`LongTensor`, :obj:`Tensor` or :obj:`List[Tensor]]`)
+    Returns
+    -------
+    :class:`LongTensor` if :attr:`edge_attr` is :obj:`None`, else (:class:`LongTensor`, :obj:`Tensor` or :obj:`List[Tensor]]`)
 
     """
 

@@ -68,9 +68,9 @@ class HeteroGraph(BaseGraph):
             >>> data = HeteroGraph({'paper': { 'x': x_paper }})
 
         * To initialize an edge from source node type :obj:`"author"` to
-        destination node type :obj:`"paper"` with relation type :obj:`"writes"`
-        holding a graph connectivity matrix :obj:`edge_index_author_paper` named
-        :obj:`edge_index`:
+          destination node type :obj:`"paper"` with relation type :obj:`"writes"`
+          holding a graph connectivity matrix :obj:`edge_index_author_paper` named
+          :obj:`edge_index`:
 
         .. code:: python
 

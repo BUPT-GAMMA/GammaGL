@@ -20,7 +20,10 @@ def degree(index, num_nodes: Optional[int] = None, dtype=None):
         The desired data type of the
         returned tensor.
 
-    :rtype: :class:`Tensor`
+    Returns
+    -------
+    :class:`Tensor`
+
     """
     N = maybe_num_nodes(index, num_nodes)
     if dtype is None:

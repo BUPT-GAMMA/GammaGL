@@ -22,7 +22,9 @@ def is_undirected(
             The number of nodes, *i.e.*
             :obj:`max_val + 1` of :attr:`edge_index`. (default: :obj:`None`)
 
-        :rtype: bool
+        Returns
+        -------
+        bool
 
     """
     num_nodes = maybe_num_nodes(edge_index, num_nodes)
@@ -56,23 +58,24 @@ def to_undirected(edge_index, edge_attr=None, num_nodes=None, reduce: str = "add
 
     Parameters
     ----------
-        edge_index: tensor
-            The edge indices.
-        edge_attr: tensor, list[tensor], optional
-            Edge weights or multi-
-            dimensional edge features.
-            If given as a list, will remove duplicates for all its entries.
-            (default: :obj:`None`)
-        num_nodes: int, optional
-            The number of nodes, *i.e.*
-            :obj:`max_val + 1` of :attr:`edge_index`. (default: :obj:`None`)
-        reduce: str, optional
-            The reduce operation to use for merging edge
-            features (:obj:`"add"`, :obj:`"mean"`, :obj:`"min"`, :obj:`"max"`,
-            :obj:`"mul"`). (default: :obj:`"add"`)
+    edge_index: tensor
+        The edge indices.
+    edge_attr: tensor, list[tensor], optional
+        Edge weights or multi-
+        dimensional edge features.
+        If given as a list, will remove duplicates for all its entries.
+        (default: :obj:`None`)
+    num_nodes: int, optional
+        The number of nodes, *i.e.*
+        :obj:`max_val + 1` of :attr:`edge_index`. (default: :obj:`None`)
+    reduce: str, optional
+        The reduce operation to use for merging edge
+        features (:obj:`"add"`, :obj:`"mean"`, :obj:`"min"`, :obj:`"max"`,
+        :obj:`"mul"`). (default: :obj:`"add"`)
 
-    :rtype: :class:`LongTensor` if :attr:`edge_attr` is :obj:`None`, else
-        (:class:`LongTensor`, :obj:`Tensor` or :obj:`List[Tensor]]`)
+    Returns
+    -------
+    :class:`LongTensor` if :attr:`edge_attr` is :obj:`None`, else (:class:`LongTensor`, :obj:`Tensor` or :obj:`List[Tensor]]`)
 
     """
     # Maintain backward compatibility to `to_undirected(edge_index, num_nodes)`

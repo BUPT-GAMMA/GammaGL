@@ -14,8 +14,11 @@ def contains_self_loops(edge_index) -> bool:
     ----------
     edge_index: tensor
         The edge indices.
+    
+    Returns
+    -------
+    bool
 
-    :rtype: bool
     """
     mask = edge_index[0] == edge_index[1]
     return tlx.any(mask, axis=0)
@@ -33,8 +36,10 @@ def remove_self_loops(edge_index, edge_attr=None):
         Edge weights or multi-dimensional
         edge features. (default: :obj:`None`)
 
-    :rtype: edge_index(Tensor if edge_index inputted is Tensor
-            || np.ndarray if edge_index inputted is np.ndarray)
+    Returns
+    -------
+    Tensor if edge_index inputted is Tensor
+            || np.ndarray if edge_index inputted is np.ndarray
     """
     mask = edge_index[0] != edge_index[1]
     if tlx.is_tensor(edge_index):

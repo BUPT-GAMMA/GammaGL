@@ -1,5 +1,4 @@
-import paddle
-import numpy as np
+
 
 def get_index_from_counts(counts):
     """

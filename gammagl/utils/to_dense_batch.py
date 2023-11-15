@@ -29,7 +29,9 @@ def to_dense_batch(x, batch=None, fill_value=0, max_num_nodes=None):
         batch_size: int, optional
             The batch size. (default: :obj:`None`)
 
-        :rtype: (:class:`Tensor`, :class:`BoolTensor`)
+        Returns
+        -------
+        (:class:`Tensor`, :class:`BoolTensor`)
 
     """
     if batch is None and max_num_nodes is None:

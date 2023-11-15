@@ -132,7 +132,9 @@ def global_sort_pool(x, batch, k):
     k: int
         The number of nodes to hold for each graph.
 
-    :rtype: :class:`Tensor`
+    Returns
+    -------
+    :class:`Tensor`
 
     """
     fill_value = tlx.reduce_min(x) - 1
