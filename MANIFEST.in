@@ -1,3 +1,2 @@
 include MANIFEST.in
 recursive-include gammagl *.json
-recursive-include gammagl *.cpp
