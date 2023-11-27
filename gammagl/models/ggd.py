@@ -2,7 +2,6 @@ import tensorlayerx as tlx
 import tensorlayerx.nn as nn
 from gammagl.layers.conv import GCNConv
 from gammagl.utils import to_scipy_sparse_matrix
-import pdb
 
 class GGDModel(nn.Module):
     def __init__(self, n_in, n_h, nb_classes):
@@ -41,6 +40,5 @@ class LogReg(nn.Module):
         self.fc = nn.Linear(in_features=ft_in, out_features=nb_classes, W_init=tlx.initializers.xavier_uniform())
 
     def forward(self, seq):
-        # pdb.set_trace()
         ret = self.fc(seq)
         return ret

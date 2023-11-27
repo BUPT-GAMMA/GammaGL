@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.sparse as sp
-import time
 
 import os
 import copy
@@ -16,8 +15,6 @@ from gammagl.datasets import Amazon
 from gammagl.models import GGDModel, LogReg
 from gammagl.utils import add_self_loops, mask_to_index, calc_gcn_norm, to_scipy_sparse_matrix
 from tensorlayerx.model import TrainOneStep, WithLoss
-
-import pdb
 
 class GGDLoss(WithLoss):
     def __init__(self, net, loss_fn):
