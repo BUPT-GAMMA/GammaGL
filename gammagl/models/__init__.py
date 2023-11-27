@@ -44,7 +44,6 @@ from .iehgcn import ieHGCNModel
 from .tadw import TADWModel
 from .mgnni import MGNNI_m_MLP, MGNNI_m_att 
 from .magcl import NewGrace
-from .DR_GST import DR_GST
 
 
 __all__ = [
@@ -96,7 +95,6 @@ __all__ = [
     'MGNNI_m_MLP', 
     'MGNNI_m_att', 
     'NewGrace',
-    'DR_GST',
 
 ]
 
