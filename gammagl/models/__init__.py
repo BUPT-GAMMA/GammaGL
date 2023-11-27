@@ -46,6 +46,7 @@ from .mgnni import MGNNI_m_MLP, MGNNI_m_att
 from .magcl import NewGrace
 from .cagcn import CAGCNModel
 from .cogsl import CoGSLModel
+from .ggd import GGDModel, LogReg
 
 
 __all__ = [
@@ -99,7 +100,7 @@ __all__ = [
     'NewGrace',
     'CAGCNModel',
     'CoGSLModel',
-
+    'GGDModel',
 
 ]
 
