@@ -1,24 +1,20 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 import argparse
 import copy
 import numpy as np
-# tensorlayerx\optimizers\torch_optimizers.py 264行 loss.bakcward() -> loss.backward(retain_graph=True)
 import tensorlayerx as tlx
-import torch
 from tensorlayerx.model import TrainOneStep, WithLoss
 from tensorlayerx.losses import mean_squared_error
 from gammagl.datasets import Planetoid
 from gammagl.datasets import Amazon
 from gammagl.datasets import Coauthor, Flickr
-from gammagl.models import GCNModel, GATModel, GraphSAGE_Full_Model, APPNPModel, GINModel, SGCModel, MIXHOPModel
+from gammagl.models import GCNModel, GATModel, GraphSAGE_Full_Model, APPNPModel, GINModel, SGCModel, MixHopModel
 from gammagl.transforms import DropEdge
-from gammagl.utils import add_self_loops, mask_to_index
+from gammagl.utils import mask_to_index
 from gammagl.data import Dataset
 import random
-
-
 
 class MyWithLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -28,7 +24,7 @@ class MyWithLoss(WithLoss):
         logits = self.backbone_network(data['x'], data['edge_index'], None, data['num_nodes'])
         train_logits = tlx.gather(logits, data['train_idx'])
         train_y = tlx.gather(data['y'], data['train_idx'])
-        loss = self.weighted_cross_entropy(train_logits, train_y, data['bald'][data['train_idx']], data["beta"],
+        loss = self.weighted_cross_entropy(train_logits, train_y, tlx.gather(data["bald"], data["train_idx"]), data["beta"],
                                            data["num_class"], data["T"])
         return loss
 
@@ -38,35 +34,29 @@ class MyWithLoss(WithLoss):
         output = tlx.softmax(output, axis=1)
         output = tlx.matmul(output, T)
         bald = bald / (tlx.reduce_mean(bald) * beta)
-        labels = MyWithLoss.one_hot(labels, num_class)
+        labels = tlx.nn.OneHot(depth=num_class)(labels)
+
         tmp = tlx.reduce_sum(output * labels, axis=1)
         loss = -tlx.log(tmp)
         loss = tlx.reduce_sum(loss * bald)
-        loss /= labels.size()[0]
+        loss /= tlx.get_tensor_shape(labels)[0]
         return loss
-
-    @staticmethod
-    def one_hot(labels, num_class):
-        tensor = tlx.zeros((labels.size()[0], num_class))
-        for i in range(labels.size()[0]):
-            tensor[i][labels[i]] = 1
-        return tensor
-
 
 class DR_GST():
 
     @staticmethod
     def test(output, y, idx_test, num_class):
         metrics = tlx.metrics.Accuracy()
-        test_logits = tlx.gather(output.clone(), idx_test)
+        idx_test = mask_to_index(idx_test)
+        test_logits = tlx.gather(tlx.identity(output), idx_test)
         test_y = tlx.gather(y, idx_test)
         acc_test = DR_GST.calculate_acc(test_logits, test_y, metrics)
 
-        one_hot_labels = MyWithLoss.one_hot(y[idx_test], num_class)
-        loss_test = tlx.losses.softmax_cross_entropy_with_logits(output[idx_test], one_hot_labels)
+        labels = tlx.gather(y, idx_test)
+        loss_test = tlx.losses.softmax_cross_entropy_with_logits(tlx.gather(output, idx_test), labels)
 
         print(f"Test set results",
-              f"loss= {loss_test.item():.4f}",
+              f"loss= {tlx.convert_to_numpy(loss_test).item():.4f}",
               f"accuracy= {acc_test:.4f}")
 
         return acc_test, loss_test
@@ -81,7 +71,6 @@ class DR_GST():
 
         indices = np.random.permutation(length)
         indices = tlx.convert_to_tensor(indices)
-        # indices = torch.randperm(datalength)
 
         train_ratio = 0.8
         val_ratio = 0.1
@@ -98,22 +87,28 @@ class DR_GST():
 
     @staticmethod
     def update_T(T, output, idx_train, labels):
-        
-        if tlx.BACKEND == 'torch':
-            output = torch.softmax(output, dim=1)
-            T.requires_grad = True
-            optimizer = torch.optim.Adam([T], lr=0.001, weight_decay=5e-4)
-            mse_criterion = torch.nn.MSELoss()
-            index = torch.where(idx_train)[0]
-            nclass = labels.max().item() + 1
-            for epoch in range(200):
-                optimizer.zero_grad()
-                loss = mse_criterion(output[index].detach(), T[labels[index]].clone()) + mse_criterion(T.clone(),torch.eye(nclass))
-                loss.backward()
-                optimizer.step()
-            T.requires_grad = False
-        else:
-            raise NotImplementedError('This backend is not implemented')
+        class T_loss(WithLoss):
+            def __init__(self, net, loss_fn):
+                super(T_loss, self).__init__(backbone=net, loss_fn=loss_fn)
+            def forward(self, output, T, labels, index, n_class):
+                loss = self._loss_fn(tlx.detach(tlx.gather(output, index)), 
+                                     tlx.identity(tlx.gather(T, tlx.gather(labels, index)))) \
+                    + self._loss_fn(tlx.identity(T), tlx.eye(n_class, n_class))
+
+                return loss
+
+        output = tlx.softmax(output, axis=1)
+        optimizer = tlx.optimizers.Adam(lr=0.001, weight_decay=5e-4)
+        x = tlx.arange(0, len(idx_train), dtype=tlx.int64)
+        y = -1 * tlx.ones_like(x)
+        result = tlx.where(idx_train, x, y)
+        index = result[result != -1]
+        n_class = tlx.convert_to_numpy(tlx.reduce_max(labels)) + 1
+        loss_func = T_loss(None, mean_squared_error)
+        train_one_step = TrainOneStep(loss_func, optimizer=optimizer, train_weights = [T])
+        for _ in range(200):
+            train_one_step(output, T, labels, index, n_class.item())
+
         return T
 
     @staticmethod
@@ -123,16 +118,15 @@ class DR_GST():
         metrics.reset()
         return rst
 
-
     @staticmethod
     def generate_trainmask(dataset, labels, labelrate):
-        data = dataset.data
+        data = dataset[0]
         train_mask = data.train_mask
         nclass = dataset.num_classes
         if not tlx.is_tensor(train_mask) == False:
             train_mask = tlx.convert_to_tensor(train_mask)
         train_index = mask_to_index(train_mask)
-        train_mask = train_mask.clone()
+        train_mask = tlx.identity(train_mask)
         train_mask[:] = False
         label = labels[train_index]
         for i in range(nclass):
@@ -142,15 +136,14 @@ class DR_GST():
         return train_mask
 
     @staticmethod
-    def train(graph, args, bald, T, idx_val, idx_train, pseudo_labels):
+    def train(dataset, args, bald, T, idx_val, idx_train, pseudo_labels):
 
-        net = DR_GST.get_model(args, graph)
-        data = graph.data
+        net = DR_GST.get_model(args, dataset)
+        data = dataset[0]
         best, bad_counter = 100, 0
 
-        # edge_index, _ = add_self_loops(data.edge_index, num_nodes=data.num_nodes, n_loops=args.self_loops)
         edge_index = data.edge_index
-        train_idx = idx_train
+        train_idx = mask_to_index(idx_train)
 
         test_mask = data.test_mask
         if not tlx.is_tensor(test_mask):
@@ -166,7 +159,7 @@ class DR_GST():
         optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.weight_decay)
         train_weights = net.trainable_weights
 
-        net_with_loss = MyWithLoss(net, tlx.losses.softmax_cross_entropy_with_logits)
+        net_with_loss = MyWithLoss(net, None)
         train_one_step = TrainOneStep(net_with_loss, optimizer, train_weights)
         metrics = tlx.metrics.Accuracy()
 
@@ -178,7 +171,7 @@ class DR_GST():
             "test_idx": test_idx,
             "val_idx": val_idx,
             "num_nodes": data.num_nodes,
-            "num_class": graph.num_classes,
+            "num_class": dataset.num_classes,
             "bald": bald,
             "T": T,
             "beta": args.beta
@@ -186,28 +179,21 @@ class DR_GST():
 
         for epoch in range(args.epochs):
             net.set_train()
-            train_loss = train_one_step(train_data, data.y.detach())
+            train_loss = train_one_step(train_data, tlx.detach(data.y))
 
             net.set_eval()
             logits = net(train_data['x'], train_data['edge_index'], None, train_data['num_nodes'])
-            val_logits = tlx.gather(logits.clone(), train_data['val_idx'])
+            val_logits = tlx.gather(tlx.identity(logits), train_data['val_idx'])
             val_y = tlx.gather(train_data['y'], train_data['val_idx'])
             acc_val = DR_GST.calculate_acc(val_logits, val_y, metrics)
 
-
-            one_hot_labels = MyWithLoss.one_hot(pseudo_labels[idx_val], train_data['num_class'])
-            loss_val = tlx.losses.softmax_cross_entropy_with_logits(logits[idx_val], one_hot_labels)
+            loss_val = tlx.losses.softmax_cross_entropy_with_logits(tlx.gather(logits, idx_val), tlx.gather(pseudo_labels, idx_val))
 
             print("Epoch [{:0>3d}] ".format(epoch + 1) \
-                  + "  val loss: {:.4f}".format(loss_val) \
+                  + "  val loss: {:.4f}".format(tlx.convert_to_numpy(loss_val).item()) \
                   + "  val acc: {:.4f}".format(acc_val))
 
-            # model_path = './save_model/%s-%s-%d-%f-%f-%f-%s.pth' % (
-            #     args.model, args.dataset, args.labelrate, args.threshold, args.beta, args.droprate, args.drop_method)
-
             if loss_val < best:
-                print("-------------------------")
-                print(args.best_model_path + net.name + ".npz")
                 tlx.files.save_npz(net.all_weights, name=args.best_model_path + net.name + ".npz")
                 best = loss_val
                 bad_counter = 0
@@ -224,19 +210,31 @@ class DR_GST():
     def regenerate_pseudo_label(output, labels, idx_train, unlabeled_index, threshold, sign=False):
         unlabeled_index = mask_to_index(unlabeled_index == True)
         confidence, pred_label = DR_GST.get_confidence(output, sign)
-        index = mask_to_index(confidence > threshold)
+
+        x = tlx.arange(0, len(confidence), dtype=tlx.int64)
+        y = -1 * tlx.ones_like(x)
+        result = tlx.where(confidence > threshold, x, y)
+        index = result[result != -1]
+
         pseudo_index = []
-        pseudo_labels, idx_train_ag = labels.detach(), idx_train.detach()
+        indices = []
+        pseudo_labels, idx_train_ag = tlx.detach(labels), tlx.detach(idx_train)
         for i in index:
-            if i not in idx_train:
-                pseudo_labels[i] = pred_label[i]
+            if not idx_train[i]:
+                indices.append(int(i))
                 if i in unlabeled_index:
-                    idx_train_ag[i] = True
-                    pseudo_index.append(i)
+                    pseudo_index.append(int(i))
+        update = tlx.gather(pred_label, indices)
+        pseudo_labels = tlx.ops.scatter_update(pseudo_labels, tlx.convert_to_tensor(indices, dtype=tlx.int64), update)
+        pseudo_index = tlx.convert_to_tensor(pseudo_index, dtype=tlx.int64)
+        update = tlx.ones_like(pseudo_index, dtype=tlx.bool)
+        idx_train_ag = tlx.ops.scatter_update(idx_train_ag, pseudo_index, update)
+        
         idx_pseudo = tlx.zeros_like(idx_train)
-        pseudo_index = tlx.convert_to_tensor(pseudo_index)
-        if pseudo_index.size()[0] != 0:
-            idx_pseudo[pseudo_index] = 1
+        if tlx.get_tensor_shape(pseudo_index)[0] != 0:
+            update = tlx.ones_like(pseudo_index, dtype=tlx.bool)
+            idx_pseudo = tlx.ops.scatter_update(idx_pseudo, pseudo_index, update)
+
         return idx_train_ag, pseudo_labels, idx_pseudo
 
     @staticmethod
@@ -263,7 +261,7 @@ class DR_GST():
         entropy = tlx.reduce_sum(tlx.reduce_mean(out_list * tlx.log(out_list), axis=0), axis=1)
         Eentropy = tlx.reduce_sum(out_mean * tlx.log(out_mean), axis=1)
         bald = entropy - Eentropy
-        return bald.detach()
+        return tlx.detach(bald)
 
     @staticmethod
     def uncertainty_dropout(model_path, args, dataset):
@@ -271,7 +269,7 @@ class DR_GST():
         net = DR_GST.get_model(args, dataset)
         tlx.files.load_and_assign_npz(name=model_path + net.name + ".npz", network=net)
         out_list = []
-        data = dataset.data
+        data = dataset[0]
         # with torch.no_grad():
         for _ in range(f_pass):
             output = net(data.x, data.edge_index, None, data.num_nodes)
@@ -282,8 +280,7 @@ class DR_GST():
         entropy = tlx.reduce_sum(tlx.reduce_mean(out_list * tlx.log(out_list), axis=0), axis=1)
         Eentropy = tlx.reduce_sum(out_mean * tlx.log(out_mean), axis=1)
         bald = entropy - Eentropy
-        return bald.detach()
-
+        return tlx.detach(bald)
 
     @staticmethod
     def load_dataset(dataset_path, name):
@@ -316,7 +313,7 @@ class DR_GST():
             droprate = args.dropout
         else:
             droprate = args.droprate
-        data = dataset.data
+        data = dataset[0]
         if model_name == 'GCN':
             model = GCNModel(feature_dim=data.num_node_features,
                              hidden_dim=args.hidden_dim,
@@ -358,7 +355,7 @@ class DR_GST():
                              num_class=dataset.num_classes,
                              iter_K=2)
         elif model_name == 'MixHop':
-            model = MIXHOPModel(feature_dim=data.num_node_features,
+            model = MixHopModel(feature_dim=data.num_node_features,
                                 hidden_dim=args.hidden,
                                 out_dim=dataset.num_classes,
                                 p=[0, 1, 2],
@@ -371,21 +368,14 @@ class DR_GST():
 
 
 def main(args):
-    # model_path = './save_model/%s-%s-%d-%f-%f-%f-%s.pth' % (
-    #     args.model, args.dataset, args.labelrate, args.threshold, args.beta, args.droprate, args.drop_method)
-
     dataset_path = args.dataset_path
     dataset_name = args.dataset
     dataset = DR_GST.load_dataset(dataset_path, dataset_name)
 
-    data = dataset.data
+    data = dataset[0]
     labels = data.y
     num_node = data.num_nodes
     num_class = dataset.num_classes
-
-    # seed = np.random.randint(1000)
-    # torch.manual_seed(seed)
-    # torch.cuda.manual_seed(seed)
 
     if dataset_name in {'Cora', 'CiteSeer', 'PubMed', 'CoraFull'}:
         idx_train = data.train_mask
@@ -397,18 +387,15 @@ def main(args):
     if args.drop_method == 'dropedge':
         drop_edge_data = DropEdge(p=0.1)(data)
 
-    idx_train = DR_GST.generate_trainmask(dataset, labels, args.labelrate)
-
     idx_train_ag = mask_to_index(idx_train)
     idx_val_ag = mask_to_index(idx_val)
     pseudo_labels = copy.deepcopy(labels)
     bald = tlx.ones((num_node,))
-    T = torch.nn.Parameter(torch.eye(num_class, num_class))
-    T.requires_grad = False
+    T = tlx.nn.Parameter(data = tlx.eye(num_class, num_class))
 
     for s in range(args.stage):
         best_output = DR_GST.train(dataset, args, bald, T, idx_val_ag, idx_train_ag, pseudo_labels)
-        T = DR_GST.update_T(T.detach(), best_output, idx_train, data.y.data)
+        T = DR_GST.update_T(T, best_output, idx_train, data.y)
         idx_unlabeled = ~(idx_train | idx_test | idx_val)
 
         if args.drop_method == 'dropout':
@@ -435,12 +422,12 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, default='GCN')
     parser.add_argument('--dataset', type=str, default="Cora",
                         help='dataset for training')
-    parser.add_argument("--dataset_path", type=str, default=r'../',
+    parser.add_argument("--dataset_path", type=str, default=r'./',
                         help="path to save dataset")
     parser.add_argument('--labelrate', type=int, default=20)
     parser.add_argument('--weight_decay', type=float, default=5e-4,
                         help='Weight decay (L2 loss on parameters).')
-    parser.add_argument('--epochs', type=int, default=2000,
+    parser.add_argument('--epochs', type=int, default=1,
                         help='Number of epochs to train.')
     parser.add_argument('--stage', type=int, default=2)
     parser.add_argument('--threshold', type=float, default=0.53)

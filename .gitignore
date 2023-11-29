@@ -170,4 +170,3 @@ tests/datasets/cora/*
 gammagl/sample.cpp
 profiler/cora/*
 profiler/pubmed/*
-/examples/DR_GST/save_model/GCN-Flickr-20-0.530000-0.333333-0.300000-dropout.pth/
