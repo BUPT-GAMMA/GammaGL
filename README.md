@@ -342,7 +342,9 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 
 > Note
 > 
-> The DEFAULT backend is  `tensorflow` and GPU is `0`. The backend TensorFlow will take up all GPU left memory by default.
+> The DEFAULT backend is  `torch` and GPU is `0`. 
+>
+> The backend TensorFlow will take up all GPU left memory by default.
 > 
 > The CANDIDATE backends are `tensorflow`, `paddle`, `torch` and `mindspore`.
 > 
@@ -386,6 +388,7 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [TADW [IJCAI 2015]](./examples/tadw)             | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [MGNNI [NeurIPS 2022]](./examples/mgnni)         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [MAGCL [AAAI 2023]](./examples/magcl)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [DR-GST [WWW 2022]](./examples/drgst)            | :heavy_check_mark: | :heavy_check_mark: |                    |                    |
 
 | Contrastive Learning                           | TensorFlow         | PyTorch            | Paddle             | MindSpore |
 | ---------------------------------------------- | ------------------ | ------------------ | ------------------ | --------- |

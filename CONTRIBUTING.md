@@ -15,7 +15,6 @@ Contribution is always welcomed. Please feel free to open an issue or email to t
   - Jing Wu
   - Hongyi Zhang
   - Guangyu Zhou
-  - Jinyu Yang
   
   Model Implementation
   
@@ -27,6 +26,7 @@ Contribution is always welcomed. Please feel free to open an issue or email to t
   - SaiSai Geng (Gamma Lab)
   - Jixi Liu (Gamma Lab)
   - Haoran Dai (Gamma Lab)
+  - Jinyu Yang (Gamma Lab)
   - Yuxuan Shan (BUPT)
   - Zeyao Ma (BUPT)
   - Yiming Jia (BUPT)
@@ -37,6 +37,7 @@ Contribution is always welcomed. Please feel free to open an issue or email to t
   - Yifei Shao (UESTC)
   - Haoyu Xu (AAU)
   - Zhiwei Li (BUPT)
+  - Haoyu Wang (BUPT)
   
   Advisor
   
