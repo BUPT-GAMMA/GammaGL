@@ -3,7 +3,6 @@
 - Paper link: [https://arxiv.org/abs/2201.11349](https://arxiv.org/abs/2201.11349)
 - Author's code repo: [https://github.com/TaurusTaurus-Rui/DR-GST](https://github.com/TaurusTaurus-Rui/DR-GST). Note that the original code is implemented with Pytorch for the paper.
 
-- It only supports Pytorch backend now.
 # Dataset Statics
 
 | Dataset  | # Nodes | # Edges | # Classes |
