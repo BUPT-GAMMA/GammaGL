@@ -29,6 +29,7 @@ Contribution is always welcomed. Please feel free to open an issue or email to y
   - Jinyu Yang (Gamma Lab)
   - Xingyuan Ji (Gamma Lab)
   - Yuxin Guo (Gamma Lab)
+  - Zihao Zhao (Gamma Lab)
   - Yuxuan Shan (BUPT)
   - Zeyao Ma (BUPT)
   - Yiming Jia (BUPT)
