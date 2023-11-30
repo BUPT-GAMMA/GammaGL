@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <vector>
+#include <limits>
 std::tuple<torch::Tensor, torch::Tensor> segment_max_cpu_forward(torch::Tensor& x,
                                                      torch::Tensor& index,
                                                      int64_t& N) {
@@ -34,13 +35,12 @@ std::tuple<torch::Tensor, torch::Tensor> segment_max_cpu_forward(torch::Tensor& 
   auto index_data = index.data_ptr<int64_t>();
   auto arg_out_data = arg_out.data_ptr<int64_t>();
 
-  // AT_DISPATCH_ALL_TYPES(x.scalar_type(), "__ops_name", [&] {
   using scalar_t = float;
   auto x_data = x.data_ptr<scalar_t>();
   auto out_data = out.data_ptr<scalar_t>();
 
   int64_t idx;
-#ifdef COMPILE_WITH_OMPss
+#ifdef COMPILE_WITH_OMP
 #pragma omp parallel for
 #endif
   for (auto e = 0; e < E; ++e) {
@@ -55,8 +55,8 @@ std::tuple<torch::Tensor, torch::Tensor> segment_max_cpu_forward(torch::Tensor& 
       }
     }
   }
-  out.masked_fill_(out == std::numeric_limits<int64_t>::lowest(), (scalar_t)0);
-  // });
+
+  // out.masked_fill_(out == std::numeric_limits<int64_t>::lowest(), std::numeric_limits<float>::quiet_NaN());
 
   return std::make_tuple(out, arg_out);
 }

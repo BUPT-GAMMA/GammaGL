@@ -39,8 +39,8 @@ torch::Tensor SegmentSum::forward(AutogradContext* ctx,
 }
 
 std::vector<torch::Tensor> SegmentSum::backward(
-            AutogradContext* ctx,
-            std::vector<torch::Tensor> grad_outs) {
+      AutogradContext* ctx,
+      std::vector<torch::Tensor> grad_outs) {
     auto grad_out = grad_outs[0];
     auto saved = ctx->get_saved_variables();
     auto index = saved[0];

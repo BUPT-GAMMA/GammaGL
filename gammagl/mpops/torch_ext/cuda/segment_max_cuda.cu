@@ -97,7 +97,7 @@ segment_max_cuda_forward(torch::Tensor x, torch::Tensor index, int64_t N) {
       <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
           x_data, index_data, out_data, E, K, N, x.numel());
 
-  out.masked_fill_(out == std::numeric_limits<int64_t>::lowest(), (scalar_t)0);
+  // out.masked_fill_(out == std::numeric_limits<int64_t>::lowest(), (scalar_t)0);
 
   arg_segment_max_cuda_forward_kernel<scalar_t>
       <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
