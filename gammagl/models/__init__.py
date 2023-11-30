@@ -46,7 +46,7 @@ from .mgnni import MGNNI_m_MLP, MGNNI_m_att
 from .magcl import NewGrace
 from .cagcn import CAGCNModel
 from .cogsl import CoGSLModel
-
+from .specformer import Specformer, SpecLayer
 
 __all__ = [
     'GCNModel',
@@ -99,8 +99,7 @@ __all__ = [
     'NewGrace',
     'CAGCNModel',
     'CoGSLModel',
-
-
+    'Specformer',
 ]
 
 classes = __all__
