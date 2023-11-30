@@ -27,6 +27,7 @@ Contribution is always welcomed. Please feel free to open an issue or email to t
   - Jixi Liu (Gamma Lab)
   - Haoran Dai (Gamma Lab)
   - Jinyu Yang (Gamma Lab)
+  - Zihao Zhao (Gamma Lab)
   - Xianglong Wang (Gamma Lab)
   - Yuxuan Shan (BUPT)
   - Zeyao Ma (BUPT)

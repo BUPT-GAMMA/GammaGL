@@ -19,9 +19,9 @@ Refer to [WikipediaNetwork](https://github.com/BUPT-GAMMA/GammaGL/blob/main/gamm
 
 ```bash
 # available dataset: "chameleon", "squirrel", config below
-python spec_trainer.py --dataset=chameleon --n_epoch=2000 --n_heads=4 --n_layer=2 --hidden_dim=32 --lr=0.001 --weight_decay=0.0005 --tran_dropout=0.2 --feat_dropout=0.4 --prop_dropout=0.5 
-python spec_trainer.py --dataset=squirrel --n_epoch=2000 --n_heads=4 --n_layer=2 --hidden_dim=32 --lr=0.001 --weight_decay=0.001 --tran_dropout=0.1 --feat_dropout=0.4 --prop_dropout=0.4 
-python spec_trainer.py --dataset=cora --n_epoch=2000 --n_heads=4 --n_layer=2 --hidden_dim=32 --lr=0.0002 --weight_decay=0.0001 --tran_dropout=0.2 --feat_dropout=0.6 --prop_dropout=0.2 
+python spec_trainer.py --dataset=chameleon --n_epoch=500 --n_heads=4 --n_layer=2 --hidden_dim=32 --lr=0.001 --weight_decay=0.0005 --tran_dropout=0.2 --feat_dropout=0.4 --prop_dropout=0.5 
+python spec_trainer.py --dataset=squirrel --n_epoch=500 --n_heads=4 --n_layer=2 --hidden_dim=32 --lr=0.001 --weight_decay=0.001 --tran_dropout=0.1 --feat_dropout=0.4 --prop_dropout=0.4 
+python spec_trainer.py --dataset=cora --n_epoch=500 --n_heads=4 --n_layer=2 --hidden_dim=32 --lr=0.0002 --weight_decay=0.0001 --tran_dropout=0.2 --feat_dropout=0.6 --prop_dropout=0.2 
 
 
 ```

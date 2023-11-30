@@ -45,7 +45,7 @@ from .tadw import TADWModel
 from .mgnni import MGNNI_m_MLP, MGNNI_m_att 
 from .magcl import NewGrace
 from .cagcn import CAGCNModel
-from .specformer import Specformer,SpecLayer
+from .specformer import Specformer, SpecLayer
 
 
 __all__ = [
