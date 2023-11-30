@@ -39,6 +39,7 @@ class GRADE(tlx.nn.Module):
     r"""The  GRAph contrastive learning for DEgree bias (GRADE) model from the
         `"Uncovering the Structural Fairness in Graph Contrastive Learning"
         <https://arxiv.org/abs/2210.03011>`_ paper.
+
         Parameters
         -----------
         in_dim: int
@@ -53,6 +54,7 @@ class GRADE(tlx.nn.Module):
             Activation function.
         temp: float
             Temperature constant.
+
      """
     def __init__(self, in_dim, hid_dim, out_dim, num_layers, act_fn, temp):
         super(GRADE, self).__init__()

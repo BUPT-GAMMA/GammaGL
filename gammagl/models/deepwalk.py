@@ -11,13 +11,13 @@ EPS = 1e-15
 
 class DeepWalkModel(tlx.nn.Module):
     r"""The DeepWalk model from the
-    `"DeepWalk: Online Learning of Social Representations"
-    <https://arxiv.org/abs/1403.6652>`_ paper where random walks of
-    length :obj:`walk_length` are sampled in a given graph, and node embeddings
-    are learned via negative sampling optimization.
+        `"DeepWalk: Online Learning of Social Representations"
+        <https://arxiv.org/abs/1403.6652>`_ paper where random walks of
+        length :obj:`walk_length` are sampled in a given graph, and node embeddings
+        are learned via negative sampling optimization.
 
-    Parameters
-    ----------
+        Parameters
+        ----------
         edge_index: Iterable
             The edge indices.
         edge_weight: Iterable
@@ -26,18 +26,19 @@ class DeepWalkModel(tlx.nn.Module):
             The size of each embedding vector.
         walk_length: int
             The walk length.
-        num_walks: int
+        num_walks: int, optional
             The number of walks to sample for each node.
-        window_size: int
+        window_size: int, optional
             The actual context size which is considered for
             positive samples. This parameter increases the effective sampling
             rate by reusing samples across different source nodes.
-        num_negatives: int
+        num_negatives: int, optional
             The number of negative samples to use for each positive sample.
-        num_nodes: int
+        num_nodes: int, optional
             The number of nodes.
-        name: str
-            model name
+        name: str, optional
+            model name.
+
     """
 
     def __init__(

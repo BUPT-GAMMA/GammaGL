@@ -5,26 +5,28 @@ from gammagl.layers.conv import GMMConv
 
 class GMMModel(tlx.nn.Module):
     r"""The Gaussian Mixture Model or MoNet from the `"Geometric deep learning on graphs
-        and manifolds using mixture model CNNs" <https://arxiv.org/abs/1611.08402>`_ paper
+        and manifolds using mixture model CNNs"
+        <https://arxiv.org/abs/1611.08402>`_ paper.
 
         Parameters
         ----------
-        feature_dim : int
-            input feature dimension
+        feature_dim: int
+            input feature dimension.
         hidden_dim: int
-            hidden dimension
-        num_class : int
-            number of classes
-        dim : int
+            hidden dimension.
+        num_class: int
+            number of classes.
+        dim: int
             Dimensionality of pseudo-coordinte.
-        n_kernels : int
+        n_kernels: int
             Number of kernels.
-        drop_rate : float
-            dropout rate
-        num_layers : int
-            number of layers
-        name : str
-            model name
+        drop_rate: float
+            dropout rate.
+        num_layers: int
+            number of layers.
+        name: str, optional
+            model name.
+
         """
 
     def __init__(self,

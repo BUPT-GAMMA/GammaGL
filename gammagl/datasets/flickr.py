@@ -15,7 +15,7 @@ class Flickr(InMemoryDataset):
 
     Parameters
     ----------
-    root: string
+    root: str, optional
         Root directory where the dataset should be saved.
     transform: callable, optional
         A function/transform that takes in an
