@@ -96,14 +96,14 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='pubmed', help='Dataset')
+    parser.add_argument('--dataset', type=str, default='cora', help='Dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument('--teacher', type=str,
                         default='GCN', help='Teacher Model')
     parser.add_argument('--student', type=str,
                         default='GCN', help='Student Model')
     parser.add_argument('--automl', action='store_true',
-                        default=True, help='Automl or not')
+                        default=False, help='Automl or not')
     parser.add_argument('--ntrials', type=int, default=30,
                         help='Number of trials')
     parser.add_argument('--njobs', type=int, default=1, help='Number of jobs')
