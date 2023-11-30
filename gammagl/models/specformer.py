@@ -33,7 +33,7 @@ def transepose_output(X, num_heads):
     return X
 
 class MultiHeadAttention(tlx.nn.Module):
-    def __init__(self, hidden_dim, n_heads, tran_dropout=0.0):
+    def __init__(self, hidden_dim, n_heads):
         super(MultiHeadAttention, self).__init__()
         self.num_heads = n_heads
 
@@ -45,7 +45,6 @@ class MultiHeadAttention(tlx.nn.Module):
     def dot_product_attention(self, querys, keys=None, values=None):
         keys = querys
         values = querys
-
         d = tlx.get_tensor_shape(querys)[-1]
         scores = tlx.bmm(querys, tlx.transpose(keys, perm=[0, 2, 1])) / math.sqrt(d)
         self.attn_weights = tlx.nn.Softmax(axis=-1)(scores)
