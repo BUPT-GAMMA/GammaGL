@@ -1,7 +1,7 @@
 import math
 import tensorlayerx as tlx
 
-def transpose_qkv_tlx(X, num_heads):
+def transpose_qkv(X, num_heads):
     """
     To split the q, k, v with multiheads
     
@@ -23,7 +23,7 @@ def transpose_qkv_tlx(X, num_heads):
     X = tlx.reshape(X, (-1, tlx.get_tensor_shape(X)[2], tlx.get_tensor_shape(X)[3]))
     return X
 
-def transepose_output_tlx(X, num_heads):
+def transepose_output(X, num_heads):
     X = tlx.reshape(X, (-1, num_heads, tlx.get_tensor_shape(X)[1],
                         tlx.get_tensor_shape(X)[2]))
     X = tlx.convert_to_tensor(tlx.convert_to_numpy(X).transpose((0, 2, 1, 3)))
@@ -32,9 +32,9 @@ def transepose_output_tlx(X, num_heads):
 
     return X
 
-class MultiHeadAttention_tlx(tlx.nn.Module):
+class MultiHeadAttention(tlx.nn.Module):
     def __init__(self, hidden_dim, n_heads, tran_dropout=0.0):
-        super(MultiHeadAttention_tlx, self).__init__()
+        super(MultiHeadAttention, self).__init__()
         self.num_heads = n_heads
 
         self.W_q = tlx.nn.Linear(in_features=hidden_dim, out_features=hidden_dim, act=tlx.relu)
@@ -59,12 +59,12 @@ class MultiHeadAttention_tlx(tlx.nn.Module):
             k = tlx.expand_dims(k, axis=0)
             v = tlx.expand_dims(v, axis=0)
 
-        q = transpose_qkv_tlx(self.W_q(q), self.num_heads)
-        k = transpose_qkv_tlx(self.W_k(k), self.num_heads)
-        v = transpose_qkv_tlx(self.W_v(v), self.num_heads)
+        q = transpose_qkv(self.W_q(q), self.num_heads)
+        k = transpose_qkv(self.W_k(k), self.num_heads)
+        v = transpose_qkv(self.W_v(v), self.num_heads)
 
         output = self.dot_product_attention(q, k, v)
-        output_concat = transepose_output_tlx(output, self.num_heads)
+        output_concat = transepose_output(output, self.num_heads)
         res = self.W_o(output_concat)
 
         if not is_batched:  # if input with no batchs, remove the batchs which is added at the beginning
@@ -96,10 +96,10 @@ class SineEncoding(tlx.nn.Module):
 
         return self.eig_w(eeig)
 
-class FeedForwardNetwork_tlx(tlx.nn.Module):
+class FeedForwardNetwork(tlx.nn.Module):
 
     def __init__(self, input_dim, hidden_dim, output_dim):
-        super(FeedForwardNetwork_tlx, self).__init__()
+        super(FeedForwardNetwork, self).__init__()
         self.layer1 = tlx.nn.Linear(in_features=input_dim, out_features=hidden_dim, act=tlx.relu)
         self.layer2 = tlx.nn.Linear(in_features=hidden_dim, out_features=output_dim)
 
@@ -186,8 +186,8 @@ class Specformer(tlx.nn.Module):
         self.ffn_norm = tlx.nn.LayerNorm(hidden_dim)
         self.mha_dropout = tlx.nn.Dropout(p=tran_dropout)
         self.ffn_dropout = tlx.nn.Dropout(p=tran_dropout)
-        self.mha = MultiHeadAttention_tlx(hidden_dim=hidden_dim, n_heads=n_heads, tran_dropout=tran_dropout)
-        self.ffn = FeedForwardNetwork_tlx(hidden_dim, hidden_dim, hidden_dim)
+        self.mha = MultiHeadAttention(hidden_dim=hidden_dim, n_heads=n_heads, tran_dropout=tran_dropout)
+        self.ffn = FeedForwardNetwork(hidden_dim, hidden_dim, hidden_dim)
         self.feat_dp1 = tlx.nn.Dropout(p=feat_dropout)
         self.feat_dp2 = tlx.nn.Dropout(p=feat_dropout)
         
