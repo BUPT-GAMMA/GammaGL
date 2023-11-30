@@ -12,11 +12,8 @@ from gammagl.models import GCNModel, GATModel, MLP
 
 
 def layer_normalize(logits):
-    # 计算每个样本的均值和标准差
     mean = torch.mean(logits, dim=-1, keepdim=True)
     std = torch.std(logits, dim=-1, keepdim=True)
-
-    # 层归一化
     normalized_logits = (logits - mean) / (std + 1e-8)
 
     return normalized_logits
@@ -75,7 +72,6 @@ def distill_train(epoch, model, configs, graph, nei_entropy, t_model, teacher_lo
         logits = model(graph.x, edge_index, None, graph.num_nodes)
     elif configs['student'] == 'GAT':
         logits = model(graph.x, edge_index, graph.num_nodes)
-    # if configs['student'] == 'GAT' and configs['dataset'] == 'citeseer':
     logits = layer_normalize(logits)
     acc_train = accuracy(logits[train_mask], graph.y[train_mask])
     acc_same = accuracy_t(logits, teacher_logits)
@@ -112,7 +108,6 @@ def distill_train(epoch, model, configs, graph, nei_entropy, t_model, teacher_lo
             logits = model(graph.x, edge_index, None, graph.num_nodes)
         elif configs['student'] == 'GAT':
             logits = model(graph.x, edge_index, graph.num_nodes)
-        # if configs['student'] == 'GAT' and configs['dataset'] == 'citeseer':
         logits = layer_normalize(logits)
         student_hard = tlx.ops.softmax(logits, axis=1)
         labels_one_hot = tlx.nn.OneHot(depth=dataset.num_classes)(graph.y)

@@ -4,15 +4,11 @@ import numpy as np
 import tensorlayerx as tlx
 import logging
 
-# 获取 TensorLayerX 的 logger
 tlx_logger = logging.getLogger("tensorlayerx")
-
-# 设置 logger 的级别为 ERROR，以屏蔽 INFO 信息
 tlx_logger.setLevel(logging.ERROR)
-from distill_dgl import choose_model, model_train, layer_normalize
+from distill import choose_model, model_train, layer_normalize
 import sys
 import optuna
-import torch
 
 sys.path.insert(0, os.path.abspath('../../'))
 from gammagl.datasets import Planetoid
@@ -79,7 +75,6 @@ def raw_experiment(configs):
     else:
         raise ValueError('Unknown dataset: {}'.format(configs['dataset']))
     teacher_logits = load_cascades(cascade_dir)
-    # if configs['student'] == 'GAT' and configs['dataset'] == 'citeseer':
     teacher_logits = layer_normalize(teacher_logits)
     model = choose_model(configs, dataset)
     acc_val = model_train(configs, model, graph, teacher_logits, dataset)
