@@ -1,20 +1,20 @@
-name: Build and Test
+name: Test Build Package
 
-on: [push, pull_request]
+on: [workflow_dispatch]
 
 jobs:
-  build-and-test:
+  build-package:
     runs-on: ubuntu-latest
+    services:
+      docker:
+        image: quay.io/pypa/manylinux2010_x86_64
+        options: --entrypoint /bin/bash
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
           submodules: 'recursive'
-
-      - name: Checkout master and HEAD
-        run: |
-          git checkout ${{ github.event.pull_request.head.sha }}
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
@@ -26,9 +26,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r .circleci/requirements.txt
 
+      - name: Install TensorLayerx
+        run: |
+          pip install git+https://github.com/dddg617/TensorLayerX.git@nightly
+
       - name: Install PyTorch, torchvision and torchaudio
         run: |
-          pip install torch==1.12.1+cpu torchvision==0.13.1+cpu torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
       - name: Install llvmlite
         run: |
@@ -36,12 +40,4 @@ jobs:
 
       - name: Install package
         run: |
-          python setup.py install
-
-      - name: Run TF tests
-        run: |
-          TL_BACKEND=tensorflow pytest
-
-      - name: Run TH tests
-        run: |
-          TL_BACKEND=torch pytest
+          pip install gammagl
