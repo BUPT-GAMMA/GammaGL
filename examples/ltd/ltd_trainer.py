@@ -28,9 +28,13 @@ predefined_configs = {
             'hidden_dim': 64,
             'drop_rate': 0.8,
             'num_layers': 2,
-            'my_lr': 3.962389492132923e-06,
-            'my_t_lr': 0.0008538274073536564,
-            'lam': 1500,
+            # 'my_lr': 3.962389492132923e-06,
+            # 'my_t_lr': 0.0008538274073536564,
+            # 'my_lr': 7.39520400332059E-06,
+            # 'my_t_lr': 0.0000937937968682644,
+            'my_lr': 7.39520400332059E-07,
+            'my_t_lr': 0.0000937937968682644,
+            'lam': 1000,
             'k': 1
         },
     },
@@ -62,7 +66,7 @@ predefined_configs = {
             'num_layers': 2,
             'my_lr': 0.0000295072855477947,
             'my_t_lr': 0.000003722992284806,
-            'lam': 1000,
+            'lam': 200,
             'k': 2
         },
     },
@@ -77,7 +81,7 @@ def set_configs(configs):
 
 def func_search(trial):
     return {
-        "my_lr": trial.suggest_uniform("my_lr", 1e-7, 0.004),
+        "my_lr": trial.suggest_uniform("my_lr", 1e-8, 0.004),
         "my_t_lr": trial.suggest_uniform("my_t_lr", 1e-6, 0.01),
     }
 
@@ -96,14 +100,14 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='citeseer', help='Dataset')
+    parser.add_argument('--dataset', type=str, default='pubmed', help='Dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument('--teacher', type=str,
-                        default='GAT', help='Teacher Model')
+                        default='GCN', help='Teacher Model')
     parser.add_argument('--student', type=str,
-                        default='GAT', help='Student Model')
+                        default='GCN', help='Student Model')
     parser.add_argument('--automl', action='store_true',
-                        default=False, help='Automl or not')
+                        default=True, help='Automl or not')
     parser.add_argument('--ntrials', type=int, default=30,
                         help='Number of trials')
     parser.add_argument('--njobs', type=int, default=1, help='Number of jobs')

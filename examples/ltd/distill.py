@@ -3,11 +3,23 @@ import tensorlayerx as tlx
 import numpy as np
 import sys
 
+import torch.nn
+
 sys.path.insert(0, os.path.abspath('../../'))
 from gammagl.utils import add_self_loops, remove_self_loops
 from gammagl.mpops import *
 from gammagl.models import GCNModel, GATModel, MLP
 
+
+def layer_normalize(logits):
+    # 计算每个样本的均值和标准差
+    mean = torch.mean(logits, dim=-1, keepdim=True)
+    std = torch.std(logits, dim=-1, keepdim=True)
+
+    # 层归一化
+    normalized_logits = (logits - mean) / (std + 1e-8)
+
+    return normalized_logits
 
 def accuracy(output, labels):
     preds = output.max(1)[1].type_as(labels)
@@ -15,7 +27,6 @@ def accuracy(output, labels):
     result = correct.sum()
 
     return result / len(labels)
-
 
 def accuracy_t(output, labels):
     preds = output.max(1)[1].type_as(labels)
@@ -64,6 +75,8 @@ def distill_train(epoch, model, configs, graph, nei_entropy, t_model, teacher_lo
         logits = model(graph.x, edge_index, None, graph.num_nodes)
     elif configs['student'] == 'GAT':
         logits = model(graph.x, edge_index, graph.num_nodes)
+    # if configs['student'] == 'GAT' and configs['dataset'] == 'citeseer':
+    logits = layer_normalize(logits)
     acc_train = accuracy(logits[train_mask], graph.y[train_mask])
     acc_same = accuracy_t(logits, teacher_logits)
     with torch.no_grad():
@@ -90,8 +103,7 @@ def distill_train(epoch, model, configs, graph, nei_entropy, t_model, teacher_lo
     for p_name, p in model.named_parameters():
         agr = torch.autograd.grad(train_loss, p, create_graph=True)[0]
         model_dict[p_name] = p - configs['my_lr'] * agr
-
-    model.load_state_dict(model_dict, strict=False)
+    model.load_state_dict(model_dict)
 
     t_train_loss = torch.tensor(0)
     if epoch > 20:
@@ -100,6 +112,8 @@ def distill_train(epoch, model, configs, graph, nei_entropy, t_model, teacher_lo
             logits = model(graph.x, edge_index, None, graph.num_nodes)
         elif configs['student'] == 'GAT':
             logits = model(graph.x, edge_index, graph.num_nodes)
+        # if configs['student'] == 'GAT' and configs['dataset'] == 'citeseer':
+        logits = layer_normalize(logits)
         student_hard = tlx.ops.softmax(logits, axis=1)
         labels_one_hot = tlx.nn.OneHot(depth=dataset.num_classes)(graph.y)
         t_train_loss = -tlx.ops.reduce_sum(
@@ -118,7 +132,7 @@ def distill_train(epoch, model, configs, graph, nei_entropy, t_model, teacher_lo
                     0]
                 t_model_dict[name] = t - configs['my_t_lr'] * agr
 
-        t_model.load_state_dict(t_model_dict, strict=False)
+        t_model.load_state_dict(t_model_dict)
         zero_grad(t_model)
     model.set_eval()
     edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes)
