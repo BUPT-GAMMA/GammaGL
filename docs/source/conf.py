@@ -35,7 +35,7 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 doctest_default_flags = doctest.NORMALIZE_WHITESPACE
 autodoc_member_order = 'bysource'
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/', None),
+    'python': ('https://docs.python.org/3/', None),
     # TODO "unknown or unsupported inventory version" error for numpy doc.
     # 'numpy': ('http://docs.scipy.org/doc/numpy', None),
     # 'pandas': ('http://pandas.pydata.org/pandas-docs/dev', None),

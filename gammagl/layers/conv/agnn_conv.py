@@ -30,9 +30,10 @@ class AGNNConv(MessagePassing):
         edge_index[0,i] points to edge_index[1,i].
     num_nodes: int
         Number of nodes on the graph.
-    require_grad: bool,optional
+    require_grad: bool, optional
         If set to :obj:`False`, :math:`\beta`
         will not be trainable. (default: :obj:`True`)
+
     '''
 
 

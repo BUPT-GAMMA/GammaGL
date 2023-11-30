@@ -174,8 +174,8 @@ class BaseGraph:
         return sum([v.num_edges for v in self.edge_stores])
 
     def is_coalesced(self) -> bool:
-        r"""Returns :obj:`True` if edge indices :obj:`edge_index` are sorted
-        and do not contain duplicate entries."""
+        r"""Returns :obj:`True` if the :obj:`edge_index` is sorted
+        and does not contain duplicate entries."""
         return all([store.is_coalesced() for store in self.edge_stores])
 
     def coalesce(self):
@@ -348,42 +348,43 @@ class BaseGraph:
 
 class Graph(BaseGraph):
     r"""
-    A Graph object describe a homogeneous graph. The graph object
-    will hold node-level, link-level and graph-level attributes. In
-    general, :class:`~gammagl.data.Data` tries to mimic the behaviour
-    of a regular Python dictionary. In addition, it provides useful
-    functionality for analyzing graph structures, and provides basic
-    tensor functionalities.
+        A Graph object describe a homogeneous graph. The graph object
+        will hold node-level, link-level and graph-level attributes. In
+        general, :class:`~gammagl.data.Graph` tries to mimic the behaviour
+        of a regular Python dictionary. In addition, it provides useful
+        functionality for analyzing graph structures, and provides basic
+        tensor functionalities.
 
-    .. code:: python
+        .. code:: python
 
-        >>> from gammagl.data import Graph
-        >>> import numpy
-        >>> g = graph.Graph(x=numpy.random.randn(5, 16), edge_index=[[0, 0, 0], [1, 2, 3]], num_nodes=5,)
-        >>> print(g)
-        GNN Graph instance.
-        number of nodes: 5
-        number of edges: 2
+            >>> from gammagl.data import Graph
+            >>> import numpy
+            >>> g = Graph(x=numpy.random.randn(5, 16), edge_index=[[0, 0, 0], [1, 2, 3]], num_nodes=5,)
+            >>> print(g)
+            GNN Graph instance.
+            number of nodes: 5
+            number of edges: 2
 
-        >>> print(g.indegree.numpy(), g.outdegree.numpy())
-        [0. 1. 1. 1. 0.] [3. 0. 0. 0. 0.]
+            >>> print(g.indegree.numpy(), g.outdegree.numpy())
+            [0. 1. 1. 1. 0.] [3. 0. 0. 0. 0.]
 
-    Parameters
-    ----------
-    x: Tensor
-        Node feature matrix with shape :obj:`[num_nodes, num_node_features]`. (default: :obj:`None`)
-    edge_index: LongTensor
-        Graph connectivity in COO format with shape :obj:`[2, num_edges]`. (default: :obj:`None`)
-    edge_attr: Tensor
-        Edge feature matrix with shape :obj:`[num_edges, num_edge_features]`. (default: :obj:`None`)
-    num_nodes: int
-        The specified number of nodes. (default: :obj:`None`)
-    y: Tensor
-        Graph-level or node-level ground-truth labels with arbitrary shape. (default: :obj:`None`)
-    to_tensor: Bool
-        Set data to tensor
-    spr_format: List(str)
-        Specify the other sparse storage format, like `csc` and `csr`. (default: :obj:`None`)
+        Parameters
+        ----------
+        x: tensor, list, numpy.array
+            Node feature matrix with shape :obj:`[num_nodes, num_node_features]`. (default: :obj:`None`)
+        edge_index: tensor, list, numpy.array
+            Graph connectivity in COO format with shape :obj:`[2, num_edges]`. (default: :obj:`None`)
+        edge_attr: tensor
+            Edge feature matrix with shape :obj:`[num_edges, num_edge_features]`. (default: :obj:`None`)
+        num_nodes: int
+            The specified number of nodes. (default: :obj:`None`)
+        y: tensor
+            Graph-level or node-level ground-truth labels with arbitrary shape. (default: :obj:`None`)
+        to_tensor: bool
+            Set data to tensor
+        spr_format: list(str)
+            Specify the other sparse storage format, like `csc` and `csr`. (default: :obj:`None`)
+
     """
 
     def __init__(self, x=None, edge_index=None, edge_attr=None, y=None, spr_format=None, to_tensor=True,
@@ -458,7 +459,7 @@ class Graph(BaseGraph):
             info = ',\n'.join(info)
             return f'{cls}(\n{info}\n)'
 
-    def stores_as(self, data: 'Data'):
+    def stores_as(self, data: 'Graph'):
         return self
 
     @property
@@ -499,7 +500,7 @@ class Graph(BaseGraph):
         pass  # TODO
 
     def is_node_attr(self, key: str) -> bool:
-        r"""Returns :obj:`True` if the object at key :obj:`key` denotes a
+        r"""Returns :obj:`True` if the object at :obj:`key` denotes a
         node-level attribute."""
         return self._store.is_node_attr(key)
 
@@ -573,7 +574,7 @@ class Graph(BaseGraph):
         edge_attr: FloatTensor
             attributes of edges.
         """
-        return add_self_loops(self.edge_index, n_loops, self.edge_attr, num_nodes=self.num_nodes)
+        return add_self_loops(self.edge_index, self.edge_attr, n_loops, num_nodes=self.num_nodes)
 
     def sorted_edges(self, sort_by="src"):
         """Return sorted edges with different strategies.
@@ -686,15 +687,21 @@ class Graph(BaseGraph):
         :meth:`~gammagl.data.HeteroGraph.to_homogeneous`, the object can
         be reconstructed without any need to pass in additional arguments.
 
-        Args:
-            node_type (Tensor, optional): A node-level vector denoting the type
+        Parameters
+        ----------
+            node_type: tensor, optional
+                A node-level vector denoting the type
                 of each node. (default: :obj:`None`)
-            edge_type (Tensor, optional): An edge-level vector denoting the
+            edge_type: tensor, optional
+                An edge-level vector denoting the
                 type of each edge. (default: :obj:`None`)
-            node_type_names (List[str], optional): The names of node types.
+            node_type_names: list[str], optional
+                The names of node types.
                 (default: :obj:`None`)
-            edge_type_names (List[Tuple[str, str, str]], optional): The names
+            edge_type_names: list[tuple[str, str, str]], optional
+                The names
                 of edge types. (default: :obj:`None`)
+
         """
         from gammagl.data import HeteroGraph
 
@@ -726,8 +733,8 @@ class Graph(BaseGraph):
                 dst_types = np.unique(tlx.convert_to_numpy(tlx.gather(node_type, dst))).tolist()
                 if len(src_types) != 1 and len(dst_types) != 1:
                     raise ValueError(
-                        "Could not construct a 'HeteroData' object from the "
-                        "'Data' object because single edge types span over "
+                        "Could not construct a 'Graph' object from the "
+                        "'Graph' object because single edge types span over "
                         "multiple node types")
                 edge_type_names.append((node_type_names[src_types[0]], str(i),
                                         node_type_names[dst_types[0]]))
@@ -792,7 +799,7 @@ class Graph(BaseGraph):
 
     @classmethod
     def from_dict(cls, mapping: Dict[str, Any]):
-        r"""Creates a :class:`~gammagl.data.Data` object from a Python
+        r"""Creates a :class:`~gammagl.data.Graph` object from a Python
         dictionary."""
         return cls(**mapping)
 

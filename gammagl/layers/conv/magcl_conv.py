@@ -22,30 +22,28 @@ class MAGCLConv(MessagePassing):
         \sum_{i=1}^{|\mathcal{V}|}\left|\boldsymbol{z}_{i}-\boldsymbol{z}_{i}^{\prime}\right|^{2} =
         \min _{\boldsymbol{W}} \text{tr}\left(\left(\boldsymbol{Z}-\boldsymbol{Z}^{\prime}\right)\left(\boldsymbol{Z}-\boldsymbol{Z}^{\prime}\right)^{T}\right)
 
-        \text { subject to } \boldsymbol{W}^{T} \boldsymbol{W}=\boldsymbol{I}
+
+    subject to :math:`\boldsymbol{W}^{T} \boldsymbol{W}=\boldsymbol{I}`.
 
     Parameters
     ----------
-        in_channels: int
-            Size of each input sample
-        out_channels: int
-            Size of each output sample.
-        norm: str, optional
-            How to apply the normalizer.  Can be one of the following values:
+    in_channels: int
+        Size of each input sample
+    out_channels: int
+        Size of each output sample.
+    norm: str, optional
+        How to apply the normalizer.  Can be one of the following values:
 
-            * ``right``, to divide the aggregated messages by each node's in-degrees,
-            which is equivalent to averaging the received messages.
+            * ``right``, to divide the aggregated messages by each node's in-degrees, which is equivalent to averaging the received messages.
 
             * ``none``, where no normalization is applied.
 
-            * ``both`` (default), where the messages are scaled with :math:`1/c_{ji}` above, equivalent
-            to symmetric normalization.
+            * ``both`` (default), where the messages are scaled with :math:`1/c_{ji}` above, equivalent to symmetric normalization.
 
-            * ``left``, to divide the messages sent out from each node by its out-degrees,
-            equivalent to random walk normalization.
-        add_bias: bool, optional
-            If set to :obj:`False`, the layer will not learn
-            an additive bias. (default: :obj:`True`)
+            * ``left``, to divide the messages sent out from each node by its out-degrees, equivalent to random walk normalization.
+    add_bias: bool, optional
+        If set to :obj:`False`, the layer will not learn
+        an additive bias. (default: :obj:`True`)
 
     """
 

@@ -26,23 +26,29 @@ IndexType = Union[slice, np.ndarray, Sequence]
 
 class Dataset(Dataset):
     r"""Dataset base class for creating graph datasets.
-    See `here <https://gammagl.readthedocs.io/en/latest/notes/create_dataset.html#l>`__ for the accompanying tutorial.
+        See `here <https://gammagl.readthedocs.io/en/latest/notes/create_dataset.html#>`__ for the accompanying tutorial.
 
-    Args:
-        root (string, optional): Root directory where the dataset should be
+        Parameters
+        ----------
+        root: str, optional
+            Root directory where the dataset should be
             saved. (optional: :obj:`None`)
-        transform (callable, optional): A function/transform that takes in an
-            :obj:`gammagl.data.Data` object and returns a transformed
+        transform: callable, optional
+            A function/transform that takes in an
+            :obj:`gammagl.data.Graph` object and returns a transformed
             version. The data object will be transformed before every access.
             (default: :obj:`None`)
-        pre_transform (callable, optional): A function/transform that takes in
-            an :obj:`gammagl.data.Data` object and returns a
-            transformed version. The data object will be transformed before
+        pre_transform: callable, optional
+            A function/transform that takes in
+            an :obj:`gammagl.data.Graph` object and returns a
+            transformed version. The graph object will be transformed before
             being saved to disk. (default: :obj:`None`)
-        pre_filter (callable, optional): A function that takes in an
-            :obj:`gammagl.data.Data` object and returns a boolean
-            value, indicating whether the data object should be included in the
+        pre_filter: callable, optional
+            A function that takes in an
+            :obj:`gammagl.data.Graph` object and returns a boolean
+            value, indicating whether the graph object should be included in the
             final dataset. (default: :obj:`None`)
+
     """
 
     @property
@@ -225,17 +231,21 @@ class Dataset(Dataset):
         file.truncate()
 
     def _download(self):
+        if hasattr(self, "name"):
+            name = self.name
+        else:
+            name = self._name
         dataset_meta_path = get_dataset_meta_path()
         if files_exist(self.raw_paths) or files_exist(self.processed_paths):
             # for compatibility, check config file
             with open(dataset_meta_path, 'r+') as f:
                 dataset_meta_dict = json.load(f)
-                if self._name in dataset_meta_dict and 'root_dir' in dataset_meta_dict[self._name] and 'hash' in \
-                        dataset_meta_dict[self._name]:
+                if name in dataset_meta_dict and 'root_dir' in dataset_meta_dict[name] and 'hash' in \
+                        dataset_meta_dict[name]:
                     return
                 # dataset_meta = dict()
                 # dataset_meta['root_dir'] = osp.abspath(self.root_dir)
-                dataset_meta_dict[self._name] = {
+                dataset_meta_dict[name] = {
                     'root_dir': self.root_dir,
                     'hash': md5folder(self.raw_dir)
                 }
@@ -245,11 +255,11 @@ class Dataset(Dataset):
 
         with open(dataset_meta_path, 'r+') as f:
             dataset_meta_dict = json.load(f)
-            if self._name in dataset_meta_dict:
-                dataset_meta = dataset_meta_dict[self._name]
+            if name in dataset_meta_dict:
+                dataset_meta = dataset_meta_dict[name]
                 record_root_dir = dataset_meta.get('root_dir', None)
                 if record_root_dir is None:
-                    del dataset_meta_dict[self._name]
+                    del dataset_meta_dict[name]
                     self.rb_config(dataset_meta_dict, f)
                 else:
                     # validate
@@ -273,12 +283,12 @@ class Dataset(Dataset):
                             else:
                                 os.rmdir(self.root_dir)
                         print(
-                            f"Dataset[{self._name}] has been downloaded, now copy it from {record_root_dir} to {self.root_dir}.")
+                            f"Dataset[{name}] has been downloaded, now copy it from {record_root_dir} to {self.root_dir}.")
                         shutil.copytree(record_root_dir, self.root_dir)
                         # default position, update it
                         if self.raw_root is None:
                             dataset_meta['root'] = self.root
-                            dataset_meta_dict[self._name] = dataset_meta
+                            dataset_meta_dict[name] = dataset_meta
                             self.rb_config(dataset_meta_dict, f)
                         # success and return
                         return
@@ -289,7 +299,7 @@ class Dataset(Dataset):
             self.download()
 
             # success
-            dataset_meta_dict[self._name] = {
+            dataset_meta_dict[name] = {
                 'root_dir': self.root_dir,
                 'hash': md5folder(self.raw_dir)
             }
@@ -400,10 +410,13 @@ class Dataset(Dataset):
         #    -> Union['Dataset', Tuple['Dataset', tf.Tensor]]:
         r"""Randomly shuffles the examples in the dataset.
 
-        Args:
-            return_perm (bool, optional): If set to :obj:`True`, will also
+            Parameters
+            ----------
+            return_perm: bool, optional
+                If set to :obj:`True`, will also
                 return the random permutation used to shuffle the dataset.
                 (default: :obj:`False`)
+
         """
         perm = np.random.permutation(len(self))
         dataset = self.index_select(perm)

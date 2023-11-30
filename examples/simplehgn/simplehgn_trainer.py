@@ -1,16 +1,13 @@
 import argparse
 import os
-import sys
-os.environ['TL_BACKEND'] = 'tensorflow'
-sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
-sys.path.insert(0, os.path.abspath('./')) # adds path2gammagl to execute in command line.
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 import tensorlayerx as tlx
 from sklearn.metrics import f1_score
 from gammagl.datasets import HGBDataset
 from gammagl.models import SimpleHGNModel
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.utils import add_self_loops, mask_to_index
-
 
 def calculate_f1_score(val_logits, val_y):
     val_logits = tlx.ops.argmax(val_logits, axis=-1)
@@ -30,10 +27,10 @@ class SemiSpvzLoss(WithLoss):
 
 
 def main(args):
-    if(str.lower(args.dataset) not in ['dblp',]):
+    if(str.lower(args.dataset) not in ['dblp_hgb',]):
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     targetType = {
-        'dblp': 'author',
+        'dblp_hgb': 'author',
     }
 
     dataset = HGBDataset(args.dataset_path, args.dataset)
@@ -161,10 +158,10 @@ if __name__ == '__main__':
     parser.add_argument('--drop_rate', type=float, default=0.5)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--slope', type=float, default=0.05)
-    parser.add_argument('--dataset', type=str, default="dblp")
+    parser.add_argument('--dataset', type=str, default="dblp_hgb")
     parser.add_argument('--edge_dim', type=int, default=64)
     parser.add_argument('--run', type=int, default=1)
-    parser.add_argument('--dataset_path', type = str, default = r"../")
+    parser.add_argument('--dataset_path', type = str, default = r"")
     parser.add_argument("--best_model_path", type = str, default = r"./")
 
     args = parser.parse_args()

@@ -16,11 +16,16 @@ class SGConv(MessagePassing):
     The adjacency matrix can include other values than :obj:`1` representing
     edge weights via the optional :obj:`edge_weight` tensor.
 
-    Args:
-        in_channels (int): Size of each input sample, or :obj:`-1` to derive
-            the size from the first input(s) to the forward method.
-        out_channels (int): Size of each output sample.
-        iter_K (int, optional): Number of hops :math:`K`. (default: :obj:`1`)
+    Parameters
+    ----------
+    in_channels: int
+        Size of each input sample, or :obj:`-1` to derive
+        the size from the first input(s) to the forward method.
+    out_channels: int
+        Size of each output sample.
+    iter_K: int, optional
+        Number of hops :math:`K`. (default: :obj:`1`)
+
     """
 
     def __init__(self,

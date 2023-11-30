@@ -12,23 +12,26 @@ from gammagl.layers.conv.fagcn_conv import FAGCNConv
 
 class FAGCNModel(nn.Module):
     r"""The Frequency Adaptive Graph Convolution operator from the
-    `"Beyond Low-Frequency Information in Graph Convolutional Networks"
-    <https://arxiv.org/abs/2101.00797>`_ paper
+        `"Beyond Low-Frequency Information in Graph Convolutional Networks"
+        <https://arxiv.org/abs/2101.00797>`_ paper.
 
-    Parameters
-    ----------
-    feature_dim: int
-        Dimension of feature vector in original input.
-    hidden_dim: int
-        Dimension of feature vector in FAGCN.
-    num_class: int
-        Dimension of feature vector in forward output.
-    drop_rate: float
-        Dropout rate.
-    eps: float
-        Epsilon parameter in paper
-    num_layers: int
-        Number of Frequency Adaptation Graph Convolutional Layers
+        Parameters
+        ----------
+        feature_dim: int
+            Dimension of feature vector in original input.
+        hidden_dim: int
+            Dimension of feature vector in FAGCN.
+        num_class: int
+            Dimension of feature vector in forward output.
+        drop_rate: float
+            Dropout rate.
+        eps: float
+            Epsilon parameter in paper.
+        num_layers: int
+            Number of Frequency Adaptation Graph Convolutional Layers.
+        name: str, optional
+            Name of the model.
+
     """
 
     def __init__(self, feature_dim, hidden_dim,

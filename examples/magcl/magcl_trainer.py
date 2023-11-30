@@ -1,19 +1,15 @@
 import os
-# os.environ['TL_BACKEND'] = 'tensorflow'
-# os.environ['CUDA_VISIBLE_DEVICES'] = '1'
-# set your backend here, default 'tensorflow', you can choose 'paddle'、'tensorflow'、'torch'
-
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 import argparse
-from sklearn.metrics import accuracy_score
 import tensorlayerx as tlx
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.data import Graph
 from gammagl.datasets import Planetoid
-from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
-from gammagl.utils.corrupt_graph import dfde_norm_g, mask_edge, drop_feature
+from gammagl.utils import add_self_loops, calc_gcn_norm
+from gammagl.utils.corrupt_graph import dfde_norm_g
 from gammagl.models.magcl import NewGrace
 from magcl_eval import evaluate
-
 
 class Unsupervised_Loss(WithLoss):
     def __init__(self, net):
@@ -102,7 +98,7 @@ if __name__ == '__main__':
     parser.add_argument("--l2", type=float, default=0.00001, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset,cora/pubmed/citeseer')
     parser.add_argument('--split', type=str, default='random', help='random or public')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     args = parser.parse_args()

@@ -6,16 +6,22 @@ from tensorlayerx.nn import ModuleList
 class GATModel(tlx.nn.Module):
 
     r"""The graph attentional operator from the `"Graph Attention Networks"
-    <https://arxiv.org/abs/1710.10903>`_ paper
+        <https://arxiv.org/abs/1710.10903>`_ paper.
 
-    Parameters
-    ----------
-        feature_dim (int): input feature dimension
-        hidden_dim (int): hidden dimension
-        num_class (int): number of classes
-        heads (int): number of attention heads
-        drop_rate (float): dropout rate
-        name (str): model name
+        Parameters
+        ----------
+        feature_dim: int
+            input feature dimension.
+        hidden_dim: int
+            hidden dimension.
+        num_class: int
+            number of classes.
+        heads: int
+            number of attention heads.
+        drop_rate: float
+            dropout rate.
+        name: str, optional
+            model name.
 
     """
 

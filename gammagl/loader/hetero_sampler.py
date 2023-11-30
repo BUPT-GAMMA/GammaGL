@@ -154,33 +154,39 @@ class Hetero_Neighbor_Sampler(tlx.dataflow.DataLoader):
         `examples/hetero/to_hetero_mag.py <https://github.com/pyg-team/
         pytorch_geometric/blob/master/examples/hetero/to_hetero_mag.py>`_.
 
-    Args:
-        data (torch_geometric.data.Data or torch_geometric.data.HeteroData):
-            The :class:`~torch_geometric.data.Data` or
-            :class:`~torch_geometric.data.HeteroData` graph object.
-        num_neighbors (List[int] or Dict[Tuple[str, str, str], List[int]]): The
-            number of neighbors to sample for each node in each iteration.
-            In heterogeneous graphs, may also take in a dictionary denoting
-            the amount of neighbors to sample for each individual edge type.
-            If an entry is set to :obj:`-1`, all neighbors will be included.
-        input_nodes (torch.Tensor or str or Tuple[str, torch.Tensor]): The
-            indices of nodes for which neighbors are sampled to create
-            mini-batches.
-            Needs to be either given as a :obj:`torch.LongTensor` or
-            :obj:`torch.BoolTensor`.
-            If set to :obj:`None`, all nodes will be considered.
-            In heterogeneous graphs, needs to be passed as a tuple that holds
-            the node type and node indices. (default: :obj:`None`)
-        replace (bool, optional): If set to :obj:`True`, will sample with
-            replacement. (default: :obj:`False`)
-        directed (bool, optional): If set to :obj:`False`, will include all
-            edges between all sampled nodes. (default: :obj:`True`)
-        transform (Callable, optional): A function/transform that takes in
-            a sampled mini-batch and returns a transformed version.
-            (default: :obj:`None`)
-        **kwargs (optional): Additional arguments of
-            :class:`torch._utils.data.DataLoader`, such as :obj:`batch_size`,
-            :obj:`shuffle`, :obj:`drop_last` or :obj:`num_workers`.
+    Parameters
+    ----------
+    data: graph, heterograph
+        The :class:`~gammagl.data.Graph` or
+        :class:`~gammagl.data.HeteroGraph` graph object.
+    num_neighbors: list[int], dict[tuple[str, str, str], list[int]]
+        The number of neighbors to sample for each node in each iteration.
+        In heterogeneous graphs, may also take in a dictionary denoting
+        the amount of neighbors to sample for each individual edge type.
+        If an entry is set to :obj:`-1`, all neighbors will be included.
+    input_nodes: tensor, str, tuple[str, tensor]
+        The indices of nodes for which neighbors are sampled to create
+        mini-batches.
+        Needs to be either given as a :obj:`torch.LongTensor` or
+        :obj:`torch.BoolTensor`.
+        If set to :obj:`None`, all nodes will be considered.
+        In heterogeneous graphs, needs to be passed as a tuple that holds
+        the node type and node indices. (default: :obj:`None`)
+    replace: bool, optional
+        If set to :obj:`True`, will sample with
+        replacement. (default: :obj:`False`)
+    directed: bool, optional
+        If set to :obj:`False`, will include all
+        edges between all sampled nodes. (default: :obj:`True`)
+    transform: callable, optional
+        A function/transform that takes in
+        a sampled mini-batch and returns a transformed version.
+        (default: :obj:`None`)
+    **kwargs: optional
+        Additional arguments of
+        :class:`torch._utils.data.DataLoader`, such as :obj:`batch_size`,
+        :obj:`shuffle`, :obj:`drop_last` or :obj:`num_workers`.
+
     """
 
     def __init__(
