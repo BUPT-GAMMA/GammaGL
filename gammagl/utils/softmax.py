@@ -9,13 +9,21 @@ from gammagl.mpops import *
 
 def segment_softmax(data, segment_ids, num_segments):
     """
-    Args:
-        data: The source tensor .
-        segment_ids: The indices of elements for applying the softmax.
-        num_segments: The number of segments
+    segment softmax function.
 
-    Returns:
-        softmax score
+    Parameters
+    ----------
+    data:
+        The source tensor.
+    segment_ids:
+        The indices of elements for applying the softmax.
+    num_segments:
+        The number of segments.
+
+    Returns
+    -------
+    tensor
+        softmax score.
 
     """
     max_values = unsorted_segment_max(data, segment_ids, num_segments=num_segments) # tensorlayerx not supported

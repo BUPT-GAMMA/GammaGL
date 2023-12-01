@@ -11,15 +11,25 @@ from gammagl.utils.loop import add_self_loops
 def get_laplacian(edge_index, num_nodes, edge_weight=None, normalization=None):
     """
         calculate GCN Normalization.
-        Args:
-            edge_index: edge index
-            num_nodes: number of nodes of graph
-            edge_weight: edge weights of graph
-            normalization: norm type: None, sym, rw
 
-        Returns:
-            edge_index:
-            edge_weight: 1-dim Tensor
+        Parameters
+        ----------
+        edge_index:
+            edge index.
+        num_nodes:
+            number of nodes of graph.
+        edge_weight:
+            edge weights of graph.
+        normalization:
+            norm type: None, sym, rw.
+
+        Returns
+        --------
+        edge_index: tensor
+            the new edge index.
+        edge_weight: tensor
+            1-dim Tensor.
+
         """
     if normalization is not None:
         assert normalization in ['sym', 'rw']  # 'Invalid normalization'

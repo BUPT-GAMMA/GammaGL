@@ -2,27 +2,30 @@ import tensorlayerx as tlx
 from ..layers.conv import MixHopConv
 
 
-class MIXHOPModel(tlx.nn.Module):
+class MixHopModel(tlx.nn.Module):
     r"""MixHop proposed in `"MixHop: Higher-Order Graph Convolutional
-    Architectures via Sparsified Neighborhood Mixing"
-    <https://arxiv.org/abs/1905.00067>`_ paper
+        Architectures via Sparsified Neighborhood Mixing"
+        <https://arxiv.org/abs/1905.00067>`_ paper.
 
-    Parameters
-    ----------
+        Parameters
+        ----------
         feature_dim: int
-            input feature dimension
+            input feature dimension.
         hidden_dim: int
-            hidden dimension
+            hidden dimension.
         out_dim: int
-            The number of classes for prediction
+            The number of classes for prediction.
         p: list
-            The list of integer adjacency powers
+            The list of integer adjacency powers.
         drop_rate: float
-            dropout rate
-        num_layers: int
-            Number of Mixhop Graph Convolutional Layers
-        name: str
-            model name
+            dropout rate.
+        num_layers: int, optional
+            Number of Mixhop Graph Convolutional Layers.
+        norm: str, optional
+            apply the normalizer.
+        name: str, optional
+            model name.
+
     """
 
     def __init__(self, feature_dim,
@@ -33,7 +36,7 @@ class MIXHOPModel(tlx.nn.Module):
                  num_layers=3,
                  norm='both',
                  name=None):
-        super(MIXHOPModel, self).__init__(name=name)
+        super(MixHopModel, self).__init__(name=name)
         self.feature_dim = feature_dim
         self.hidden_dim = hidden_dim
         self.out_dim = out_dim

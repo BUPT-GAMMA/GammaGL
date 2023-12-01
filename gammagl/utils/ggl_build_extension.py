@@ -98,11 +98,16 @@ def include_paths(cuda: bool = False) -> List[str]:
     '''
     Get the include paths required to build a C++ or CUDA extension.
 
-    Args:
-        cuda: If `True`, includes CUDA-specific include paths.
+    Parameters
+    ----------
+    cuda:
+        If `True`, includes CUDA-specific include paths.
 
-    Returns:
+    Returns
+    -------
+    list[str]
         A list of include path strings.
+
     '''
     paths = []
     if cuda:
@@ -118,11 +123,16 @@ def library_paths(cuda: bool = False) -> List[str]:
     r'''
     Get the library paths required to build a C++ or CUDA extension.
 
-    Args:
-        cuda: If `True`, includes CUDA-specific library paths.
+    Parameters
+    ----------
+    cuda:
+        If `True`, includes CUDA-specific library paths.
 
-    Returns:
+    Returns
+    -------
+    list[str]
         A list of library path strings.
+
     '''
 
     paths = []

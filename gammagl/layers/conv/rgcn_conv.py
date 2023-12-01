@@ -107,6 +107,7 @@ class RGCNConv(MessagePassing):
             Should be only :obj:`None` in case :obj:`edge_index` is of type
             :class:`torch_sparse.tensor.SparseTensor`.
             (default: :obj:`None`)
+
         """
         x_l = None
         if isinstance(x, tuple):

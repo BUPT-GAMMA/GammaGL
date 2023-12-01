@@ -23,9 +23,9 @@ class Entities(InMemoryDataset):
     
     Parameters
     ----------
-    root: string
+    root: str, optional
         Root directory where the dataset should be saved.
-    name: string
+    name: str, optional
         The name of the dataset (:obj:`"AIFB"`,
         :obj:`"MUTAG"`, :obj:`"BGS"`, :obj:`"AM"`).
     hetero: bool, optional
@@ -42,6 +42,7 @@ class Entities(InMemoryDataset):
         an :obj:`gammagl.data.Graph` object and returns a
         transformed version. The data object will be transformed before
         being saved to disk. (default: :obj:`None`)
+
     """
 
     url = 'https://data.dgl.ai/dataset/{}.tgz'

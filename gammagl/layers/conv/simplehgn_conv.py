@@ -45,23 +45,23 @@ class SimpleHGNConv(MessagePassing):
         the number of the edge type
     edge_feats: int
         the edge dimension
-    heads: int
+    heads: int, optional
         the number of heads in this layer
-    negative_slope: float
+    negative_slope: float, optional
         the negative slope used in the LeakyReLU
-    feat_drop: float
+    feat_drop: float, optional
         the feature drop rate
-    attn_drop: float
+    attn_drop: float, optional
         the attention score drop rate
-    residual: boolean
+    residual: bool, optional
         whether we need the residual operation
-    activation:
+    activation:, optional
         the activation function
-    bias:
+    bias: bool, optional
         whether we need the bias
-    beta: float
+    beta: float, optional
         the hyperparameter used in edge residual
-    
+
     '''
     def __init__(self,
                 in_feats,
@@ -144,12 +144,18 @@ class SimpleHGNConv(MessagePassing):
 
     def propagate(self, x, edge_index, aggr='sum', **kwargs):
         """
-        Function that perform message passing. 
-        Args:
-            x: input node feature
-            edge_index: edges from src to dst
-            aggr: aggregation type, default='sum', optional=['sum', 'mean', 'max']
-            kwargs: other parameters dict
+        Function that perform message passing.
+
+        Parameters
+        ----------
+        x:
+            input node feature.
+        edge_index:
+            edges from src to dst.
+        aggr:
+            aggregation type, default='sum', optional=['sum', 'mean', 'max'].
+        kwargs:
+            other parameters dict.
 
         """
 
@@ -164,5 +170,3 @@ class SimpleHGNConv(MessagePassing):
 
     def forward(self, x, edge_index, edge_feat, res_attn=None):
         return self.propagate(x, edge_index, edge_feat=edge_feat)
-        
-        

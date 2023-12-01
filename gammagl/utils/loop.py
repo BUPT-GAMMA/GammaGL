@@ -9,9 +9,16 @@ from .num_nodes import maybe_num_nodes
 def contains_self_loops(edge_index) -> bool:
     r"""Returns :obj:`True` if the graph given by :attr:`edge_index` contains
     self-loops.
-    Args:
-        edge_index (LongTensor): The edge indices.
-    :rtype: bool
+
+    Parameters
+    ----------
+    edge_index: tensor
+        The edge indices.
+    
+    Returns
+    -------
+    bool
+
     """
     mask = edge_index[0] == edge_index[1]
     return tlx.any(mask, axis=0)
@@ -21,12 +28,18 @@ def remove_self_loops(edge_index, edge_attr=None):
     r"""Removes every self-loop in the graph given by :attr:`edge_index`, so
     that :math:`(i,i) \not\in \mathcal{E}` for every :math:`i \in \mathcal{V}`.
 
-    Args:
-        edge_index (LongTensor): The edge indices.
-        edge_attr (Tensor, optional): Edge weights or multi-dimensional
-            edge features. (default: :obj:`None`)
-    :rtype: edge_index(Tensor if edge_index inputted is Tensor
-            || np.ndarray if edge_index inputted is np.ndarray)
+    Parameters
+    ----------
+    edge_index: tensor
+        The edge indices.
+    edge_attr: tensor, optional
+        Edge weights or multi-dimensional
+        edge features. (default: :obj:`None`)
+
+    Returns
+    -------
+    Tensor if edge_index inputted is Tensor
+            || np.ndarray if edge_index inputted is np.ndarray
     """
     mask = edge_index[0] != edge_index[1]
     if tlx.is_tensor(edge_index):
@@ -66,14 +79,14 @@ def add_self_loops(
 
     Parameters
     ----------
-    edge_index: LongTensor
+    edge_index: tensor
         The edge indices.
     n_loops: int
         the number of loops
-    edge_attr: Tensor, optional
+    edge_attr: tensor, optional
         Edge weights or multi-dimensional edge
         features. (default: :obj:`None`)
-    fill_value: float or Tensor or str, optional
+    fill_value: float, tensor, str, optional
         The way to generate
         edge features of self-loops (in case :obj:`edge_attr != None`).
         If given as :obj:`float` or :class:`torch.Tensor`, edge features of
@@ -89,6 +102,7 @@ def add_self_loops(
     Returns
     -------
     :class:`LongTensor`, :class:`Tensor`
+
     """
     N = maybe_num_nodes(edge_index, num_nodes)
 

@@ -13,28 +13,34 @@ class DBLP(InMemoryDataset):
     r"""A subset of the DBLP computer science bibliography website, as
     collected in the `"MAGNN: Metapath Aggregated Graph Neural Network for
     Heterogeneous Graph Embedding" <https://arxiv.org/abs/2002.01680>`_ paper.
-        DBLP is a heterogeneous graph containing four types of entities - authors
-        (4,057 nodes), papers (14,328 nodes), terms (7,723 nodes), and conferences
-        (20 nodes).
-        The authors are divided into four research areas (database, data mining,
-        artificial intelligence, information retrieval).
-        Each author is described by a bag-of-words representation of their paper
-        keywords.
-        metapaths = [[('author', 'paper'), ('paper', 'author')],
-                     [('author', 'paper'), ('paper', 'term'), ('term', 'paper'), ('paper', 'term')],
-                     [('author', 'paper'), ('paper', 'venue'), ('venue', 'paper'), ('paper', 'term')]]
-    Args:
-        root (string): Root directory where the dataset should be saved.
-        transform: callable, optional
-            A function/transform that takes in an
-            :obj:`gammagl.data.HeteroGraph` object and returns a
-            transformed version. The data object will be transformed before
-            every access. (default: :obj:`None`)
-        pre_transform: callable, optional
-            A function/transform that takes in
-            an :obj:`gammagl.data.HeteroGraph` object and returns a
-            transformed version. The data object will be transformed before
-            being saved to disk. (default: :obj:`None`)
+    
+    DBLP is a heterogeneous graph containing four types of entities - authors
+    (4,057 nodes), papers (14,328 nodes), terms (7,723 nodes), and conferences
+    (20 nodes).
+    The authors are divided into four research areas (database, data mining,
+    artificial intelligence, information retrieval).
+    Each author is described by a bag-of-words representation of their paper
+    keywords.
+
+    metapaths = [[('author', 'paper'), ('paper', 'author')],
+                [('author', 'paper'), ('paper', 'term'), ('term', 'paper'), ('paper', 'term')],
+                [('author', 'paper'), ('paper', 'venue'), ('venue', 'paper'), ('paper', 'term')]]
+
+    Parameters
+    ----------
+    root: str, optional
+        Root directory where the dataset should be saved.
+    transform: callable, optional
+        A function/transform that takes in an
+        :obj:`gammagl.data.HeteroGraph` object and returns a
+        transformed version. The data object will be transformed before
+        every access. (default: :obj:`None`)
+    pre_transform: callable, optional
+        A function/transform that takes in
+        an :obj:`gammagl.data.HeteroGraph` object and returns a
+        transformed version. The data object will be transformed before
+        being saved to disk. (default: :obj:`None`)
+
     """
 
     url = 'https://www.dropbox.com/s/yh4grpeks87ugr2/DBLP_processed.zip?dl=1'
