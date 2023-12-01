@@ -1,7 +1,7 @@
-#include "spmm_sum_cpu.h"
+#include "spmm_max_cpu.h"
 #include <torch/torch.h>
 
-torch::Tensor spmm_sum_cpu_forward(torch::Tensor &index, torch::Tensor &weight,
+torch::Tensor spmm_max_cpu_forward(torch::Tensor &index, torch::Tensor &weight,
                                    torch::Tensor &x) {
   x = x.contiguous();
   torch::Tensor out = torch::zeros_like(x, x.options());
@@ -25,7 +25,13 @@ torch::Tensor spmm_sum_cpu_forward(torch::Tensor &index, torch::Tensor &weight,
 #ifdef COMPILE_WITH_OMP
 #pragma omp atomic
 #endif
-      out_data[row * K + k] = out_data[row * K + k] + weight_data[e] * x_data[col * K + k];
+      scalar_t max_value = weight_data[e] * x_data[col*K+k];
+      #pragma omp critical
+      {
+        if (max_value > out_data[row * K + k]){
+          out_data[row * K + k] = max_value;
+        }
+      }
     }
   }
 
@@ -33,7 +39,7 @@ torch::Tensor spmm_sum_cpu_forward(torch::Tensor &index, torch::Tensor &weight,
 }
 
 // almost same with forward
-torch::Tensor spmm_sum_cpu_backward(torch::Tensor &index, torch::Tensor &weight,
+torch::Tensor spmm_max_cpu_backward(torch::Tensor &index, torch::Tensor &weight,
                                     torch::Tensor &grad) {
   grad = grad.contiguous();
   torch::Tensor out = torch::zeros_like(grad, grad.options());
@@ -55,10 +61,12 @@ torch::Tensor spmm_sum_cpu_backward(torch::Tensor &index, torch::Tensor &weight,
     row = index_data[e + E]; // or e + 1;
     
     for (auto k = 0; k < K; ++k) {
-#ifdef COMPILE_WITH_OMP
-#pragma omp atomic
-#endif
-      out_data[col * K + k] = out_data[col * K + k] +  weight_data[e] * grad_data[row * K + k];
+      if (grad_data[row * K + k] == weight_data[e] * grad_data[row * K + k]){
+        #ifdef COMPILE_WITH_OMP
+        #pragma omp atomic
+        #endif
+        out_data[col * K + k] += grad_data[row * K + k];
+      }
     }
   }
 
