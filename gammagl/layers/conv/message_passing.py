@@ -49,6 +49,8 @@ class MessagePassing(tlx.nn.Module):
         tensor
             output message
 
+        Returns:
+            the message matrix, and the shape is [num_edges, message_dim]
         """
         msg = tlx.gather(x, edge_index[0, :])
         if edge_weight is not None:
