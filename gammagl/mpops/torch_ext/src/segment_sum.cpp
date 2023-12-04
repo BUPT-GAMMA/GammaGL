@@ -1,4 +1,4 @@
-#include "segment_mean.h"
+#include "../include/segment_sum.h"
 #include <assert.h>
 #include <torch/extension.h>
 #include <torch/script.h>
@@ -6,35 +6,31 @@
 
 #include <iostream>
 #include <vector>
-#include "cpu/segment_mean_cpu.h"
+#include "../cpu/segment_sum_cpu.h"
+#include "../cuda/segment_sum_cuda.h"
+#include "../include/utils.h"
 
 
 using torch::autograd::AutogradContext;
 
-inline std::vector<int64_t> list2vec(const c10::List<int64_t> list) {
-  std::vector<int64_t> result;
-  result.reserve(list.size());
-  for (size_t i = 0; i < list.size(); ++i)
-    result.push_back(list[i]);
-  return result;
-}
-
-inline std::tuple<torch::Tensor, torch::Tensor> device_dispatch_forward(torch::Tensor& x,
+inline std::tuple<torch::Tensor, torch::Tensor> sum_device_dispatch_forward(torch::Tensor& x,
                                                           torch::Tensor& index,
                                                           int64_t& N) {
-  if (x.is_cpu() && index.is_cpu()) {
-    return segment_mean_cpu_forward(x, index, N);
+  if (x.is_cuda() && index.is_cuda()) {
+    return segment_sum_cuda_forward(x, index, N);
+  } if (x.is_cpu() && index.is_cpu()) {
+    return segment_sum_cpu_forward(x, index, N);
   } else {
     AT_ERROR("Tensor device inconsistent error.");
   }
 }
 
-torch::Tensor SegmentMean::forward(AutogradContext* ctx,
+torch::Tensor SegmentSum::forward(AutogradContext* ctx,
                                torch::Tensor x,
                                torch::Tensor index,
                                int64_t N) {
     ctx->saved_data["x_shape"] = x.sizes();
-    auto result = device_dispatch_forward(x, index, N);
+    auto result = sum_device_dispatch_forward(x, index, N);
     auto out = std::get<0>(result);
     auto arg_out = std::get<1>(result);
     ctx->save_for_backward({index, arg_out});
@@ -42,7 +38,7 @@ torch::Tensor SegmentMean::forward(AutogradContext* ctx,
     return out;
 }
 
-std::vector<torch::Tensor> SegmentMean::backward(
+std::vector<torch::Tensor> SegmentSum::backward(
       AutogradContext* ctx,
       std::vector<torch::Tensor> grad_outs) {
     auto grad_out = grad_outs[0];

@@ -5,8 +5,8 @@ torch::Tensor spmm_sum_cpu_forward(torch::Tensor &index, torch::Tensor &weight,
                                    torch::Tensor &x) {
   x = x.contiguous();
   torch::Tensor out = torch::zeros_like(x, x.options());
-  auto E = index.size(1);
-  auto K = x.size(1);
+  auto E = index.size(1); //边的数量
+  auto K = x.size(1); //节点feature的维度
 
   auto index_data = index.data_ptr<int64_t>();
   int64_t col, row;

@@ -1,6 +1,5 @@
 # coding=utf-8
 
-import tensorflow as tf
 from gammagl.sparse.sparse_adj import CSRAdj
 
 

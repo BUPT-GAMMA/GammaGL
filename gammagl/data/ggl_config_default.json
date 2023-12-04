@@ -1,4 +1,4 @@
 {
-  "tlx_backend": "tensorflow",
+  "tlx_backend": "torch",
   "dataset_root": "@datasets"
 }

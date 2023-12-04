@@ -348,7 +348,9 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 
 > Note
 > 
-> The DEFAULT backend is  `tensorflow` and GPU is `0`. The backend TensorFlow will take up all GPU left memory by default.
+> The DEFAULT backend is  `torch` and GPU is `0`. 
+>
+> The backend TensorFlow will take up all GPU left memory by default.
 > 
 > The CANDIDATE backends are `tensorflow`, `paddle`, `torch` and `mindspore`.
 > 
@@ -393,6 +395,8 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [MGNNI [NeurIPS 2022]](./examples/mgnni)         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [MAGCL [AAAI 2023]](./examples/magcl)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [CAGCN [NeurIPS 2021]](./examples/cagcn)         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [DR-GST [WWW 2022]](./examples/drgst)            | :heavy_check_mark: | :heavy_check_mark: |                    |                    |
+| [Specformer [ICLR 2023]](./examples/specformer)  |                    | :heavy_check_mark: | :heavy_check_mark: |                    |
 
 | Contrastive Learning                           | TensorFlow         | PyTorch            | Paddle             | MindSpore |
 | ---------------------------------------------- | ------------------ | ------------------ | ------------------ | --------- |
@@ -413,6 +417,7 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [ieHGCN [TKDE 2021]](./examples/iehgcn)      | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [MetaPath2Vec [KDD 2017]](./examples/metapath2vec) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | |
 | [HERec [TKDE 2018]](./examples/herec) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | |
+| [CoGSL [WWW 2022]](./examples/cogsl)  | | :heavy_check_mark: | :heavy_check_mark: | |
 
 > Note
 > 

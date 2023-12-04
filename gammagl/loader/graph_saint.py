@@ -64,8 +64,7 @@ class GraphSAINTSampler(DataLoader):
 
 
 class GraphSAINTNodeSampler(GraphSAINTSampler):
-    r"""The GraphSAINT node sampler class (see
-    :class:`~torch_geometric.loader.GraphSAINTSampler`).
+    r"""The GraphSAINT node sampler class.
     """
 
     def __sample_nodes__(self, batch_size):

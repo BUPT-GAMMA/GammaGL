@@ -8,59 +8,63 @@ from gammagl.utils.loop import add_self_loops, remove_self_loops
 
 
 class ChebConv(MessagePassing):
-    r"""The chebyshev spectral graph convolutional operator from the
-       `"Convolutional Neural Networks on Graphs with Fast Localized Spectral
-       Filtering" <https://arxiv.org/abs/1606.09375>`_ paper
+    r"""
+    The chebyshev spectral graph convolutional operator from the
+    `"Convolutional Neural Networks on Graphs with Fast Localized Spectral
+    Filtering" <https://arxiv.org/abs/1606.09375>`_ paper
 
-       .. math::
-           \mathbf{X}^{\prime} = \sum_{k=1}^{K} \mathbf{Z}^{(k)} \cdot
-           \mathbf{\Theta}^{(k)}
+    .. math::
+        \mathbf{X}^{\prime} = \sum_{k=1}^{K} \mathbf{Z}^{(k)} \cdot
+        \mathbf{\Theta}^{(k)}
 
-       where :math:`\mathbf{Z}^{(k)}` is computed recursively by
+    where :math:`\mathbf{Z}^{(k)}` is computed recursively by
 
-       .. math::
-           \mathbf{Z}^{(1)} &= \mathbf{X}
+    .. math::
+        \mathbf{Z}^{(1)} &= \mathbf{X}
 
-           \mathbf{Z}^{(2)} &= \mathbf{\hat{L}} \cdot \mathbf{X}
+        \mathbf{Z}^{(2)} &= \mathbf{\hat{L}} \cdot \mathbf{X}
 
-           \mathbf{Z}^{(k)} &= 2 \cdot \mathbf{\hat{L}} \cdot
-           \mathbf{Z}^{(k-1)} - \mathbf{Z}^{(k-2)}
+        \mathbf{Z}^{(k)} &= 2 \cdot \mathbf{\hat{L}} \cdot
+        \mathbf{Z}^{(k-1)} - \mathbf{Z}^{(k-2)}
 
-       and :math:`\mathbf{\hat{L}}` denotes the scaled and normalized Laplacian
-       :math:`\frac{2\mathbf{L}}{\lambda_{\max}} - \mathbf{I}`.
+    and :math:`\mathbf{\hat{L}}` denotes the scaled and normalized Laplacian
+    :math:`\frac{2\mathbf{L}}{\lambda_{\max}} - \mathbf{I}`.
 
-       Args:
-           in_channels (int): Size of each input sample
-           out_channels (int): Size of each output sample.
-           K (int): Chebyshev filter size :math:`K`.
-           normalization (str, optional): The normalization scheme for the graph
-               Laplacian (default: :obj:`"sym"`):
 
-               1. :obj:`None`: No normalization
-               :math:`\mathbf{L} = \mathbf{D} - \mathbf{A}`
+    Parameters
+    ----------
+    in_channels: int
+        Size of each input sample
+    out_channels: int
+        Size of each output sample.
+    K: int
+        Chebyshev filter size :math:`K`.
+    normalization: str, optional
+        The normalization scheme for the graph Laplacian (default: :obj:`"sym"`):
 
-               2. :obj:`"sym"`: Symmetric normalization
-               :math:`\mathbf{L} = \mathbf{I} - \mathbf{D}^{-1/2} \mathbf{A} \mathbf{D}^{-1/2}`
+            * :obj:`None`: No normalization :math:`\mathbf{L} = \mathbf{D} - \mathbf{A}`
 
-               3. :obj:`"rw"`: Random-walk normalization
-               :math:`\mathbf{L} = \mathbf{I} - \mathbf{D}^{-1} \mathbf{A}`
+            * :obj:`"sym"`: Symmetric normalization :math:`\mathbf{L} = \mathbf{I} - \mathbf{D}^{-1/2} \mathbf{A} \mathbf{D}^{-1/2}`
 
-               You need to pass :obj:`lambda_max` to the :meth:`forward` method of
-               this operator in case the normalization is non-symmetric.
-           **kwargs (optional): Additional arguments of
-               :class:`gammagl.layers.conv.MessagePassing`.
+            * :obj:`"rw"`: Random-walk normalization :math:`\mathbf{L} = \mathbf{I} - \mathbf{D}^{-1} \mathbf{A}`
 
-       Shapes:
-           - **input:**
-             node features :math:`(|\mathcal{V}|, F_{in})`,
-             edge indices :math:`(2, |\mathcal{E}|)`,
-             edge weights :math:`(|\mathcal{E}|)` *(optional)*,
-             maximum :obj:`lambda` value :math:`(|\mathcal{G}|)` *(optional)*
-           - **output:** node features :math:`(|\mathcal{V}|, F_{out})`
+        You need to pass :obj:`lambda_max` to the :meth:`forward` method of this operator in case the normalization is non-symmetric.
+    **kwargs: optional
+        Additional arguments of :class:`gammagl.layers.conv.MessagePassing`.
+
+
+    Shapes:
+        - **input:**
+            node features :math:`(|\mathcal{V}|, F_{in})`,
+            edge indices :math:`(2, |\mathcal{E}|)`,
+            edge weights :math:`(|\mathcal{E}|)` *(optional)*,
+            maximum :obj:`lambda` value :math:`(|\mathcal{G}|)` *(optional)*
+        - **output:** 
+            node features :math:`(|\mathcal{V}|, F_{out})`
 
        """
 
-    def __init__(self, in_channels: int, out_channels: int, K: int, normalization: Optional = 'sym', **kwargs):
+    def __init__(self, in_channels: int, out_channels: int, K: int, normalization: Optional[list] = 'sym', **kwargs):
         kwargs.setdefault('aggr', 'add')
         super(ChebConv, self).__init__()
 
@@ -92,8 +96,8 @@ class ChebConv(MessagePassing):
         assert edge_weight is not None
         return edge_index, edge_weight
 
-    def forward(self, x, edge_index, num_nodes, edge_weight: Optional = None, lambda_max: Optional = None,
-                batch: Optional = None):
+    def forward(self, x, edge_index, num_nodes, edge_weight = None, lambda_max = None,
+                batch = None):
         if self.normalization != 'sym' and lambda_max is None:
             raise ValueError('You need to pass `lambda_max` to `forward() in`'
                              'case the normalization is non-symmetric.')

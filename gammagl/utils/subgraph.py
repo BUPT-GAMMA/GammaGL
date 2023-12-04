@@ -3,28 +3,37 @@ import numpy as np
 from .num_nodes import maybe_num_nodes
 
 def k_hop_subgraph(node_idx, num_hops, edge_index, relabel_nodes=False, num_nodes=None, reverse=False):
-    r"""Computes the induced subgraph of :obj:`edge_index` around all nodes in
-    :attr:`node_idx` reachable within :math:`k` hops.
-    The :attr:`flow` argument denotes the direction of edges for finding
-    :math:`k`-hop neighbors. If set to :obj:`"source_to_target"`, then the
-    method will find all neighbors that point to the initial set of seed nodes
-    in :attr:`node_idx.`
-    This mimics the natural flow of message passing in Graph Neural Networks.
-    The method returns (1) the nodes involved in the subgraph, (2) the filtered
-    :obj:`edge_index` connectivity, (3) the mapping from node indices in
-    :obj:`node_idx` to their new location, and (4) the edge mask indicating
-    which edges were preserved.
-    Args:
-        node_idx (int, list, tuple or Tensor): The central seed
-            node(s).
-        num_hops (int): The number of hops :math:`k`.
-        edge_index : The edge indices.
-        relabel_nodes (bool, optional): If set to :obj:`True`, the resulting
+    r"""
+        Computes the induced subgraph of :obj:`edge_index` around all nodes in
+        :attr:`node_idx` reachable within :math:`k` hops.
+        The :attr:`flow` argument denotes the direction of edges for finding
+        :math:`k`-hop neighbors. If set to :obj:`"source_to_target"`, then the
+        method will find all neighbors that point to the initial set of seed nodes
+        in :attr:`node_idx.`
+        This mimics the natural flow of message passing in Graph Neural Networks.
+        The method returns (1) the nodes involved in the subgraph, (2) the filtered
+        :obj:`edge_index` connectivity, (3) the mapping from node indices in
+        :obj:`node_idx` to their new location, and (4) the edge mask indicating
+        which edges were preserved.
+
+        Parameters
+        ----------
+        node_idx: int, list, tuple, tensor
+            The central seed node(s).
+        num_hops: int
+            The number of hops :math:`k`.
+        edge_index: tensor
+            The edge indices.
+        relabel_nodes: bool, optional
+            If set to :obj:`True`, the resulting
             :obj:`edge_index` will be relabeled to hold consecutive indices
             starting from zero. (default: :obj:`False`)
-        num_nodes (int, optional): The number of nodes, *i.e.*
+        num_nodes: int, optional
+            The number of nodes, *i.e.*
             :obj:`max_val + 1` of :attr:`edge_index`. (default: :obj:`None`)
-        reverse (bool, optional): The flow direction of :math:`k`-hop, :obj:`False` for "source to target" or vice versa.
+        reverse: bool, optional
+            The flow direction of :math:`k`-hop, :obj:`False` for "source to target" or vice versa.
+
     """
     num_nodes = maybe_num_nodes(edge_index, num_nodes)
     if reverse:
