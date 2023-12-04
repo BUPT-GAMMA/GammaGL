@@ -47,7 +47,7 @@ class DataLoader(tlx.dataflow.DataLoader):
 
     Parameters
     ----------
-    dataset: Dataset
+    dataset: dataset
         The dataset from which to load the data.
     batch_size: int, optional
         How many samples per batch to load.
@@ -55,15 +55,16 @@ class DataLoader(tlx.dataflow.DataLoader):
     shuffle: bool, optional
         If set to :obj:`True`, the data will be
         reshuffled at every epoch. (default: :obj:`False`)
-    follow_batch: List[str], optional
+    follow_batch: list[str], optional
         Creates assignment batch
         vectors for each key in the list. (default: :obj:`None`)
-    exclude_keys: List[str], optional
+    exclude_keys: list[str], optional
         Will exclude each key in the
         list. (default: :obj:`None`)
     **kwargs: optional
         Additional arguments of
-        :class:`torch.utils.data.DataLoader`.
+        :class:`tensorlayerx.dataflow.DataLoader`.
+
     """
     def __init__(
         self,

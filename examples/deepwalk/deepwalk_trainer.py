@@ -1,11 +1,6 @@
 import os
-
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-# os.environ['TL_BACKEND'] = 'tensorflow'
-
-import sys
-
-sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
+# os.environ['TL_BACKEND'] = 'torch'
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
@@ -13,7 +8,6 @@ from gammagl.models import DeepWalkModel
 from gammagl.utils import calc_gcn_norm, mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss
 from sklearn.linear_model import LogisticRegression
-
 
 class Unsupervised_Loss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -110,7 +104,7 @@ if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--lr", type=float, default=0.05, help="learning rate")
     parser.add_argument("--n_epoch", type=int, default=100, help="number of epoch")

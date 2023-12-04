@@ -15,15 +15,19 @@ class EdgeConv(MessagePassing):
 
     Parameters
     ----------
-    nn (tlx.nn.Module): A neural network :math:`h_{\mathbf{\Theta}}` that
+    nn: tlx.nn.Module
+        A neural network :math:`h_{\mathbf{\Theta}}` that
         maps pair-wise concatenated node features :obj:`x` of shape
         :obj:`[-1, 2 * in_channels]` to shape :obj:`[-1, out_channels]`,
         *e.g.*, defined by :class:`tlx.nn.Sequential`.
-    aggr (string, optional): The aggregation scheme to use
+    aggr: str, optional
+        The aggregation scheme to use
         (:obj:`"add"`, :obj:`"mean"`, :obj:`"max"`).
         (default: :obj:`"sum"`)
-    **kwargs (optional): Additional arguments of
+    **kwargs: optional
+        Additional arguments of
         :class:`gammagl.layers.conv.MessagePassing`.
+
     """
     def __init__(self, nn, aggr = 'max', **kwargs):
         super().__init__(**kwargs)

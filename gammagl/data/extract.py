@@ -14,12 +14,18 @@ def maybe_log(path, log=True):
 def extract_tar(path: str, folder: str, mode: str = 'r:gz', log: bool = True):
     r"""Extracts a tar archive to a specific folder.
 
-    Args:
-        path (string): The path to the tar archive.
-        folder (string): The folder.
-        mode (string, optional): The compression mode. (default: :obj:`"r:gz"`)
-        log (bool, optional): If :obj:`False`, will not print anything to the
-            console. (default: :obj:`True`)
+    Parameters
+    ----------
+    path: str
+        The path to the tar archive.
+    folder: str
+        The folder.
+    mode: str, optional
+        The compression mode. (default: :obj:`"r:gz"`)
+    log: bool, optional
+        If :obj:`False`, will not print anything to the
+        console. (default: :obj:`True`)
+
     """
     maybe_log(path, log)
     with tarfile.open(path, mode) as f:
@@ -29,11 +35,16 @@ def extract_tar(path: str, folder: str, mode: str = 'r:gz', log: bool = True):
 def extract_zip(path: str, folder: str, log: bool = True):
     r"""Extracts a zip archive to a specific folder.
 
-    Args:
-        path (string): The path to the tar archive.
-        folder (string): The folder.
-        log (bool, optional): If :obj:`False`, will not print anything to the
-            console. (default: :obj:`True`)
+    Parameters
+    ----------
+    path: str
+        The path to the tar archive.
+    folder: str
+        The folder.
+    log: bool, optional
+        If :obj:`False`, will not print anything to the
+        console. (default: :obj:`True`)
+
     """
     maybe_log(path, log)
     with zipfile.ZipFile(path, 'r') as f:
@@ -43,11 +54,16 @@ def extract_zip(path: str, folder: str, log: bool = True):
 def extract_bz2(path: str, folder: str, log: bool = True):
     r"""Extracts a bz2 archive to a specific folder.
 
-    Args:
-        path (string): The path to the tar archive.
-        folder (string): The folder.
-        log (bool, optional): If :obj:`False`, will not print anything to the
-            console. (default: :obj:`True`)
+    Parameters
+    ----------
+    path: str
+        The path to the tar archive.
+    folder: str
+        The folder.
+    log: bool, optional
+        If :obj:`False`, will not print anything to the
+        console. (default: :obj:`True`)
+
     """
     maybe_log(path, log)
     path = osp.abspath(path)
@@ -59,11 +75,16 @@ def extract_bz2(path: str, folder: str, log: bool = True):
 def extract_gz(path: str, folder: str, log: bool = True):
     r"""Extracts a gz archive to a specific folder.
 
-    Args:
-        path (string): The path to the tar archive.
-        folder (string): The folder.
-        log (bool, optional): If :obj:`False`, will not print anything to the
+        Parameters
+        ----------
+        path: str
+            The path to the tar archive.
+        folder: str
+            The folder.
+        log: bool, optional
+            If :obj:`False`, will not print anything to the
             console. (default: :obj:`True`)
+
     """
     maybe_log(path, log)
     path = osp.abspath(path)

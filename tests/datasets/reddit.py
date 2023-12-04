@@ -2,7 +2,6 @@ from time import time
 
 import tensorlayerx as tlx
 from gammagl.datasets import Reddit
-# from gammagl.loader.Neighbour_sampler import Neighbor_Sampler
 from gammagl.loader.neighbor_sampler import NeighborSampler
 
 

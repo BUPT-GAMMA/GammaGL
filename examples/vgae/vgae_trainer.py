@@ -1,24 +1,16 @@
 import os
-#os.environ['CUDA_VISIBLE_DEVICES']='1'
-#os.environ['TL_BACKEND'] = 'paddle'
-#os.environ['TL_BACKEND'] = 'torch'
-
-import sys
-
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 import numpy as np
 import scipy.sparse as sp
-
-sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
-
 import argparse
 import tensorlayerx as tlx
 from sklearn.metrics import roc_auc_score, average_precision_score
 from gammagl.datasets import Planetoid
 from gammagl.models import VGAEModel, GAEModel
 from gammagl.transforms import mask_test_edges, sparse_to_tuple
-from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index, set_device
+from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -220,7 +212,7 @@ if __name__ == '__main__':
     parser.add_argument("--norm", type=str, default='none', help="how to apply the normalizer.")
     parser.add_argument("--l2_coef", type=float, default=0., help="l2 loss coeficient")  #5e-4
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     parser.add_argument("--features", type=int, default=1, help="Whether to use features (1) or not (0)")

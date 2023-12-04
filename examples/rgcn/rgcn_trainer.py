@@ -5,13 +5,8 @@
 # @Author  : hanhui
 # @FileName: trainer.py.py
 import os
-
-os.environ['TL_BACKEND'] = 'tensorflow'  # set your backend here, default `tensorflow`
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
-import sys
-
-sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 import argparse
 import tensorlayerx as tlx
 from gammagl.models import RGCN
@@ -249,8 +244,8 @@ if __name__ == '__main__':
     parser.add_argument('--num_bases', type=int, default=None, help='number of bases')
     parser.add_argument('--num_blocks', type=int, default=None, help='numbere of blocks')
     parser.add_argument("--aggregation", type=str, default='sum', help='aggregate type')
-    parser.add_argument('--dataset', type=str, default='aifb', help='dataset')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument('--dataset', type=str, default='am', help='dataset')
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     args = parser.parse_args()
 

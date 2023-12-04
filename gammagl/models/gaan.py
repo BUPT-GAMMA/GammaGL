@@ -5,18 +5,26 @@ from gammagl.layers.conv import GaANConv
 class GaANModel(tlx.nn.Module):
 
     r"""The gated attentional operator from the `"Gated Attention Networks for Learning on Large and Spatiotemporal Graphs"
-    <https://arxiv.org/abs/1803.07294>`_ paper
+        <https://arxiv.org/abs/1803.07294>`_ paper.
 
-    Parameters
-    ----------
-        feature_dim (int): input feature dimension
-        hidden_dim (int): hidden dimension
-        num_class (int): number of classes
-        heads (int): number of attention heads
-        drop_rate (float): dropout rate
-        m(int): parameter to control gate value
-        v(int): parameter to control neighbor message
-        name (str): model name
+        Parameters
+        ----------
+        feature_dim: int
+            input feature dimension.
+        hidden_dim: int
+            hidden dimension.
+        num_class: int
+            number of classes.
+        heads: int
+            number of attention heads.
+        drop_rate: float
+            dropout rate.
+        m: int, optional
+            parameter to control gate value.
+        v: int, optional
+            parameter to control neighbor message.
+        name: str, optional
+            model name.
 
     """
 

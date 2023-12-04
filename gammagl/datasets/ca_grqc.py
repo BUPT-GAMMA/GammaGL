@@ -10,9 +10,13 @@ class CA_GrQc():
     between authors with papers submitted to the General Relativity and Quantum Cosmology categories. This graph has
     5,242 vertices and 14,496 edges.
 
-    Args:
-        dir (string): Root directory where the dataset should be saved.
-        n_emb (int): Dimension of node embeddings
+    Parameters
+    ----------
+    dir: str
+        Root directory where the dataset should be saved.
+    n_emb: int
+        Dimension of node embeddings
+
     """
 
     url = 'https://raw.githubusercontent.com/hwwang55/GraphGAN/master'
@@ -53,12 +57,16 @@ class CA_GrQc():
     def read_edges(self, train_filename, test_filename):
         """read data from downloaded files
 
-        Args:
-            train_filename: training file name
-            test_filename: test file name
+        Parameters
+        ----------
+        train_filename: 
+            training file name
+        test_filename: 
+            test file name
 
-        Returns:
-            (:obj:`int`, :obj:`dict`): number of nodes in the graph and node_id -> list of neighbors in the graph
+        Returns
+        -------
+        (:obj:`int`, :obj:`dict`): number of nodes in the graph and node_id -> list of neighbors in the graph
 
         """
         graph = {}

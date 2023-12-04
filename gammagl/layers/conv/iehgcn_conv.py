@@ -51,23 +51,24 @@ class ieHGCNConv(MessagePassing):
 
         Parameters
         ----------
-            in_channels : int or dict
-                input feature dimensions of different input nodes
-            out_channels : int
-                number of the target type node
-            attn_channels : int
-                the dimension of attention vector
-            metadata : Tuple[List[str], List[Tuple[str, str, str]]]
-                The metadata of the heterogeneous graph, *i.e.* its node and edge types given by a list of strings and a list of string triplets, respectively. See :metadata:`gammagl.data.HeteroGraph.metadata` for more information.
-            batchnorm : boolean
-                whether we need batchnorm
-            add_bias : boolean
-                whether we need bias vector
-            activation : function
-                the activation function
-            dropout_rate : float
-                the drop out rate
-            """
+        in_channels : int, dict
+            input feature dimensions of different input nodes
+        out_channels : int
+            number of the target type node
+        attn_channels : int
+            the dimension of attention vector
+        metadata : tuple[list[str], list[tuple[str, str, str]]]
+            The metadata of the heterogeneous graph, *i.e.* its node and edge types given by a list of strings and a list of string triplets, respectively. 
+            See :class:`gammagl.data.HeteroGraph.metadata` for more information.
+        batchnorm : bool
+            whether we need batchnorm
+        add_bias : bool
+            whether we need bias vector
+        activation : nn.module
+            the activation function
+        dropout_rate : float
+            the drop out rate
+    """
     def __init__(
             self,
             in_channels,
