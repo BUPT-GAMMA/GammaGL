@@ -62,7 +62,6 @@ segment_max_cuda_forward(torch::Tensor x, torch::Tensor index, int64_t N) {
   // check inputs
   TORCH_CHECK(x.device().is_cuda(), "x must be CUDA tensor");
   TORCH_CHECK(index.device().is_cuda(), "index must be CUDA tensor");
-  TORCH_CHECK_INDEX(x.dim() == 2, "x dimension should be 2, but got ", x.dim());
   TORCH_CHECK_INDEX(index.dim() == 1, "index dimension should be 1, but got ", index.dim());
   TORCH_CHECK_INDEX(x.size(0) == index.size(0), "fisrt dimension of x and index should be same");
   // only support float Tensor
@@ -85,7 +84,7 @@ segment_max_cuda_forward(torch::Tensor x, torch::Tensor index, int64_t N) {
 
   out.fill_(std::numeric_limits<int64_t>::lowest());
   auto E = x.size(0);
-  auto K = x.size(1);
+  auto K = x.numel() / x.size(0);
   auto stream = at::cuda::getCurrentCUDAStream();
 
   // AT_DISPATCH_ALL_TYPES(x.scalar_type(), "__ops_name",  [&] {
@@ -98,7 +97,7 @@ segment_max_cuda_forward(torch::Tensor x, torch::Tensor index, int64_t N) {
       <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
           x_data, index_data, out_data, E, K, N, x.numel());
 
-  out.masked_fill_(out == std::numeric_limits<int64_t>::lowest(), (scalar_t)0);
+  // out.masked_fill_(out == std::numeric_limits<int64_t>::lowest(), (scalar_t)0);
 
   arg_segment_max_cuda_forward_kernel<scalar_t>
       <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(

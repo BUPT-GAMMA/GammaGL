@@ -1,12 +1,8 @@
 import os
 import os.path as osp
-# os.environ['TL_BACKEND'] = 'paddle' # set your backend here, default `tensorflow`
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-import sys
-
-sys.path.insert(0, osp.abspath('../../')) # adds path2gammagl to execute in command line.
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
 import argparse
-
 from tqdm import tqdm
 import numpy as np
 import tensorlayerx as tlx
@@ -16,7 +12,6 @@ from gammagl.utils.loop import add_self_loops
 from gammagl.utils import calc_gcn_norm
 from tensorlayerx.model import TrainOneStep, WithLoss
 import gammagl.transforms as T
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -207,7 +202,7 @@ if __name__ == '__main__':
     parser.add_argument("--drop_rate", type=float, default=0.5, help="drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-3, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
-    parser.add_argument("--dataset_path", type=str, default=r'../datasets', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--train_rate", type=float, default=0.6, help="ratio of training set")
     parser.add_argument("--val_rate", type=float, default=0.2, help="ratio of validation set")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")

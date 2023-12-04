@@ -1,6 +1,6 @@
 ## Contributing to GammaGL
 
-Contribution is always welcomed. Please feel free to open an issue or email to tyzhao@bupt.edu.cn.
+Contribution is always welcomed. Please feel free to open an issue or email to yaoqiliu@bupt.edu.cn.
 
 ## Contributors
 
@@ -15,28 +15,33 @@ Contribution is always welcomed. Please feel free to open an issue or email to t
   - Jing Wu
   - Hongyi Zhang
   - Guangyu Zhou
-  - Jinyu Yang
+  - Dashuai Yue
   
   Model Implementation
   
   - Yuluo Chen (Gamma Lab)
   - Zhongjian Zhang (Gamma Lab)
   - Yang Liu (Gamma Lab)
-  - Dashuai Yue (Gamma Lab)
   - Le Huang (Gamma Lab)
   - SaiSai Geng (Gamma Lab)
   - Jixi Liu (Gamma Lab)
   - Haoran Dai (Gamma Lab)
+  - Jinyu Yang (Gamma Lab)
+  - Xingyuan Ji (Gamma Lab)
+  - Yuxin Guo (Gamma Lab)
+  - Zihao Zhao (Gamma Lab)
   - Yuxuan Shan (BUPT)
   - Zeyao Ma (BUPT)
   - Yiming Jia (BUPT)
   - Yuxiang Yang (BUPT)
-  - Xianglong Wang (BUPT)
   - Yunhe Yan (BUPT)
+  - Xianglong Wang (BUPT)
   - Ziyu Zheng (GU)
   - Yifei Shao (UESTC)
   - Haoyu Xu (AAU)
   - Zhiwei Li (BUPT)
+  - Haoyu Wang (BUPT)
+  - Zhijie Yang (BUPT)
   
   Advisor
   
@@ -44,7 +49,7 @@ Contribution is always welcomed. Please feel free to open an issue or email to t
   - Hai Huang
   - Cheng Yang
   - Xiao Wang
-
+  
 - **Peng Cheng Laboratory**
   
   - Hui Wang

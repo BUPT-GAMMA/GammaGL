@@ -9,9 +9,8 @@ from gammagl.models import Generator, Discriminator
 
 
 class GraphGAN(object):
-    r"""
-        GraphGAN Model proposed in `"GraphGAN: Graph Representation Learning with Generative Adversarial Nets"
-        <https://arxiv.org/pdf/1711.08267.pdf>`_ paper
+    r"""GraphGAN Model proposed in `"GraphGAN: Graph Representation Learning with Generative Adversarial Nets"
+        <https://arxiv.org/pdf/1711.08267.pdf>`_ paper.
 
         .. math:: \min_{\Theta _{G}}\max_{\Theta _{D}}V(G,D)=\sum_{c=1}^{V}(E_{v\sim p_{true}(\cdot | v_{c})}[logD(v,v_{c};\Theta _{D})]+E_{v\sim G(\cdot |v_{c};\Theta _{G})}[log(1-D(v,v_{c};\Theta _{D}))])
 
@@ -24,8 +23,8 @@ class GraphGAN(object):
 
         Parameters
         ----------
-            args: Namespace
-                Parameters setting
+        args: Namespace
+            Parameters setting.
 
     """
 
@@ -63,15 +62,22 @@ class GraphGAN(object):
     def sample(self, all_score, root, tree, sample_num, for_d):
         """ sample nodes from BFS-tree
 
-        Args:
-            root: int, root node
-            tree: dict, BFS-tree
-            sample_num: the number of required samples
-            for_d: bool, whether the samples are used for the G or the D
+        Parameters
+        ----------
+        root: int
+            root node.
+        tree: dict
+            BFS-tree.
+        sample_num:
+            the number of required samples.
+        for_d: bool
+            whether the samples are used for the G or the D.
 
 
-        Returns:
-            (:obj:`list`, :obj:`list`):indices of the sampled nodes and paths from the root to the sampled nodes
+        Returns
+        -------
+        tuple[list, list]
+            indices of the sampled nodes and paths from the root to the sampled nodes
         """
         samples = []
         paths = []
@@ -111,13 +117,12 @@ class GraphGAN(object):
 
 
     def construct_trees_with_mp(self, nodes):
-        """
-        Use the multiprocessing to speed up trees construction
+        """Use the multiprocessing to speed up trees construction
 
-        Parameters
-        ----------
-            nodes : list
-                List of nodes in the graph
+            Parameters
+            ----------
+            nodes: list
+                List of nodes in the graph.
 
         """
 
@@ -138,17 +143,17 @@ class GraphGAN(object):
 
     def construct_trees(self, nodes):
         """
-        Use BFS algorithm to construct the BFS-trees
+            Use BFS algorithm to construct the BFS-trees
 
-        Parameters
-        ----------
-            nodes : list
-                List of nodes in the graph
+            Parameters
+            ----------
+            nodes: list
+                List of nodes in the graph.
 
-        Returns
-        -------
+            Returns
+            -------
             dict
-                root_node_id -> tree, where tree is a dict: node_id -> list: [father, child_0, child_1, ...]
+                root_node_id -> tree, where tree is a dict: node_id -> list: [father, child_0, child_1, ...].
 
         """
 

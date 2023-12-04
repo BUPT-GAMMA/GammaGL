@@ -1,9 +1,7 @@
 import tensorlayerx as tlx
 import numpy as np
 from itertools import chain
-
 from scipy.sparse.csgraph import shortest_path
-
 from gammagl.utils import k_hop_subgraph, to_scipy_sparse_matrix
 from gammagl.data import Graph, InMemoryDataset
 from gammagl.transforms import RandomLinkSplit

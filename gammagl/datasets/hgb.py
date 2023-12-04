@@ -60,31 +60,45 @@ class HGBDataset(InMemoryDataset):
         your model predictions to the
         `HGB leaderboard <https://www.biendata.xyz/hgb/>`_.
 
-    Args:
-        root (string): Root directory where the dataset should be saved.
-        name (string): The name of the dataset (one of :obj:`"ACM"`,
-            :obj:`"DBLP"`, :obj:`"Freebase"`, :obj:`"IMDB"`)
-        transform (callable, optional): A function/transform that takes in an
-            :class:`gammmgl.transform` object and returns a
-            transformed version. The data object will be transformed before
-            every access. (default: :obj:`None`)
-        pre_transform (callable, optional): A function/transform that takes in
-            an :class:`gammmgl.transform` object and returns a
-            transformed version. The data object will be transformed before
-            being saved to disk. (default: :obj:`None`)
+    Parameters
+    ----------
+    root: str, optional
+        Root directory where the dataset should be saved.
+    name: str, optional
+        The name of the dataset (one of :obj:`"ACM"`,
+        :obj:`"DBLP"`, :obj:`"Freebase"`, :obj:`"IMDB"`)
+    transform: callable, optional
+        A function/transform that takes in an
+        :class:`gammmgl.transform` object and returns a
+        transformed version. The data object will be transformed before
+        every access. (default: :obj:`None`)
+    pre_transform: callable, optional
+        A function/transform that takes in
+        an :class:`gammmgl.transform` object and returns a
+        transformed version. The data object will be transformed before
+        being saved to disk. (default: :obj:`None`)
+
     """
 
-    url = ('https://cloud.tsinghua.edu.cn/d/2d965d2fc2ee41d09def/files/'
-           '?p=%2F{}.zip&dl=1')
-
-    names = {
-        'acm': 'ACM',
-        'dblp': 'DBLP',
-        'freebase': 'Freebase',
-        'imdb': 'IMDB',
+    urls = {
+        'acm_hgb': ('https://drive.google.com/uc?'
+                'export=download&id=1xbJ4QE9pcDJOcALv7dYhHDCPITX2Iddz'),
+        'dblp_hgb': ('https://drive.google.com/uc?'
+                 'export=download&id=1fLLoy559V7jJaQ_9mQEsC06VKd6Qd3SC'),
+        'freebase_hgb': ('https://drive.google.com/uc?'
+                     'export=download&id=1vw-uqbroJZfFsWpriC1CWbtHCJMGdWJ7'),
+        'imdb_hgb': ('https://drive.google.com/uc?'
+                 'export=download&id=18qXmmwKJBrEJxVQaYwKTL3Ny3fPqJeJ2'),
     }
 
-    def __init__(self, root: str = 'aifb', name: str = 'acm',
+    names = {
+        'acm_hgb': 'ACM',
+        'dblp_hgb': 'DBLP',
+        'freebase_hgb': 'Freebase',
+        'imdb_hgb': 'IMDB',
+    }
+
+    def __init__(self, root: str = None, name: str = 'acm',
                  transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None):
         self.name = name.lower()
@@ -102,7 +116,12 @@ class HGBDataset(InMemoryDataset):
 
     @property
     def raw_file_names(self) -> List[str]:
-        x = ['info.dat', 'node.dat', 'link.dat', 'label.dat', 'label.dat.test', 'label.dat.test_full', 'meta.dat']
+        x = ['info.dat', 'node.dat', 'link.dat', 'label.dat', 'label.dat.test']
+        if self.names[self.name] == 'DBLP':
+            x.append('meta.dat')
+        elif self.names[self.name] == 'IMDB':
+            x.append('meta.dat')
+            x.append('url.dat')
         return x
 
     @property
@@ -110,10 +129,12 @@ class HGBDataset(InMemoryDataset):
         return tlx.BACKEND + '_data.pt'
 
     def download(self):
-        url = self.url.format(self.names[self.name])
+        # url = self.url.format(self.names[self.name])
+        url = self.urls[self.name]
         path = download_url(url, self.raw_dir, self.names[self.name] + '.zip')
         extract_zip(path, self.raw_dir)
-        shutil.rmtree(osp.join(self.raw_dir, "__MACOSX"))
+        if osp.exists(osp.join(self.raw_dir, "__MACOSX")):
+            shutil.rmtree(osp.join(self.raw_dir, "__MACOSX"))
         for filename in self.raw_file_names:
             filePath = osp.join(self.raw_dir, self.names[self.name], filename)
             shutil.move(filePath, self.raw_dir)
@@ -123,7 +144,7 @@ class HGBDataset(InMemoryDataset):
     def process(self):
         data = HeteroGraph()
 
-        if self.name in ['acm', 'dblp', 'imdb']:
+        if self.name in ['acm_hgb', 'dblp_hgb', 'imdb_hgb']:
             with open(self.raw_paths[0], 'r') as f:  # `info.dat`
                 info = json.load(f)
             n_types = info['node.dat']['node type']
@@ -136,7 +157,7 @@ class HGBDataset(InMemoryDataset):
                 rel = rel if rel != dst and rel[1:] != dst else 'to'
                 e_types[key] = (src, rel, dst)
             num_classes = len(info['label.dat']['node type']['0'])
-        elif self.name in ['freebase']:
+        elif self.name in ['freebase_hgb']:
             with open(self.raw_paths[0], 'r') as f:  # `info.dat`
                 info = f.read().split('\n')
             start = info.index('TYPE\tMEANING') + 1
@@ -198,7 +219,7 @@ class HGBDataset(InMemoryDataset):
                 data[e_type].edge_weight = edge_weight
 
         # Node classification:
-        if self.name in ['acm', 'dblp', 'freebase', 'imdb']:
+        if self.name in ['acm_hgb', 'dblp_hgb', 'freebase_hgb', 'imdb_hgb']:
             with open(self.raw_paths[3], 'r') as f:  # `label.dat`
                 train_ys = [v.split('\t') for v in f.read().split('\n')[:-1]]
             with open(self.raw_paths[4], 'r') as f:  # `label.dat.test`
@@ -208,15 +229,14 @@ class HGBDataset(InMemoryDataset):
 
                 if not hasattr(data[n_type], 'y'):
                     num_nodes = data[n_type].num_nodes
-                    if self.name in ['imdb']:  # multi-label
+                    if self.name in ['imdb_hgb']:  # multi-label
                         data[n_type].y = np.zeros((num_nodes, num_classes))
                     else:
                         data[n_type].y = np.full((num_nodes,), -1, dtype='int64')
                     data[n_type].train_mask = np.full((num_nodes), False, dtype='bool')
                     data[n_type].test_mask = np.full((num_nodes), False, dtype='bool')
 
-                if (len(data[n_type].y.shape) > 1):
-                    # multi-label
+                if (len(data[n_type].y.shape) > 1): # multi-label
                     for v in y[3].split(','):
                         data[n_type].y[n_id, int(v)] = 1
                 else:

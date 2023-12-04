@@ -13,11 +13,11 @@ def collate(
     data_list: List[BaseGraph],
     increment: bool = True,
     add_batch: bool = True,
-    follow_batch: Optional[Union[List[str]]] = None,
-    exclude_keys: Optional[Union[List[str]]] = None,
+    follow_batch: Optional[List[str]] = None,
+    exclude_keys: Optional[List[str]] = None,
 ) -> Tuple[BaseGraph, Mapping, Mapping]:
-    # Collates a list of `data` objects into a single object of type `cls`.
-    # `collate` can handle both homogeneous and heterogeneous data objects by
+    # Collates a list of `Graph` objects into a single object of type `cls`.
+    # `collate` can handle both homogeneous and heterogeneous graph objects by
     # individually collating all their stores.
     # In addition, `collate` can handle nested data structures such as
     # dictionaries and lists.
@@ -164,7 +164,7 @@ def _collate(
     #     return value, slices, None
 
     elif isinstance(elem, (int, float)):
-        # Convert a list of numerical values to a `torch.Tensor`.
+        # Convert a list of numerical values to a `tlx.Tensor`.
         value = tlx.convert_to_tensor(values)
         if increment:
             incs = get_incs(key, values, data_list, stores)

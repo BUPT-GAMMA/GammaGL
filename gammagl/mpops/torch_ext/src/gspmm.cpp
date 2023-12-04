@@ -1,4 +1,4 @@
-#include "gspmm.h"
+#include "../include/gspmm.h"
 #include <assert.h>
 #include <iostream>
 #include <torch/extension.h>
@@ -6,9 +6,9 @@
 #include <torch/torch.h>
 #include <vector>
 
-#include "cpu/spmm_sum_cpu.h"
+#include "../cpu/spmm_sum_cpu.h"
 #ifdef COMPILE_WITH_CUDA
-#include "cuda/spmm_sum_cuda.h"
+#include "../cuda/spmm_sum_cuda.h"
 #endif
 
 // using torch::autograd::AutogradContext;

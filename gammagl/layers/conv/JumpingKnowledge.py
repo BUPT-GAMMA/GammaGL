@@ -12,20 +12,29 @@ class JumpingKnowledge(tlx.nn.Module):
     r"""The Jumping Knowledge layer aggregation module from the
         `"Representation Learning on Graphs with Jumping Knowledge Networks"
         <https://arxiv.org/abs/1806.03536>`_ paper based on either
-        **concatenation** (:obj:`"cat"`)
+
+
+        - **concatenation** (:obj:`"cat"`)
+        
         .. math::
             \mathbf{x}_v^{(1)} \, \Vert \, \ldots \, \Vert \, \mathbf{x}_v^{(T)}
-        **max pooling** (:obj:`"max"`)
+
+        - **max pooling** (:obj:`"max"`)
+
         .. math::
             \max \left( \mathbf{x}_v^{(1)}, \ldots, \mathbf{x}_v^{(T)} \right)
-        or **weighted summation**
+
+        - **weighted summation**
+
         .. math::
             \sum_{t=1}^T \alpha_v^{(t)} \mathbf{x}_v^{(t)}
+
         with attention scores :math:`\alpha_v^{(t)}` obtained from a bi-directional
         LSTM (:obj:`"lstm"`).
+
         Parameters
         ----------
-        mode: string
+        mode: str
             The aggregation scheme to use
             (:obj:`"cat"`, :obj:`"max"` or :obj:`"lstm"`).
         channels: int, optional
@@ -35,6 +44,7 @@ class JumpingKnowledge(tlx.nn.Module):
         num_layers: int, optional
             The number of layers to aggregate. Needs to
             be only set for LSTM-style aggregation. (default: :obj:`None`)
+
         """
 
     def __init__(self, mode, channels=None, num_layers=None):
@@ -50,8 +60,12 @@ class JumpingKnowledge(tlx.nn.Module):
 
     def forward(self, xs):
         r"""Aggregates representations across different layers.
-        Args:
-            xs (list or tuple): List containing layer-wise representations.
+
+        Parameters
+        ----------
+        xs: list, tuple
+            List containing layer-wise representations.
+
         """
         assert isinstance(xs, list) or isinstance(xs, tuple)
 

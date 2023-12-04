@@ -8,8 +8,8 @@ from gammagl.loader import NeighborSampler
 def test_neighbor_sampler_cora():
     dataset = Planetoid()
     graph = dataset[0]
-    loader = NeighborSampler(edge_index=tlx.convert_to_numpy(graph.edge_index),
-                             node_idx=np.arange(0, graph.num_nodes, dtype=np.int64)
+    loader = NeighborSampler(edge_index=graph.edge_index,
+                             node_idx=tlx.arange(start = 0, limit = graph.num_nodes, dtype=tlx.int64)
                              , sample_lists=[-1, -1],
                              batch_size=512)
 

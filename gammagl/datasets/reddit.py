@@ -16,7 +16,7 @@ class Reddit(InMemoryDataset):
 
     Parameters
     ----------
-    root: string
+    root: str
         Root directory where the dataset should be saved.
     transform: callable, optional
         A function/transform that takes in an

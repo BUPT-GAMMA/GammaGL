@@ -21,14 +21,19 @@ class FILMConv(MessagePassing):
 
     Parameters
     ----------
-        in_channels (int or tuple): Size of each input sample, or :obj:`-1` to
-            derive the size from the first input(s) to the forward method.
-            A tuple corresponds to the sizes of source and target
-            dimensionalities.
-        out_channels (int): Size of each output sample.
-        num_relations (int, optional): Number of relations. (default: :obj:`1`)
-        act (callable, optional): Activation function :math:`\sigma`.
-            (default: :meth:`torch.nn.ReLU()`)
+    in_channels: int, tuple
+        Size of each input sample, or :obj:`-1` to
+        derive the size from the first input(s) to the forward method.
+        A tuple corresponds to the sizes of source and target
+        dimensionalities.
+    out_channels: int
+        Size of each output sample.
+    num_relations: int, optional
+        Number of relations. (default: :obj:`1`)
+    act: callable, optional
+        Activation function :math:`\sigma`.
+        (default: :meth:`tlx.nn.ReLU()`)
+
     """
 
     def __init__(self,

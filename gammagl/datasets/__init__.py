@@ -15,6 +15,8 @@ from .dblp import DBLP
 from .ca_grqc import CA_GrQc
 from .zinc import ZINC
 from .aminer import AMiner
+from .polblogs import PolBlogs
+from .wikics import WikiCS
 
 __all__ = [
     'Amazon',
@@ -33,7 +35,9 @@ __all__ = [
     'DBLP',
     'CA_GrQc',
     'ZINC',
-    'AMiner'
+    'AMiner',
+    'PolBlogs',
+    'WikiCS'
 ]
 
 classes = __all__

@@ -24,7 +24,7 @@ from .seal import DGCNN
 from .hgt import HGTModel
 from .film import FILMModel
 from .pna import PNAModel
-from .mixhop import MIXHOPModel
+from .mixhop import MixHopModel
 from .hcha import HCHA
 from .hardgat import HardGATModel
 from .mlp import MLP
@@ -44,7 +44,9 @@ from .iehgcn import ieHGCNModel
 from .tadw import TADWModel
 from .mgnni import MGNNI_m_MLP, MGNNI_m_att 
 from .magcl import NewGrace
-
+from .cagcn import CAGCNModel
+from .cogsl import CoGSLModel
+from .specformer import Specformer, SpecLayer
 
 __all__ = [
     'GCNModel',
@@ -70,7 +72,7 @@ __all__ = [
     'FAGCNModel',
     'GPRGNNModel',
     'DGCNN',
-    'MIXHOPModel',
+    'MixHopModel',
     'HCHA',
     'HGTModel',
     'PNAModel',
@@ -95,7 +97,9 @@ __all__ = [
     'MGNNI_m_MLP', 
     'MGNNI_m_att', 
     'NewGrace',
-    
+    'CAGCNModel',
+    'CoGSLModel',
+    'Specformer',
 ]
 
 classes = __all__
