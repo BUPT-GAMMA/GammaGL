@@ -26,6 +26,7 @@ add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
 # endif()
 
 file(GLOB_RECURSE SRC_LIST "src/*.cpp")
+list(REMOVE_ITEM SRC_LIST "${CMAKE_SOURCE_DIR}/src/operators.cpp")
 file(GLOB_RECURSE CPU "cpu/*.cpp")
 file(GLOB_RECURSE CUDA "cuda/*.cu")
 file(GLOB_RECURSE INCLUDE "./*.h")

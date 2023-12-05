@@ -8,7 +8,7 @@ from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtensio
 # TODO will depend on different host
 WITH_CUDA = False
 
-cuda_macro = ('COMPILE_WITH_CUDA', None)
+cuda_macro = ('COMPILE_WITH_CUDA', True)
 
 def is_src_file(filename: str):
     return filename.endswith("cpp") \
@@ -24,10 +24,7 @@ def load_mpops_extensions():
     for i in range(len(mpops_list)):
         mpops_prefix = mpops_list[i]
 
-        if WITH_CUDA:
-            mpops_types = ["src", "cpu", "cuda"]
-        else:
-            mpops_types = ["src", "cpu", "cuda"]
+        mpops_types = ["src", "cpu", "cuda"]
         mpops_dir = osp.join(mpops_root, mpops_prefix)
         for mpops_type in mpops_types:
             src_dir = osp.join(mpops_dir, mpops_type)

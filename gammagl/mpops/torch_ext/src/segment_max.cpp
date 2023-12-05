@@ -5,7 +5,9 @@
 #include <torch/torch.h>
 
 #include "../cpu/segment_max_cpu.h"
+#ifdef COMPILE_WITH_CUDA
 #include "../cuda/segment_max_cuda.h"
+#endif
 #include <iostream>
 #include <vector>
 #include "../include/utils.h"
@@ -15,7 +17,11 @@ using torch::autograd::AutogradContext;
 std::tuple<torch::Tensor, torch::Tensor>
 inline max_device_dispatch_forward(torch::Tensor &x, torch::Tensor &index, int64_t &N) {
   if (x.is_cuda() && index.is_cuda()) {
+#ifdef COMPILE_WITH_CUDA
     return segment_max_cuda_forward(x, index, N);
+#else
+    AT_ERROR("Compiled with CUDA support while tensor is on GPU!");
+#endif
   } else if (x.is_cpu() && index.is_cpu()) {
     return segment_max_cpu_forward(x, index, N);
   } else {
