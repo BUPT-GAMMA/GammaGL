@@ -66,8 +66,8 @@ def k_hop_subgraph(node_idx, num_hops, edge_index, num_nodes, relabel_nodes=Fals
     else:
         col, row = edge_index
 
-    node_mask = np.zeros(num_nodes, dtype=np.bool)
-    edge_mask = np.zeros(row.shape[0], dtype=np.bool)
+    node_mask = np.zeros(num_nodes, dtype=bool)
+    edge_mask = np.zeros(row.shape[0], dtype=bool)
 
     if isinstance(node_idx, (int, list, tuple)):
         node_idx = node_idx.flatten()
