@@ -4,7 +4,10 @@ import scipy.sparse as sp
 import argparse
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-# os.environ['TL_BACKEND'] = 'torch'
+os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
+
 import sys
 sys.path.append(os.getcwd())
 import tensorlayerx as tlx
