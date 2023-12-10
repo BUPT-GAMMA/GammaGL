@@ -47,6 +47,7 @@ from .magcl import NewGrace
 from .cagcn import CAGCNModel
 from .cogsl import CoGSLModel
 from .specformer import Specformer, SpecLayer
+from .sfgcn import SFGCNModel
 
 __all__ = [
     'GCNModel',
@@ -100,6 +101,7 @@ __all__ = [
     'CAGCNModel',
     'CoGSLModel',
     'Specformer',
+    'SFGCNModel'
 ]
 
 classes = __all__
