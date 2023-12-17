@@ -7,7 +7,7 @@
 
 #include <iostream>
 #include <vector>
-std::tuple<torch::Tensor, torch::Tensor> segment_sum_cpu_forward(torch::Tensor& x,
+torch::Tensor segment_sum_cpu_forward(torch::Tensor& x,
                                                              torch::Tensor& index,
                                                              int64_t& N) {
     TORCH_CHECK(x.device().is_cpu(), "x must be CPU tensor");
@@ -27,16 +27,14 @@ std::tuple<torch::Tensor, torch::Tensor> segment_sum_cpu_forward(torch::Tensor& 
 
     // Initialize the output tensor with zeros.
     torch::Tensor out = torch::zeros(sizes, x.options());
-    torch::Tensor arg_out = torch::empty(sizes, index.options());
     
     // If there is no element in x, return the output tensors as they are.
     if (x.numel() == 0) {
-        return std::make_tuple(out, arg_out);
+        return out;
     }
 
     // Get data pointers for index, arg_out, and x.
     auto index_data = index.data_ptr<int64_t>();
-    auto arg_out_data = arg_out.data_ptr<int64_t>();
     auto x_data = x.data_ptr<float>(); // Assuming x is of type float.
     auto out_data = out.data_ptr<float>();
 
@@ -51,9 +49,8 @@ std::tuple<torch::Tensor, torch::Tensor> segment_sum_cpu_forward(torch::Tensor& 
         // Handle accumulation for different dimensions.
         for (auto k = 0; k < K; ++k) {
             out_data[idx * K + k] += x_data[e * K + k];
-            arg_out_data[idx * K + k] = e;
         }
     }
 
-    return std::make_tuple(out, arg_out);
+    return out;
 }

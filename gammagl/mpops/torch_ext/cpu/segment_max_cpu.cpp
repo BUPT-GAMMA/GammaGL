@@ -23,7 +23,7 @@ std::tuple<torch::Tensor, torch::Tensor> segment_max_cpu_forward(torch::Tensor& 
   auto sizes = x.sizes().vec();
   sizes[0] = N;
   torch::Tensor out = torch::empty(sizes, x.options());
-  torch::Tensor arg_out = torch::full_like(out, 0., index.options());
+  torch::Tensor arg_out = torch::full_like(out, out.size(0), index.options());
   if (x.numel() == 0) {
     out.fill_(0.);
     return std::make_tuple(out, arg_out);
@@ -39,6 +39,8 @@ std::tuple<torch::Tensor, torch::Tensor> segment_max_cpu_forward(torch::Tensor& 
   auto x_data = x.data_ptr<scalar_t>();
   auto out_data = out.data_ptr<scalar_t>();
 
+  std::unordered_map<int64_t, int64_t> max_pos;
+
   int64_t idx;
 #ifdef COMPILE_WITH_OMP
 #pragma omp parallel for
@@ -51,12 +53,13 @@ std::tuple<torch::Tensor, torch::Tensor> segment_max_cpu_forward(torch::Tensor& 
 #endif
       if (out_data[idx * K + k] < x_data[e * K + k]) {
         out_data[idx * K + k] = x_data[e * K + k];
-        arg_out_data[idx * K + k] = e;
+        arg_out_data[e * K + k] = idx;
+        for(auto pos = 0;pos < e&&index_data[e]==index_data[pos];pos++){
+          arg_out_data[pos * K + k] = out.size(0);
+        }
       }
     }
   }
-
-  // out.masked_fill_(out == std::numeric_limits<int64_t>::lowest(), std::numeric_limits<float>::quiet_NaN());
 
   return std::make_tuple(out, arg_out);
 }

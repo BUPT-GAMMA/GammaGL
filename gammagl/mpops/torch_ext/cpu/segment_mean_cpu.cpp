@@ -7,7 +7,7 @@
 
 #include <iostream>
 #include <vector>
-std::tuple<torch::Tensor, torch::Tensor> segment_mean_cpu_forward(torch::Tensor& x,
+torch::Tensor segment_mean_cpu_forward(torch::Tensor& x,
                                                      torch::Tensor& index,
                                                      int64_t& N) {
   TORCH_CHECK(x.device().is_cpu(), "x must be CPU tensor");
@@ -25,7 +25,7 @@ std::tuple<torch::Tensor, torch::Tensor> segment_mean_cpu_forward(torch::Tensor&
   torch::Tensor out = torch::zeros(sizes, x.options());
   torch::Tensor arg_out = torch::full_like(out, 0., index.options());
   if (x.numel() == 0) {
-    return std::make_tuple(out, arg_out);
+    return out;
   }
 
   auto E = x.size(0);
@@ -57,13 +57,19 @@ std::tuple<torch::Tensor, torch::Tensor> segment_mean_cpu_forward(torch::Tensor&
   }
   // });
 
+#ifdef COMPILE_WITH_OMP
+#pragma omp parallel for
+#endif
   for (auto e = 0; e < E; ++e) {
     if(degree_data[e]>1){
         for (auto k = 0; k < K; ++k) {
+#ifdef COMPILE_WITH_OMP
+#pragma omp critical
+#endif
             out_data[e * K + k] /= degree_data[e];
         }
     }
   }
 
-  return std::make_tuple(out, arg_out);
+  return out;
 }

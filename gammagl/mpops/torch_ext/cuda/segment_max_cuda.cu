@@ -1,4 +1,5 @@
 #include "segment_max_cuda.h"
+#include <cstdint>
 #include <torch/torch.h>
 #include <iostream>
 #include <vector>
@@ -44,17 +45,39 @@ template <typename scalar_t>
 __global__ void
 arg_segment_max_cuda_forward_kernel(const scalar_t *x_data, const int64_t *index_data,
                    scalar_t *out_data, int64_t *arg_out_data, int64_t E,
-                   int64_t K, int64_t N, int64_t numel) {
+                   int64_t K, int64_t N, int64_t numel, int64_t out_size) {
   int64_t thread_idx = blockIdx.x * blockDim.x + threadIdx.x;
   int64_t e = (thread_idx / K) % E;
   int64_t k = thread_idx % K;
 
+  // if (thread_idx < numel) {
+  //   int64_t idx = index_data[e];
+  //   if (x_data[thread_idx] == out_data[idx * K + k]) {
+  //     arg_out_data[idx * K + k] = e;
+  //   }
+  // }
+
   if (thread_idx < numel) {
     int64_t idx = index_data[e];
     if (x_data[thread_idx] == out_data[idx * K + k]) {
-      arg_out_data[idx * K + k] = e;
+      arg_out_data[e * K + k] = idx;
+      for(auto pos = 0;pos < e&&index_data[e]==index_data[pos];pos++){
+        arg_out_data[pos * K + k] = out_size;
+      }
     }
   }
+
+
+  // if (thread_idx < numel) {
+  //   int64_t idx = index_data[e];
+  //   scalar_t current_max = out_data[idx * K + k];
+  //   scalar_t current_val = x_data[thread_idx];
+
+  //   if (current_val == current_max) {
+  //     // atomicCAS(&arg_out_data[idx * K + k], N, e);
+  //     atomicMax(reinterpret_cast<unsigned int*>(&arg_out_data[idx * K + k]), static_cast<unsigned int>(e));
+  //   }
+  // }
 }
 
 std::tuple<torch::Tensor, torch::Tensor>
@@ -75,7 +98,7 @@ segment_max_cuda_forward(torch::Tensor x, torch::Tensor index, int64_t N) {
                  : *index.max().cpu().data_ptr<int64_t>();
   torch::Tensor out = torch::empty(sizes, x.options());
   // TORCH_CHECK(out.device().is_cuda(), "out must be CUDA tensor");
-  torch::Tensor arg_out = torch::full_like(out, 0, index.options());
+  torch::Tensor arg_out = torch::full_like(out, out.size(0), index.options());
   int64_t *arg_out_data = arg_out.data_ptr<int64_t>();
   if (x.numel() == 0) {
     out.fill_(0);
@@ -102,7 +125,7 @@ segment_max_cuda_forward(torch::Tensor x, torch::Tensor index, int64_t N) {
   arg_segment_max_cuda_forward_kernel<scalar_t>
       <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
           x_data, index_data, out_data, arg_out_data, E, K, N,
-          x.numel());
+          x.numel(), out.size(0));
   // });
 
   return std::make_tuple(out, arg_out);
