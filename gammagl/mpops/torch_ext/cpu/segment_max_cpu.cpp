@@ -1,24 +1,24 @@
 #include "segment_max_cpu.h"
-#include <torch/torch.h>
+
 #include <assert.h>
 #include <torch/extension.h>
 #include <torch/script.h>
 #include <torch/torch.h>
 
 #include <iostream>
-#include <vector>
 #include <limits>
-std::tuple<torch::Tensor, torch::Tensor> segment_max_cpu_forward(torch::Tensor& x,
-                                                     torch::Tensor& index,
-                                                     int64_t& N) {
+#include <vector>
+std::tuple<torch::Tensor, torch::Tensor> segment_max_cpu_forward(
+    torch::Tensor& x, torch::Tensor& index, int64_t& N) {
   TORCH_CHECK(x.device().is_cpu(), "x must be CPU tensor");
   TORCH_CHECK(index.device().is_cpu(), "index must be CPU tensor");
-  TORCH_CHECK_INDEX(index.dim() == 1, "index dimension should be 1, but got ",
-                    index.dim());
-  TORCH_CHECK_INDEX(x.size(0) == index.size(0),
-                    "fisrt dimension of x and index should be same");
+  TORCH_CHECK_INDEX(
+      index.dim() == 1, "index dimension should be 1, but got ", index.dim());
+  TORCH_CHECK_INDEX(
+      x.size(0) == index.size(0),
+      "fisrt dimension of x and index should be same");
 
-  x = x.contiguous(); // torch Tensor my not be contiguous.
+  x = x.contiguous();  // torch Tensor my not be contiguous.
 
   auto sizes = x.sizes().vec();
   sizes[0] = N;
@@ -39,8 +39,6 @@ std::tuple<torch::Tensor, torch::Tensor> segment_max_cpu_forward(torch::Tensor& 
   auto x_data = x.data_ptr<scalar_t>();
   auto out_data = out.data_ptr<scalar_t>();
 
-  std::unordered_map<int64_t, int64_t> max_pos;
-
   int64_t idx;
 #ifdef COMPILE_WITH_OMP
 #pragma omp parallel for
@@ -54,7 +52,7 @@ std::tuple<torch::Tensor, torch::Tensor> segment_max_cpu_forward(torch::Tensor& 
       if (out_data[idx * K + k] < x_data[e * K + k]) {
         out_data[idx * K + k] = x_data[e * K + k];
         arg_out_data[e * K + k] = idx;
-        for(auto pos = 0;pos < e&&index_data[e]==index_data[pos];pos++){
+        for (auto pos = 0; pos < e && index_data[e] == index_data[pos]; pos++) {
           arg_out_data[pos * K + k] = out.size(0);
         }
       }

@@ -9,6 +9,10 @@ from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtensio
 WITH_CUDA = False
 
 cuda_macro = ('COMPILE_WITH_CUDA', True)
+omp_macro = ('COMPLIE_WITH_OMP', True) # Note: OpenMP needs gcc>4.2.0
+compile_args = {
+    'cxx':['-fopenmp']
+}
 
 def is_src_file(filename: str):
     return filename.endswith("cpp") \
@@ -32,21 +36,16 @@ def load_mpops_extensions():
             if not src_files:
                 continue
             file_list.extend([osp.join(mpops_type, f) for f in src_files])
-    
-        if not WITH_CUDA:
-            extensions.append(CppExtension(
-                name = osp.join(mpops_dir, f'_{mpops_prefix}').replace(osp.sep, "."),
-                sources = [osp.join(mpops_dir, f) for f in file_list]
-            ))
-        else:
-            extensions.append(CUDAExtension(
-                name = osp.join(mpops_dir, f'_{mpops_prefix}').replace(osp.sep, "."),
-                sources = [osp.join(mpops_dir, f) for f in file_list],
-                define_macros=[
-                    cuda_macro,
-                    # omp_macro,
-                ]
-            ))
+
+        extensions.append(CUDAExtension(
+            name = osp.join(mpops_dir, f'_{mpops_prefix}').replace(osp.sep, "."),
+            sources = [osp.join(mpops_dir, f) for f in file_list],
+            define_macros=[
+                cuda_macro,
+                omp_macro
+            ],
+            extra_compile_args=compile_args
+        ))
             
     return extensions
             
@@ -134,3 +133,6 @@ setup(
 
 # python setup.py build_ext --inplace
 # python setup.py install
+
+# clang-format -style=file -i ***.cpp
+# find ./ -type f \( -name '*.h' -or -name '*.hpp' -or -name '*.cpp' -or -name '*.c' -or -name '*.cc' -or -name '*.cu' \) -print | xargs clang-format -style=file -i

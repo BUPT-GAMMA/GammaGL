@@ -1,4 +1,5 @@
 #include "../include/segment_max.h"
+
 #include <assert.h>
 #include <torch/extension.h>
 #include <torch/script.h>
@@ -10,12 +11,13 @@
 #endif
 #include <iostream>
 #include <vector>
+
 #include "../include/utils.h"
 
 using torch::autograd::AutogradContext;
 
-std::tuple<torch::Tensor, torch::Tensor>
-inline max_device_dispatch_forward(torch::Tensor &x, torch::Tensor &index, int64_t &N) {
+std::tuple<torch::Tensor, torch::Tensor> inline max_device_dispatch_forward(
+    torch::Tensor &x, torch::Tensor &index, int64_t &N) {
   if (x.is_cuda() && index.is_cuda()) {
 #ifdef COMPILE_WITH_CUDA
     return segment_max_cuda_forward(x, index, N);
@@ -29,8 +31,8 @@ inline max_device_dispatch_forward(torch::Tensor &x, torch::Tensor &index, int64
   }
 }
 
-torch::Tensor SegmentMax::forward(AutogradContext *ctx, torch::Tensor x,
-                                  torch::Tensor index, int64_t N) {
+torch::Tensor SegmentMax::forward(
+    AutogradContext *ctx, torch::Tensor x, torch::Tensor index, int64_t N) {
   ctx->saved_data["x_shape"] = x.sizes();
   auto result = max_device_dispatch_forward(x, index, N);
   auto out = std::get<0>(result);
@@ -40,9 +42,8 @@ torch::Tensor SegmentMax::forward(AutogradContext *ctx, torch::Tensor x,
   return out;
 }
 
-std::vector<torch::Tensor>
-SegmentMax::backward(AutogradContext *ctx,
-                     std::vector<torch::Tensor> grad_outs) {
+std::vector<torch::Tensor> SegmentMax::backward(
+    AutogradContext *ctx, std::vector<torch::Tensor> grad_outs) {
   auto grad_out = grad_outs[0];
   auto saved = ctx->get_saved_variables();
   auto index = saved[0];
@@ -54,13 +55,13 @@ SegmentMax::backward(AutogradContext *ctx,
   grad_out_shape[0] = 1;
   auto zero_tensor = torch::zeros(grad_out_shape, grad_out.options());
 
-  auto extended_grad_out =  torch::cat({grad_out, zero_tensor}, 0);
+  auto extended_grad_out = torch::cat({grad_out, zero_tensor}, 0);
 
   for (int64_t i = 0; i < grad_in.size(0); ++i) {
-      for (int64_t j = 0; j < grad_in.size(1); ++j) {
-        auto index = arg_out[i][j].item<int64_t>();
-        grad_in[i][j] = extended_grad_out[index][j].item<float>();
-      }
+    for (int64_t j = 0; j < grad_in.size(1); ++j) {
+      auto index = arg_out[i][j].item<int64_t>();
+      grad_in[i][j] = extended_grad_out[index][j].item<float>();
+    }
   }
 
   return {grad_in, torch::Tensor(), torch::Tensor()};
