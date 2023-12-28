@@ -36,7 +36,6 @@ torch::Tensor SegmentSum::forward(
     AutogradContext* ctx, torch::Tensor x, torch::Tensor index, int64_t N) {
   ctx->saved_data["x_shape"] = x.sizes();
   auto result = sum_device_dispatch_forward(x, index, N);
-  // auto out = result;
   ctx->save_for_backward({index});
   return result;
 }

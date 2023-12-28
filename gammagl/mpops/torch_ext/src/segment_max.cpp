@@ -5,7 +5,10 @@
 #include <torch/script.h>
 #include <torch/torch.h>
 
+#include <cstdint>
+
 #include "../cpu/segment_max_cpu.h"
+#include "ATen/Functions.h"
 #ifdef COMPILE_WITH_CUDA
 #include "../cuda/segment_max_cuda.h"
 #endif
@@ -49,20 +52,10 @@ std::vector<torch::Tensor> SegmentMax::backward(
   auto index = saved[0];
   auto arg_out = saved[1];
   auto x_shape = list2vec(ctx->saved_data["x_shape"].toIntList());
+  x_shape[0] += 1;
 
   auto grad_in = torch::zeros(x_shape, grad_out.options());
-  auto grad_out_shape = grad_out.sizes().vec();
-  grad_out_shape[0] = 1;
-  auto zero_tensor = torch::zeros(grad_out_shape, grad_out.options());
-
-  auto extended_grad_out = torch::cat({grad_out, zero_tensor}, 0);
-
-  for (int64_t i = 0; i < grad_in.size(0); ++i) {
-    for (int64_t j = 0; j < grad_in.size(1); ++j) {
-      auto index = arg_out[i][j].item<int64_t>();
-      grad_in[i][j] = extended_grad_out[index][j].item<float>();
-    }
-  }
-
+  grad_in.scatter_(0, arg_out, grad_out);
+  grad_in = grad_in.narrow(0, 0, x_shape[0] - 1);
   return {grad_in, torch::Tensor(), torch::Tensor()};
 }

@@ -53,20 +53,15 @@ __global__ void arg_segment_max_cuda_forward_kernel(
   int64_t e = (thread_idx / K) % E;
   int64_t k = thread_idx % K;
 
-  // if (thread_idx < numel) {
-  //   int64_t idx = index_data[e];
-  //   if (x_data[thread_idx] == out_data[idx * K + k]) {
-  //     arg_out_data[idx * K + k] = e;
-  //   }
-  // }
-
   if (thread_idx < numel) {
     int64_t idx = index_data[e];
     if (x_data[thread_idx] == out_data[idx * K + k]) {
-      arg_out_data[e * K + k] = idx;
-      for (auto pos = 0; pos < e && index_data[e] == index_data[pos]; pos++) {
-        arg_out_data[pos * K + k] = out_size;
-      }
+      arg_out_data[idx * K + k] = e;
+      // arg_out_data[e * K + k] = idx;
+      // for (auto pos = 0; pos < e && index_data[e] == index_data[pos]; pos++)
+      // {
+      //   arg_out_data[pos * K + k] = out_size;
+      // }
     }
   }
 
@@ -98,6 +93,7 @@ std::tuple<torch::Tensor, torch::Tensor> segment_max_cuda_forward(
       x.scalar_type() == c10::ScalarType::Float, "x should be float Tensor")
   cudaSetDevice(x.get_device());
   x = x.contiguous();
+  index = index.contiguous();
 
   auto sizes = x.sizes().vec();
   sizes[0] = N > *index.max().cpu().data_ptr<int64_t>()

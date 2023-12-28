@@ -18,6 +18,7 @@ torch::Tensor segment_mean_cpu_forward(
       "fisrt dimension of x and index should be same");
 
   x = x.contiguous();  // torch Tensor my not be contiguous.
+  index = index.contiguous();
 
   auto sizes = x.sizes().vec();
   sizes[0] = N;
@@ -56,6 +57,8 @@ torch::Tensor segment_mean_cpu_forward(
     }
   }
   // });
+  out = out.contiguous();
+  degree = degree.contiguous();
 
 #ifdef COMPILE_WITH_OMP
 #pragma omp parallel for

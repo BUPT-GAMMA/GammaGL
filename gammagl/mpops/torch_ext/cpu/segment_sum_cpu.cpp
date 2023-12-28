@@ -19,6 +19,7 @@ torch::Tensor segment_sum_cpu_forward(
       "fisrt dimension of x and index should be same");
 
   x = x.contiguous();  // Make sure x is contiguous.
+  index = index.contiguous();
 
   // Set up the sizes for the output tensor.
   auto sizes = x.sizes().vec();

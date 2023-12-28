@@ -5,10 +5,12 @@
 #include <torch/script.h>
 #include <torch/torch.h>
 
+#include <cstdint>
 #include <iostream>
 #include <vector>
 
 #include "../cpu/segment_mean_cpu.h"
+#include "pybind11/pytypes.h"
 #ifdef COMPILE_WITH_CUDA
 #include "../cuda/segment_mean_cuda.h"
 #endif
@@ -51,6 +53,11 @@ std::vector<torch::Tensor> SegmentMean::backward(
   grad_in.copy_(selected);
   auto counts = torch::bincount(index);
   auto result = counts.index_select(0, index);
-  grad_in = grad_in / result.unsqueeze(1);
+
+  std::vector<int64_t> result_shape(grad_in.dim(), 1);
+  result_shape[0] = grad_in.size(0);
+  auto index_expanded = result.view(result_shape);
+  grad_in = grad_in / index_expanded;
+
   return {grad_in, torch::Tensor(), torch::Tensor()};
 }

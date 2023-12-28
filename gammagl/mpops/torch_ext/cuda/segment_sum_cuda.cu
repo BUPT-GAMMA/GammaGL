@@ -45,6 +45,7 @@ torch::Tensor segment_sum_cuda_forward(
       x.scalar_type() == c10::ScalarType::Float, "x should be float Tensor")
   cudaSetDevice(x.get_device());
   x = x.contiguous();
+  index = index.contiguous();
 
   auto sizes = x.sizes().vec();
   sizes[0] = N > *index.max().cpu().data_ptr<int64_t>()
