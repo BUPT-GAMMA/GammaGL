@@ -10,11 +10,7 @@ from gammagl.layers.conv import MessagePassing
 
 
 def masked_edge_index(edge_index, edge_mask):
-    if tlx.BACKEND == 'mindspore':
-        idx = tlx.convert_to_tensor([i for i, v in enumerate(edge_mask) if v], dtype=tlx.int64)
-        return tlx.gather(edge_index, idx)
-    else:
-        return tlx.transpose(tlx.transpose(edge_index)[edge_mask])
+    return tlx.transpose(tlx.transpose(edge_index)[edge_mask])
 
 
 class RGCNConv(MessagePassing):
