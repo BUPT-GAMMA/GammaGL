@@ -43,11 +43,17 @@ torch::Tensor segment_sum_cpu_forward(
   // auto K = (x.dim() > 1) ? x.size(1) : 1; // Size of the inner dimension.
   auto K = x.numel() / x.size(0);  // Size of the inner dimension.
 
+#ifdef COMPILE_WITH_OMP
+#pragma omp parallel for
+#endif
   // Iterate over each element in x.
   for (auto e = 0; e < E; ++e) {
     auto idx = index_data[e];
     // Handle accumulation for different dimensions.
     for (auto k = 0; k < K; ++k) {
+#ifdef COMPILE_WITH_OMP
+#pragma omp critical
+#endif
       out_data[idx * K + k] += x_data[e * K + k];
     }
   }
