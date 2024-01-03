@@ -4,24 +4,17 @@ from tensorlayerx.nn import ModuleList
 
 class HardGATModel(tlx.nn.Module):
     r"""The graph hard attentional operator from the `"Graph Representation Learning via Hard and Channel-Wise Attention Networks"
-        <https://dl.acm.org/doi/pdf/10.1145/3292500.3330897>`_ paper.
+    <https://dl.acm.org/doi/pdf/10.1145/3292500.3330897>`_ paper
 
-        Parameters
-        ----------
-        feature_dim: int
-            input feature dimension.
-        hidden_dim: int
-            hidden dimension.
-        num_class: int
-            number of classes.
-        heads: int
-            number of attention heads.
-        drop_rate: float
-            dropout rate.
-        k: int
-            number of neighbors to attention.
-        name: str, optional
-            model name.
+    Parameters
+    ----------
+        feature_dim (int): input feature dimension
+        hidden_dim (int): hidden dimension
+        num_class (int): number of classes
+        heads (int): number of attention heads
+        drop_rate (float): dropout rate
+        k (int): number of neighbors to attention
+        name (str): model name
 
     """
 

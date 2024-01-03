@@ -7,27 +7,35 @@ from gammagl.layers.conv.cheb_conv import ChebConv
 
 
 class ChebNetModel(Module):
-    r"""Graph Convolutional Network proposed in `"Convolutional Neural Networks on Graphs with Fast Localized Spectral
-        Filtering" <https://arxiv.org/abs/1606.09375>`_ paper.
+    r"""
+        Graph Convolutional Network proposed in `Convolutional Neural Networks on Graphs with Fast Localized Spectral Filtering`_.
+
+        .. _Convolutional Neural Networks on Graphs with Fast Localized Spectral Filtering:
+            https://arxiv.org/pdf/1606.09375.pdf
 
         Parameters
         ----------
-        feature_dim: int
-            The dimensionality of input feature.
-        hidden_dim: int
-            The dimensionality of hidden layer.
-        out_dim: int
-            The number of classes for prediction.
-        k: int
-            Chebyshev filter size.
-        drop_rate: float
-            Dropout rate.
-        name: str
-            The name of the model.
-
+        cfg: configuration of ChebNet
         """
 
     def __init__(self, feature_dim, hidden_dim, out_dim, k, drop_rate, name=None):
+        """Chebyshev Networks construction
+
+                Parameters
+                ----------
+                feature_dim: int
+                    The dimensionality of input feature
+                hidden_dim: int
+                    The dimensionality of hidden layer
+                out_dim: int
+                    The number of classes for prediction
+                k: int
+                    Chebyshev filter size
+                drop_rate: float
+                    Dropout rate.
+                name: str
+                    The name of the model
+                """
         super().__init__()
         self.conv1 = ChebConv(feature_dim, hidden_dim, K=k)
         self.conv2 = ChebConv(hidden_dim, out_dim, K=k)

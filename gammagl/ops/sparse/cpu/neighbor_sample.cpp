@@ -19,9 +19,10 @@ py::dict from_dict(phmap::flat_hash_map<string, vector<T>> &map) {
   return dict;
 }
 
-py::list neighbor_sample(
-    Tensor colptr, Tensor row, Tensor input_node,
-    const vector<int64_t> &num_neighbors, bool replace, bool directed) {
+py::list neighbor_sample(Tensor colptr, Tensor row, Tensor input_node,
+                         const vector<int64_t> &num_neighbors, bool replace,
+                         bool directed) {
+
   // Initialize some data structures for the sampling process:
   vector<int64_t> samples;
   phmap::flat_hash_map<int64_t, int64_t> to_local_node;
@@ -47,13 +48,15 @@ py::list neighbor_sample(
       const auto &col_end = colptr_data(w + 1);
       const auto col_count = col_end - col_start;
 
-      if (col_count == 0) continue;
+      if (col_count == 0)
+        continue;
 
       if ((num_samples < 0) || (!replace && (num_samples >= col_count))) {
         for (int64_t offset = col_start; offset < col_end; offset++) {
           const int64_t &v = row_data(offset);
           const auto res = to_local_node.insert({v, samples.size()});
-          if (res.second) samples.push_back(v);
+          if (res.second)
+            samples.push_back(v);
           if (directed) {
             cols.push_back(i);
             rows.push_back(res.first->second);
@@ -65,7 +68,8 @@ py::list neighbor_sample(
           const int64_t offset = col_start + uniform_randint(col_count);
           const int64_t &v = row_data(offset);
           const auto res = to_local_node.insert({v, samples.size()});
-          if (res.second) samples.push_back(v);
+          if (res.second)
+            samples.push_back(v);
           if (directed) {
             cols.push_back(i);
             rows.push_back(res.first->second);
@@ -83,7 +87,8 @@ py::list neighbor_sample(
           const int64_t offset = col_start + rnd;
           const int64_t &v = row_data(offset);
           const auto res = to_local_node.insert({v, samples.size()});
-          if (res.second) samples.push_back(v);
+          if (res.second)
+            samples.push_back(v);
           if (directed) {
             cols.push_back(i);
             rows.push_back(res.first->second);
@@ -209,14 +214,16 @@ py::list hetero_neighbor_sample(
         const auto &col_end = colptr_data(w + 1);
         const auto col_count = col_end - col_start;
 
-        if (col_count == 0) continue;
+        if (col_count == 0)
+          continue;
 
         if ((num_samples < 0) || (!replace && (num_samples >= col_count))) {
           // Select all neighbors:
           for (int64_t offset = col_start; offset < col_end; offset++) {
             const int64_t &v = row_data(offset);
             const auto res = to_local_src_node.insert({v, src_samples.size()});
-            if (res.second) src_samples.push_back(v);
+            if (res.second)
+              src_samples.push_back(v);
             if (directed) {
               cols.push_back(i);
               rows.push_back(res.first->second);
@@ -230,7 +237,8 @@ py::list hetero_neighbor_sample(
             const int64_t offset = col_start + uniform_randint(col_count);
             const int64_t &v = row_data(offset);
             const auto res = to_local_src_node.insert({v, src_samples.size()});
-            if (res.second) src_samples.push_back(v);
+            if (res.second)
+              src_samples.push_back(v);
             if (directed) {
               cols.push_back(i);
               rows.push_back(res.first->second);
@@ -249,7 +257,8 @@ py::list hetero_neighbor_sample(
             const int64_t offset = col_start + rnd;
             const int64_t &v = row_data(offset);
             const auto res = to_local_src_node.insert({v, src_samples.size()});
-            if (res.second) src_samples.push_back(v);
+            if (res.second)
+              src_samples.push_back(v);
             if (directed) {
               cols.push_back(i);
               rows.push_back(res.first->second);
@@ -265,7 +274,7 @@ py::list hetero_neighbor_sample(
   }
 
   // Temporal sample disable undirected
-  if (!directed) {  // Construct the subgraph among the sampled nodes:
+  if (!directed) { // Construct the subgraph among the sampled nodes:
     phmap::flat_hash_map<int64_t, int64_t>::iterator iter;
     for (const auto &kv : colptr_dict) {
       const auto &rel_type = kv.first;

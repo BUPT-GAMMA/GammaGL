@@ -18,31 +18,25 @@ class WikipediaNetwork(InMemoryDataset):
     Node features represent several informative nouns in the Wikipedia pages.
     The task is to predict the average daily traffic of the web page.
 
-    Parameters
-    ----------
-    root: str, optional
-        Root directory where the dataset should be saved.
-    name: str
-        The name of the dataset (:obj:`"chameleon"`,
-        :obj:`"crocodile"`, :obj:`"squirrel"`).
-    geom_gcn_preprocess: bool
-        If set to :obj:`True`, will load the
-        pre-processed data as introduced in the `"Geom-GCN: Geometric
-        Graph Convolutional Networks" <https://arxiv.org/abs/2002.05287>_`,
-        in which the average monthly traffic of the web page is converted
-        into five categories to predict.
-        If set to :obj:`True`, the dataset :obj:`"crocodile"` is not
-        available.
-    transform: callable, optional
-        A function/transform that takes in an
-        :obj:`gammagl.data.Graph` object and returns a transformed
-        version. The data object will be transformed before every access.
-        (default: :obj:`None`)
-    pre_transform: callable, optional
-        A function/transform that takes in
-        an :obj:`gammagl.data.Graph` object and returns a
-        transformed version. The data object will be transformed before
-        being saved to disk. (default: :obj:`None`)
+    Args:
+        root (string): Root directory where the dataset should be saved.
+        name (string): The name of the dataset (:obj:`"chameleon"`,
+            :obj:`"crocodile"`, :obj:`"squirrel"`).
+        geom_gcn_preprocess (bool): If set to :obj:`True`, will load the
+            pre-processed data as introduced in the `"Geom-GCN: Geometric
+            Graph Convolutional Networks" <https://arxiv.org/abs/2002.05287>_`,
+            in which the average monthly traffic of the web page is converted
+            into five categories to predict.
+            If set to :obj:`True`, the dataset :obj:`"crocodile"` is not
+            available.
+        transform (callable, optional): A function/transform that takes in an
+            :obj:`gammagl.data.Graph` object and returns a transformed
+            version. The data object will be transformed before every access.
+            (default: :obj:`None`)
+        pre_transform (callable, optional): A function/transform that takes in
+            an :obj:`gammagl.data.Graph` object and returns a
+            transformed version. The data object will be transformed before
+            being saved to disk. (default: :obj:`None`)
 
     """
 

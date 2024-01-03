@@ -14,23 +14,18 @@ class Coauthor(InMemoryDataset):
     Given paper keywords for each author's papers, the task is to map authors
     to their respective field of study.
 
-    Parameters
-    ----------
-    root: str, optional
-        Root directory where the dataset should be saved.
-    name: str, optional
-        The name of the dataset (:obj:`"CS"`,
-        :obj:`"Physics"`).
-    transform: callable, optional
-        A function/transform that takes in an
-        :obj:`gammagl.data.Graph` object and returns a transformed
-        version. The data object will be transformed before every access.
-        (default: :obj:`None`)
-    pre_transform: callable, optional
-        A function/transform that takes in
-        an :obj:`gammagl.data.Graph` object and returns a
-        transformed version. The data object will be transformed before
-        being saved to disk. (default: :obj:`None`)
+    Args:
+        root (string): Root directory where the dataset should be saved.
+        name (string): The name of the dataset (:obj:`"CS"`,
+            :obj:`"Physics"`).
+        transform (callable, optional): A function/transform that takes in an
+            :obj:`gammagl.data.Graph` object and returns a transformed
+            version. The data object will be transformed before every access.
+            (default: :obj:`None`)
+        pre_transform (callable, optional): A function/transform that takes in
+            an :obj:`gammagl.data.Graph` object and returns a
+            transformed version. The data object will be transformed before
+            being saved to disk. (default: :obj:`None`)
 
     Stats:
         .. list-table::

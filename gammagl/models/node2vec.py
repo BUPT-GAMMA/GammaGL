@@ -11,13 +11,13 @@ EPS = 1e-15
 
 class Node2vecModel(tlx.nn.Module):
     r"""The Node2Vec model from the
-        `"node2vec: Scalable Feature Learning for Networks"
-        <https://arxiv.org/abs/1607.00653>`_ paper where random walks of
-        length :obj:`walk_length` are sampled in a given graph, and node embeddings
-        are learned via negative sampling optimization.
+    `"node2vec: Scalable Feature Learning for Networks"
+    <https://arxiv.org/abs/1607.00653>`_ paper where random walks of
+    length :obj:`walk_length` are sampled in a given graph, and node embeddings
+    are learned via negative sampling optimization.
 
-        Parameters
-        ----------
+    Parameters
+    ----------
         edge_index: Iterable
             The edge indices.
         edge_weight: Iterable
@@ -30,19 +30,18 @@ class Node2vecModel(tlx.nn.Module):
             Likelihood of immediately revisiting a node in the walk.
         q: float
             Control parameter to interpolate between breadth-first strategy and depth-first strategy.
-        num_walks: int, optional
+        num_walks: int
             The number of walks to sample for each node.
-        window_size: int, optional
+        window_size: int
             The actual context size which is considered for
             positive samples. This parameter increases the effective sampling
             rate by reusing samples across different source nodes.
-        num_negatives: int, optional
+        num_negatives: int
             The number of negative samples to use for each positive sample.
-        num_nodes: int, optional
+        num_nodes: int
             The number of nodes.
-        name: str, optional
-            model name.
-
+        name: str
+            model name
     """
 
     def __init__(

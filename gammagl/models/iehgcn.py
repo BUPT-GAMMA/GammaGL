@@ -4,35 +4,36 @@ from gammagl.layers.conv import ieHGCNConv
 from tensorlayerx import elu
 
 class ieHGCNModel(tlx.nn.Module):
-    r"""ie-HGCN from paper `"Interpretable and Efficient Heterogeneous Graph Convolutional Network"
-        <https://arxiv.org/pdf/2005.13183.pdf>`_ paper.
+    r"""
+        ie-HGCN from paper `Interpretable and Efficient Heterogeneous Graph Convolutional Network
+        <https://arxiv.org/pdf/2005.13183.pdf>`__.
 
+        `Source Code Link <https://github.com/kepsail/ie-HGCN>`_
 
-        Parameters
-        ----------
-        num_layers : int
-            number of layers.
-        in_channels : int or dict
-            input feature dimensions of different input nodes.
-        hidden_channels: list
-            hidden dimensions of different layers.
-        out_channels : int
-            number of the target type node.
-        attn_channels : int
-            the dimension of attention vector.
-        metadata : Tuple[List[str], List[Tuple[str, str, str]]]
-            The metadata of the heterogeneous graph, *i.e.* its node and edge types given by a list of strings and a list of string triplets, respectively. See :metadata:`gammagl.data.HeteroGraph.metadata` for more information.
-        batchnorm : bool, optional
-            whether we need batchnorm.
-        add_bias : bool, optional
-            whether we need bias vector.
-        activation : function, optional
-            the activation function.
-        dropout_rate : float, optional
-            the drop out rate.
-        name : str, optional
-            model name.
-
+    Parameters
+    ----------
+    num_layers : int
+        number of layers
+    in_channels : int or dict
+        input feature dimensions of different input nodes
+    hidden_channels: list
+        hidden dimensions of different layers
+    out_channels : int
+        number of the target type node
+    attn_channels : int
+        the dimension of attention vector
+    metadata : Tuple[List[str], List[Tuple[str, str, str]]]
+        The metadata of the heterogeneous graph, *i.e.* its node and edge types given by a list of strings and a list of string triplets, respectively. See :metadata:`gammagl.data.HeteroGraph.metadata` for more information.
+    batchnorm : boolean
+        whether we need batchnorm
+    add_bias : boolean
+        whether we need bias vector
+    activation : function
+        the activation function
+    dropout_rate : float
+        the drop out rate
+    name : str
+        model name
     """
     def __init__(self,
                 num_layers,

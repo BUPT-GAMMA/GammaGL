@@ -26,6 +26,6 @@ def test_random_walk():
     graph = Graph(x=x, edge_index=edge_index, edge_attr=edge_attr)
 
     result = rw_sample(graph, x[:20], 3)
-    print(result)
+    assert isinstance(result, list)
     result = rw_sample_by_edge_index(graph.edge_index, x[:20], 3)
-    print(result)
+    assert isinstance(result, list)

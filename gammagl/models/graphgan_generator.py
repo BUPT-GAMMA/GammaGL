@@ -2,29 +2,29 @@ import tensorlayerx as tlx
 
 class Generator(tlx.nn.Module):
     r"""The generator of GraphGAN Model operator from the `"GraphGAN: Graph Representation Learning with Generative Adversarial Nets"
-        <https://arxiv.org/pdf/1711.08267.pdf>`_ paper.
+    <https://arxiv.org/pdf/1711.08267.pdf>`_ paper
 
-        Compute the gradient of :math:`V(G,D)` with respect to :math:`\Theta _{G}` by
+    Compute the gradient of :math:`V(G,D)` with respect to :math:`\Theta _{G}` by
 
-        .. math::
-            \bigtriangledown _{\Theta _{G}}V(G,D)= \sum_{c=1}^{V}{E_{v\sim G(\cdot |v_{c}))}}[\bigtriangledown _{\Theta _{G}}logG(v|v_{c})log(1-G(v,v_{c}))]
+    .. math::
+        \bigtriangledown _{\Theta _{G}}V(G,D)= \sum_{c=1}^{V}{E_{v\sim G(\cdot |v_{c}))}}[\bigtriangledown _{\Theta _{G}}logG(v|v_{c})log(1-G(v,v_{c}))]
 
-        The relevance probability of :math:`v_{i}` given :math:`v` as
+    The relevance probability of :math:`v_{i}` given :math:`v` as
 
-        .. math::
-            p_{c}(v_{i}|v)= \frac{exp(g_{v_{i}}^{\top }g_{v})}{{\sum _{v_{j}\epsilon {N}_{c}(v)}exp(g_{v_{i}}^{\top }g_{v})}}
+    .. math::
+        p_{c}(v_{i}|v)= \frac{exp(g_{v_{i}}^{\top }g_{v})}{{\sum _{v_{j}\epsilon {N}_{c}(v)}exp(g_{v_{i}}^{\top }g_{v})}}
 
-        Then the graph softmax defines :math:`G(v|v_{c};\Theta _{G})` as follows:
+    Then the graph softmax defines :math:`G(v|v_{c};\Theta _{G})` as follows:
 
-        .. math::
-            G(v|v_{c})=\left (\prod _{j=1}^{m}p_{c}(v_{r_{j}}|v_{r_{j-1}}) \right )\cdot p_{c}(v_{r_{m-1}}|v_{r_{m}})
+    .. math::
+        G(v|v_{c})=\left (\prod _{j=1}^{m}p_{c}(v_{r_{j}}|v_{r_{j-1}}) \right )\cdot p_{c}(v_{r_{m-1}}|v_{r_{m}})
 
-        Parameters
-        ----------
+    Parameters
+    ----------
         n_node: int
-            Number of nodes in the graph.
-        node_emb_init: numpy.ndarray
-            Pre trained generator node embedding.
+            Number of nodes in the graph
+        node_emb_init: ndarray
+            Pre trained generator node embedding
 
     """
 

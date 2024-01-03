@@ -1,9 +1,6 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
-# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
-
+# os.environ['TL_BACKEND'] = 'torch'
 import os.path as osp
 import time
 import argparse
@@ -88,7 +85,7 @@ def main(args):
 
     # training.
     best_val_auc = best_auc = best_epoch = 0
-    for epoch in range(args.epochs):
+    for epoch in range(args.n_epoch):
         start_time = time.time()
         
         model.set_train()
@@ -142,7 +139,7 @@ if __name__ == '__main__':
     parser.add_argument("--learn_eps", type=bool, default=False, help="learn the epsilon weighting")
 
     # training
-    parser.add_argument("--epochs", type=int, default=81)
+    parser.add_argument("--n_epoch", type=int, default=81)
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--eval_steps", type=int, default=5)
     parser.add_argument("--seed", type=int, default=1313)

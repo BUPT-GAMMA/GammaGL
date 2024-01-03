@@ -6,31 +6,23 @@ from gammagl.layers.conv import GPRConv
 
 
 class GPRGNNModel(tlx.nn.Module):
-    r"""Graph Convolutional Network proposed in `"Adaptive 
-        Universal Generalized PageRank Graph Neural Network"
-        <https://arxiv.org/abs/2006.07988.pdf>`_ paper.
-        
-        Parameters
-        -----------
-        feature_dim:
-            input feature dim.
-        hidden_dim: 
-            hidden feature dim.
-        num_class: 
-            output feature dim.
-        drop_rate: 
-            drop rate for dropout layer.
-        K: 
-            K steps to propagate.
-        Init: 
-            initialization method.
-        alpha: 
-            help to initial the value of gamma.
-        dprate: 
-            special dropout for GPR-GNN (before starting GPR propagation) to dropout some nodes.
-        Gamma: 
-            Only used when Init == "WS", self-defined initial value of gamma.
+    r"""
+    Graph Convolutional Network proposed in `Adaptive 
+    Universal Generalized PageRank Graph Neural Network`_.
 
+    .. _Adaptive Universal Generalized PageRank Graph Neural Network:
+        https://arxiv.org/abs/2006.07988.pdf
+    
+    Parameters:
+        feature_dim: input feature dim
+        hidden_dim: hidden feature dim
+        num_class: output feature dim
+        drop_rate: drop rate for dropout layer
+        K: K steps to propagate
+        Init: initialization method
+        alpha: help to initial the value of gamma
+        dprate: special dropout for GPR-GNN (before starting GPR propagation) to dropout some nodes
+        Gamma: Only used when Init == "WS", self-defined initial value of gamma
     """
 
     def __init__(self, feature_dim, hidden_dim, num_class, drop_rate, K, Init, alpha, dprate, Gamma=None):

@@ -26,29 +26,23 @@ IndexType = Union[slice, np.ndarray, Sequence]
 
 class Dataset(Dataset):
     r"""Dataset base class for creating graph datasets.
-        See `here <https://gammagl.readthedocs.io/en/latest/notes/create_dataset.html#>`__ for the accompanying tutorial.
+    See `here <https://gammagl.readthedocs.io/en/latest/notes/create_dataset.html#>`__ for the accompanying tutorial.
 
-        Parameters
-        ----------
-        root: str, optional
-            Root directory where the dataset should be
+    Args:
+        root (string, optional): Root directory where the dataset should be
             saved. (optional: :obj:`None`)
-        transform: callable, optional
-            A function/transform that takes in an
+        transform (callable, optional): A function/transform that takes in an
             :obj:`gammagl.data.Graph` object and returns a transformed
             version. The data object will be transformed before every access.
             (default: :obj:`None`)
-        pre_transform: callable, optional
-            A function/transform that takes in
+        pre_transform (callable, optional): A function/transform that takes in
             an :obj:`gammagl.data.Graph` object and returns a
             transformed version. The graph object will be transformed before
             being saved to disk. (default: :obj:`None`)
-        pre_filter: callable, optional
-            A function that takes in an
+        pre_filter (callable, optional): A function that takes in an
             :obj:`gammagl.data.Graph` object and returns a boolean
             value, indicating whether the graph object should be included in the
             final dataset. (default: :obj:`None`)
-
     """
 
     @property
@@ -410,13 +404,10 @@ class Dataset(Dataset):
         #    -> Union['Dataset', Tuple['Dataset', tf.Tensor]]:
         r"""Randomly shuffles the examples in the dataset.
 
-            Parameters
-            ----------
-            return_perm: bool, optional
-                If set to :obj:`True`, will also
+        Args:
+            return_perm (bool, optional): If set to :obj:`True`, will also
                 return the random permutation used to shuffle the dataset.
                 (default: :obj:`False`)
-
         """
         perm = np.random.permutation(len(self))
         dataset = self.index_select(perm)

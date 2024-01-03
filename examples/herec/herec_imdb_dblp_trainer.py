@@ -1,21 +1,18 @@
 import argparse
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
-# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
-
+# os.environ['TL_BACKEND'] = 'torch'
 import os.path as osp
 import tensorlayerx as tlx
 from gammagl.datasets import IMDB, DBLP
-from gammagl.models import MetaPath2Vec
+from gammagl.models import HERec
 from tensorlayerx.model import WithLoss, TrainOneStep
 from sklearn.linear_model import LogisticRegression
 from gammagl.utils import mask_to_index
 
 if tlx.BACKEND == 'torch':  # when the backend is torch and you want to use GPU
     try:
-        tlx.set_device(device='GPU', id=0)
+        tlx.set_device(device='GPU', id=-1)
     except:
         print("GPU is not available")
 
@@ -82,14 +79,16 @@ def main(args, log_steps=10):
     val_idx = mask_to_index(graph[targetType[str.lower(args.dataset)]].val_mask)
     test_idx = mask_to_index(graph[targetType[str.lower(args.dataset)]].test_mask)
 
-    model = MetaPath2Vec(graph.edge_index_dict,
-                         embedding_dim=args.embedding_dim,
-                         metapath=metapath,
-                         walk_length=args.walk_length,
-                         context_size=args.window_size,
-                         walks_per_node=args.num_walks,
-                         num_negative_samples=args.num_negative_samples,
-                         name="MetaPath2Vec")
+    model = HERec(graph.edge_index_dict,
+                  embedding_dim=args.embedding_dim,
+                  metapath=metapath,
+                  walk_length=args.walk_length,
+                  context_size=args.window_size,
+                  walks_per_node=args.num_walks,
+                  num_negative_samples=args.num_negative_samples,
+                  target_type=targetType[args.dataset],
+                  dataset=args.dataset,
+                  name="HERec")
     loader = model.loader(batch_size=args.batch_size, shuffle=True)
 
     optimizer = tlx.optimizers.Adam(lr=args.lr)
@@ -115,12 +114,12 @@ def main(args, log_steps=10):
             total_loss += train_loss.item()
             if (i + 1) % log_steps == 0:
                 model.set_eval()
-                z = model.campute(targetType[args.dataset])
+                z = model.campute()
                 val_acc = calculate_acc(tlx.gather(z, data['train_idx']), tlx.gather(data['y'], data['train_idx']),
                                         tlx.gather(z, data['val_idx']), tlx.gather(data['y'], data['val_idx']),
                                         max_iter=150)
 
-                print((f'Epoch: {epoch}, Step: {i + 1:05d}/{len(loader)}, '
+                print((f'Epoch: {epoch}, Step: {i + 1:02d}/{len(loader)}, '
                        f'Loss: {total_loss / log_steps:.4f}, '
                        f'Acc: {val_acc:.4f}'))
                 total_loss = 0
@@ -135,7 +134,7 @@ def main(args, log_steps=10):
     model.load_weights(args.best_model_path + tlx.BACKEND + "_" + args.dataset + "_" + model.name + ".npz",
                        format='npz_dict', skip=True)
     model.set_eval()
-    z = model.campute(targetType[args.dataset])
+    z = model.campute()
     test_acc = calculate_acc(tlx.gather(z, data['train_idx']), tlx.gather(data['y'], data['train_idx']),
                              tlx.gather(z, data['test_idx']), tlx.gather(data['y'], data['test_idx']),
                              max_iter=150)

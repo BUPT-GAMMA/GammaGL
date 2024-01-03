@@ -11,7 +11,6 @@ class Compose(BaseTransform):
     ----------
     transforms: List[Callable]
         List of transforms to compose.
-
     """
     def __init__(self, transforms: List[Callable]):
         self.transforms = transforms

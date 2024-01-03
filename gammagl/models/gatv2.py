@@ -3,23 +3,16 @@ from gammagl.layers.conv import GATV2Conv
 
 class GATV2Model(tlx.nn.Module):
     r"""`"How Attentive are Graph Attention Networks?"
-        <https://arxiv.org/abs/2105.14491>`_ paper.
+    <https://arxiv.org/abs/2105.14491>`_ paper.
 
-        Parameters
-        ----------
-        feature_dim: int
-            input feature dimension.
-        hidden_dim: int
-            hidden dimension.
-        num_class: int
-            number of classes.
-        heads: int
-            number of attention heads.
-        drop_rate: float
-            dropout rate.
-        name: str, optional
-            model name.
-
+    Parameters
+    ----------
+        feature_dim (int): input feature dimension
+        hidden_dim (int): hidden dimension
+        num_class (int): number of classes
+        heads (int): number of attention heads
+        drop_rate (float): dropout rate
+        name (str): model name
     """
 
     def __init__(self,

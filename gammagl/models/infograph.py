@@ -15,15 +15,12 @@ from gammagl.layers.pool.glob import global_sum_pool
 
 class FF(nn.Module):
     r"""
-        Graph Convolution Encoder Architect
+    Graph Convolution Encoder Architect
 
-        Parameters
-        ----------
-        in_feat: int
-            input feature dimension
-        hid_feat: int
-            hidden dimension
-
+    Parameters
+    ----------
+        in_feat  (int): input feature dimension
+        hid_feat (int): hidden dimension
     """
     def __init__(self, in_feat, hid_feat):
         super(FF, self).__init__()
@@ -57,16 +54,13 @@ class PriorDiscriminator(nn.Module):
 
 class GINEncoder(nn.Module):
     """
-        GIN encoder
+    GIN encoder
 
-        Parameters
-        ----------
-        num_feature: int
-            input feature dimension
-        hid_feat: int
-            hidden dimension
-        num_gc_layers: int
-            number of layers
+    Parameters
+    ----------
+        num_feature (int): input feature dimension
+        hid_feat (int): hidden dimension
+        num_gc_layers (int): number of layers
     """
     def __init__(self, num_feature, out_feat, num_gc_layers):
         super(GINEncoder, self).__init__()
@@ -110,20 +104,16 @@ class GINEncoder(nn.Module):
 
 
 class InfoGraph(nn.Module):
-    """infograph model for unsupervised setting
+    """
+    infograph model for unsupervised setting
 
-        Parameters
-        ----------
-        num_feature: int
-            input feature dimension.
-        hid_feat: int
-            hidden dimension.
-        num_gc_layers: int
-            number of layers.
-        prior: bool
-            whether to use prior discriminator.
-        gamma: float
-            tunable hyper-parameter.
+    Parameters
+    ----------
+        num_feature (int): input feature dimension
+        hid_feat (int): hidden dimension
+        num_gc_layers (int): number of layers
+        prior (boolean): whether to use prior discriminator
+        gamma (float): tunable hyper-parameter
     """
 
     def __init__(self, num_feature, hid_feat, num_gc_layers, prior, gamma=.1):
@@ -142,17 +132,11 @@ class InfoGraph(nn.Module):
         """
         Evaluation the learned embeddings
 
-        Parameters
-        ----------
-        dataloader:
-            dataloader of dataset.
-
-        Returns
-        -------
-        res: tensor
-            concat of x.
-        y: tensor
-            concat of y.
+        Args:
+            dataloader: dataloader of dataset
+        Returns:
+            res (tlx.tensor): concat of x
+            y (tlx.tensor): concat of y
         """
         res = []
         y = []

@@ -12,17 +12,16 @@ def global_sum_pool(x, batch, size: Optional[int] = None):
 
     Parameters
     ----------
-    x: tensor
+    x: Tensor
         Node feature matrix
         :math:`\mathbf{X} \in \mathbb{R}^{(N_1 + \ldots + N_B) \times F}`.
-    batch: tensor
+    batch: LongTensor, optional
         Batch vector
         :math:`\mathbf{b} \in {\{ 0, \ldots, B-1\}}^N`, which assigns each
         node to a specific example.
     size: int, optional
         Batch-size :math:`B`.
         Automatically calculated if not given. (default: :obj:`None`)
-
     """
     if batch is None:
         return x.sum(dim=0, keepdim=True)
@@ -40,17 +39,16 @@ def global_mean_pool(x, batch, size: Optional[int] = None):
 
     Parameters
     ----------
-    x: tensor
+    x: Tensor
         Node feature matrix
         :math:`\mathbf{X} \in \mathbb{R}^{(N_1 + \ldots + N_B) \times F}`.
-    batch: tensor
+    batch: LongTensor, optional
         Batch vector
         :math:`\mathbf{b} \in {\{ 0, \ldots, B-1\}}^N`, which assigns each
         node to a specific example.
     size: int, optional
         Batch-size :math:`B`.
         Automatically calculated if not given. (default: :obj:`None`)
-
     """
     if batch is None:
         return x.mean(dim=0, keepdim=True)
@@ -68,17 +66,16 @@ def global_max_pool(x, batch, size: Optional[int] = None):
 
     Parameters
     ----------
-    x: tensor
-        Node feature matrix
-        :math:`\mathbf{X} \in \mathbb{R}^{(N_1 + \ldots + N_B) \times F}`.
-    batch: tensor
-        Batch vector
-        :math:`\mathbf{b} \in {\{ 0, \ldots, B-1\}}^N`, which assigns each
-        node to a specific example.
-    size: int, optional
-        Batch-size :math:`B`.
-        Automatically calculated if not given. (default: :obj:`None`)
-
+        x: Tensor
+            Node feature matrix
+            :math:`\mathbf{X} \in \mathbb{R}^{(N_1 + \ldots + N_B) \times F}`.
+        batch: LongTensor, optional
+            Batch vector
+            :math:`\mathbf{b} \in {\{ 0, \ldots, B-1\}}^N`, which assigns each
+            node to a specific example.
+        size: int, optional
+            Batch-size :math:`B`.
+            Automatically calculated if not given. (default: :obj:`None`)
     """
     if batch is None:
         return x.max(dim=0, keepdim=True)[0]
@@ -96,17 +93,16 @@ def global_min_pool(x, batch, size: Optional[int] = None):
 
     Parameters
     ----------
-    x: tensor
-        Node feature matrix
-        :math:`\mathbf{X} \in \mathbb{R}^{(N_1 + \ldots + N_B) \times F}`.
-    batch: tensor
-        Batch vector
-        :math:`\mathbf{b} \in {\{ 0, \ldots, B-1\}}^N`, which assigns each
-        node to a specific example.
-    size: int, optional
-        Batch-size :math:`B`.
-        Automatically calculated if not given. (default: :obj:`None`)
-
+        x: Tensor
+            Node feature matrix
+            :math:`\mathbf{X} \in \mathbb{R}^{(N_1 + \ldots + N_B) \times F}`.
+        batch: LongTensor, optional
+            Batch vector
+            :math:`\mathbf{b} \in {\{ 0, \ldots, B-1\}}^N`, which assigns each
+            node to a specific example.
+        size: int, optional
+            Batch-size :math:`B`.
+            Automatically calculated if not given. (default: :obj:`None`)
     """
     if batch is None:
         return x.min(dim=0, keepdim=True)[0]
@@ -121,21 +117,14 @@ def global_sort_pool(x, batch, k):
     where node features are sorted in descending order based on their last
     feature channel. The first :math:`k` nodes form the output of the layer.
 
-    Parameters
-    ----------
-    x: tensor
-        Node feature matrix
-        :math:`\mathbf{X} \in \mathbb{R}^{N \times F}`.
-    batch: tensor
-        Batch vector :math:`\mathbf{b} \in {\{ 0, \ldots,
-        B-1\}}^N`, which assigns each node to a specific example.
-    k: int
-        The number of nodes to hold for each graph.
+    Args:
+        x: Node feature matrix
+            :math:`\mathbf{X} \in \mathbb{R}^{N \times F}`.
+        batch: Batch vector :math:`\mathbf{b} \in {\{ 0, \ldots,
+            B-1\}}^N`, which assigns each node to a specific example.
+        k (int): The number of nodes to hold for each graph.
 
-    Returns
-    -------
-    :class:`Tensor`
-
+    :rtype: :class:`Tensor`
     """
     fill_value = tlx.reduce_min(x) - 1
     x, _ = to_dense_batch(x, batch, fill_value)

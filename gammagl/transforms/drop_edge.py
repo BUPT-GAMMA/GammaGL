@@ -6,13 +6,11 @@ import tensorlayerx as tlx
 class DropEdge(BaseTransform):
     r"""Randomly drop edges, as described in
         `DropEdge: Towards Deep Graph Convolutional Networks on Node Classification
-        <https://arxiv.org/abs/1907.10903>`__ paper.
-
+        <https://arxiv.org/abs/1907.10903>`__.
         Parameters
         ----------
         p : float, optional
             Probability of an edge to be dropped.
-
         Example
         -------
         >>> import numpy as np

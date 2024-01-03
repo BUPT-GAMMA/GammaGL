@@ -35,6 +35,16 @@ class SemiSpvzLoss(WithLoss):
 
 
 def calculate_acc(logits, y, metrics):
+    """
+    Args:
+        logits: node logits
+        y: node labels
+        metrics: tensorlayerx.metrics
+
+    Returns:
+        rst
+    """
+
     metrics.update(logits, y)
     rst = metrics.result()
     metrics.reset()

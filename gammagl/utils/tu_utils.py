@@ -23,20 +23,12 @@ def linearsvc(embeds, labels):
     return np.mean(accuracies), np.std(accuracies)
 
 def get_positive_expectation(p_samples, average=True):
-    """
-        Computes the positive part of a JS Divergence.
-        
-        Parameters
-        ----------
-        p_samples:
-            Positive samples.
-        average:
-            Average the result over samples.
-
-        Returns
-        -------
-        tensor
-            Ep: mean of positive expectation.
+    """Computes the positive part of a JS Divergence.
+    Args:
+        p_samples: Positive samples.
+        average: Average the result over samples.
+    Returns:
+        Ep: mean of positive expectation
     """
     log_2 = math.log(2.)
     Ep = log_2 - tlx.softplus(-p_samples)
@@ -49,17 +41,11 @@ def get_positive_expectation(p_samples, average=True):
 
 def get_negative_expectation(q_samples, average=True):
     """Computes the negative part of a JS Divergence.
-    Parameters
-    ----------
-    q_samples:
-        Negative samples.
-    average:
-        Average the result over samples.
-
-    Returns
-    -------
-    tensor
-        Ep: Mean of negative expectation.
+    Args:
+        q_samples: Negative samples.
+        average: Average the result over samples.
+    Returns:
+        Ep: Mean of negative expectation
     """
     log_2 = math.log(2.)
     Eq = tlx.softplus(-q_samples) + q_samples - log_2
@@ -73,21 +59,12 @@ def get_negative_expectation(q_samples, average=True):
 def local_global_loss_(l_enc, g_enc, batch):
     """
     Computes the loss of the model.
-
-    Parameters
-    ----------
-    l_enc:
-        Local feature map
-    g_enc:
-        global features
-    batch:
-        the batch size of dataset
-
-    Returns
-    -------
-    tensor
-        loss: the loss of model
-
+    Args:
+        l_enc: Local feature map
+        g_enc: global features
+        batch: the batch size of dataset
+    Returns:
+        loss:the loss of model
     """
 
     num_graphs = g_enc.shape[0]

@@ -1,0 +1,53 @@
+name: Test Build Documentation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'setup.py'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'setup.py'
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+
+    - name: Install project
+      run: python setup.py install build_ext --inplace
+
+    - name: Install dependencies
+      run: pip install -r docs/requirements.txt
+
+    - name: Build docs
+      run: |
+        cd docs
+        sh build.sh
+
+    # 如果你的 build.sh 脚本不启动本地服务器，或者你不需要在构建过程中实际运行服务器，
+    # 你可以忽略下面的步骤。
+    # 如果你需要服务器运行来进行某些测试，你可以加上以下步骤：
+
+    #- name: Serve docs
+    #  run: |
+    #    cd docs
+    #    python -m http.server &
+    #    sleep 3  # 给服务器一点时间启动
+
+    #- name: Run tests
+    #  run: |
+    #    # 这里写入测试文档的命令，比如使用 curl 检查页面的返回状态码等

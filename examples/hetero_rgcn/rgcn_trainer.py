@@ -1,9 +1,6 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
-# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
-
+# os.environ['TL_BACKEND'] = 'torch'
 from gammagl.datasets.alircd import AliRCD
 import argparse
 import tensorlayerx as tlx
@@ -264,7 +261,7 @@ if __name__ == '__main__':
     parser.add_argument("--n-bases", type=int, default=8,
                         help="number of filter weight matrices, default: -1 [use all]")
     parser.add_argument("--early_stopping", type=int, default=10)
-    parser.add_argument("--n-epoch", type=int, default=20)
+    parser.add_argument("--n_epoch", type=int, default=20)
     # test部分后续再增加
     parser.add_argument("--test-file", type=str, default="")
 

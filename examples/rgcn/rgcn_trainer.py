@@ -6,10 +6,7 @@
 # @FileName: trainer.py.py
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
-# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
-
+# os.environ['TL_BACKEND'] = 'torch'
 import argparse
 import tensorlayerx as tlx
 from gammagl.models import RGCN
@@ -69,8 +66,8 @@ def k_hop_subgraph(node_idx, num_hops, edge_index, num_nodes, relabel_nodes=Fals
     else:
         col, row = edge_index
 
-    node_mask = np.zeros(num_nodes, dtype=bool)
-    edge_mask = np.zeros(row.shape[0], dtype=bool)
+    node_mask = np.zeros(num_nodes, dtype=np.bool)
+    edge_mask = np.zeros(row.shape[0], dtype=np.bool)
 
     if isinstance(node_idx, (int, list, tuple)):
         node_idx = node_idx.flatten()

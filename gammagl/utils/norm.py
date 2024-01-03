@@ -5,7 +5,7 @@ from gammagl.mpops import *
 def calc_gcn_norm(edge_index, num_nodes, edge_weight=None):
     """
     calculate GCN Normalization.
-
+    
     Parameters
     ----------
     edge_index: 
@@ -17,9 +17,7 @@ def calc_gcn_norm(edge_index, num_nodes, edge_weight=None):
 
     Returns
     -------
-    tensor
         1-dim Tensor
-
     """
     src, dst = edge_index[0], edge_index[1]
     if edge_weight is None:

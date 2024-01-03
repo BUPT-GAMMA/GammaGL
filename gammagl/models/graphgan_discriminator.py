@@ -2,24 +2,24 @@ import tensorlayerx as tlx
 
 class Discriminator(tlx.nn.Module):
     r"""The discriminator of GraphGAN Model operator from the `"GraphGAN: Graph Representation Learning with Generative Adversarial Nets"
-        <https://arxiv.org/pdf/1711.08267.pdf>`_ paper.
+    <https://arxiv.org/pdf/1711.08267.pdf>`_ paper
 
-        :math:`D` as the sigmoid function of the inner product of two input vertices is defined as
+    :math:`D` as the sigmoid function of the inner product of two input vertices is defined as
 
-        .. math::
-            D(v|v_{c})=\sigma (d_{v}^{\top }d_{v_{c}})=\frac{1}{1+exp(-d_{v}^{\top }d_{v_{c}})}
+    .. math::
+        D(v|v_{c})=\sigma (d_{v}^{\top }d_{v_{c}})=\frac{1}{1+exp(-d_{v}^{\top }d_{v_{c}})}
 
-        Then update only :math:`d_{v}` and :math:`d_{v_{c}}` by ascending the gradient with respect to them:
+    Then update only :math:`d_{v}` and :math:`d_{v_{c}}` by ascending the gradient with respect to them:
 
-        .. math::
-            \bigtriangledown _{\Theta _{D}}V(G,D)=\left\{\begin{matrix}\bigtriangledown _{\Theta_{D}}logD(v,v_{c}),if\,v\sim p_{true} \\ \bigtriangledown _{\Theta _{D}}(1-logD(v,if\,v\sim p_{true})),if\,v\sim G\end{matrix}\right.
+    .. math::
+        \bigtriangledown _{\Theta _{D}}V(G,D)=\left\{\begin{matrix}\bigtriangledown _{\Theta_{D}}logD(v,v_{c}),if\,v\sim p_{true} \\ \bigtriangledown _{\Theta _{D}}(1-logD(v,if\,v\sim p_{true})),if\,v\sim G\end{matrix}\right.
 
-        Parameters
-        ----------
+    Parameters
+    ----------
         n_node: int
-            Number of nodes in the graph.
-        node_emb_init: numpy.ndarray
-            Pre trained discriminator node embedding.
+            Number of nodes in the graph
+        node_emb_init: ndarray
+            Pre trained discriminator node embedding
 
     """
 

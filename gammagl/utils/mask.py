@@ -12,14 +12,10 @@ import numpy as np
 def index_to_mask(index, size: Optional[int] = None):
     r"""Converts indices to a mask representation.
 
-    Parameters
-    ----------
-    index: tensor
-        The indices.
-    size: int, optional
-        The size of the mask. If set to :obj:`None`, a
-        minimal sized output mask is returned.
-
+    Args:
+        index (Tensor): The indices.
+        size (int, optional). The size of the mask. If set to :obj:`None`, a
+            minimal sized output mask is returned.
     """
     index = tlx.convert_to_numpy(index)
     index = index.reshape((-1,))
@@ -32,11 +28,8 @@ def index_to_mask(index, size: Optional[int] = None):
 def mask_to_index(mask):
     r"""Converts a mask to an index representation.
 
-    Parameters
-    ----------
-    mask: tensor
-        The mask.
-
+    Args:
+        mask (Tensor): The mask.
     """
     idx = tlx.convert_to_numpy(mask).nonzero()[0]
     return tlx.convert_to_tensor(idx, dtype=tlx.int64)

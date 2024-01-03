@@ -1,0 +1,73 @@
+name: Test Pypi Package
+
+on: [workflow_dispatch]
+
+jobs:
+  test-pypi:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r .circleci/requirements.txt
+
+      - name: Install TensorLayerx
+        run: |
+          pip install git+https://github.com/dddg617/TensorLayerX.git@nightly
+
+      - name: Install PyTorch, torchvision and torchaudio
+        run: |
+          pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+      - name: Install llvmlite
+        run: |
+          pip install llvmlite
+
+      - name: Install package
+        run: |
+          pip install gammagl
+
+      - name: Run Trainer Examples
+        run: |
+          FAILURES=""
+          FILES=$(find examples/ -type f -name "*_trainer.py")
+          for file in $FILES; do
+            python "$file" --n_epoch 1 || FAILURES="$FAILURES$file "
+          done
+          if [ -n "$FAILURES" ]; then
+            echo "The following trainer scripts failed: $FAILURES"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Run Sampler Examples
+        run: |
+          FAILURES=""
+          FILES=$(find examples/ -type f -name "*_sampler.py")
+          for file in $FILES; do
+            python "$file" || FAILURES="$FAILURES$file "
+          done
+          if [ -n "$FAILURES" ]; then
+            echo "The following sampler scripts failed: $FAILURES"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Check for Failures
+        run: |
+          if [ -n "$FAILURES" ]; then
+            echo "Some examples failed to run: $FAILURES"
+            exit 1
+          fi
+        shell: bash

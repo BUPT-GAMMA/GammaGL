@@ -130,7 +130,7 @@ def _scatter(x, index, updates, overwrite=True):
     **Scatter Layer**
     Output is obtained by updating the input on selected indices based on updates.
 
-    .. code:: python
+    .. code-block:: python
 
         import numpy as np
         #input:
@@ -152,30 +152,20 @@ def _scatter(x, index, updates, overwrite=True):
         # output:
         out = np.array([[3, 3], [6, 6], [1, 1]])
         out.shape # [3, 2]
-
     **NOTICE**: The order in which updates are applied is nondeterministic,
     so the output will be nondeterministic if index contains duplicates.
+    Args:
+        x (Tensor): The input N-D Tensor with ndim>=1. Data type can be float32, float64.
+        index (Tensor): The index 1-D Tensor. Data type can be int32, int64. The length of index cannot exceed updates's length, and the value in index cannot exceed input's length.
+        updates (Tensor): update input with updates parameter based on index. shape should be the same as input, and dim value with dim > 1 should be the same as input.
+        overwrite (bool): The mode that updating the output when there are same indices.
+          If True, use the overwrite mode to update the output of the same index,
+          if False, use the accumulate mode to update the output of the same index.Default value is True.
 
-    Parameters
-    ----------
-    x: tensor
-        The input N-D Tensor with ndim>=1. Data type can be float32, float64.
-    index: tensor
-        The index 1-D Tensor. Data type can be int32, int64. The length of index cannot exceed updates's length, and the value in index cannot exceed input's length.
-    updates: tensor
-        update input with updates parameter based on index. shape should be the same as input, and dim value with dim > 1 should be the same as input.
-    overwrite: bool
-        The mode that updating the output when there are same indices.
-        If True, use the overwrite mode to update the output of the same index,
-        if False, use the accumulate mode to update the output of the same index.Default value is True.
-
-    Returns
-    -------
-    Tensor: 
-        The output is a Tensor with the same shape as x.
-
+    Returns:
+        Tensor: The output is a Tensor with the same shape as x.
     Examples:
-        .. code:: python
+        .. code-block:: python
 
             import paddle
             x = paddle.to_tensor([[1, 1], [2, 2], [3, 3]], dtype='float32')
@@ -200,7 +190,6 @@ def _scatter(x, index, updates, overwrite=True):
             # [[3., 3.],
             #  [2., 2.],
             #  [1., 1.]]
-
     """
     if in_dygraph_mode():
         return core.ops.scatter(x, index, updates, 'overwrite', overwrite)

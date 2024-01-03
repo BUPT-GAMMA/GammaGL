@@ -3,10 +3,7 @@
 
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
-# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
-
+# os.environ['TL_BACKEND'] = 'torch'
 from gammagl.models import GraphGAN
 from gammagl.utils import read_embeddings
 from gammagl.datasets import CA_GrQc
@@ -286,7 +283,7 @@ def main(args):
     g_best_val_acc = 0
     d_best_val_acc = 0
 
-    for epoch in range(args.n_epochs):
+    for epoch in range(args.n_epoch):
         # save the model
         if epoch > 0 and epoch % args.save_steps == 0:
             if not os.path.isdir('checkpoint'):
@@ -392,7 +389,7 @@ if __name__ == '__main__':
                         help="batch size for the discriminator")
     parser.add_argument("--batch_size_gen", type=int, default=1024,
                         help="batch size for the generator")
-    parser.add_argument("--n_epochs", type=int, default=30,
+    parser.add_argument("--n_epoch", type=int, default=30,
                         help="number of outer loops")
     parser.add_argument("--n_epochs_gen", type=int, default=30,
                         help="number of inner loops for the generator")

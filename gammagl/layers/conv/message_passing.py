@@ -34,23 +34,12 @@ class MessagePassing(tlx.nn.Module):
     def message(self, x, edge_index, edge_weight=None):
         """
         Function that construct message from source nodes to destination nodes.
-
-        Parameters
-        ----------
-        x: tensor
-            input node feature.
-        edge_index: tensor
-            edges from src to dst.
-        edge_weight: tensor, optional
-            weight of each edge.
-
-        Returns
-        -------
-        tensor
-            output message
-
+        Args:
+            x (Tensor): input node feature
+            edge_index (Tensor): edges from src to dst
+            edge_weight (Tensor): weight of each edge
         Returns:
-            the message matrix, and the shape is [num_edges, message_dim]
+
         """
         msg = tlx.gather(x, edge_index[0, :])
         if edge_weight is not None:
@@ -62,22 +51,13 @@ class MessagePassing(tlx.nn.Module):
     def aggregate(self, msg, edge_index, num_nodes=None, aggr='sum'):
         """
         Function that aggregates message from edges to destination nodes.
-
-        Parameters
-        ----------
-        msg: tensor
-            message construct by message function.
-        edge_index: tensor
-            edges from src to dst.
-        num_nodes: int, optional
-            number of nodes of the graph.
-        aggr: str, optional
-            aggregation type, default = 'sum', optional=['sum', 'mean', 'max'].
+        Args:
+            msg (Tensor): message construct by message function
+            edge_index (Tensor): edges from src to dst
+            num_nodes (int): number of nodes of the graph
+            aggr (str): aggregation type, default = 'sum', optional=['sum', 'mean', 'max']
  
-        Returns
-        -------
-        tensor
-            aggregation outcome.
+        Returns:
 
         """
         dst_index = edge_index[1, :]
@@ -108,32 +88,22 @@ class MessagePassing(tlx.nn.Module):
 
     def update(self, x):
         """
-        Function defines how to update node embeddings.
+        Function defines how to update node embeddings
 
-        Parameters
-        ----------
-        x: tensor
-            aggregated message
-
+        Args:
+            x: aggregated message
         """
         return x
 
     def propagate(self, x, edge_index, aggr='sum', fuse_kernel=False,  **kwargs):
         """
-        Function that perform message passing.
-
-        Parameters
-        ----------
-        x: tensor
-            input node feature.
-        edge_index: tensor
-            edges from src to dst.
-        aggr: str, optional
-            aggregation type, default='sum', optional=['sum', 'mean', 'max'].
-        fuse_kernel: bool, optional
-            use fused kernel function to speed up, default = False.
-        kwargs: optional
-            other parameters dict.
+        Function that perform message passing. 
+        Args:
+            x: input node feature
+            edge_index: edges from src to dst
+            aggr: aggregation type, default='sum', optional=['sum', 'mean', 'max']
+            fuse_kernel: use fused kernel function to speed up, default = False
+            kwargs: other parameters dict
 
         """
 

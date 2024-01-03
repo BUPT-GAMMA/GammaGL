@@ -13,13 +13,13 @@ EPS = 1e-15
 
 class MetaPath2Vec(tlx.nn.Module):
     r"""The MetaPath2Vec model from the `"metapath2vec: Scalable Representation
-        Learning for Heterogeneous Networks"
-        <https://ericdongyx.github.io/papers/KDD17-dong-chawla-swami-metapath2vec.pdf>`_ paper
-        where random walks based on a given :obj:`metapath` are sampled in a heterogeneous graph,
-        and node embeddings are learned via negative sampling optimization.
+    Learning for Heterogeneous Networks"
+    <https://ericdongyx.github.io/papers/KDD17-dong-chawla-swami-metapath2vec.pdf>`_ paper
+    where random walks based on a given :obj:`metapath` are sampled in a heterogeneous graph,
+    and node embeddings are learned via negative sampling optimization.
 
-        Parameters
-        ----------
+    Parameters
+    ----------
         edge_index_dict: Dict
             Dictionary holding edge indices for each
             :obj:`(src_node_type, rel_type, dst_node_type)`
@@ -35,15 +35,14 @@ class MetaPath2Vec(tlx.nn.Module):
             The actual context size which is considered for
             positive samples. This parameter increases the effective sampling
             rate by reusing samples across different source nodes.
-        walks_per_node: int, optional
+        walks_per_node: int
             The number of walks to sample for each node.
-        num_negative_samples: int, optional
+        num_negative_samples: int
             The number of negative samples to use for each positive sample.
-        num_nodes_dict: Dict, optional
+        num_nodes_dict: Dict
             Dictionary holding the number of nodes for each node type.
-        name: str, optional
-            model name.
-
+        name: str
+            model name
     """
 
     def __init__(

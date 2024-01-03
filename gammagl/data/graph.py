@@ -348,43 +348,42 @@ class BaseGraph:
 
 class Graph(BaseGraph):
     r"""
-        A Graph object describe a homogeneous graph. The graph object
-        will hold node-level, link-level and graph-level attributes. In
-        general, :class:`~gammagl.data.Graph` tries to mimic the behaviour
-        of a regular Python dictionary. In addition, it provides useful
-        functionality for analyzing graph structures, and provides basic
-        tensor functionalities.
+    A Graph object describe a homogeneous graph. The graph object
+    will hold node-level, link-level and graph-level attributes. In
+    general, :class:`~gammagl.data.Graph` tries to mimic the behaviour
+    of a regular Python dictionary. In addition, it provides useful
+    functionality for analyzing graph structures, and provides basic
+    tensor functionalities.
 
-        .. code:: python
+    .. code:: python
 
-            >>> from gammagl.data import Graph
-            >>> import numpy
-            >>> g = Graph(x=numpy.random.randn(5, 16), edge_index=[[0, 0, 0], [1, 2, 3]], num_nodes=5,)
-            >>> print(g)
-            GNN Graph instance.
-            number of nodes: 5
-            number of edges: 2
+        >>> from gammagl.data import Graph
+        >>> import numpy
+        >>> g = Graph(x=numpy.random.randn(5, 16), edge_index=[[0, 0, 0], [1, 2, 3]], num_nodes=5,)
+        >>> print(g)
+        GNN Graph instance.
+        number of nodes: 5
+        number of edges: 2
 
-            >>> print(g.indegree.numpy(), g.outdegree.numpy())
-            [0. 1. 1. 1. 0.] [3. 0. 0. 0. 0.]
+        >>> print(g.indegree.numpy(), g.outdegree.numpy())
+        [0. 1. 1. 1. 0.] [3. 0. 0. 0. 0.]
 
-        Parameters
-        ----------
-        x: tensor, list, numpy.array
-            Node feature matrix with shape :obj:`[num_nodes, num_node_features]`. (default: :obj:`None`)
-        edge_index: tensor, list, numpy.array
-            Graph connectivity in COO format with shape :obj:`[2, num_edges]`. (default: :obj:`None`)
-        edge_attr: tensor
-            Edge feature matrix with shape :obj:`[num_edges, num_edge_features]`. (default: :obj:`None`)
-        num_nodes: int
-            The specified number of nodes. (default: :obj:`None`)
-        y: tensor
-            Graph-level or node-level ground-truth labels with arbitrary shape. (default: :obj:`None`)
-        to_tensor: bool
-            Set data to tensor
-        spr_format: list(str)
-            Specify the other sparse storage format, like `csc` and `csr`. (default: :obj:`None`)
-
+    Parameters
+    ----------
+    x: Tensor or List or numpy.array
+        Node feature matrix with shape :obj:`[num_nodes, num_node_features]`. (default: :obj:`None`)
+    edge_index: LongTensor or List or numpy.array
+        Graph connectivity in COO format with shape :obj:`[2, num_edges]`. (default: :obj:`None`)
+    edge_attr: Tensor
+        Edge feature matrix with shape :obj:`[num_edges, num_edge_features]`. (default: :obj:`None`)
+    num_nodes: int
+        The specified number of nodes. (default: :obj:`None`)
+    y: Tensor
+        Graph-level or node-level ground-truth labels with arbitrary shape. (default: :obj:`None`)
+    to_tensor: Bool
+        Set data to tensor
+    spr_format: List(str)
+        Specify the other sparse storage format, like `csc` and `csr`. (default: :obj:`None`)
     """
 
     def __init__(self, x=None, edge_index=None, edge_attr=None, y=None, spr_format=None, to_tensor=True,
@@ -687,21 +686,15 @@ class Graph(BaseGraph):
         :meth:`~gammagl.data.HeteroGraph.to_homogeneous`, the object can
         be reconstructed without any need to pass in additional arguments.
 
-        Parameters
-        ----------
-            node_type: tensor, optional
-                A node-level vector denoting the type
+        Args:
+            node_type (Tensor, optional): A node-level vector denoting the type
                 of each node. (default: :obj:`None`)
-            edge_type: tensor, optional
-                An edge-level vector denoting the
+            edge_type (Tensor, optional): An edge-level vector denoting the
                 type of each edge. (default: :obj:`None`)
-            node_type_names: list[str], optional
-                The names of node types.
+            node_type_names (List[str], optional): The names of node types.
                 (default: :obj:`None`)
-            edge_type_names: list[tuple[str, str, str]], optional
-                The names
+            edge_type_names (List[Tuple[str, str, str]], optional): The names
                 of edge types. (default: :obj:`None`)
-
         """
         from gammagl.data import HeteroGraph
 
