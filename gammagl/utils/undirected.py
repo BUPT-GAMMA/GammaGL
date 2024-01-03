@@ -5,27 +5,19 @@ from .num_nodes import maybe_num_nodes
 
 def is_undirected(
     edge_index, edge_attr=None, num_nodes=None) -> bool:
-    r"""
-        Returns :obj:`True` if the graph given by :attr:`edge_index` is
-        undirected.
-        
-        Parameters
-        ----------
-        edge_index: tensor
-            The edge indices.
-        edge_attr: tensor, list[tensor], optional
-            Edge weights or multi-
+    r"""Returns :obj:`True` if the graph given by :attr:`edge_index` is
+    undirected.
+    
+    Args:
+        edge_index (LongTensor): The edge indices.
+        edge_attr (Tensor or List[Tensor], optional): Edge weights or multi-
             dimensional edge features.
             If given as a list, will check for equivalence in all its entries.
             (default: :obj:`None`)
-        num_nodes: int, optional
-            The number of nodes, *i.e.*
+        num_nodes (int, optional): The number of nodes, *i.e.*
             :obj:`max_val + 1` of :attr:`edge_index`. (default: :obj:`None`)
 
-        Returns
-        -------
-        bool
-
+    :rtype: bool
     """
     num_nodes = maybe_num_nodes(edge_index, num_nodes)
 
@@ -56,27 +48,20 @@ def to_undirected(edge_index, edge_attr=None, num_nodes=None, reduce: str = "add
     such that :math:`(j,i) \in \mathcal{E}` for every edge :math:`(i,j) \in
     \mathcal{E}`.
 
-    Parameters
-    ----------
-    edge_index: tensor
-        The edge indices.
-    edge_attr: tensor, list[tensor], optional
-        Edge weights or multi-
-        dimensional edge features.
-        If given as a list, will remove duplicates for all its entries.
-        (default: :obj:`None`)
-    num_nodes: int, optional
-        The number of nodes, *i.e.*
-        :obj:`max_val + 1` of :attr:`edge_index`. (default: :obj:`None`)
-    reduce: str, optional
-        The reduce operation to use for merging edge
-        features (:obj:`"add"`, :obj:`"mean"`, :obj:`"min"`, :obj:`"max"`,
-        :obj:`"mul"`). (default: :obj:`"add"`)
+    Args:
+        edge_index (LongTensor): The edge indices.
+        edge_attr (Tensor or List[Tensor], optional): Edge weights or multi-
+            dimensional edge features.
+            If given as a list, will remove duplicates for all its entries.
+            (default: :obj:`None`)
+        num_nodes (int, optional): The number of nodes, *i.e.*
+            :obj:`max_val + 1` of :attr:`edge_index`. (default: :obj:`None`)
+        reduce (string, optional): The reduce operation to use for merging edge
+            features (:obj:`"add"`, :obj:`"mean"`, :obj:`"min"`, :obj:`"max"`,
+            :obj:`"mul"`). (default: :obj:`"add"`)
 
-    Returns
-    -------
-    :class:`LongTensor` if :attr:`edge_attr` is :obj:`None`, else (:class:`LongTensor`, :obj:`Tensor` or :obj:`List[Tensor]]`)
-
+    :rtype: :class:`LongTensor` if :attr:`edge_attr` is :obj:`None`, else
+        (:class:`LongTensor`, :obj:`Tensor` or :obj:`List[Tensor]]`)
     """
     # Maintain backward compatibility to `to_undirected(edge_index, num_nodes)`
     if isinstance(edge_attr, int):

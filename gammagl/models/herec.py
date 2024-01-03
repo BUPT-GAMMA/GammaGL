@@ -11,13 +11,13 @@ EPS = 1e-15
 
 class HERec(tlx.nn.Module):
     r"""The HERec model from the
-        `"Heterogeneous Information Network Embedding for Recommendation"
-        <https://arxiv.org/pdf/1711.10730.pdf>`_ paper design a meta-path
-        based random walk strategy to generate meaningful node sequences
-        for network embedding.
+    `"Heterogeneous Information Network Embedding for Recommendation"
+    <https://arxiv.org/pdf/1711.10730.pdf>`_ paper design a meta-path
+    based random walk strategy to generate meaningful node sequences
+    for network embedding.
 
-        Parameters
-        ----------
+    Parameters
+    ----------
         edge_index_dict: Dict
             Dictionary holding edge indices for each
             :obj:`(src_node_type, rel_type, dst_node_type)`
@@ -27,25 +27,24 @@ class HERec(tlx.nn.Module):
         metapath: List
             The metapath described as a list
             of :obj:`(src_node_type, rel_type, dst_node_type)` tuples.
-        walk_length: int, optional
+        walk_length: int
             The walk length.
-        context_size: int, optional
+        context_size: int
             The actual context size which is considered for
             positive samples. This parameter increases the effective sampling
             rate by reusing samples across different source nodes.
-        walks_per_node: int, optional
+        walks_per_node: int
             The number of walks to sample for each node.
-        num_negative_samples: int, optional
+        num_negative_samples: int
             The number of negative samples to use for each positive sample.
-        num_nodes_dict: Dict, optional
+        num_nodes_dict: Dict
             Dictionary holding the number of nodes for each node type.
-        target_type: str, optional
+        target_type: str
             The node type with the label.
-        dataset: str, optional
+        dataset: str
             The name of dataset.
-        name: str, optional
-            model name.
-
+        name: str
+            model name
     """
 
     def __init__(

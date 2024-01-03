@@ -28,30 +28,23 @@ COMMON_NVCC_FLAGS = [
 COMMON_MSVC_FLAGS = ['/MD', '/wd4819', '/wd4251', '/wd4244', '/wd4267', '/wd4275', '/wd4018', '/wd4190', '/EHsc']
 
 
-# 这个函数的作用是判断文件是否以.cu、.cuh扩展名结尾，如果是则返回true，否则false
 def _is_cuda_file(path: str) -> bool:
     valid_ext = ['.cu', '.cuh']
     return os.path.splitext(path)[1] in valid_ext
 
 
-# 这个函数的作用是找到CUDA的安装路径
 def _find_cuda_home() -> Optional[str]:
     r'''Finds the CUDA install path.'''
-    # Guess #1 尝试从环境变量中获取cuda的安装路径
+    # Guess #1
     cuda_home = os.environ.get('CUDA_HOME') or os.environ.get('CUDA_PATH')
     if cuda_home is None:
         # Guess #2
         try:
-            which = 'where' if IS_WINDOWS else 'which' #在win下使用where，其他情况下使用which
+            which = 'where' if IS_WINDOWS else 'which'
             with open(os.devnull, 'w') as devnull:
                 nvcc = subprocess.check_output([which, 'nvcc'],
                                                stderr=devnull).decode(*SUBPROCESS_DECODE_ARGS).rstrip('\r\n')
                 cuda_home = os.path.dirname(os.path.dirname(nvcc))
-                """
-                    在服务器上测试的nvcc和cuda_home的输出结果为：
-                    /usr/local/cuda-11.6/bin/nvcc
-                    /usr/local/cuda-11.6
-                """
         except Exception:
             # Guess #3
             if IS_WINDOWS:
@@ -71,16 +64,11 @@ def _find_cuda_home() -> Optional[str]:
 
 
 CUDA_HOME = _find_cuda_home()
-# /usr/local/cuda-11.6
-# C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA\\v10.2
 
 
 # CUDNN_HOME = os.environ.get('CUDNN_HOME') or os.environ.get('CUDNN_PATH')
 
 
-# 将CUDA_HOME与path进行拼接
-# >>> _join_cuda_home('bin', 'nvcc')
-# >>> CUDA_HOME/bin/nvcc
 def _join_cuda_home(*paths) -> str:
     r'''
     Joins paths with CUDA_HOME, or raises an error if it CUDA_HOME is not set.
@@ -98,16 +86,11 @@ def include_paths(cuda: bool = False) -> List[str]:
     '''
     Get the include paths required to build a C++ or CUDA extension.
 
-    Parameters
-    ----------
-    cuda:
-        If `True`, includes CUDA-specific include paths.
+    Args:
+        cuda: If `True`, includes CUDA-specific include paths.
 
-    Returns
-    -------
-    list[str]
+    Returns:
         A list of include path strings.
-
     '''
     paths = []
     if cuda:
@@ -123,16 +106,11 @@ def library_paths(cuda: bool = False) -> List[str]:
     r'''
     Get the library paths required to build a C++ or CUDA extension.
 
-    Parameters
-    ----------
-    cuda:
-        If `True`, includes CUDA-specific library paths.
+    Args:
+        cuda: If `True`, includes CUDA-specific library paths.
 
-    Returns
-    -------
-    list[str]
+    Returns:
         A list of library path strings.
-
     '''
 
     paths = []
@@ -157,7 +135,7 @@ def library_paths(cuda: bool = False) -> List[str]:
 
 class BuildExtension(build_ext, object):
     def build_extensions(self) -> None:
-        cuda_ext = False    # 下面这段代码的作用就是检测是否存在CUDA拓展模块，通过检查扩展文件的扩展名，如果扩展名是.cu那么设置cuda_ext为TRUE
+        cuda_ext = False
         extension_iter = iter(self.extensions)
         extension = next(extension_iter, None)
         while not cuda_ext and extension:
@@ -168,7 +146,7 @@ class BuildExtension(build_ext, object):
                     break
             extension = next(extension_iter, None)
 
-        for extension in self.extensions:   # 下面这段代码的作用是确保extension.extra_compile_args是一个字典，并且包含了cxx和nvcc为键，空列表为值的键值对
+        for extension in self.extensions:
             # Ensure at least an empty list of flags for 'cxx' and 'nvcc' when
             # extra_compile_args is a dict.
             #   CUDAExtension(..., extra_compile_args={'cxx': [...]})
@@ -176,12 +154,11 @@ class BuildExtension(build_ext, object):
             #   CUDAExtension(..., extra_compile_args={'nvcc': [...]})
             if isinstance(extension.extra_compile_args, dict):
                 for ext in ['cxx', 'nvcc']:
-                    if ext not in extension.extra_compile_args:# 这里是不是应该是extra_compile_args.keys?
+                    if ext not in extension.extra_compile_args:
                         extension.extra_compile_args[ext] = []
 
         # Register .cu, .cuh and .hip as valid source extensions.
 
-        # 下面这段代码的作用是注册.cu和.cuh为有效的源文件扩展名。
         self.compiler.src_extensions += ['.cu', '.cuh']
         if self.compiler.compiler_type == 'msvc':
             self.compiler._cpp_extensions += ['.cu', '.cuh']
@@ -191,7 +168,6 @@ class BuildExtension(build_ext, object):
             original_compile = self.compiler._compile
 
 
-        # 该函数的作用是生成unix系统下的CUDA编译标志，cflags是一个列表
         def unix_cuda_flags(cflags):
             cflags = (COMMON_NVCC_FLAGS +
                       ['--compiler-options', "'-fPIC'"] +
@@ -210,7 +186,6 @@ class BuildExtension(build_ext, object):
 
             return cflags
 
-        # 这个函数的作用是向cflags中添加一个编译标志，指定编译器在编译时使用C++17标准/c++17:或者-std=c++17
         def append_std17_if_no_std_present(cflags) -> None:
             # NVCC does not allow multiple -std to be passed, so we avoid
             # overriding the option if the user explicitly passed it.
@@ -222,7 +197,7 @@ class BuildExtension(build_ext, object):
 
         def unix_wrap_single_compile(obj, src, ext, cc_args, extra_postargs, pp_opts) -> None:
             # Copy before we make any modifications.
-            cflags = copy.deepcopy(extra_postargs)# 深拷贝可以避免修改cflags时影响到extra_postargs
+            cflags = copy.deepcopy(extra_postargs)
             try:
                 original_compiler = self.compiler.compiler_so
                 if _is_cuda_file(src):
@@ -234,9 +209,9 @@ class BuildExtension(build_ext, object):
 
                 elif isinstance(cflags, dict):
                     cflags = cflags['cxx']
-                append_std17_if_no_std_present(cflags) #这里是形参还是实参
+                append_std17_if_no_std_present(cflags)
 
-                original_compile(obj, src, ext, cc_args, cflags, pp_opts) #这行代码不太懂
+                original_compile(obj, src, ext, cc_args, cflags, pp_opts)
             finally:
                 # Put the original compiler back in place.
                 self.compiler.set_executable('compiler_so', original_compiler)
@@ -314,7 +289,7 @@ def PyCudaExtension(name, sources, *args, **kwargs):
     include_dirs += include_paths(cuda=True)
 
     include_pybind11 = kwargs.pop("include_pybind11", True)
-    if include_pybind11: # 这里的作用是什么？
+    if include_pybind11:
         # If using setup_requires, this fails the first time - that's okay
         try:
             import pybind11
@@ -346,7 +321,7 @@ def PyCPUExtension(name, sources, *args, **kwargs):
         compile_extra_args.append('-std=c++17')
     kwargs["compile_extra_args"] = compile_extra_args
 
-    return Pybind11Extension(name, sources, *args, **kwargs) #为什么这里用pybind11extension不用setuptools.extension?
+    return Pybind11Extension(name, sources, *args, **kwargs)
 
 # def _get_cuda_arch_flags(cflags: Optional[List[str]] = None) -> List[str]:
 #     r'''

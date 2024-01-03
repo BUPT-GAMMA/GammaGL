@@ -4,27 +4,21 @@ from gammagl.layers.conv import GCNConv
 
 
 class GCNModel(tlx.nn.Module):
-    r"""Graph Convolutional Network proposed in `"Semi-supervised
-        Classification with Graph Convolutional Networks"
-        <https://arxiv.org/abs/1609.02907>`_ paper.
-        
-        Parameters
-        ----------
-        feature_dim: int
-            input feature dimension.
-        hidden_dim: int
-            hidden dimension.
-        num_class: int
-            number of classes.
-        drop_rate: float, optional
-            dropout rate.
-        num_layers: int, optional
-            number of layers.
-        norm: str, optional
-            apply the normalizer.
-        name: str, optional
-            model name.
+    r"""
+    Graph Convolutional Network proposed in `Semi-Supervised Classification with Graph Convolutional Networks`_.
 
+    .. _Semi-Supervised Classification with Graph Convolutional Networks:
+        https://arxiv.org/pdf/1609.02907.pdf
+    
+    Parameters
+    ----------
+        feature_dim (int): input feature dimension
+        hidden_dim (int): hidden dimension
+        num_class (int): number of classes
+        drop_rate (float): dropout rate
+        num_layers (int): number of layers
+        norm (str): apply the normalizer
+        name (str): model name
     """
 
     def __init__(self, feature_dim,

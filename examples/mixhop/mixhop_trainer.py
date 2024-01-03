@@ -1,13 +1,10 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
-# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
-
+# os.environ['TL_BACKEND'] = 'tensorflow'
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
-from gammagl.models import MixHopModel
+from gammagl.models import MIXHOPModel
 from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss
 
@@ -54,7 +51,7 @@ def main(args):
     test_idx = mask_to_index(graph.test_mask)
     val_idx = mask_to_index(graph.val_mask)
 
-    net = MixHopModel(feature_dim=dataset.num_node_features,
+    net = MIXHOPModel(feature_dim=dataset.num_node_features,
                       hidden_dim=args.hidden_dim,
                       out_dim=dataset.num_classes,
                       p=args.p,

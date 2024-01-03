@@ -4,25 +4,19 @@ from gammagl.layers.conv.film_conv import FILMConv
 
 class FILMModel(tlx.nn.Module):
     r"""The FiLM graph convolutional operator from the
-        `"GNN-FiLM: Graph Neural Networks with Feature-wise Linear Modulation"
-        <https://arxiv.org/abs/1906.12192>`_ paper.
+    `"GNN-FiLM: Graph Neural Networks with Feature-wise Linear Modulation"
+    <https://arxiv.org/abs/1906.12192>`_ paper
 
-        Parameters
-        ----------
-        in_channels: int, tuple
-            Size of each input sample, or :obj:`-1` to
+    Parameters
+    ----------
+        in_channels (int or tuple): Size of each input sample, or :obj:`-1` to
             derive the size from the first input(s) to the forward method.
             A tuple corresponds to the sizes of source and target
             dimensionalities.
-        hidden_dim: int
-            Size of each hidden layers sample.
-        out_channels: int
-            Size of each output sample.
-        drop_rate: float
-            Rate of dropout layers.
-        name: str, optional
-            Name of the model.
-
+        hidden_dim (int): Size of each hidden layers sample.
+        out_channels (int): Size of each output sample.
+        drop_rate (float): Rate of dropout layers.
+        name (str): Name of the model.
     """
 
     def __init__(self, in_channels,

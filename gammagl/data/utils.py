@@ -104,7 +104,7 @@ global_config_init()
 
 # toolkit
 def md5sum(filename):
-    """Calculate the File MD5"""
+    """计算文件的MD5值"""
     md5 = hashlib.md5()
     with open(filename, 'rb') as f:
         for chunk in iter(lambda: f.read(4096), b''):

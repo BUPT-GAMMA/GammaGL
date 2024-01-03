@@ -22,7 +22,7 @@ class GMMConv(MessagePassing):
 
         Parameters
         ----------
-        in_channels : int, tuple
+        in_channels : int or tuple
             Size of each input sample, or :obj:`-1` to derive the size from the first input(s) to the forward method.
             A tuple corresponds to the sizes of source and target dimensionalities.
         out_channels : int
@@ -35,7 +35,6 @@ class GMMConv(MessagePassing):
             Aggregator type (``sum``, ``mean``, ``max``). Default: ``sum``.
         add_bias : bool
             If True, adds a learnable bias to the output. Default: ``True``.
-
         """
     def __init__(self,
                  in_channels,
@@ -72,20 +71,23 @@ class GMMConv(MessagePassing):
             self.bias = self._get_weights("bias", shape=(1, self.out_channels), init=initor)
     def forward(self, x, edge_index, pseudo=None):
         r"""
+
+        Description
+        -----------
         Compute Gaussian Mixture Model Convolution layer.
 
         Parameters
         ----------
-        x : tensor
+        x : torch.Tensor
             The input node features.
-        pseudo : tensor
+        pseudo : torch.Tensor
             The pseudo coordinate tensor of shape :math:`(E, D_{u})` where
             :math:`E` is the number of edges of the graph and :math:`D_{u}`
             is the dimensionality of pseudo coordinate.
 
         Returns
         -------
-        tensor
+        torch.Tensor
             The output feature of shape :math:`(N, D_{out})` where :math:`D_{out}`
             is the output feature size.
         """

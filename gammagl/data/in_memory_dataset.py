@@ -11,31 +11,25 @@ import tensorlayerx as tlx
 
 class InMemoryDataset(Dataset):
     r"""Dataset base class for creating graph datasets which easily fit
-        into CPU memory.
-        Inherits from :class:`gammagl.data.Dataset`.
-        See `here <https://gammagl.readthedocs.io/en/latest/notes/create_dataset.html#creating-in-memory-datasets>`__ for the accompanying tutorial.
+    into CPU memory.
+    Inherits from :class:`gammagl.data.Dataset`.
+    See `here <https://gammagl.readthedocs.io/en/latest/notes/create_dataset.html#creating-in-memory-datasets>`__ for the accompanying tutorial.
 
-        Parameters
-        ----------
-        root: str, optional
-            Root directory where the dataset should be
+    Args:
+        root (string, optional): Root directory where the dataset should be
             saved. (default: :obj:`None`)
-        transform: callable, optional
-            A function/transform that takes in an
+        transform (callable, optional): A function/transform that takes in an
             :obj:`gammagl.data.Graph` object and returns a transformed
             version. The graph object will be transformed before every access.
             (default: :obj:`None`)
-        pre_transform: callable, optional
-            A function/transform that takes in
+        pre_transform (callable, optional): A function/transform that takes in
             an :obj:`gammagl.data.Graph` object and returns a
             transformed version. The graph object will be transformed before
             being saved to disk. (default: :obj:`None`)
-        pre_filter: callable, optional
-            A function that takes in an
+        pre_filter (callable, optional): A function that takes in an
             :obj:`gammagl.data.Graph` object and returns a boolean
             value, indicating whether the graph object should be included in the
             final dataset. (default: :obj:`None`)
-
     """
     @property
     def raw_file_names(self) -> Union[str, List[str], Tuple]:

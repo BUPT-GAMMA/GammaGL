@@ -37,7 +37,6 @@ class FAGCNConv(MessagePassing):
         Hidden dimension of layer
     drop_rate: float
         Dropout rate
-
     """
 
     def __init__(self, hidden_dim, drop_rate):

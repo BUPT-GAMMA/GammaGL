@@ -5,32 +5,25 @@ from gammagl.layers.conv import MGNNI_m_iter
 
 
 class MGNNI_m_MLP(tlx.nn.Module):
-    r"""Multiscale Graph Neural Networks with Implicit Layers proposed in `MGNNI: Multiscale Graph Neural Networks with Implicit Layers
-        <https://arxiv.org/abs/2210.08353>`_ paper.
+    r"""
+    Multiscale Graph Neural Networks with Implicit Layers proposed in `MGNNI: Multiscale Graph Neural Networks with Implicit Layers`_.
 
-        This model is for datasets chameleon and squirrel.
+    .. _MGNNI: Multiscale Graph Neural Networks with Implicit Layers:
+        https://arxiv.org/abs/2210.08353
 
-        Parameters
-        ----------
-        m: int
-            input feature dimension.
-        m_y: int
-            number of classes.
-        nhid: int
-            hidden dimension.
-        ks: list
-            list of scales.
-        threshold: int
-            threshold for convergence.
-        max_iter: str
-            maximum number of iterative solver iterations.
-        gamma: str
-            contraction Factor.
-        dropout: float, optional
-            dropout rate (1 - keep probability).
-        batch_norm: bool, optional
-            whether to use batch norm.
+    This model is for datasets chameleon and squirrel.
 
+    Parameters
+    ----------
+        m (int): input feature dimension
+        m_y (int): number of classes
+        nhid (int): hidden dimension
+        ks (list): list of scales
+        threshold (int): threshold for convergence
+        max_iter (str): maximum number of iterative solver iterations
+        gamma (str): contraction Factor
+        dropout (float): dropout rate (1 - keep probability)
+        batch_norm (bool): whether to use batch norm
     """
 
     def __init__(self, m, m_y, nhid, ks, threshold, max_iter, gamma, dropout=0.5, batch_norm=False):
@@ -68,21 +61,13 @@ class MGNNI_m_att(nn.Module):
 
     Parameters
     ----------
-    m: int
-        input feature dimension.
-    m_y: int
-        number of classes.
-    ks: list
-        list of scales.
-    threshold: int
-        threshold for convergence.
-    max_iter: str
-        maximum number of iterative solver iterations.
-    gamma: str
-        contraction Factor.
-    dropout: float
-        dropout rate (1 - keep probability).
-
+        m (int): input feature dimension
+        m_y (int): number of classes
+        ks (list): list of scales
+        threshold (int): threshold for convergence
+        max_iter (str): maximum number of iterative solver iterations
+        gamma (str): contraction Factor
+        dropout (float): dropout rate (1 - keep probability)
     """
     def __init__(self, m, m_y, ks, threshold, max_iter, gamma, dropout=0.5,
                  layer_norm=False, batch_norm=False):

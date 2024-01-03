@@ -3,10 +3,7 @@
 
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
-# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
-
+# os.environ['TL_BACKEND'] = 'torch'
 from gammagl.models import GraphGAN
 from gammagl.utils import read_embeddings
 from gammagl.datasets import CA_GrQc

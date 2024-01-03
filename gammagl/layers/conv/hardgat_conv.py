@@ -42,7 +42,7 @@ class HardGATConv(MessagePassing):
 
     Parameters
     ----------
-    in_channels: int, tuple
+    in_channels: int or tuple
         Size of each input sample, or :obj:`-1` to
         derive the size from the first input(s) to the forward method.
         A tuple corresponds to the sizes of source and target

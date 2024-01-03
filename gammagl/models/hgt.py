@@ -4,12 +4,15 @@ from tensorlayerx.nn import Linear, ModuleDict, ModuleList
 
 
 class HGTModel(tlx.nn.Module):
-    r"""The Heterogeneous Graph Transformer (HGT) proposed in `here <https://arxiv.org/pdf/2003.01332>`_ paper.
+    r"""
+        HGT proposed in `Heterogeneous Graph Transformer`_.
+
+        .. _Heterogeneous Graph Transformer:
+            https://arxiv.org/pdf/2003.01332
 
         Parameters
         ----------
-        cfg: configuration of HGT model.
-
+        cfg: configuration of HGT
     """
 
     def __init__(self, data, hidden_channels, out_channels, num_heads, num_layers, target_node_type,

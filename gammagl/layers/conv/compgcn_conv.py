@@ -20,9 +20,9 @@ def masked_edge_index(edge_index, edge_mask):
 class CompConv(MessagePassing):
     '''
     Paper: Composition-based Multi-Relational Graph Convolutional Networks
-
+    
     Code: https://github.com/MichSchli/RelationPrediction
-
+    
     Parameters
     ----------
     in_channels: int
@@ -33,9 +33,9 @@ class CompConv(MessagePassing):
         the number of relations in the graph.
     op: str
         the operation used in message creation.
-    add_bias: bool
+    add_bias: boolean
         whether to add bias.
-
+    
     '''
     def __init__(self, in_channels, out_channels, num_relations, op='sub', add_bias=True):
         super().__init__()
@@ -92,17 +92,11 @@ class CompConv(MessagePassing):
     def propagate(self, x, edge_index,edge_type, aggr='sum', **kwargs):
         """
         Function that perform message passing.
-
-        Parameters
-        ----------
-        x: 
-            input node feature.
-        edge_index: 
-            edges from src to dst.
-        aggr: 
-            aggregation type, default='sum', optional=['sum', 'mean', 'max'].
-        kwargs: 
-            other parameters dict.
+        Args:
+            x: input node feature
+            edge_index: edges from src to dst
+            aggr: aggregation type, default='sum', optional=['sum', 'mean', 'max']
+            kwargs: other parameters dict
 
         """
 
@@ -133,20 +127,11 @@ class CompConv(MessagePassing):
     def message(self, x, edge_index,edge_type, edge_weight=None,rel_emb=None,linear=None):
         """
         Function that construct message from source nodes to destination nodes.
-        
-        Parameters
-        ----------
-        x: tensor
-            input node feature.
-        edge_index: tensor
-            edges from src to dst.
-        edge_weight: tensor
-            weight of each edge.
-
-        Returns
-        -------
-        tensor
-            output message.
+        Args:
+            x (Tensor): input node feature
+            edge_index (Tensor): edges from src to dst
+            edge_weight (Tensor): weight of each edge
+        Returns:
 
         """
         rel_emb = tlx.gather(rel_emb, edge_type)
@@ -163,22 +148,13 @@ class CompConv(MessagePassing):
     def aggregate(self, msg, edge_index, num_nodes=None, aggr='sum',dim_size=None):
         """
         Function that aggregates message from edges to destination nodes.
+        Args:
+            msg (Tensor): message construct by message function
+            edge_index (Tensor): edges from src to dst
+            num_nodes (int): number of nodes of the graph
+            aggr (str): aggregation type, default = 'sum', optional=['sum', 'mean', 'max']
 
-        Parameters
-        ----------
-        msg: tensor
-            message construct by message function.
-        edge_index: tensor
-            edges from src to dst.
-        num_nodes: int
-            number of nodes of the graph.
-        aggr: str
-            aggregation type, default = 'sum', optional=['sum', 'mean', 'max'].
-
-        Returns
-        -------
-        tensor
-            output representation.
+        Returns:
 
         """
         dst_index = edge_index[0, :]

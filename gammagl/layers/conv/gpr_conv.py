@@ -20,15 +20,10 @@ class GPRConv(MessagePassing):
     edge weights via the optional :obj:`edge_weight` tensor.
     :math:`\gamma_{k}` its learnt weights.
 
-    Parameters
-    ----------
-    k:
-        steps to propagate.
-    alpha:
-        assgin initial value to learnt weights, used in concert with Init.
-    Init:
-        initialization method(SGC, PPR, NPPR, Random, WS).
-
+    Parameters:
+        k: steps to propagate.
+        alpha: assgin initial value to learnt weights, used in concert with Init.
+        Init: initialization method(SGC, PPR, NPPR, Random, WS).
     """
 
     def __init__(self, K, alpha, Init='PPR', Gamma=None, **kwargs):

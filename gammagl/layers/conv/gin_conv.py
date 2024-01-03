@@ -18,23 +18,27 @@ class GINConv(MessagePassing):
 
     here :math:`h_{\mathbf{\Theta}}` denotes a neural network, *.i.e.* an MLP.
 
+    Args:
+        nn (torch.nn.Module): A neural network :math:`h_{\mathbf{\Theta}}` that
+            maps node features :obj:`x` of shape :obj:`[-1, in_channels]` to
+            shape :obj:`[-1, out_channels]`, *e.g.*, defined by
+            :class:`torch.nn.Sequential`.
+        eps (float, optional): (Initial) :math:`\epsilon`-value.
+            (default: :obj:`0.`)
+        train_eps (bool, optional): If set to :obj:`True`, :math:`\epsilon`
+            will be a trainable parameter. (default: :obj:`False`)
+        **kwargs (optional): Additional arguments of
+            :class:`torch_geometric.nn.conv.MessagePassing`.
+
     Parameters
     ----------
-    nn: tlx.nn.Module
-        A neural network :math:`h_{\mathbf{\Theta}}` that
-        maps node features :obj:`x` of shape :obj:`[-1, in_channels]` to
-        shape :obj:`[-1, out_channels]`, *e.g.*, defined by
-        :class:`torch.nn.Sequential`.
-    eps: float, optional
-        (Initial) :math:`\epsilon`-value.
-        (default: :obj:`0.`)
-    train_eps: bool, optional
-        If set to :obj:`True`, :math:`\epsilon`
-        will be a trainable parameter. (default: :obj:`False`)
-    **kwargs: optional
-        Additional arguments of
-        :class:`gammagl.layers.conv.MessagePassing`.
-
+        nn (tensorlayerx.nn.Module): A neural network :math:`h_{\mathbf{\Theta}}` that
+            maps node features :obj:`x` of shape :obj:`[-1, in_channels]` to
+            shape :obj:`[-1, out_channels]`
+        eps (float, optional): (Initial) :math:`\epsilon`-value.
+            (default: :obj:`0.`)
+        train_eps (bool, optional): If set to :obj:`True`, :math:`\epsilon`
+            will be a trainable parameter. (default: :obj:`False`)
     """
 
     def __init__(self, nn, eps=0., train_eps: bool = False,

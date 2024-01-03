@@ -38,13 +38,13 @@ class HPNConv(MessagePassing):
 
         Parameters
         ----------
-        in_channels: int, dict[str, int]
+        in_channels: int or Dict[str, int]
             Size of each input sample of every
             node type, or :obj:`-1` to derive the size from the first input(s)
             to the forward method.
         out_channels: int
             Size of each output sample.
-        metadata: tuple[list[str], list[tuple[str, str, str]]]
+        metadata: Tuple[List[str], List[Tuple[str, str, str]]]
             The metadata
             of the heterogeneous graph, *i.e.* its node and edge types given
             by a list of strings and a list of string triplets, respectively.
@@ -62,7 +62,6 @@ class HPNConv(MessagePassing):
             Dropout probability of the normalized
             attention coefficients which exposes each node to a stochastically
             sampled neighborhood during training. (default: :obj:`0`)
-
         """
     def __init__(self,
                  in_channels,

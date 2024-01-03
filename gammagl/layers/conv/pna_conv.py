@@ -37,39 +37,29 @@ class PNAConv(MessagePassing):
     denote MLPs.
 
 
-    Parameters
-    ----------
-    in_channels: int
-        Size of each input sample, or :obj:`-1` to derive
-        the size from the first input(s) to the forward method.
-    out_channels: int
-        Size of each output sample.
-    aggregators: list[str]
-        Set of aggregation function identifiers,
-        namely :obj:`"sum"`, :obj:`"mean"`, :obj:`"min"`, :obj:`"max"`,
-        :obj:`"var"` and :obj:`"std"`.
-    scalers: list[str]
-        Set of scaling function identifiers, namely
-        :obj:`"identity"`, :obj:`"amplification"`,
-        :obj:`"attenuation"`, :obj:`"linear"` and
-        :obj:`"inverse_linear"`.
-    deg: tensor
-        Histogram of in-degrees of nodes in the training set,
-        used by scalers to normalize.
-    edge_dim: int, optional
-        Edge feature dimensionality (in case
-        there are any). (default :obj:`None`)
-    towers: int, optional
-        Number of towers (default: :obj:`1`).
-    pre_layers: int, optional
-        Number of transformation layers before
-        aggregation (default: :obj:`1`).
-    post_layers: int, optional
-        Number of transformation layers after
-        aggregation (default: :obj:`1`).
-    divide_input: bool, optional
-        Whether the input features should
-        be split between towers or not (default: :obj:`False`).
+    Args:
+        in_channels (int): Size of each input sample, or :obj:`-1` to derive
+            the size from the first input(s) to the forward method.
+        out_channels (int): Size of each output sample.
+        aggregators (list of str): Set of aggregation function identifiers,
+            namely :obj:`"sum"`, :obj:`"mean"`, :obj:`"min"`, :obj:`"max"`,
+            :obj:`"var"` and :obj:`"std"`.
+        scalers (list of str): Set of scaling function identifiers, namely
+            :obj:`"identity"`, :obj:`"amplification"`,
+            :obj:`"attenuation"`, :obj:`"linear"` and
+            :obj:`"inverse_linear"`.
+        deg (Tensor): Histogram of in-degrees of nodes in the training set,
+            used by scalers to normalize.
+        edge_dim (int, optional): Edge feature dimensionality (in case
+            there are any). (default :obj:`None`)
+        towers (int, optional): Number of towers (default: :obj:`1`).
+        pre_layers (int, optional): Number of transformation layers before
+            aggregation (default: :obj:`1`).
+        post_layers (int, optional): Number of transformation layers after
+            aggregation (default: :obj:`1`).
+        divide_input (bool, optional): Whether the input features should
+            be split between towers or not (default: :obj:`False`).
+
 
     Shapes:
         - **input:**
@@ -77,7 +67,6 @@ class PNAConv(MessagePassing):
           edge indices :math:`(2, |\mathcal{E}|)`,
           edge features :math:`(|\mathcal{E}|, D)` *(optional)*
         - **output:** node features :math:`(|\mathcal{V}|, F_{out})`
-
     """
     def __init__(self, in_channels, out_channels, aggregators, scalers, deg, edge_dim, towers=1,
                  pre_layers=1, post_layers=1, divide_input=False):

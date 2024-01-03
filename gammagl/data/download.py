@@ -13,18 +13,11 @@ def download_url(url: str, folder: str, log: bool = True,
                  filename: Optional[str] = None):
     r"""Downloads the content of an URL to a specific folder.
 
-        Parameters
-        ----------
-        url: str
-            The url.
-        folder: str
-            The folder.
-        log: bool, optional
-            If :obj:`False`, will not print anything to the
+    Args:
+        url (string): The url.
+        folder (string): The folder.
+        log (bool, optional): If :obj:`False`, will not print anything to the
             console. (default: :obj:`True`)
-        filename: str, optional
-            The name of the file.
-
     """
 
     if filename is None:

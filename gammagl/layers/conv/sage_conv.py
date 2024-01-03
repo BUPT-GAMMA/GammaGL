@@ -11,22 +11,19 @@ class SAGEConv(MessagePassing):
         \mathbf{x}^{\prime}_i = \mathbf{W}_1 \mathbf{x}_i + \mathbf{W}_2 \cdot \
         \mathrm{mean}_{j \in \mathcal{N(i)}} \mathbf{x}_j
 
-    Parameters
-    ----------
-    in_channels: int, tuple
-        Size of each input sample, or :obj:`-1` to
-        derive the size from the first input(s) to the forward method.
-        A tuple corresponds to the sizes of source and target
-        dimensionalities.
-    out_channels: int
-        Size of each output sample.
-    norm: callable, None, optional
+    Args:
+        in_channels (int or tuple): Size of each input sample, or :obj:`-1` to
+            derive the size from the first input(s) to the forward method.
+            A tuple corresponds to the sizes of source and target
+            dimensionalities.
+        out_channels (int): Size of each output sample.
+
+        norm : callable activation function/layer or None, optional
         If not None, applies normalization to the updated node features.
-    aggr: str, optional
-        Aggregator type to use (``mean``).
-    add_bias: bool, optional
-        If set to :obj:`False`, the layer will not learn
-        an additive bias. (default: :obj:`True`)
+
+        aggr : Aggregator type to use (``mean``).
+        add_bias (bool, optional): If set to :obj:`False`, the layer will not learn
+            an additive bias. (default: :obj:`True`)
 
     """
 

@@ -45,7 +45,7 @@ def get_graph_feature(x, k=20, idx=None):
 
 class DGCNNModel(nn.Module):
     r"""The Edge Convolution operator from the `"Dynamic Graph CNN for Learning on Point Clouds"
-    <https://arxiv.org/pdf/1801.07829.pdf>`_ paper.
+    <https://arxiv.org/pdf/1801.07829.pdf>`_ paper
 
     """
     def __init__(self, in_channels, k, emb_dims, num_points, dropout, output_channels=40):

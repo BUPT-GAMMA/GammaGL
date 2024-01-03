@@ -24,7 +24,7 @@ class IMDB(InMemoryDataset):
     
     Parameters
     ----------
-    root: str, optional
+    root: string
         Root directory where the dataset should be saved.
     transform: callable, optional
         A function/transform that takes in an
@@ -36,7 +36,6 @@ class IMDB(InMemoryDataset):
         an :obj:`gammagl.data.HeteroGraph` object and returns a
         transformed version. The data object will be transformed before
         being saved to disk. (default: :obj:`None`)
-
     """
 
     url = 'https://www.dropbox.com/s/g0btk9ctr1es39x/IMDB_processed.zip?dl=1'

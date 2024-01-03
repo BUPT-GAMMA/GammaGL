@@ -10,14 +10,13 @@ lower_control = 10 ** (-15)
 
 class TADWModel(tlx.nn.Module):
     r"""The TADW model from the
-        `"Network Representation Learning with Rich Text Information"
-        <https://www.ijcai.org/Proceedings/15/Papers/299.pdf>`_ paper
-        where random walks of length :obj:`walk_length` are sampled in
-        a given graph, and node embeddings are learned via negative
-        sampling optimization.
-
-        Parameters
-        ----------
+    `"Network Representation Learning with Rich Text Information"
+    <https://www.ijcai.org/Proceedings/15/Papers/299.pdf>`_ paper
+    where random walks of length :obj:`walk_length` are sampled in
+    a given graph, and node embeddings are learned via negative
+    sampling optimization.
+    Parameters
+    ----------
         edge_index: Iterable
             The edge indices.
         embedding_dim: int
@@ -30,11 +29,8 @@ class TADWModel(tlx.nn.Module):
             The size of each text feature vector.
         node_feature: Iterable
             The matrix of Node feature.
-        num_nodes: int, optional
-            The number of nodes.
-        name: str, optional
-            model name.
-
+        name: str
+            model name
     """
 
     def __init__(

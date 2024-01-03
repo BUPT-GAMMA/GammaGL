@@ -15,23 +15,18 @@ class WebKB(InMemoryDataset):
     The task is to classify the nodes into one of the five categories, student,
     project, course, staff, and faculty.
 
-    Parameters
-    ----------
-    root: str, optional
-        Root directory where the dataset should be saved.
-    name: str
-        The name of the dataset. (:obj:`"Cornell"`,
-        :obj:`"Texas"`, :obj:`"Wisconsin"`)
-    transform: callable, optional
-        A function/transform that takes in an
-        :obj:`gammagl.data.Graph` object and returns a transformed
-        version. The data object will be transformed before every access.
-        (default: :obj:`None`)
-    pre_transform: callable, optional
-        A function/transform that takes in
-        an :obj:`gammagl.data.Graph` object and returns a
-        transformed version. The data object will be transformed before
-        being saved to disk. (default: :obj:`None`)
+    Args:
+        root (string): Root directory where the dataset should be saved.
+        name (string): The name of the dataset (:obj:`"Cornell"`,
+            :obj:`"Texas"`, :obj:`"Wisconsin"`).
+        transform (callable, optional): A function/transform that takes in an
+            :obj:`gammagl.data.Graph` object and returns a transformed
+            version. The data object will be transformed before every access.
+            (default: :obj:`None`)
+        pre_transform (callable, optional): A function/transform that takes in
+            an :obj:`gammagl.data.Graph` object and returns a
+            transformed version. The data object will be transformed before
+            being saved to disk. (default: :obj:`None`)
     """
 
     url = 'https://raw.githubusercontent.com/graphdml-uiuc-jlu/geom-gcn/master'

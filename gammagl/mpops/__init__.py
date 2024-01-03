@@ -23,4 +23,4 @@ if 'TL_BACKEND' in os.environ:
     else:
         raise NotImplementedError("This backend is not supported")
 else:
-    from .torch import *
+    from .tensorflow import *
