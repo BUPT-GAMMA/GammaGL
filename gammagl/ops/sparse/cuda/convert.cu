@@ -8,8 +8,7 @@
 
 __global__ void set_to_one_kernel(int64_t *arr, int n) {
   int64_t tid = blockDim.x * blockIdx.x + threadIdx.x;
-  if (tid >= n)
-    return;
+  if (tid >= n) return;
   arr[tid] = 1;
 }
 
@@ -26,18 +25,16 @@ void set_to_one_cuda(Tensor arr) {
 
   checkCudaErrors(cudaDeviceSynchronize());
 
-  checkCudaErrors(cudaMemcpy(arr.mutable_data(), arr_data, n * sizeof(int64_t),
-                             cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaMemcpy(
+      arr.mutable_data(), arr_data, n * sizeof(int64_t),
+      cudaMemcpyDeviceToHost));
 
   checkCudaErrors(cudaFree(arr_data));
 }
 
-
 typedef py::array_t<int> Tensor32;
 
-__global__ void ind2ptr_kernel(int *ind_data, int *out_data, int M,
-                               int numel) {
-
+__global__ void ind2ptr_kernel(int *ind_data, int *out_data, int M, int numel) {
   int tid = blockDim.x * blockIdx.x + threadIdx.x;
 
   //   if (tid >= 0 && tid < numel) {
@@ -45,8 +42,7 @@ __global__ void ind2ptr_kernel(int *ind_data, int *out_data, int M,
   //   }
 
   if (tid == 0) {
-    for (int64_t i = 0; i <= ind_data[0]; i++)
-      out_data[i] = 0;
+    for (int64_t i = 0; i <= ind_data[0]; i++) out_data[i] = 0;
   } else if (tid < numel) {
     for (int64_t i = ind_data[tid - 1]; i < ind_data[tid]; i++)
       out_data[i + 1] = tid;
@@ -58,7 +54,6 @@ __global__ void ind2ptr_kernel(int *ind_data, int *out_data, int M,
 }
 
 Tensor32 ind2ptr_cuda(Tensor32 ind, int M) {
-
   cout << "这里是cuda算子" << endl;
   int numel = ind.size();
 
@@ -74,8 +69,8 @@ Tensor32 ind2ptr_cuda(Tensor32 ind, int M) {
   TOCK(first)
 
   TICK(pre)
-  checkCudaErrors(cudaMemcpy(ind_data_ptr, ind_data, numel * sizeof(int),
-                             cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpy(
+      ind_data_ptr, ind_data, numel * sizeof(int), cudaMemcpyHostToDevice));
 
   TOCK(pre)
 
@@ -99,9 +94,9 @@ Tensor32 ind2ptr_cuda(Tensor32 ind, int M) {
 
   TICK(post)
 
-  checkCudaErrors(cudaMemcpy(out.mutable_data(), out_data_ptr,
-                             (M + 1) * sizeof(int),
-                             cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaMemcpy(
+      out.mutable_data(), out_data_ptr, (M + 1) * sizeof(int),
+      cudaMemcpyDeviceToHost));
 
   checkCudaErrors(cudaDeviceSynchronize());
   TOCK(post)
@@ -130,8 +125,8 @@ Tensor32 ind2ptr_cuda(Tensor32 ind, int M) {
   return out;
 }
 
-
-// __global__ void ind2ptr_kernel(int64_t *ind_data, int64_t *out_data, int64_t M,
+// __global__ void ind2ptr_kernel(int64_t *ind_data, int64_t *out_data, int64_t
+// M,
 //                                int64_t numel) {
 
 //   int tid = blockDim.x * blockIdx.x + threadIdx.x;
@@ -226,9 +221,8 @@ Tensor32 ind2ptr_cuda(Tensor32 ind, int M) {
 //   return out;
 // }
 
-__global__ void ptr2ind_kernel(const int64_t *ptr_data, int64_t *out_data,
-                               int64_t E, int64_t numel) {
-
+__global__ void ptr2ind_kernel(
+    const int64_t *ptr_data, int64_t *out_data, int64_t E, int64_t numel) {
   int64_t thread_idx = blockDim.x * blockIdx.x + threadIdx.x;
 
   if (thread_idx < numel) {
@@ -242,7 +236,6 @@ __global__ void ptr2ind_kernel(const int64_t *ptr_data, int64_t *out_data,
 }
 
 Tensor ptr2ind_cuda(Tensor ptr, int64_t E) {
-
   int size = ptr.size();
   Tensor out{E};
   auto ptr_data = ptr.data();
@@ -254,16 +247,16 @@ Tensor ptr2ind_cuda(Tensor ptr, int64_t E) {
   ptr2ind_kernel<<<(size - 1 + THREADS - 1) / THREADS, THREADS>>>(
       ptr_data, out_data, E, size - 1);
 
-  checkCudaErrors(cudaMemcpy(out.mutable_data(), out_data, E * sizeof(int64_t),
-                             cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaMemcpy(
+      out.mutable_data(), out_data, E * sizeof(int64_t),
+      cudaMemcpyDeviceToHost));
 
   return out;
 }
 
 __global__ void kernel(int64_t *arr, int n) {
   int tid = blockDim.x * blockIdx.x + threadIdx.x;
-  if (tid >= n)
-    return;
+  if (tid >= n) return;
   arr[tid] = tid;
 }
 

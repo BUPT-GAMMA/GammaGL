@@ -1,12 +1,13 @@
 #include "spmm_sum_cpu.h"
+
 #include <torch/torch.h>
 
-torch::Tensor spmm_sum_cpu_forward(torch::Tensor &index, torch::Tensor &weight,
-                                   torch::Tensor &x) {
+torch::Tensor spmm_sum_cpu_forward(
+    torch::Tensor &index, torch::Tensor &weight, torch::Tensor &x) {
   x = x.contiguous();
   torch::Tensor out = torch::zeros_like(x, x.options());
-  auto E = index.size(1); //边的数量
-  auto K = x.size(1); //节点feature的维度
+  auto E = index.size(1);  // 边的数量
+  auto K = x.size(1);      // 节点feature的维度
 
   auto index_data = index.data_ptr<int64_t>();
   int64_t col, row;
@@ -20,12 +21,13 @@ torch::Tensor spmm_sum_cpu_forward(torch::Tensor &index, torch::Tensor &weight,
 #endif
   for (auto e = 0; e < E; ++e) {
     col = index_data[e];
-    row = index_data[e + E]; // or e + 1;
+    row = index_data[e + E];  // or e + 1;
     for (auto k = 0; k < K; ++k) {
 #ifdef COMPILE_WITH_OMP
 #pragma omp atomic
 #endif
-      out_data[row * K + k] = out_data[row * K + k] + weight_data[e] * x_data[col * K + k];
+      out_data[row * K + k] =
+          out_data[row * K + k] + weight_data[e] * x_data[col * K + k];
     }
   }
 
@@ -33,8 +35,8 @@ torch::Tensor spmm_sum_cpu_forward(torch::Tensor &index, torch::Tensor &weight,
 }
 
 // almost same with forward
-torch::Tensor spmm_sum_cpu_backward(torch::Tensor &index, torch::Tensor &weight,
-                                    torch::Tensor &grad) {
+torch::Tensor spmm_sum_cpu_backward(
+    torch::Tensor &index, torch::Tensor &weight, torch::Tensor &grad) {
   grad = grad.contiguous();
   torch::Tensor out = torch::zeros_like(grad, grad.options());
   auto E = index.size(1);
@@ -52,13 +54,14 @@ torch::Tensor spmm_sum_cpu_backward(torch::Tensor &index, torch::Tensor &weight,
 #endif
   for (auto e = 0; e < E; ++e) {
     col = index_data[e];
-    row = index_data[e + E]; // or e + 1;
-    
+    row = index_data[e + E];  // or e + 1;
+
     for (auto k = 0; k < K; ++k) {
 #ifdef COMPILE_WITH_OMP
 #pragma omp atomic
 #endif
-      out_data[col * K + k] = out_data[col * K + k] +  weight_data[e] * grad_data[row * K + k];
+      out_data[col * K + k] =
+          out_data[col * K + k] + weight_data[e] * grad_data[row * K + k];
     }
   }
 

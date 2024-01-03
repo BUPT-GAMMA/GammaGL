@@ -1,5 +1,10 @@
 import torch
-from .torch_ext._torch_ext import c_segment_sum, c_segment_mean, c_segment_max, c_spmm_sum
+use_ext = False
+try:
+    from .torch_ext._torch_ext import c_segment_sum, c_segment_mean, c_segment_max, c_spmm_sum
+    use_ext = True
+except:
+    pass
 
 
 def unsorted_segment_sum(x, segment_ids, num_segments=None):

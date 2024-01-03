@@ -1,5 +1,5 @@
 /*
- * @Description: TODO 
+ * @Description: TODO
  * @Author: WuJing
  * @created: 2023-04-12
  */
@@ -10,4 +10,3 @@
  */
 
 #include "segment_utils.h"
-
