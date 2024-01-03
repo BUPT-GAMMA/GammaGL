@@ -60,18 +60,24 @@ class HGBDataset(InMemoryDataset):
         your model predictions to the
         `HGB leaderboard <https://www.biendata.xyz/hgb/>`_.
 
-    Args:
-        root (string): Root directory where the dataset should be saved.
-        name (string): The name of the dataset (one of :obj:`"ACM"`,
-            :obj:`"DBLP"`, :obj:`"Freebase"`, :obj:`"IMDB"`)
-        transform (callable, optional): A function/transform that takes in an
-            :class:`gammmgl.transform` object and returns a
-            transformed version. The data object will be transformed before
-            every access. (default: :obj:`None`)
-        pre_transform (callable, optional): A function/transform that takes in
-            an :class:`gammmgl.transform` object and returns a
-            transformed version. The data object will be transformed before
-            being saved to disk. (default: :obj:`None`)
+    Parameters
+    ----------
+    root: str, optional
+        Root directory where the dataset should be saved.
+    name: str, optional
+        The name of the dataset (one of :obj:`"ACM"`,
+        :obj:`"DBLP"`, :obj:`"Freebase"`, :obj:`"IMDB"`)
+    transform: callable, optional
+        A function/transform that takes in an
+        :class:`gammmgl.transform` object and returns a
+        transformed version. The data object will be transformed before
+        every access. (default: :obj:`None`)
+    pre_transform: callable, optional
+        A function/transform that takes in
+        an :class:`gammmgl.transform` object and returns a
+        transformed version. The data object will be transformed before
+        being saved to disk. (default: :obj:`None`)
+
     """
 
     urls = {
@@ -92,7 +98,7 @@ class HGBDataset(InMemoryDataset):
         'imdb_hgb': 'IMDB',
     }
 
-    def __init__(self, root: str = 'aifb', name: str = 'acm',
+    def __init__(self, root: str = None, name: str = 'acm',
                  transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None):
         self.name = name.lower()

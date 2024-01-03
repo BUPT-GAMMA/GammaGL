@@ -34,9 +34,9 @@ class TUDataset(InMemoryDataset):
 
     Parameters
     ----------
-    root: string
+    root: str, optional
         Root directory where the dataset should be saved.
-    name: string
+    name: str, optional
         The `name
         <https://chrsmrrs.github.io/datasets/docs/datasets/>`_ of the
         dataset.

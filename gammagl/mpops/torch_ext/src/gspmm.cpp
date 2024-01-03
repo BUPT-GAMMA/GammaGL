@@ -1,21 +1,23 @@
-#include "gspmm.h"
+#include "../include/gspmm.h"
+
 #include <assert.h>
-#include <iostream>
 #include <torch/extension.h>
 #include <torch/script.h>
 #include <torch/torch.h>
+
+#include <iostream>
 #include <vector>
 
-#include "cpu/spmm_sum_cpu.h"
+#include "../cpu/spmm_sum_cpu.h"
 #ifdef COMPILE_WITH_CUDA
-#include "cuda/spmm_sum_cuda.h"
+#include "../cuda/spmm_sum_cuda.h"
 #endif
 
 // using torch::autograd::AutogradContext;
 // using tenosr_list = std::vector<torch::Tensor>;
 
-torch::Tensor device_dispatch_forward(torch::Tensor &index,
-                                      torch::Tensor &weight, torch::Tensor &x) {
+torch::Tensor device_dispatch_forward(
+    torch::Tensor &index, torch::Tensor &weight, torch::Tensor &x) {
   if (x.is_cuda() && index.is_cuda() && weight.is_cuda()) {
 #ifdef COMPILE_WITH_CUDA
     return spmm_sum_cuda_forward(index, weight, x);
@@ -29,9 +31,8 @@ torch::Tensor device_dispatch_forward(torch::Tensor &index,
   }
 }
 
-torch::Tensor device_dispatch_backward(torch::Tensor &index,
-                                       torch::Tensor &weight,
-                                       torch::Tensor &grad) {
+torch::Tensor device_dispatch_backward(
+    torch::Tensor &index, torch::Tensor &weight, torch::Tensor &grad) {
   if (grad.is_cuda() && index.is_cuda() && weight.is_cuda()) {
 #ifdef COMPILE_WITH_CUDA
     return spmm_sum_cuda_backward(index, weight, grad);
@@ -51,18 +52,20 @@ torch::Tensor device_dispatch_backward(torch::Tensor &index,
 //       2. generalized operators to support more data
 //          structures, such as csr, csc, etc.
 
-torch::Tensor SpMMSum::forward(torch::autograd::AutogradContext *ctx, torch::Tensor index,
-                               torch::Tensor weight, torch::Tensor x) {
-    ctx->save_for_backward({index, weight, x});
-    ctx->mark_non_differentiable({index, weight});
-    torch::Tensor out = device_dispatch_forward(index, weight, x);
-    return out;
-  }
+torch::Tensor SpMMSum::forward(
+    torch::autograd::AutogradContext *ctx, torch::Tensor index,
+    torch::Tensor weight, torch::Tensor x) {
+  ctx->save_for_backward({index, weight, x});
+  ctx->mark_non_differentiable({index, weight});
+  torch::Tensor out = device_dispatch_forward(index, weight, x);
+  return out;
+}
 
-std::vector<torch::Tensor> SpMMSum::backward(torch::autograd::AutogradContext *ctx, std::vector<torch::Tensor> grad_outs) {
-    auto saved = ctx->get_saved_variables();
-    auto index = saved[0], weight = saved[1], x = saved[2];
-    torch::Tensor grad_x =
-        device_dispatch_backward(index, weight, grad_outs[0]);
-    return {torch::Tensor(), torch::Tensor(), grad_x};
-  }
+std::vector<torch::Tensor> SpMMSum::backward(
+    torch::autograd::AutogradContext *ctx,
+    std::vector<torch::Tensor> grad_outs) {
+  auto saved = ctx->get_saved_variables();
+  auto index = saved[0], weight = saved[1], x = saved[2];
+  torch::Tensor grad_x = device_dispatch_backward(index, weight, grad_outs[0]);
+  return {torch::Tensor(), torch::Tensor(), grad_x};
+}

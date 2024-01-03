@@ -1,27 +1,38 @@
 import tensorlayerx as tlx
 
 def to_dense_batch(x, batch=None, fill_value=0, max_num_nodes=None):
-    r"""Given a sparse batch of node features
-    :math:`\mathbf{X} \in \mathbb{R}^{(N_1 + \ldots + N_B) \times F}` (with
-    :math:`N_i` indicating the number of nodes in graph :math:`i`), creates a
-    dense node feature tensor
-    :math:`\mathbf{X} \in \mathbb{R}^{B \times N_{\max} \times F}` (with
-    :math:`N_{\max} = \max_i^B N_i`).
-    In addition, a mask of shape :math:`\mathbf{M} \in \{ 0, 1 \}^{B \times
-    N_{\max}}` is returned, holding information about the existence of
-    fake-nodes in the dense representation.
-    Args:
-        x: Node feature matrix
+    r"""
+        Given a sparse batch of node features
+        :math:`\mathbf{X} \in \mathbb{R}^{(N_1 + \ldots + N_B) \times F}` (with
+        :math:`N_i` indicating the number of nodes in graph :math:`i`), creates a
+        dense node feature tensor
+        :math:`\mathbf{X} \in \mathbb{R}^{B \times N_{\max} \times F}` (with
+        :math:`N_{\max} = \max_i^B N_i`).
+        In addition, a mask of shape :math:`\mathbf{M} \in \{ 0, 1 \}^{B \times
+        N_{\max}}` is returned, holding information about the existence of
+        fake-nodes in the dense representation.
+
+        Parameters
+        ----------
+        x: tensor
+            Node feature matrix
             :math:`\mathbf{X} \in \mathbb{R}^{(N_1 + \ldots + N_B) \times F}`.
-        batch: Batch vector
+        batch: tensor
             :math:`\mathbf{b} \in {\{ 0, \ldots, B-1\}}^N`, which assigns each
             node to a specific example. Must be ordered. (default: :obj:`None`)
-        fill_value (float, optional): The value for invalid entries in the
+        fill_value: float, optional
+            The value for invalid entries in the
             resulting dense output tensor. (default: :obj:`0`)
-        max_num_nodes (int, optional): The size of the output node dimension.
+        max_num_nodes: int, optional
+            The size of the output node dimension.
             (default: :obj:`None`)
-        batch_size (int, optional) The batch size. (default: :obj:`None`)
-    :rtype: (:class:`Tensor`, :class:`BoolTensor`)
+        batch_size: int, optional
+            The batch size. (default: :obj:`None`)
+
+        Returns
+        -------
+        (:class:`Tensor`, :class:`BoolTensor`)
+
     """
     if batch is None and max_num_nodes is None:
         return tlx.expand_dims(x, axis=0), tlx.ones((1, x.shape[0]), dtype=tlx.bool)

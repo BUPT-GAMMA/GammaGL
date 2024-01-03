@@ -23,9 +23,9 @@ class Entities(InMemoryDataset):
     
     Parameters
     ----------
-    root: string
+    root: str, optional
         Root directory where the dataset should be saved.
-    name: string
+    name: str, optional
         The name of the dataset (:obj:`"AIFB"`,
         :obj:`"MUTAG"`, :obj:`"BGS"`, :obj:`"AM"`).
     hetero: bool, optional
@@ -42,6 +42,7 @@ class Entities(InMemoryDataset):
         an :obj:`gammagl.data.Graph` object and returns a
         transformed version. The data object will be transformed before
         being saved to disk. (default: :obj:`None`)
+
     """
 
     url = 'https://data.dgl.ai/dataset/{}.tgz'
@@ -143,7 +144,7 @@ class Entities(InMemoryDataset):
         labels_df = pd.read_csv(task_file, sep='\t')
         labels_set = set(labels_df[label_header].values.tolist())
         labels_dict = {lab: i for i, lab in enumerate(list(labels_set))}
-        nodes_dict = {np.unicode(key): val for key, val in nodes_dict.items()}
+        nodes_dict = {str(key): val for key, val in nodes_dict.items()}
 
         train_labels_df = pd.read_csv(train_file, sep='\t')
         train_indices, train_labels = [], []
