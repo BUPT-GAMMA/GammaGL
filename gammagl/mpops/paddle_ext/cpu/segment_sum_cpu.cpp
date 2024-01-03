@@ -1,12 +1,13 @@
-#include <paddle/extension.h>
 #include "segment_sum_cpu.h"
+
+#include <paddle/extension.h>
+
 #include <vector>
 
 #define CHECK_INPUT(x) PD_CHECK(x.is_cpu(), #x " must be a CPU Tensor.")
 
-std::vector<paddle::Tensor> segment_sum_cpu_forward(const paddle::Tensor& x,
-                                                 const paddle::Tensor& index,
-                                                 int64_t n) {
+std::vector<paddle::Tensor> segment_sum_cpu_forward(
+    const paddle::Tensor& x, const paddle::Tensor& index, int64_t n) {
   CHECK_INPUT(x);
   CHECK_INPUT(index);
   // NOTE: paddle tensor seems to be contiguous

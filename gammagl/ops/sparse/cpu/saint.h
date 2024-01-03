@@ -1,5 +1,5 @@
 /*
- * @Description: TODO 
+ * @Description: TODO
  * @Author: WuJing
  * @created: 2023-04-11
  */
@@ -10,10 +10,9 @@
 
 #include <iostream>
 #include <vector>
+
 #include "../../extensions.h"
 
+py::list subgraph(Tensor idx, Tensor rowptr, Tensor row, Tensor col);
 
-py::list subgraph(Tensor idx, Tensor rowptr, Tensor row,
-                   Tensor col);
-
-#endif //REMOTE_SAINT_H
+#endif  // REMOTE_SAINT_H
