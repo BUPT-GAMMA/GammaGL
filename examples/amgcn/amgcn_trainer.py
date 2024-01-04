@@ -9,6 +9,7 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 import numpy as np
 import scipy.sparse as sp
 import argparse
@@ -21,7 +22,7 @@ from sklearn.metrics.pairwise import cosine_similarity as cos
 
 def knn(feat, num_node, k):
     adj = np.zeros((num_node, num_node), dtype=np.int64)
-    dist = cos(feat.cpu())
+    dist = cos(tlx.to_device(feat, "CPU"))
     col = np.argpartition(dist, -(k + 1), axis=1)[:, -(k + 1):].flatten()
     adj[np.arange(num_node).repeat(k + 1), col] = 1
     adj = sp.coo_matrix(adj)
