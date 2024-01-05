@@ -1,7 +1,10 @@
 import argparse
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-# os.environ['TL_BACKEND'] = 'torch'
+os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
+
 import tensorlayerx as tlx
 from sklearn.metrics import f1_score
 from gammagl.datasets import HGBDataset

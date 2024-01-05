@@ -10,10 +10,10 @@
  */
 
 #include "saint.h"
+
 #include "sparse_utils.h"
 
 py::list subgraph(Tensor idx, Tensor rowptr, Tensor row, Tensor col) {
-
   assert(idx.ndim() == 1);
   assert(rowptr.ndim() == 1);
   assert(col.ndim() == 1);
@@ -33,8 +33,8 @@ py::list subgraph(Tensor idx, Tensor rowptr, Tensor row, Tensor col) {
   // assoc = python_for_c<double_t>("put", assoc, idx,
   // np_func<int64_t>("arange", 10));
   auto assoc = py_helper<int64_t>("new", rowptr.shape(0) - 1, -1);
-  assoc = py_helper<int64_t>("put", assoc, idx,
-                             np_func<int64_t>("arange", idx.shape(0)));
+  assoc = py_helper<int64_t>(
+      "put", assoc, idx, np_func<int64_t>("arange", idx.shape(0)));
 
   //    py::gil_scoped_release release{};
 
