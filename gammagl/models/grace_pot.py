@@ -11,10 +11,10 @@ import os.path as osp
 from gammagl.mpops import gspmm
 
 
-class Encoder(tlx.nn.Module):
+class Grace_POT_Encoder(tlx.nn.Module):
     def __init__(self, in_channels, out_channels, activation,
                  base_model = GCNConv, k = 2):
-        super(Encoder, self).__init__()
+        super(Grace_POT_Encoder, self).__init__()
         self.base_model = base_model
 
         assert k >= 2
@@ -33,10 +33,10 @@ class Encoder(tlx.nn.Module):
         return x
 
 
-class Model(tlx.nn.Module):
+class Grace_POT_Model(tlx.nn.Module):
     def __init__(self, encoder, num_hidden, num_proj_hidden,
                  tau = 0.5, dataset = "Cora", cached = "./"):
-        super(Model, self).__init__()
+        super(Grace_POT_Model, self).__init__()
         self.encoder = encoder
         self.tau = tau
         self.dataset = dataset

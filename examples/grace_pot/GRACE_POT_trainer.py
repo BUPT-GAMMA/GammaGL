@@ -14,7 +14,7 @@ from gammagl.layers.conv import GCNConv
 from gammagl.datasets import Planetoid, Coauthor, Amazon
 import gammagl.transforms as T
 
-from gammagl.models.grace_pot import Encoder, Model
+from gammagl.models.grace_pot import Grace_POT_Encoder, Grace_POT_Model
 from eval_gracepot import log_regression, MulticlassEvaluator
 
 A_upper_1 = None
@@ -240,9 +240,9 @@ def main(args):
         split = generate_split(data.num_nodes, train_ratio=0.1, val_ratio=0.1)
         print("Random Split")
 
-    encoder = Encoder(dataset.num_features, num_hidden, activation,
+    encoder = Grace_POT_Encoder(dataset.num_features, num_hidden, activation,
                       base_model=base_model, k=num_layers)
-    model = Model(encoder, num_hidden, num_proj_hidden, tau, dataset=args.dataset, cached=args.cache)
+    model = Grace_POT_Model(encoder, num_hidden, num_proj_hidden, tau, dataset=args.dataset, cached=args.cache)
     train_weights = model.trainable_weights
     optimizer = tlx.optimizers.Adam(lr=learning_rate, weight_decay=weight_decay)
     loss_func = train_loss(model, drop_edge_rate_1, drop_edge_rate_2, use_pot, pot_batch, kappa)
