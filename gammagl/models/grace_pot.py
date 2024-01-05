@@ -1,20 +1,19 @@
-from typing import Optional
 import tensorlayerx as tlx
 from tensorlayerx import nn
-from torch.sparse import mm
 from gammagl.layers.conv import GCNConv
 from gammagl.utils import add_self_loops, calc_gcn_norm, degree, to_undirected, to_scipy_sparse_matrix
+from gammagl.utils import to_dense_adj
 import numpy as np
 import scipy.sparse as sp
 import pickle
 from scipy.sparse import coo_matrix
 import os.path as osp
-from time import perf_counter as t
-from gammagl.mpops import unsorted_segment_sum
+from gammagl.mpops import gspmm
+
 
 class Encoder(tlx.nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, activation,
-                 base_model=GCNConv, k: int = 2):
+    def __init__(self, in_channels, out_channels, activation,
+                 base_model = GCNConv, k = 2):
         super(Encoder, self).__init__()
         self.base_model = base_model
 
@@ -35,15 +34,17 @@ class Encoder(tlx.nn.Module):
 
 
 class Model(tlx.nn.Module):
-    def __init__(self, encoder: Encoder, num_hidden: int, num_proj_hidden: int,
-                 tau: float = 0.5, dataset: str = "Cora"):
+    def __init__(self, encoder, num_hidden, num_proj_hidden,
+                 tau = 0.5, dataset = "Cora", cached = "./"):
         super(Model, self).__init__()
-        self.encoder: Encoder = encoder
-        self.tau: float = tau
+        self.encoder = encoder
+        self.tau = tau
         self.dataset = dataset
 
         self.fc1 = tlx.nn.Linear(in_features=num_hidden, out_features=num_proj_hidden)
         self.fc2 = tlx.nn.Linear(in_features=num_proj_hidden, out_features=num_hidden)
+        self.cached = cached
+
     def forward(self, x, edge_index):
         return self.encoder(x, edge_index)
 
@@ -67,14 +68,12 @@ class Model(tlx.nn.Module):
 
         return loss
 
-    def batched_semi_loss(self, z1, z2,
-                          batch_size: int):
+    def batched_semi_loss(self, z1, z2, batch_size):
         # Space complexity: O(BN) (semi_loss: O(N^2))
-        device = z1.device
-        num_nodes = z1.size(0)
+        num_nodes = int(tlx.get_tensor_shape(z1)[0])
         num_batches = (num_nodes - 1) // batch_size + 1
         f = lambda x: tlx.exp(x / self.tau)
-        indices = tlx.arange(0, num_nodes).to(device)
+        indices = tlx.arange(0, num_nodes)
         losses = []
 
         for i in range(num_batches):
@@ -83,14 +82,13 @@ class Model(tlx.nn.Module):
             between_sim = f(self.sim(z1[mask], z2))  # [B, N]
 
             losses.append(-tlx.log(
-                between_sim[:, i * batch_size:(i + 1) * batch_size].diag()
-                / (refl_sim.sum(1) + between_sim.sum(1)
-                   - refl_sim[:, i * batch_size:(i + 1) * batch_size].diag())))
+                tlx.diag(between_sim[:, i * batch_size:(i + 1) * batch_size])
+                / (tlx.reduce_sum(refl_sim, axis=1) + tlx.reduce_sum(between_sim, axis=1)
+                   - tlx.diag(refl_sim[:, i * batch_size:(i + 1) * batch_size]))))
 
         return tlx.concat(losses)
 
-    def loss(self, z1, z2,
-             mean: bool = True, batch_size: int = None):
+    def loss(self, z1, z2, mean = True, batch_size = None):
         h1 = self.projection(z1)
         h2 = self.projection(z2)
 
@@ -101,19 +99,21 @@ class Model(tlx.nn.Module):
             l1 = self.batched_semi_loss(h1, h2, batch_size)
             l2 = self.batched_semi_loss(h2, h1, batch_size)
         ret = (l1 + l2) * 0.5
-        ret = tlx.reduce_mean(ret) if mean else np.sum(ret)
+        ret = tlx.reduce_mean(ret) if mean else tlx.reduce_sum(ret)
 
         return ret
+
     def pot_loss(self, z1, z2, x, edge_index, edge_index_1, local_changes=5, node_list = None, A_upper=None, A_lower=None):
-        deg = degree(to_undirected(edge_index)[1]).cpu().numpy()
+        deg = tlx.to_device(degree(to_undirected(edge_index)[1]), "CPU")
+        deg = tlx.convert_to_numpy(deg)
         A = to_scipy_sparse_matrix(edge_index).tocsr()
         A_tilde = A + sp.eye(A.shape[0])
-        assert self.encoder.k == 2 # only support 2-layer GCN
         conv = self.encoder.conv
         # W1, b1 = conv[0].all_weights, conv[0].bias
         W1, b1 = tlx.transpose(conv[0].linear.weights), conv[0].bias
         W2, b2 = tlx.transpose(conv[1].linear.weights), conv[1].bias
         gcn_weights = [W1, b1, W2, b2]
+
         # load entry-wise bounds, if not exist, calculate
         if A_upper is None:
             degs_tilde = deg + 1
@@ -126,67 +126,78 @@ class Model(tlx.nn.Module):
             #new_edge_index, An = calc_gcn_norm(edge_index, num_nodes=A.shape[0])
             new_edge_index ,_ =add_self_loops(edge_index, num_nodes=A.shape[0])
             An = calc_gcn_norm(new_edge_index, num_nodes=A.shape[0])
-            An = to_dense_adj(edge_index=new_edge_index, edge_attr=An)[0].cpu().numpy()
+            An = to_dense_adj(edge_index=new_edge_index, edge_attr=An)[0]
+            An = tlx.convert_to_numpy(tlx.to_device(An, "CPU"))
             A_lower = np.zeros_like(An)
             A_lower[np.diag_indices_from(A_lower)] = np.diag(An)
             A_lower = np.float32(A_lower)
-            # upper_lower_file = osp.join(osp.expanduser('~/datasets'),f"bounds/{self.dataset}_{local_changes}_upper_lower.pkl")
-            # upper_lower_file = open(f'datasets/bounds/{self.dataset}_{local_changes}_upper_lower.pkl', 'wb'))
-            upper_lower_file = osp.join(osp.expanduser('~/datasets'), f"bounds/{self.dataset}_{local_changes}_upper_lower.pkl")
+            self.upper_lower_file = osp.join(self.cached, f"{self.dataset}_{local_changes}_upper_lower.pkl")
+            with open(self.upper_lower_file, 'wb') as file:
+                pickle.dump((A_upper, A_lower), file)
 
-            if self.dataset == 'ogbn-arxiv':
-                with open(upper_lower_file, 'wb') as file:
-                    pickle.dump((tlx.convert_to_tensor(A_upper).to_sparse(), tlx.convert_to_tensor(A_lower).to_sparse()), file)
-            else:
-                with open(upper_lower_file, 'wb') as file:
-                    pickle.dump((A_upper, A_lower), file)
         N = len(node_list)
-        if self.dataset == 'ogbn-arxiv':
-            A_upper_tensor = tlx.convert_to_tensor(A_upper.to_dense()[node_list][:,node_list]).to_sparse()
-            A_lower_tensor = tlx.convert_to_tensor(A_lower.to_dense()[node_list][:,node_list]).to_sparse()
-        else:
-            A_upper_tensor = tlx.convert_to_tensor(A_upper[node_list][:,node_list]).to_sparse()
-            A_lower_tensor = tlx.convert_to_tensor(A_lower[node_list][:,node_list]).to_sparse()
+        A_upper_mat = A_upper[node_list][:, node_list]
+        A_lower_mat = A_lower[node_list][:, node_list]
+        A_add = coo_matrix((A_upper_mat + A_lower_mat) / 2)
+        A_sub = coo_matrix((A_upper_mat - A_lower_mat) / 2)
+        edge_index_add = tlx.convert_to_tensor(np.array([A_add.row, A_add.col]), dtype=tlx.int64)
+        weight_add = tlx.convert_to_tensor(A_add.data, dtype=tlx.float32)
+        edge_index_sub = tlx.convert_to_tensor(np.array([A_sub.row, A_sub.col]), dtype=tlx.int64)
+        weight_sub = tlx.convert_to_tensor(A_sub.data, dtype=tlx.float32)
+
         # get pre-activation bounds for each node
         XW = conv[0].linear(x)[node_list]
         H = self.encoder.activation()(conv[0](x, edge_index))
         HW = conv[1].linear(H)[node_list]
         W_1 = XW
         b1 = conv[0].bias
-        z1_U = mm((A_upper_tensor + A_lower_tensor) / 2, W_1) + mm((A_upper_tensor - A_lower_tensor) / 2, tlx.abs(W_1)) + b1
-        z1_L = mm((A_upper_tensor + A_lower_tensor) / 2, W_1) - mm((A_upper_tensor - A_lower_tensor) / 2, tlx.abs(W_1)) + b1
+        z1_U = gspmm(edge_index_add, weight_add, W_1) + gspmm(edge_index_sub, weight_sub, tlx.abs(W_1)) + b1
+        z1_L = gspmm(edge_index_add, weight_add, W_1) - gspmm(edge_index_sub, weight_sub, tlx.abs(W_1)) + b1
         W_2 = HW
         b2 = conv[1].bias
-        z2_U = mm((A_upper_tensor + A_lower_tensor) / 2, W_2) + mm((A_upper_tensor - A_lower_tensor) / 2, tlx.abs(W_2)) + b2
-        z2_L = mm((A_upper_tensor + A_lower_tensor) / 2, W_2) - mm((A_upper_tensor - A_lower_tensor) / 2, tlx.abs(W_2)) + b2
+        z2_U = gspmm(edge_index_add, weight_add, W_2) + gspmm(edge_index_sub, weight_sub, tlx.abs(W_2)) + b2
+        z2_L = gspmm(edge_index_add, weight_add, W_2) - gspmm(edge_index_sub, weight_sub, tlx.abs(W_2)) + b2
+
+
         # CROWN weights
         activation = self.encoder.activation
-        alpha = 0 if activation == tlx.nn.ReLU else activation.weight.item()
+        alpha = 0 if activation == tlx.nn.ReLU else float(activation.trainable_weights[0])
         z2_norm = tlx.ops.l2_normalize(z2)
-        z2_sum = z2_norm.sum(axis=0)
+        z2_sum = tlx.reduce_sum(z2_norm, axis=0)
         Wcl = z2_norm * (N / (N-1)) - z2_sum / (N - 1)
         W_tilde_1, b_tilde_1, W_tilde_2, b_tilde_2 = get_crown_weights(z1_L, z1_U, z2_L, z2_U, alpha, gcn_weights, Wcl)
+
         # return the pot_score 
-        XW_tilde = (x[node_list,None,:] @ W_tilde_1[:,:,None]).reshape(-1,1) # N * 1
-        edge_index_ptb_sl ,_ =add_self_loops(edge_index_1, num_nodes=A.shape[0])
-        An_ptb=calc_gcn_norm(edge_index_ptb_sl, num_nodes=A.shape[0])
+        num_nodes = A.shape[0]
+        XW_tilde = tlx.reshape((tlx.matmul(x[node_list, None, :], W_tilde_1[:, :, None])), [-1, 1]) # N * 1
+        edge_index_ptb_sl, _ = add_self_loops(edge_index_1, num_nodes=num_nodes)
+        An_ptb = calc_gcn_norm(edge_index_ptb_sl, num_nodes=num_nodes)
         row, col = tlx.convert_to_numpy(edge_index_ptb_sl)
-        An_ptb = coo_matrix((An_ptb.cpu(),(row, col)), shape=(A.shape[0],A.shape[0])).toarray()
-        An_ptb=tlx.gather(tlx.convert_to_tensor(An_ptb),tlx.convert_to_tensor(node_list),0)
-        An_ptb=tlx.gather(An_ptb,tlx.convert_to_tensor(node_list),1)
-        An_ptb=tlx.convert_to_tensor(An_ptb)
-        H_tilde = mm(An_ptb, XW_tilde) + b_tilde_1.reshape(-1,1)
-        pot_score = mm(An_ptb, H_tilde) + b_tilde_2.reshape(-1,1)
-        pot_score = tlx.squeeze(pot_score,axis=1)
+        An_ptb = coo_matrix((tlx.to_device(An_ptb, 'CPU'), (row, col)), shape=(num_nodes, num_nodes))
+        An_ptb_csr = An_ptb.tocsr()
+        selected_rows = An_ptb_csr[node_list, :]
+        selected_rows_csc = selected_rows.tocsc()
+        selected = selected_rows_csc[:, node_list].tocoo()
+        row = selected.row
+        col = selected.col
+        data = selected.data
+        edge_index = tlx.stack([tlx.convert_to_tensor(row, dtype=tlx.int64), tlx.convert_to_tensor(col, dtype=tlx.int64)], axis=0)
+        H_tilde = gspmm(edge_index, tlx.convert_to_tensor(data), XW_tilde) + tlx.reshape(b_tilde_1, [-1, 1])
+        pot_score = gspmm(edge_index, tlx.convert_to_tensor(data), H_tilde) + tlx.reshape(b_tilde_2, [-1, 1])
+        pot_score = tlx.squeeze(pot_score, axis=1)
         target = tlx.zeros(tlx.get_tensor_shape(pot_score)) + 1
         pot_loss = tlx.losses.sigmoid_cross_entropy(pot_score, target)
         return pot_loss
     
+    @property
+    def cache(self):
+        return self.upper_lower_file
+    
 def get_alpha_beta(l, u, alpha):
-    alpha_L= tlx.zeros(l.shape)
-    alpha_U= tlx.zeros(l.shape)
-    beta_L= tlx.zeros(l.shape)
-    beta_U= tlx.zeros(l.shape)
+    alpha_L = tlx.zeros(tlx.get_tensor_shape(l))
+    alpha_U = tlx.zeros(tlx.get_tensor_shape(l))
+    beta_L = tlx.zeros(tlx.get_tensor_shape(l))
+    beta_U = tlx.zeros(tlx.get_tensor_shape(l))
     pos_mask = l >= 0
     neg_mask = u <= 0
     alpha_L[pos_mask] = 1
@@ -208,57 +219,12 @@ def get_crown_weights(l1, u1, l2, u2, alpha, gcn_weights, Wcl):
     Delta_2 = tlx.where(Wcl >= 0, beta_2_L, beta_2_U) # N * d
     Lambda_2 = lambda_2 * Wcl # N * d
     W1_tensor, b1_tensor, W2_tensor, b2_tensor = gcn_weights
-    W_tilde_2 = Lambda_2 @ W2_tensor
-    b_tilde_2 = tlx.diag(Lambda_2 @ tlx.transpose(Delta_2 + b2_tensor))
+    W_tilde_2 = tlx.matmul(Lambda_2, tlx.transpose(W2_tensor))
+    b_tilde_2 = tlx.diag(tlx.matmul(Lambda_2, tlx.transpose(Delta_2 + b2_tensor)))
     lambda_1 = tlx.where(W_tilde_2 >= 0, alpha_1_L, alpha_1_U)
     Delta_1 = tlx.where(W_tilde_2 >= 0, beta_1_L, beta_1_U)
     Lambda_1 = lambda_1 * W_tilde_2
-    W_tilde_1 = Lambda_1 @ W1_tensor
-    b_tilde_1 = tlx.diag(Lambda_1 @ tlx.transpose(Delta_1 + b1_tensor))
+    W_tilde_1 = tlx.matmul(Lambda_1, tlx.transpose(W1_tensor))
+    b_tilde_1 = tlx.diag(tlx.matmul(Lambda_1, tlx.transpose(Delta_1 + b1_tensor)))
     return W_tilde_1, b_tilde_1, W_tilde_2, b_tilde_2
 
-def to_dense_adj(
-    edge_index,
-    batch = None,
-    edge_attr = None,
-    max_num_nodes: Optional[int] = None,
-):
-
-    if batch is None:
-        num_nodes = int(tlx.reduce_max(edge_index)) + 1 if tlx.numel(edge_index) > 0 else 0
-        batch = tlx.zeros([num_nodes], dtype=tlx.int64)
-
-    batch_size = int(tlx.reduce_max(batch)) + 1 if tlx.numel(batch) > 0 else 1
-    one = tlx.ones(shape=(batch.size(0),), dtype=tlx.int64)
-    num_nodes = unsorted_segment_sum(one, batch, batch_size)
-    cum_nodes = tlx.concat([tlx.zeros([1],dtype=tlx.int64), tlx.cumsum(num_nodes)])
-
-    idx0 = batch[edge_index[0]]
-    idx1 = edge_index[0] - cum_nodes[batch][edge_index[0]]
-    idx2 = edge_index[1] - cum_nodes[batch][edge_index[1]]
-
-    if max_num_nodes is None:
-        max_num_nodes = num_nodes.max().item()
-        # max_num_nodes = int(tlx.reduce_max(num_nodes))
-    elif ((tlx.numel(idx1) > 0 and tlx.reduce_max(idx1) >= max_num_nodes)
-          or (tlx.numel(idx2) > 0 and tlx.reduce_max(idx2) >= max_num_nodes)):
-        mask = (idx1 < max_num_nodes) & (idx2 < max_num_nodes)
-        idx0 = idx0[mask]
-        idx1 = idx1[mask]
-        idx2 = idx2[mask]
-        edge_attr = None if edge_attr is None else edge_attr[mask]
-
-    if edge_attr is None:
-        edge_attr = tlx.ones(tlx.numel(idx0), dtype=tlx.int64)
-
-    size = [batch_size, max_num_nodes, max_num_nodes]
-    size += list(edge_attr.size())[1:]
-    adj = tlx.zeros(size, dtype=tlx.int64)
-
-    flattened_size = batch_size * max_num_nodes * max_num_nodes
-    adj = adj.reshape([flattened_size] + list(adj.size())[3:])
-    idx = idx0 * max_num_nodes * max_num_nodes + idx1 * max_num_nodes + idx2
-    adj = unsorted_segment_sum(edge_attr, idx)
-    adj = adj.reshape(size)
-
-    return adj

@@ -1,11 +1,8 @@
-from typing import Optional
 import numpy as np
 import tensorlayerx as tlx
 from tensorlayerx.optimizers import Adam
 from tensorlayerx import nn
-import torch
 from sklearn.metrics import f1_score
-import tensorflow
 
 class LogReg(nn.Module):
     def __init__(self, ft_in, nb_classes):
@@ -32,8 +29,6 @@ def get_idx_split(dataset, split, preload_split):
             'val': indices[train_size:2 * train_size],
             'test': indices[2 * train_size:]
         }
-    elif split == 'ogb':
-        return dataset.get_idx_split()
     elif split.startswith('wikics'):
         split_idx = int(split.split(':')[1])
         return {
@@ -53,15 +48,17 @@ def get_idx_split(dataset, split, preload_split):
         raise RuntimeError(f'Unknown split type {split}')
 
 def nll_loss_func(output, target):
-    return torch.nn.NLLLoss()(output, target)
+    indices = tlx.stack([tlx.arange(0, tlx.get_tensor_shape(target)[0]), target], axis=1)
+    output = tlx.gather_nd(output, indices)
+    return -tlx.reduce_mean(output)
 
 def log_regression(z,
                    dataset,
                    evaluator,
-                   num_epochs: int = 5000,
-                   test_device: Optional[str] = None,
-                   split: str = 'rand:0.1',
-                   verbose: bool = False,
+                   num_epochs = 5000,
+                   test_device = None,
+                   split = 'rand:0.1',
+                   verbose = False,
                    preload_split=None):
     z=z.detach()
     num_hidden = tlx.get_tensor_shape(z)[1]
@@ -75,7 +72,7 @@ def log_regression(z,
     classifier = LogReg(num_hidden, num_classes)
     optimizer = Adam(lr=0.01, weight_decay=0.0)
     train_weights = classifier.trainable_weights
-    nll_loss=nll_loss_func
+    nll_loss = nll_loss_func
     net_with_loss = tlx.model.WithLoss(classifier, nll_loss)
     train_one_step = tlx.model.TrainOneStep(net_with_loss, optimizer, train_weights)
 
@@ -128,11 +125,11 @@ class MulticlassEvaluator:
 
     @staticmethod
     def _eval(y_true, y_pred):
-        y_true = y_true.flatten()
-        y_pred = tlx.convert_to_numpy(y_pred).flatten()
+        y_true = tlx.FlattenReshape()(y_true)
+        y_pred = tlx.convert_to_numpy(tlx.FlattenReshape()(y_pred))
         # y_pred = y_pred.flatten()
-        micro = f1_score(y_true.cpu(), y_pred, average="micro")
-        macro = f1_score(y_true.cpu(), y_pred, average="macro")
+        micro = f1_score(tlx.to_device(y_true, "CPU"), y_pred, average="micro")
+        macro = f1_score(tlx.to_device(y_true, "CPU"), y_pred, average="macro")
 
         return {
             'F1Mi': micro,
