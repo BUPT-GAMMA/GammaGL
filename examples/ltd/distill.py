@@ -1,22 +1,17 @@
-import os
 import tensorlayerx as tlx
 import numpy as np
-import sys
-
-import torch.nn
-
-# sys.path.insert(0, os.path.abspath('../../'))
 from gammagl.utils import add_self_loops, remove_self_loops
 from gammagl.mpops import *
 from gammagl.models import GCNModel, GATModel, MLP
 
 
 def layer_normalize(logits):
-    mean = torch.mean(logits, dim=-1, keepdim=True)
-    std = torch.std(logits, dim=-1, keepdim=True)
+    mean = tlx.ops.reduce_mean(logits, axis=1, keepdims=True)
+    std = tlx.ops.reduce_std(logits, axis=1, keepdims=True)
     normalized_logits = (logits - mean) / (std + 1e-8)
 
     return normalized_logits
+
 
 def accuracy(output, labels):
     preds = output.max(1)[1].type_as(labels)
@@ -24,6 +19,7 @@ def accuracy(output, labels):
     result = correct.sum()
 
     return result / len(labels)
+
 
 def accuracy_t(output, labels):
     preds = output.max(1)[1].type_as(labels)
@@ -34,19 +30,19 @@ def accuracy_t(output, labels):
     return result / len(labels)
 
 
-def choose_model(configs, dataset):
+def choose_model(configs):
     if configs['student'] == 'GCN':
-        model = GCNModel(feature_dim=dataset.num_node_features,
+        model = GCNModel(feature_dim=configs['num_node_features'],
                          hidden_dim=configs['hidden_dim'],
-                         num_class=dataset.num_classes,
+                         num_class=configs['num_classes'],
                          drop_rate=configs['drop_rate'],
                          num_layers=configs['num_layers'],
                          norm='both',
                          name='GCN')
     elif configs['student'] == 'GAT':
-        model = GATModel(feature_dim=dataset.num_node_features,
+        model = GATModel(feature_dim=configs['num_node_features'],
                          hidden_dim=configs['hidden_dim'],
-                         num_class=dataset.num_classes,
+                         num_class=configs['num_classes'],
                          heads=configs['heads'],
                          drop_rate=configs['drop_rate'],
                          num_layers=configs['num_layers'],
@@ -64,8 +60,7 @@ def zero_grad(my_model):
                 p.grad.zero_()
 
 
-def distill_train(epoch, model, configs, graph, nei_entropy, t_model, teacher_logits, train_mask,
-                  val_mask, my_val_mask, dataset):
+def distill_train(epoch, model, configs, graph, nei_entropy, t_model, teacher_logits):
     model.set_train()
     edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes)
     if configs['student'] == 'GCN':
@@ -73,7 +68,7 @@ def distill_train(epoch, model, configs, graph, nei_entropy, t_model, teacher_lo
     elif configs['student'] == 'GAT':
         logits = model(graph.x, edge_index, graph.num_nodes)
     logits = layer_normalize(logits)
-    acc_train = accuracy(logits[train_mask], graph.y[train_mask])
+    acc_train = accuracy(logits[configs['train_mask']], graph.y[configs['train_mask']])
     acc_same = accuracy_t(logits, teacher_logits)
     with torch.no_grad():
         f_logits = torch.norm(logits, 2, dim=1)
@@ -89,9 +84,9 @@ def distill_train(epoch, model, configs, graph, nei_entropy, t_model, teacher_lo
         tlx.ops.divide(tlx.ops.transpose(teacher_logits), tlx.ops.squeeze(temparature, axis=1)))
     teacher_softmax = tlx.ops.softmax(teacher_logits_t, axis=1)
     student_hard = tlx.ops.softmax(logits, axis=1)
-    labels_one_hot = tlx.nn.OneHot(depth=dataset.num_classes)(graph.y)
+    labels_one_hot = tlx.nn.OneHot(depth=configs['num_classes'])(graph.y)
     hard_loss = -tlx.ops.reduce_sum(
-        (labels_one_hot[train_mask] + 1e-6) * tlx.ops.log(student_hard[train_mask] + 1e-6))
+        (labels_one_hot[configs['train_mask']] + 1e-6) * tlx.ops.log(student_hard[configs['train_mask']] + 1e-6))
     soft_loss = -tlx.ops.reduce_sum((teacher_softmax + 1e-6) * tlx.ops.log(student_hard + 1e-6))
     train_loss = soft_loss + configs['lam'] * hard_loss
     model_dict = {}
@@ -110,9 +105,9 @@ def distill_train(epoch, model, configs, graph, nei_entropy, t_model, teacher_lo
             logits = model(graph.x, edge_index, graph.num_nodes)
         logits = layer_normalize(logits)
         student_hard = tlx.ops.softmax(logits, axis=1)
-        labels_one_hot = tlx.nn.OneHot(depth=dataset.num_classes)(graph.y)
+        labels_one_hot = tlx.nn.OneHot(depth=configs['num_classes'])(graph.y)
         t_train_loss = -tlx.ops.reduce_sum(
-            (labels_one_hot[val_mask] + 1e-6) * tlx.ops.log(student_hard[val_mask] + 1e-6))
+            (labels_one_hot[configs['val_mask']] + 1e-6) * tlx.ops.log(student_hard[configs['val_mask']] + 1e-6))
 
         for name, t in model.named_parameters():
             t_grad = torch.autograd.grad(t_train_loss, t, create_graph=True, allow_unused=True)[0]
@@ -135,7 +130,7 @@ def distill_train(epoch, model, configs, graph, nei_entropy, t_model, teacher_lo
         logits = model(graph.x, edge_index, None, graph.num_nodes)
     elif configs['student'] == 'GAT':
         logits = model(graph.x, edge_index, graph.num_nodes)
-    acc_val = accuracy(logits[my_val_mask], graph.y[my_val_mask])
+    acc_val = accuracy(logits[configs['my_val_mask']], graph.y[configs['my_val_mask']])
     print(
         'Epoch %d | acc_train: %.4f| acc_val: %.4f | acc_same: %.4f | hard_loss: %.4f | soft_loss: %.4f| distill_loss: %.4f | evaluate_loss: %.4f' % (
             epoch, acc_train.item(), acc_val.item(), acc_same.item(), hard_loss.item(), soft_loss.item(),
@@ -144,31 +139,13 @@ def distill_train(epoch, model, configs, graph, nei_entropy, t_model, teacher_lo
     return acc_val, train_loss
 
 
-def split_train_mask(graph, num_classes, train_per_class, val_per_class, my_val_per_class):
-    label = graph.y[graph.train_mask].numpy()
-    indices = np.where(graph.train_mask.numpy())[0]
-    class_indices = [indices[np.where(label == c)[0]] for c in range(num_classes)]
-    np_train_mask = np.zeros(graph.num_nodes)
-    np_val_mask = np.zeros(graph.num_nodes)
-    np_my_val_mask = np.zeros(graph.num_nodes)
-    for i in range(num_classes):
-        np.random.shuffle(class_indices[i])
-        np_train_mask[class_indices[i][:train_per_class]] = 1
-        np_val_mask[class_indices[i][train_per_class:train_per_class + val_per_class]] = 1
-        np_my_val_mask[
-            class_indices[i][train_per_class + val_per_class:train_per_class + val_per_class + my_val_per_class]] = 1
-    train_mask = tlx.ops.convert_to_tensor(np_train_mask).bool()
-    val_mask = tlx.ops.convert_to_tensor(np_val_mask).bool()
-    my_val_mask = tlx.ops.convert_to_tensor(np_my_val_mask).bool()
-    return train_mask, val_mask, my_val_mask
-
-
-def model_train(configs, model, graph, teacher_logits, dataset):
+def model_train(configs, model, graph, teacher_logits):
     teacher_softmax = tlx.ops.softmax(teacher_logits, axis=1)
     edge_index_no_self_loops, _ = remove_self_loops(graph.edge_index)
     msg = tlx.gather(teacher_softmax, edge_index_no_self_loops[1])
     nei_logits_sum = unsorted_segment_sum(msg, edge_index_no_self_loops[0], graph.num_nodes)
-    nei_num = unsorted_segment_sum(tlx.ops.ones_like(edge_index_no_self_loops[0]), edge_index_no_self_loops[0],
+    nei_num = unsorted_segment_sum(tlx.ops.ones_like(edge_index_no_self_loops[0]),
+                                   edge_index_no_self_loops[0],
                                    graph.num_nodes)
     nei_probability = tlx.ops.transpose(tlx.ops.divide(tlx.ops.transpose(nei_logits_sum), nei_num))
     nei_entropy = -tlx.ops.reduce_sum(nei_probability * tlx.ops.log(nei_probability), axis=1)
@@ -176,16 +153,15 @@ def model_train(configs, model, graph, teacher_logits, dataset):
         if nei_entropy[i] != nei_entropy[i]:
             nei_entropy[i] = 0.0001
 
-    t_model = MLP(num_layers=2, in_channels=dataset.num_classes + 2, hidden_channels=64, out_channels=1, dropout=0.4,
+    t_model = MLP(num_layers=2, in_channels=configs['num_classes'] + 2, hidden_channels=64, out_channels=1, dropout=0.4,
                   norm=None)
 
     best = 0
     cnt = 0
     epoch = 1
-    train_mask, val_mask, my_val_mask = split_train_mask(graph, dataset.num_classes, 20, 20, 10)
     while epoch < configs['max_epoch']:
         acc_val, train_loss = distill_train(epoch, model, configs, graph, nei_entropy, t_model,
-                                teacher_logits, train_mask, val_mask, my_val_mask, dataset)
+                                            teacher_logits)
         if epoch > 0:
             if acc_val >= best:
                 best = acc_val
@@ -222,6 +198,6 @@ def distill_test(model, graph, configs, teacher_logits):
     acc_teacher_test = accuracy(teacher_logits[graph.test_mask], graph.y[graph.test_mask])
     acc_dis = np.abs(acc_teacher_test.item() - acc_test.item())
     print(
-        "Test set results: loss= {:.4f} acc_test= {:.4f} acc_teacher_test= {:.4f} acc_dis={:.4f}".format(
+        "Test set results: loss = {:.4f} acc_test = {:.4f} acc_teacher_test = {:.4f} acc_dis = {:.4f}".format(
             loss_test.item(), acc_test.item(), acc_teacher_test.item(), acc_dis))
     return acc_test
