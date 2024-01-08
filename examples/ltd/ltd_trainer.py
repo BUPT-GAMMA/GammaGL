@@ -5,6 +5,10 @@ import argparse
 from pathlib import Path
 import numpy as np
 import tensorlayerx as tlx
+import logging
+
+tlx_logger = logging.getLogger("tensorlayerx")
+tlx_logger.setLevel(logging.ERROR)
 from distill import choose_model, model_train, layer_normalize
 from gammagl.datasets import Planetoid
 

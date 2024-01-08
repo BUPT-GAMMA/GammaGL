@@ -3,6 +3,8 @@ import numpy as np
 from gammagl.utils import add_self_loops, remove_self_loops
 from gammagl.mpops import *
 from gammagl.models import GCNModel, GATModel, MLP
+import torch
+torch.autograd.set_detect_anomaly(True)
 
 
 def layer_normalize(logits):
@@ -108,19 +110,18 @@ def distill_train(epoch, model, configs, graph, nei_entropy, t_model, teacher_lo
         labels_one_hot = tlx.nn.OneHot(depth=configs['num_classes'])(graph.y)
         t_train_loss = -tlx.ops.reduce_sum(
             (labels_one_hot[configs['val_mask']] + 1e-6) * tlx.ops.log(student_hard[configs['val_mask']] + 1e-6))
-
         for name, t in model.named_parameters():
             t_grad = torch.autograd.grad(t_train_loss, t, create_graph=True, allow_unused=True)[0]
             t_grad = t_grad.detach()
-            for p_name, p in model.named_parameters():
-                if t_grad.shape == p.shape:
-                    model_dict[p_name] = model_dict[p_name] * t_grad
+            model_dict[name] = model_dict[name] * t_grad
         t_model_dict = {}
+        for name, t in t_model.named_parameters():
+            t_model_dict[name] = t.detach()
         for p_name, p in model.named_parameters():
             for name, t in t_model.named_parameters():
                 agr = torch.autograd.grad(tlx.reduce_sum(model_dict[p_name]), t, create_graph=True, allow_unused=True)[
                     0]
-                t_model_dict[name] = t - configs['my_t_lr'] * agr
+                t_model_dict[name] = t_model_dict[name] - configs['my_t_lr'] * agr
 
         t_model.load_state_dict(t_model_dict)
         zero_grad(t_model)
@@ -144,7 +145,7 @@ def model_train(configs, model, graph, teacher_logits):
     edge_index_no_self_loops, _ = remove_self_loops(graph.edge_index)
     msg = tlx.gather(teacher_softmax, edge_index_no_self_loops[1])
     nei_logits_sum = unsorted_segment_sum(msg, edge_index_no_self_loops[0], graph.num_nodes)
-    nei_num = unsorted_segment_sum(tlx.ops.ones_like(edge_index_no_self_loops[0]),
+    nei_num = unsorted_segment_sum(tlx.ops.ones_like(edge_index_no_self_loops[0], dtype=torch.float),
                                    edge_index_no_self_loops[0],
                                    graph.num_nodes)
     nei_probability = tlx.ops.transpose(tlx.ops.divide(tlx.ops.transpose(nei_logits_sum), nei_num))
