@@ -76,7 +76,7 @@ def test_add_self_loops():
                                [1., 1., 1.], [1., 1., 1.]]
 
     out = add_self_loops(edge_index, edge_attr,
-                         fill_value=tlx.convert_to_tensor([0., 1., 0.]))
+                         fill_value=tlx.convert_to_tensor([0., 1., 0.], dtype = tlx.float32))
     assert tlx.convert_to_numpy(out[0]).tolist() == expected
     assert tlx.convert_to_numpy(out[1]).tolist() == [[0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [0.5, 0.5, 0.5],
                                [0., 1., 0.], [0., 1., 0.]]

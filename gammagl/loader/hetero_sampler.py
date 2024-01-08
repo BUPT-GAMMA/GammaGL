@@ -49,7 +49,6 @@ class NeighborSampler:
         assert isinstance(input_node_type, str)
         self.input_node_type = input_node_type
 
-
     def __call__(self, index):
         if not isinstance(index, np.ndarray):
             index = np.array(index, dtype=np.int64)
@@ -155,33 +154,39 @@ class Hetero_Neighbor_Sampler(tlx.dataflow.DataLoader):
         `examples/hetero/to_hetero_mag.py <https://github.com/pyg-team/
         pytorch_geometric/blob/master/examples/hetero/to_hetero_mag.py>`_.
 
-    Args:
-        data (torch_geometric.data.Data or torch_geometric.data.HeteroData):
-            The :class:`~torch_geometric.data.Data` or
-            :class:`~torch_geometric.data.HeteroData` graph object.
-        num_neighbors (List[int] or Dict[Tuple[str, str, str], List[int]]): The
-            number of neighbors to sample for each node in each iteration.
-            In heterogeneous graphs, may also take in a dictionary denoting
-            the amount of neighbors to sample for each individual edge type.
-            If an entry is set to :obj:`-1`, all neighbors will be included.
-        input_nodes (torch.Tensor or str or Tuple[str, torch.Tensor]): The
-            indices of nodes for which neighbors are sampled to create
-            mini-batches.
-            Needs to be either given as a :obj:`torch.LongTensor` or
-            :obj:`torch.BoolTensor`.
-            If set to :obj:`None`, all nodes will be considered.
-            In heterogeneous graphs, needs to be passed as a tuple that holds
-            the node type and node indices. (default: :obj:`None`)
-        replace (bool, optional): If set to :obj:`True`, will sample with
-            replacement. (default: :obj:`False`)
-        directed (bool, optional): If set to :obj:`False`, will include all
-            edges between all sampled nodes. (default: :obj:`True`)
-        transform (Callable, optional): A function/transform that takes in
-            a sampled mini-batch and returns a transformed version.
-            (default: :obj:`None`)
-        **kwargs (optional): Additional arguments of
-            :class:`torch.utils.data.DataLoader`, such as :obj:`batch_size`,
-            :obj:`shuffle`, :obj:`drop_last` or :obj:`num_workers`.
+    Parameters
+    ----------
+    data: graph, heterograph
+        The :class:`~gammagl.data.Graph` or
+        :class:`~gammagl.data.HeteroGraph` graph object.
+    num_neighbors: list[int], dict[tuple[str, str, str], list[int]]
+        The number of neighbors to sample for each node in each iteration.
+        In heterogeneous graphs, may also take in a dictionary denoting
+        the amount of neighbors to sample for each individual edge type.
+        If an entry is set to :obj:`-1`, all neighbors will be included.
+    input_nodes: tensor, str, tuple[str, tensor]
+        The indices of nodes for which neighbors are sampled to create
+        mini-batches.
+        Needs to be either given as a :obj:`torch.LongTensor` or
+        :obj:`torch.BoolTensor`.
+        If set to :obj:`None`, all nodes will be considered.
+        In heterogeneous graphs, needs to be passed as a tuple that holds
+        the node type and node indices. (default: :obj:`None`)
+    replace: bool, optional
+        If set to :obj:`True`, will sample with
+        replacement. (default: :obj:`False`)
+    directed: bool, optional
+        If set to :obj:`False`, will include all
+        edges between all sampled nodes. (default: :obj:`True`)
+    transform: callable, optional
+        A function/transform that takes in
+        a sampled mini-batch and returns a transformed version.
+        (default: :obj:`None`)
+    **kwargs: optional
+        Additional arguments of
+        :class:`torch._utils.data.DataLoader`, such as :obj:`batch_size`,
+        :obj:`shuffle`, :obj:`drop_last` or :obj:`num_workers`.
+
     """
 
     def __init__(
@@ -221,7 +226,7 @@ class Hetero_Neighbor_Sampler(tlx.dataflow.DataLoader):
         # TODO：这里将data的edge_stores 变成tensor!这样就可以省去很多麻烦
         for values in data.edge_stores:
             for key in values:
-                values[key] = tlx.convert_to_tensor(values[key], tlx.int64)
+                values[key] = tlx.convert_to_tensor(values[key])
         data[self.neighbor_sampler.input_node_type].batch_size = batch_size
         return data
 
@@ -233,7 +238,6 @@ class Hetero_Neighbor_Sampler(tlx.dataflow.DataLoader):
 
 
 ###############################################################################
-
 
 
 def get_input_node_type(input_nodes) -> Optional[str]:
@@ -260,20 +264,21 @@ def get_input_node_indices(graph: HeteroGraph,
     if not isinstance(input_nodes, np.ndarray):
         input_nodes = tlx.convert_to_numpy(input_nodes).tolist()
 
-
     return input_nodes
+
 
 def edge_type_to_str(edge_type) -> str:
     # Since C++ cannot take dictionaries with tuples as key as input, edge type
     # triplets need to be converted into single strings.
     return edge_type if isinstance(edge_type, str) else '__'.join(edge_type)
 
+
 def filter_hetero_data(
-    graph: HeteroGraph,
-    node_dict: Dict[str, np.ndarray],
-    row_dict: Dict[str, np.ndarray],
-    col_dict: Dict[str, np.ndarray],
-    edge_dict: Dict[str, np.ndarray],
+        graph: HeteroGraph,
+        node_dict: Dict[str, np.ndarray],
+        row_dict: Dict[str, np.ndarray],
+        col_dict: Dict[str, np.ndarray],
+        edge_dict: Dict[str, np.ndarray],
 ):
     # Filters a heterogeneous data object to only hold nodes in `node` and
     # edges in `edge` for each node and edge type, respectively:
@@ -290,6 +295,7 @@ def filter_hetero_data(
                            edge_dict[edge_type_str])
 
     return out
+
 
 def filter_node_store_(store: NodeStorage, out_store: NodeStorage,
                        index):
@@ -315,9 +321,8 @@ def filter_edge_store_(store: EdgeStorage, out_store: EdgeStorage, row,
             edge_index = np.stack([row, col], axis=0)
             out_store.edge_index = edge_index
         elif store.is_edge_attr(key):
-            out_store[key] = value[index]
+            out_store[key] = tlx.gather(value, index)
     return store
-
 
 
 def to_hetero_csc(hetero_graph):
@@ -331,7 +336,6 @@ def to_hetero_csc(hetero_graph):
 
     for store in hetero_graph.edge_stores:
         key = edge_type_to_str(store._key)
-
 
         if hasattr(store, 'edge_index'):
             # ind = np.argsort(edge_index[1], axis=0)
@@ -357,8 +361,9 @@ def to_hetero_csc(hetero_graph):
     return colptr_dict, row_dict
 
 
-
 from tensorlayerx.dataflow.utils import _BaseDataLoaderIter
+
+
 class DataLoaderIterator(object):
     def __init__(self, iterator: _BaseDataLoaderIter, transform_fn: Callable):
         self.iterator = iterator

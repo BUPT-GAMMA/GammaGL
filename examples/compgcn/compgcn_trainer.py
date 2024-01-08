@@ -5,20 +5,17 @@
 # @Author  : yijian
 # @FileName: compgcn_trainer.py
 import os
-# os.environ['TL_BACKEND'] = 'mindspore'  # set your backend here, default `torch`
-# os.environ["CUDA_VISIBLE_DEVICES"] = ""
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
-import sys
-sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
 from gammagl.models import CompGCN
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.datasets import Entities
 import os.path as osp
-import numpy as np
-# tlx.set_device("GPU", 1)
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -167,7 +164,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_blocks', type=int, default=None, help='numbere of blocks')
     parser.add_argument("--aggregation", type=str, default='mean', help='aggregate type')
     parser.add_argument('--dataset', type=str, default='aifb', help='dataset')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--op", type=str, default='sub', help="op between entity and relation,sub or mult")
     args = parser.parse_args()

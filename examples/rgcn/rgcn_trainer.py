@@ -5,13 +5,11 @@
 # @Author  : hanhui
 # @FileName: trainer.py.py
 import os
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
-os.environ['TL_BACKEND'] = 'tensorflow'  # set your backend here, default `tensorflow`
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
-import sys
-
-sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
 from gammagl.models import RGCN
@@ -71,8 +69,8 @@ def k_hop_subgraph(node_idx, num_hops, edge_index, num_nodes, relabel_nodes=Fals
     else:
         col, row = edge_index
 
-    node_mask = np.zeros(num_nodes, dtype=np.bool)
-    edge_mask = np.zeros(row.shape[0], dtype=np.bool)
+    node_mask = np.zeros(num_nodes, dtype=bool)
+    edge_mask = np.zeros(row.shape[0], dtype=bool)
 
     if isinstance(node_idx, (int, list, tuple)):
         node_idx = node_idx.flatten()
@@ -249,8 +247,8 @@ if __name__ == '__main__':
     parser.add_argument('--num_bases', type=int, default=None, help='number of bases')
     parser.add_argument('--num_blocks', type=int, default=None, help='numbere of blocks')
     parser.add_argument("--aggregation", type=str, default='sum', help='aggregate type')
-    parser.add_argument('--dataset', type=str, default='aifb', help='dataset')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument('--dataset', type=str, default='am', help='dataset')
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     args = parser.parse_args()
 

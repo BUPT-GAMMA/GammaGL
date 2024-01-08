@@ -11,8 +11,6 @@
 
 GammaGL is a multi-backend graph learning library based on [TensorLayerX](https://github.com/tensorlayer/TensorLayerX), which supports TensorFlow, PyTorch, PaddlePaddle, MindSpore as the backends.
 
-We release the version 0.1.0 on 20th June. 
-
 We give a development tutorial in Chinese on [wiki](https://github.com/BUPT-GAMMA/GammaGL/wiki/%E5%BC%80%E5%8F%91%E8%80%85%E6%B5%81%E7%A8%8B).
 
 ## Highlighted Features
@@ -272,28 +270,28 @@ class EdgeConv(MessagePassing):
 1. **Python environment** (Optional): We recommend using Conda package manager
    
    ```bash
-   conda create -n ggl python=3.7
-   source activate ggl
+   $ conda create -n ggl python=3.8
+   $ source activate ggl
    ```
 
 2. **Install Backend**
    
    ```bash
    # For tensorflow
-   pip install tensorflow-gpu # GPU version
-   pip install tensorflow # CPU version
+   $ pip install tensorflow-gpu # GPU version
+   $ pip install tensorflow # CPU version
    
    # For torch, version 1.10
    # https://pytorch.org/get-started/locally/
-   pip3 install torch==1.10.2
+   $ pip install torch==1.10.1+cu111 torchvision==0.11.2+cu111 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu111/torch_stable.html
    
    # For paddle, any latest stable version
    # https://www.paddlepaddle.org.cn/
-   python -m pip install paddlepaddle-gpu
+   $ python -m pip install paddlepaddle-gpu
    
    # For mindspore, GammaGL only supports version 1.8.1, GPU-CUDA 11.1
    # https://www.mindspore.cn/install
-   pip install https://ms-release.obs.cn-north-4.myhuaweicloud.com/1.8.1/MindSpore/gpu/x86_64/cuda-11.1/mindspore_gpu-1.8.1-cp37-cp37m-linux_x86_64.whl --trusted-host ms-release.obs.cn-north-4.myhuaweicloud.com -i https://pypi.tuna.tsinghua.edu.cn/simple
+   $ pip install https://ms-release.obs.cn-north-4.myhuaweicloud.com/1.8.1/MindSpore/gpu/x86_64/cuda-11.1/mindspore_gpu-1.8.1-cp37-cp37m-linux_x86_64.whl --trusted-host ms-release.obs.cn-north-4.myhuaweicloud.com -i https://pypi.tuna.tsinghua.edu.cn/simple
    ```
    
    For other backend with specific version, [please check whether TLX supports](https://tensorlayerx.readthedocs.io/en/latest/user/installation.html#install-backend).
@@ -310,19 +308,28 @@ class EdgeConv(MessagePassing):
    > 
    > `pip install git+https://git.openi.org.cn/OpenI/TensorLayerX.git`
 
+   **Note**:
+   > - TensorFlow is necessary when installing TensorLayerX.
+   > - The version of *protobuf* should be 3.19.6, remember to re-install it after you install TensorLayerX.
+
 3. **Download GammaGL**
    
    ```bash
-   git clone https://github.com/BUPT-GAMMA/GammaGL.git
-   python setup.py install
+   $ git clone --recursive https://github.com/BUPT-GAMMA/GammaGL.git
+   $ pip install pybind11 pyparsing
+   $ python setup.py install
    ```
-   
+
    > 大陆用户如果遇到网络问题，推荐从启智社区安装
    > 
    > Try to git clone from OpenI
    > 
-   > `git clone https://git.openi.org.cn/GAMMALab/GammaGL.git`
-
+   > `git clone --recursive https://git.openi.org.cn/GAMMALab/GammaGL.git`
+   
+   **Note**:
+   > "--recursive" is necessary, if you forgot, you can run command below in GammaGL root dir:
+   > 
+   > `git submodule update --init`
 ## How to Run
 
 Take [GCN](./examples/gcn) as an example:
@@ -341,7 +348,9 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 
 > Note
 > 
-> The DEFAULT backend is  `tensorflow` and GPU is `0`. The backend TensorFlow will take up all GPU left memory by default.
+> The DEFAULT backend is  `torch` and GPU is `0`. 
+>
+> The backend TensorFlow will take up all GPU left memory by default.
 > 
 > The CANDIDATE backends are `tensorflow`, `paddle`, `torch` and `mindspore`.
 > 
@@ -382,7 +391,13 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [GaAN [UAI 2018]](./examples/gaan)               | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [GRADE [NeurIPS 2022]](./examples/grade)         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [GMM [CVPR 2017]](./examples/gmm)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-
+| [TADW [IJCAI 2015]](./examples/tadw)             | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [MGNNI [NeurIPS 2022]](./examples/mgnni)         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [MAGCL [AAAI 2023]](./examples/magcl)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [CAGCN [NeurIPS 2021]](./examples/cagcn)         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [DR-GST [WWW 2022]](./examples/drgst)            | :heavy_check_mark: | :heavy_check_mark: |                    |                    |
+| [Specformer [ICLR 2023]](./examples/specformer)  |                    | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [AM-GCN [KDD 2020]](./examples/amgcn)            |                    | :heavy_check_mark: |                    |                    |
 
 | Contrastive Learning                           | TensorFlow         | PyTorch            | Paddle             | MindSpore |
 | ---------------------------------------------- | ------------------ | ------------------ | ------------------ | --------- |
@@ -400,6 +415,10 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [SimpleHGN [KDD 2021]](./examples/simplehgn) | :heavy_check_mark: |                    |                    |           |
 | [CompGCN [ICLR 2020]](./examples/compgcn)    |                    | :heavy_check_mark: | :heavy_check_mark: |           |
 | [HPN [TKDE 2021]](./examples/hpn)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [ieHGCN [TKDE 2021]](./examples/iehgcn)      | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
+| [MetaPath2Vec [KDD 2017]](./examples/metapath2vec) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | |
+| [HERec [TKDE 2018]](./examples/herec) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | |
+| [CoGSL [WWW 2022]](./examples/cogsl)  | | :heavy_check_mark: | :heavy_check_mark: | |
 
 > Note
 > 

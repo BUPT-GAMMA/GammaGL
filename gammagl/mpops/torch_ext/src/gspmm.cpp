@@ -1,0 +1,71 @@
+#include "../include/gspmm.h"
+
+#include <assert.h>
+#include <torch/extension.h>
+#include <torch/script.h>
+#include <torch/torch.h>
+
+#include <iostream>
+#include <vector>
+
+#include "../cpu/spmm_sum_cpu.h"
+#ifdef COMPILE_WITH_CUDA
+#include "../cuda/spmm_sum_cuda.h"
+#endif
+
+// using torch::autograd::AutogradContext;
+// using tenosr_list = std::vector<torch::Tensor>;
+
+torch::Tensor device_dispatch_forward(
+    torch::Tensor &index, torch::Tensor &weight, torch::Tensor &x) {
+  if (x.is_cuda() && index.is_cuda() && weight.is_cuda()) {
+#ifdef COMPILE_WITH_CUDA
+    return spmm_sum_cuda_forward(index, weight, x);
+#else
+    AT_ERROR("Compiled with CUDA support while tensor is on GPU!");
+#endif
+  } else if (x.is_cpu() && index.is_cpu() && weight.is_cpu()) {
+    return spmm_sum_cpu_forward(index, weight, x);
+  } else {
+    AT_ERROR("Tensor device inconsistent error.");
+  }
+}
+
+torch::Tensor device_dispatch_backward(
+    torch::Tensor &index, torch::Tensor &weight, torch::Tensor &grad) {
+  if (grad.is_cuda() && index.is_cuda() && weight.is_cuda()) {
+#ifdef COMPILE_WITH_CUDA
+    return spmm_sum_cuda_backward(index, weight, grad);
+#else
+    AT_ERROR("Compiled with CUDA support while tensor is on GPU!");
+#endif
+  } else if (grad.is_cpu() && index.is_cpu() && weight.is_cpu()) {
+    return spmm_sum_cpu_backward(index, weight, grad);
+  } else {
+    AT_ERROR("Tensor device inconsistent error.");
+  }
+}
+
+// Treat `index` and `weight` as an coo sparse matrix.
+// Only coo sparse dense matrix multiplication.
+// TODO: 1. support SpMMMax, SpMMMean, etc.
+//       2. generalized operators to support more data
+//          structures, such as csr, csc, etc.
+
+torch::Tensor SpMMSum::forward(
+    torch::autograd::AutogradContext *ctx, torch::Tensor index,
+    torch::Tensor weight, torch::Tensor x) {
+  ctx->save_for_backward({index, weight, x});
+  ctx->mark_non_differentiable({index, weight});
+  torch::Tensor out = device_dispatch_forward(index, weight, x);
+  return out;
+}
+
+std::vector<torch::Tensor> SpMMSum::backward(
+    torch::autograd::AutogradContext *ctx,
+    std::vector<torch::Tensor> grad_outs) {
+  auto saved = ctx->get_saved_variables();
+  auto index = saved[0], weight = saved[1], x = saved[2];
+  torch::Tensor grad_x = device_dispatch_backward(index, weight, grad_outs[0]);
+  return {torch::Tensor(), torch::Tensor(), grad_x};
+}

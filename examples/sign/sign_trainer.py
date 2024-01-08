@@ -1,15 +1,15 @@
-# import os
-# os.environ['TL_BACKEND'] = 'torch'
-# # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+import os
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
+
 import argparse
 import tensorlayerx as tlx
 from tensorlayerx.model import TrainOneStep, WithLoss
-
 from gammagl.datasets.flickr import Flickr
 from gammagl.models.sign import SignModel
-
 import gammagl.transforms as T
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -73,7 +73,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.01, help="learnin rate")
-    parser.add_argument("--dataset_path", type=str, default=r'../Flickr', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument('--dataset', type=str, default='Flickr', help='Only flickr')
     parser.add_argument("--hidden_dim", type=int, default=1024, help="dimention of hidden layers")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")

@@ -31,26 +31,23 @@ class GCNConv(MessagePassing):
 
     Parameters
     ----------
-        in_channels: int
-            Size of each input sample
-        out_channels: int
-            Size of each output sample.
-        norm: str, optional
-            How to apply the normalizer.  Can be one of the following values:
-            
-            * ``right``, to divide the aggregated messages by each node's in-degrees,
-            which is equivalent to averaging the received messages.
+    in_channels: int
+        Size of each input sample.
+    out_channels: int
+        Size of each output sample.
+    norm: str, optional
+        How to apply the normalizer.  Can be one of the following values:
+        
+            * ``right``, to divide the aggregated messages by each node's in-degrees, which is equivalent to averaging the received messages.
 
             * ``none``, where no normalization is applied.
 
-            * ``both`` (default), where the messages are scaled with :math:`1/c_{ji}` above, equivalent
-            to symmetric normalization.
+            * ``both`` (default), where the messages are scaled with :math:`1/c_{ji}` above, equivalent to symmetric normalization.
 
-            * ``left``, to divide the messages sent out from each node by its out-degrees,
-            equivalent to random walk normalization.
-        add_bias: bool, optional
-            If set to :obj:`False`, the layer will not learn
-            an additive bias. (default: :obj:`True`)
+            * ``left``, to divide the messages sent out from each node by its out-degrees, equivalent to random walk normalization.
+    add_bias: bool, optional
+        If set to :obj:`False`, the layer will not learn
+        an additive bias. (default: :obj:`True`)
 
     """
 
@@ -86,7 +83,9 @@ class GCNConv(MessagePassing):
         weights = edge_weight
         
         if self._norm in ['left', 'both']:
-            deg = degree(src, num_nodes=x.shape[0], dtype = tlx.float32)
+            max_num = tlx.reduce_max(src)
+            num_nodes = max_num + 1
+            deg = degree(src, num_nodes=num_nodes, dtype = tlx.float32)
             if self._norm == 'both':
                 norm = tlx.pow(deg, -0.5)
             else:
@@ -94,7 +93,9 @@ class GCNConv(MessagePassing):
             weights = tlx.ops.gather(norm, src) * tlx.reshape(edge_weight, (-1,))
 
         if self._norm in ['right', 'both']:
-            deg = degree(dst, num_nodes=x.shape[0], dtype = tlx.float32)
+            max_num = tlx.reduce_max(dst)
+            num_nodes = max_num + 1
+            deg = degree(dst, num_nodes=num_nodes, dtype = tlx.float32)
             if self._norm == 'both':
                 norm = tlx.pow(deg, -0.5)
             else:

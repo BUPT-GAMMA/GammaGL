@@ -22,38 +22,47 @@ class ShapeNet(InMemoryDataset):
     categories.
     Each category is annotated with 2 to 6 parts.
 
-    Args:
-        root (string): Root directory where the dataset should be saved.
-        categories (string or [string], optional): The category of the CAD
-            models (one or a combination of :obj:`"Airplane"`, :obj:`"Bag"`,
-            :obj:`"Cap"`, :obj:`"Car"`, :obj:`"Chair"`, :obj:`"Earphone"`,
-            :obj:`"Guitar"`, :obj:`"Knife"`, :obj:`"Lamp"`, :obj:`"Laptop"`,
-            :obj:`"Motorbike"`, :obj:`"Mug"`, :obj:`"Pistol"`, :obj:`"Rocket"`,
-            :obj:`"Skateboard"`, :obj:`"Table"`).
-            Can be explicitly set to :obj:`None` to load all categories.
-            (default: :obj:`None`)
-        include_normals (bool, optional): If set to :obj:`False`, will not
-            include normal vectors as input features to :obj:`data.x`.
-            As a result, :obj:`data.x` will be :obj:`None`.
-            (default: :obj:`True`)
-        split (string, optional): If :obj:`"train"`, loads the training
-            dataset.
-            If :obj:`"val"`, loads the validation dataset.
-            If :obj:`"trainval"`, loads the training and validation dataset.
-            If :obj:`"test"`, loads the test dataset.
-            (default: :obj:`"trainval"`)
-        transform (callable, optional): A function/transform that takes in an
-            :obj:`gammagl.data.Graph` object and returns a transformed
-            version. The data object will be transformed before every access.
-            (default: :obj:`None`)
-        pre_transform (callable, optional): A function/transform that takes in
-            an :obj:`gammagl.data.Graph` object and returns a
-            transformed version. The data object will be transformed before
-            being saved to disk. (default: :obj:`None`)
-        pre_filter (callable, optional): A function that takes in an
-            :obj:`gammagl.data.Graph` object and returns a boolean
-            value, indicating whether the data object should be included in the
-            final dataset. (default: :obj:`None`)
+    Parameters
+    ----------
+    root: str, optional
+        Root directory where the dataset should be saved.
+    categories: str, list[str], optional
+        The category of the CAD
+        models (one or a combination of :obj:`"Airplane"`, :obj:`"Bag"`,
+        :obj:`"Cap"`, :obj:`"Car"`, :obj:`"Chair"`, :obj:`"Earphone"`,
+        :obj:`"Guitar"`, :obj:`"Knife"`, :obj:`"Lamp"`, :obj:`"Laptop"`,
+        :obj:`"Motorbike"`, :obj:`"Mug"`, :obj:`"Pistol"`, :obj:`"Rocket"`,
+        :obj:`"Skateboard"`, :obj:`"Table"`).
+        Can be explicitly set to :obj:`None` to load all categories.
+        (default: :obj:`None`)
+    include_normals: bool, optional
+        If set to :obj:`False`, will not
+        include normal vectors as input features to :obj:`data.x`.
+        As a result, :obj:`data.x` will be :obj:`None`.
+        (default: :obj:`True`)
+    split: str, optional
+        If :obj:`"train"`, loads the training
+        dataset.
+        If :obj:`"val"`, loads the validation dataset.
+        If :obj:`"trainval"`, loads the training and validation dataset.
+        If :obj:`"test"`, loads the test dataset.
+        (default: :obj:`"trainval"`)
+    transform: callable, optional
+        A function/transform that takes in an
+        :obj:`gammagl.data.Graph` object and returns a transformed
+        version. The data object will be transformed before every access.
+        (default: :obj:`None`)
+    pre_transform: callable, optional
+        A function/transform that takes in
+        an :obj:`gammagl.data.Graph` object and returns a
+        transformed version. The data object will be transformed before
+        being saved to disk. (default: :obj:`None`)
+    pre_filter: callable, optional
+        A function that takes in an
+        :obj:`gammagl.data.Graph` object and returns a boolean
+        value, indicating whether the data object should be included in the
+        final dataset. (default: :obj:`None`)
+
     """
 
     url = ('https://shapenet.cs.stanford.edu/media/'
@@ -97,7 +106,7 @@ class ShapeNet(InMemoryDataset):
         'Table': [47, 48, 49],
     }
 
-    def __init__(self, root, categories=None, include_normals=True,
+    def __init__(self, root=None, categories=None, include_normals=True,
                  split='trainval', transform=None, pre_transform=None,
                  pre_filter=None):
         if categories is None:
@@ -123,8 +132,8 @@ class ShapeNet(InMemoryDataset):
         self.data, self.slices = self.load_data(path)
         self.data.x = self.data.x if include_normals else None
 
-        self.y_mask = torch.zeros((len(self.seg_classes.keys()), 50),
-                                  dtype=torch.bool)
+        self.y_mask = tlx.zeros((len(self.seg_classes.keys()), 50),
+                                  dtype=tlx.bool)
         for i, labels in enumerate(self.seg_classes.values()):
             self.y_mask[i, labels] = 1
 
@@ -165,8 +174,8 @@ class ShapeNet(InMemoryDataset):
             data = read_txt_array(osp.join(self.raw_dir, name))
             pos = data[:, :3]
             x = data[:, 3:6]
-            y = data[:, -1].type(torch.long)
-            data = Data(pos=pos, x=x, y=y, category=cat_idx[cat])
+            y = data[:, -1].type(tlx.long)
+            data = Graph(pos=pos, x=x, y=y, category=cat_idx[cat])
             if self.pre_filter is not None and not self.pre_filter(data):
                 continue
             if self.pre_transform is not None:
@@ -188,8 +197,8 @@ class ShapeNet(InMemoryDataset):
             data_list = self.process_filenames(filenames)
             if split == 'train' or split == 'val':
                 trainval += data_list
-            torch.save(self.collate(data_list), self.processed_paths[i])
-        torch.save(self.collate(trainval), self.processed_paths[3])
+            self.save_data(self.collate(data_list), self.processed_paths[i])
+        self.save_data(self.collate(trainval), self.processed_paths[3])
 
     def __repr__(self) -> str:
         return (f'{self.__class__.__name__}({len(self)}, '

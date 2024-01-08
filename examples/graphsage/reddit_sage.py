@@ -1,19 +1,15 @@
-import os
-# os.environ['TL_BACKEND'] = 'paddle'
-# os.environ['CUDA_VISIBLE_DEVICES'] = ' '
-# set your backend here, default `tensorflow`
+# -*- coding: utf-8 -*-
+# @author WuJing
+# @created 2023/4/18
 
 from gammagl.utils import mask_to_index
-
-
 from tensorlayerx.model import WithLoss, TrainOneStep
 from tqdm import tqdm
 from gammagl.datasets import Reddit
 import tensorlayerx as tlx
 import argparse
-from gammagl.loader.Neighbour_sampler import Neighbor_Sampler
+from gammagl.loader.neighbor_sampler import NeighborSampler
 from gammagl.models import GraphSAGE_Sample_Model
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -52,17 +48,16 @@ def main(args):
     test_idx = mask_to_index(graph.test_mask)
     val_idx = mask_to_index(graph.val_mask)
 
+    train_loader = NeighborSampler(edge_index=graph.edge_index.numpy(),
+                                   node_idx=tlx.convert_to_numpy(train_idx),
+                                   sample_lists=[25, 10], batch_size=2048, shuffle=True, num_workers=0)
 
-    train_loader = Neighbor_Sampler(edge_index=graph.edge_index.numpy(),
-                                    dst_nodes=tlx.convert_to_numpy(train_idx),
-                                    sample_lists=[25, 10], batch_size=2048, shuffle=True, num_workers=0)
-
-    val_loader = Neighbor_Sampler(edge_index=graph.edge_index.numpy(),
-                                  dst_nodes=tlx.convert_to_numpy(val_idx),
+    val_loader = NeighborSampler(edge_index=graph.edge_index.numpy(),
+                                 node_idx=tlx.convert_to_numpy(val_idx),
+                                 sample_lists=[-1], batch_size=2048 * 2, shuffle=False, num_workers=0)
+    test_loader = NeighborSampler(edge_index=graph.edge_index.numpy(),
+                                  node_idx=tlx.convert_to_numpy(test_idx),
                                   sample_lists=[-1], batch_size=2048 * 2, shuffle=False, num_workers=0)
-    test_loader = Neighbor_Sampler(edge_index=graph.edge_index.numpy(),
-                                   dst_nodes=tlx.convert_to_numpy(test_idx),
-                                   sample_lists=[-1], batch_size=2048 * 2, shuffle=False, num_workers=0)
 
     x = tlx.convert_to_tensor(graph.x)
     y = tlx.convert_to_tensor(graph.y, dtype=tlx.int64)
@@ -82,12 +77,12 @@ def main(args):
     for epoch in range(args.n_epoch):
         pbar = tqdm(total=int(len(train_loader.dataset)))
         pbar.set_description(f'Epoch {epoch:02d}')
-        for dst_node, adjs, all_node in train_loader:
+        for dst_node, n_id, adjs in train_loader:
             net.set_train()
             # input : sampled subgraphs, sampled node's feat
-            data = {"x": tlx.gather(x, tlx.convert_to_tensor(all_node)),
+            data = {"x": tlx.gather(x, n_id),
                     "y": y,
-                    "dst_node": tlx.convert_to_tensor(dst_node),
+                    "dst_node": dst_node,
                     "subgs": adjs}
             # label is not used
             train_loss = train_one_step(data, tlx.convert_to_tensor([0]))
@@ -119,7 +114,7 @@ if __name__ == '__main__':
     parser.add_argument("--num_layers", type=int, default=2)
     parser.add_argument("--l2_coef", type=float, default=0., help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='reddit', help='dataset')
-    parser.add_argument("--dataset_path", type=str, default=r'../reddit', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     # parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     args = parser.parse_args()
 

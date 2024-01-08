@@ -1,74 +1,138 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
-from setuptools import setup, find_packages, Extension
-from setuptools.command.build_ext import build_ext as _build_ext
+import os.path as osp
+from setuptools import setup, find_packages
+from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtension
 
-# cython compile
-try:
-    from Cython.Build import cythonize
-except ImportError:
+# TODO will depend on different host
+WITH_CUDA = False
 
-    def cythonize(*args, **kwargs):
-        """cythonize"""
-        from Cython.Build import cythonize
-        return cythonize(*args, **kwargs)
+cuda_macro = ('COMPILE_WITH_CUDA', True)
+omp_macro = ('COMPLIE_WITH_OMP', True) # Note: OpenMP needs gcc>4.2.0
+compile_args = {
+    'cxx':['-fopenmp']
+}
+
+def is_src_file(filename: str):
+    return filename.endswith("cpp") \
+           or filename.endswith("cu")
+           
+           
+def load_mpops_extensions():
+    mpops_list = ["torch_ext"]
+    mpops_root = osp.join('gammagl', 'mpops')
+
+    extensions = []
+    file_list = []
+    for i in range(len(mpops_list)):
+        mpops_prefix = mpops_list[i]
+
+        mpops_types = ["src", "cpu", "cuda"]
+        mpops_dir = osp.join(mpops_root, mpops_prefix)
+        for mpops_type in mpops_types:
+            src_dir = osp.join(mpops_dir, mpops_type)
+            src_files = filter(is_src_file, os.listdir(src_dir))
+            if not src_files:
+                continue
+            file_list.extend([osp.join(mpops_type, f) for f in src_files])
+
+        extensions.append(CUDAExtension(
+            name = osp.join(mpops_dir, f'_{mpops_prefix}').replace(osp.sep, "."),
+            sources = [osp.join(mpops_dir, f) for f in file_list],
+            define_macros=[
+                cuda_macro,
+                omp_macro
+            ],
+            extra_compile_args=compile_args
+        ))
+            
+    return extensions
+            
+def load_ops_extensions():
+    ops_list = ["sparse", "segment", "tensor"]
+    ops_third_party_deps = [['parallel_hashmap'], [], []]
+
+    ops_root = osp.join('gammagl', 'ops')
+
+    extensions = []
+    
+    for i in range(len(ops_list)):
+        ops_prefix = ops_list[i]
+
+        if WITH_CUDA:
+            ops_types = ["cpu", "cuda"]
+        else:
+            ops_types = ["cpu"]
+        ops_dir = osp.join(ops_root, ops_prefix)
+        for ops_type in ops_types:
+            is_cuda_ext = ops_type == "cuda"
+            src_dir = osp.join(ops_dir, ops_type)
+            src_files = filter(is_src_file, os.listdir(src_dir))
+            if not src_files:
+                continue
+            if not is_cuda_ext:
+                extensions.append(CppExtension(
+                    name = osp.join(ops_dir, f'_{ops_prefix}').replace(osp.sep, "."),
+                    sources = [osp.join(src_dir, f) for f in src_files],
+                    include_dirs = [osp.join('third_party', d) for d in ops_third_party_deps[i]],
+                    extra_compile_args = ['-std=c++17']
+                ))
+            else:
+                extensions.append(CUDAExtension(
+                    name = osp.join(ops_dir, f'_{ops_prefix}_cuda').replace(osp.sep, "."),
+                    sources = [osp.join(src_dir, f) for f in src_files],
+                    include_dirs = [osp.join('third_party', d) for d in ops_third_party_deps[i]],
+                    extra_compile_args = ['-std=c++17']
+                ))
+
+    return extensions
 
 
-class CustomBuildExt(_build_ext):
-    """CustomBuildExt"""
+# Start to include cuda ops, if no cuda found, will only compile cpu ops
+def load_extensions():
+    extensions = load_mpops_extensions() + load_ops_extensions()
 
-    def finalize_options(self):
-        _build_ext.finalize_options(self)
-        # Prevent numpy from thinking it is still in its setup process:
-        __builtins__.__NUMPY_SETUP__ = False
-        import numpy
-        self.include_dirs.append(numpy.get_include())
+    return extensions
 
 
-compile_extra_args = ["-std=c++11"]
-link_extra_args = []
-extensions = [
-    Extension(
-        "gammagl.sample",
-        sources=[os.path.join("gammagl", "sample.pyx")],
-        language="c++",
-        extra_compile_args=compile_extra_args,
-        extra_link_args=link_extra_args, ),
-]
-
-install_requires = ['numpy', 'scipy', 'pytest', 'cython', 'tensorlayerx']
+install_requires = ['numpy', 'pandas', 'numba', 'scipy', 'protobuf==3.19.6', 'pyparsing',
+                    'tensorboardx<=2.5', 'pytest', 'tensorlayerx', 'rich', 'tqdm', 'pybind11', 'panda<=2.0.3']
 
 classifiers = [
     'Development Status :: 3 - Alpha',
     'License :: OSI Approved :: Apache Software License',
 ]
 
+
+def readme():
+    with open('README.md', encoding='utf-8') as f:
+        content = f.read()
+    return content
+
+
 setup(
     name="gammagl",
-    version="0.1.0",
+    version="0.3.0",
     author="BUPT-GAMMA LAB",
     author_email="tyzhao@bupt.edu.cn",
     maintainer="Tianyu Zhao",
     license="Apache-2.0 License",
-
-    cmdclass={'build_ext': CustomBuildExt},
-    ext_modules=extensions,
-
+    cmdclass={'build_ext': BuildExtension},
+    ext_modules=load_extensions(),
     description=" ",
-
+    long_description=readme(),
     url="https://github.com/BUPT-GAMMA/GammaGL",
     download_url="https://github.com/BUPT-GAMMA/GammaGL",
-
-    python_requires='>=3.7',
-
+    python_requires='>=3.8',
     packages=find_packages(),
-
     install_requires=install_requires,
-    include_package_data=True,
-
-    classifiers=classifiers
+    classifiers=classifiers,
+    include_package_data=True
 )
 
 # python setup.py build_ext --inplace
 # python setup.py install
+
+# clang-format -style=file -i ***.cpp
+# find ./ -type f \( -name '*.h' -or -name '*.hpp' -or -name '*.cpp' -or -name '*.c' -or -name '*.cc' -or -name '*.cu' \) -print | xargs clang-format -style=file -i

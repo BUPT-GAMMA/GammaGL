@@ -6,7 +6,6 @@ from gammagl.utils import coalesce
 from gammagl.data import InMemoryDataset, download_url, Graph
 
 
-
 class WebKB(InMemoryDataset):
     r"""The WebKB datasets used in the
     `"Geom-GCN: Geometric Graph Convolutional Networks"
@@ -16,23 +15,28 @@ class WebKB(InMemoryDataset):
     The task is to classify the nodes into one of the five categories, student,
     project, course, staff, and faculty.
 
-    Args:
-        root (string): Root directory where the dataset should be saved.
-        name (string): The name of the dataset (:obj:`"Cornell"`,
-            :obj:`"Texas"`, :obj:`"Wisconsin"`).
-        transform (callable, optional): A function/transform that takes in an
-            :obj:`gammagl.data.Graph` object and returns a transformed
-            version. The data object will be transformed before every access.
-            (default: :obj:`None`)
-        pre_transform (callable, optional): A function/transform that takes in
-            an :obj:`gammagl.data.Graph` object and returns a
-            transformed version. The data object will be transformed before
-            being saved to disk. (default: :obj:`None`)
+    Parameters
+    ----------
+    root: str, optional
+        Root directory where the dataset should be saved.
+    name: str
+        The name of the dataset. (:obj:`"Cornell"`,
+        :obj:`"Texas"`, :obj:`"Wisconsin"`)
+    transform: callable, optional
+        A function/transform that takes in an
+        :obj:`gammagl.data.Graph` object and returns a transformed
+        version. The data object will be transformed before every access.
+        (default: :obj:`None`)
+    pre_transform: callable, optional
+        A function/transform that takes in
+        an :obj:`gammagl.data.Graph` object and returns a
+        transformed version. The data object will be transformed before
+        being saved to disk. (default: :obj:`None`)
     """
 
     url = 'https://raw.githubusercontent.com/graphdml-uiuc-jlu/geom-gcn/master'
 
-    def __init__(self, root, name, transform=None, pre_transform=None):
+    def __init__(self, root=None, name='cornell', transform=None, pre_transform=None):
         self.name = name.lower()
         assert self.name in ['cornell', 'texas', 'wisconsin']
 
@@ -55,7 +59,7 @@ class WebKB(InMemoryDataset):
 
     @property
     def processed_file_names(self):
-        return tlx.BACKEND+'_data.pt'
+        return tlx.BACKEND + '_data.pt'
 
     def download(self):
         for f in self.raw_file_names[:2]:
@@ -76,7 +80,6 @@ class WebKB(InMemoryDataset):
             data = [[int(v) for v in r.split('\t')] for r in data]
             edge_index = np.ascontiguousarray(np.array(data, dtype=np.int64).T)
             edge_index = coalesce(edge_index)
-        
 
         train_masks, val_masks, test_masks = [], [], []
         for f in self.raw_paths[2:]:
@@ -88,10 +91,9 @@ class WebKB(InMemoryDataset):
         val_mask = np.concatenate(val_masks)
         test_mask = np.concatenate(test_masks)
         data = Graph(x=x, edge_index=edge_index, y=y, train_mask=train_mask,
-                    val_mask=val_mask, test_mask=test_mask)
+                     val_mask=val_mask, test_mask=test_mask)
         data = data if self.pre_transform is None else self.pre_transform(data)
         self.save_data(self.collate([data]), self.processed_paths[0])
 
     def __repr__(self) -> str:
         return f'{self.name}()'
-

@@ -1,6 +1,9 @@
 import copy
+import json
+import os
 import os.path as osp
 import re
+import shutil
 import sys
 import warnings
 from collections.abc import Sequence
@@ -10,6 +13,7 @@ import numpy as np
 import tensorlayerx as tlx
 from tensorlayerx.dataflow import Dataset
 from gammagl.data import Graph
+from gammagl.data.utils import get_dataset_root, get_dataset_meta_path, md5folder
 from gammagl.data.makedirs import makedirs
 
 try:
@@ -22,23 +26,29 @@ IndexType = Union[slice, np.ndarray, Sequence]
 
 class Dataset(Dataset):
     r"""Dataset base class for creating graph datasets.
-    See `here <https://gammagl.readthedocs.io/en/latest/notes/create_dataset.html#l>`__ for the accompanying tutorial.
+        See `here <https://gammagl.readthedocs.io/en/latest/notes/create_dataset.html#>`__ for the accompanying tutorial.
 
-    Args:
-        root (string, optional): Root directory where the dataset should be
+        Parameters
+        ----------
+        root: str, optional
+            Root directory where the dataset should be
             saved. (optional: :obj:`None`)
-        transform (callable, optional): A function/transform that takes in an
-            :obj:`gammagl.data.Data` object and returns a transformed
+        transform: callable, optional
+            A function/transform that takes in an
+            :obj:`gammagl.data.Graph` object and returns a transformed
             version. The data object will be transformed before every access.
             (default: :obj:`None`)
-        pre_transform (callable, optional): A function/transform that takes in
-            an :obj:`gammagl.data.Data` object and returns a
-            transformed version. The data object will be transformed before
+        pre_transform: callable, optional
+            A function/transform that takes in
+            an :obj:`gammagl.data.Graph` object and returns a
+            transformed version. The graph object will be transformed before
             being saved to disk. (default: :obj:`None`)
-        pre_filter (callable, optional): A function that takes in an
-            :obj:`gammagl.data.Data` object and returns a boolean
-            value, indicating whether the data object should be included in the
+        pre_filter: callable, optional
+            A function that takes in an
+            :obj:`gammagl.data.Graph` object and returns a boolean
+            value, indicating whether the graph object should be included in the
             final dataset. (default: :obj:`None`)
+
     """
 
     @property
@@ -75,14 +85,22 @@ class Dataset(Dataset):
                  pre_filter: Optional[Callable] = None):
         super().__init__()
 
-        if isinstance(root, str):
-            root = osp.expanduser(osp.normpath(root))
+        self.raw_root = root
+
+        assert root is None or isinstance(root, str)
+        if root is None:
+            root = get_dataset_root()
+        else:
+            root = osp.abspath(osp.normpath(root))
 
         self.root = root
         self.transform = transform
         self.pre_transform = pre_transform
         self.pre_filter = pre_filter
         self._indices: Optional[Sequence] = None
+
+        # when finished，record dataset path to .ggl/datasets.json
+        # next time will use this dataset to avoid download repeatedly.
 
         if 'download' in self.__class__.__dict__:
             self._download()
@@ -147,13 +165,25 @@ class Dataset(Dataset):
     def indices(self) -> Sequence:
         return range(self.len()) if self._indices is None else self._indices
 
+    # for example: PPI at ~/.ggl/datasets/PPI
+    @property
+    def root_dir(self) -> str:
+        if hasattr(self, 'name'):
+            return osp.join(self.root, self.name)
+        return osp.join(self.root, self._name)
+
+    # for example: PPI at ~/.ggl/datasets/PPI/raw
     @property
     def raw_dir(self) -> str:
-        return osp.join(self.root, 'raw')
+        return osp.join(self.root_dir, 'raw')
 
     @property
     def processed_dir(self) -> str:
-        return osp.join(self.root, 'processed')
+        return osp.join(self.root_dir, 'processed')
+
+    @property
+    def _name(self) -> str:
+        return self.__class__.__name__
 
     @property
     def num_node_features(self) -> int:
@@ -195,12 +225,89 @@ class Dataset(Dataset):
         files = to_list(self.processed_file_names)
         return [osp.join(self.processed_dir, f) for f in files]
 
+    def rb_config(self, config_dict, file):
+        file.seek(0)
+        json.dump(config_dict, file)
+        file.truncate()
+
     def _download(self):
-        if files_exist(self.raw_paths):  # pragma: no cover
+        if hasattr(self, "name"):
+            name = self.name
+        else:
+            name = self._name
+        dataset_meta_path = get_dataset_meta_path()
+        if files_exist(self.raw_paths) or files_exist(self.processed_paths):
+            # for compatibility, check config file
+            with open(dataset_meta_path, 'r+') as f:
+                dataset_meta_dict = json.load(f)
+                if name in dataset_meta_dict and 'root_dir' in dataset_meta_dict[name] and 'hash' in \
+                        dataset_meta_dict[name]:
+                    return
+                # dataset_meta = dict()
+                # dataset_meta['root_dir'] = osp.abspath(self.root_dir)
+                dataset_meta_dict[name] = {
+                    'root_dir': self.root_dir,
+                    'hash': md5folder(self.raw_dir)
+                }
+
+                self.rb_config(dataset_meta_dict, f)
             return
 
-        makedirs(self.raw_dir)
-        self.download()
+        with open(dataset_meta_path, 'r+') as f:
+            dataset_meta_dict = json.load(f)
+            if name in dataset_meta_dict:
+                dataset_meta = dataset_meta_dict[name]
+                record_root_dir = dataset_meta.get('root_dir', None)
+                if record_root_dir is None:
+                    del dataset_meta_dict[name]
+                    self.rb_config(dataset_meta_dict, f)
+                else:
+                    # validate
+                    record_raw_dir = osp.join(osp.join(record_root_dir, 'raw'))
+                    if osp.exists(record_raw_dir) and dataset_meta.get('hash', '') == md5folder(
+                            osp.join(record_raw_dir)):
+                        if osp.exists(self.root_dir):
+                            # shutil.rmtree(self.root_dir)
+                            if osp.isfile(self.root_dir):
+                                raise FileExistsError(
+                                    f"Settled dataset root:{self.root_dir} is existed! Please clear it first.")
+                            elif len(os.listdir(self.root_dir)) != 0:
+                                files = os.listdir(self.root_dir)
+                                if len(files) >= 3:
+                                    raise FileExistsError(
+                                        f"Settled dataset root:{self.root_dir} is not empty! Please clear it first.")
+                                if (len(files) == 1 and 'raw' in files or 'processed' in files) \
+                                        or ('raw' in files and 'processed' in files):
+                                    # download error before
+                                    shutil.rmtree(self.root_dir)
+                            else:
+                                os.rmdir(self.root_dir)
+                        print(
+                            f"Dataset[{name}] has been downloaded, now copy it from {record_root_dir} to {self.root_dir}.")
+                        shutil.copytree(record_root_dir, self.root_dir)
+                        # default position, update it
+                        if self.raw_root is None:
+                            dataset_meta['root'] = self.root
+                            dataset_meta_dict[name] = dataset_meta
+                            self.rb_config(dataset_meta_dict, f)
+                        # success and return
+                        return
+                    # else download it
+
+            # download
+            makedirs(self.raw_dir)
+            self.download()
+
+            # success
+            dataset_meta_dict[name] = {
+                'root_dir': self.root_dir,
+                'hash': md5folder(self.raw_dir)
+            }
+            self.rb_config(dataset_meta_dict, f)
+
+            # pass
+        # self.download()
+        # success
 
     def _process(self):
         f = osp.join(self.processed_dir, tlx.BACKEND + '_pre_transform.pt')
@@ -303,10 +410,13 @@ class Dataset(Dataset):
         #    -> Union['Dataset', Tuple['Dataset', tf.Tensor]]:
         r"""Randomly shuffles the examples in the dataset.
 
-        Args:
-            return_perm (bool, optional): If set to :obj:`True`, will also
+            Parameters
+            ----------
+            return_perm: bool, optional
+                If set to :obj:`True`, will also
                 return the random permutation used to shuffle the dataset.
                 (default: :obj:`False`)
+
         """
         perm = np.random.permutation(len(self))
         dataset = self.index_select(perm)

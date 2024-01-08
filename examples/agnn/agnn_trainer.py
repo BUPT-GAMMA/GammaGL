@@ -5,21 +5,18 @@
 @Time    :   
 @Author  :   shanyuxuan
 """
-
 import os
-# os.environ['CUDA_VISIBLE_DEVICES']='1'
-# os.environ['TL_BACKEND'] = 'torch'
-import sys
-sys.path.insert(0, os.path.abspath('../../')) # adds path2gammagl to execute in command line.
-sys.path.insert(0, os.path.abspath('./')) # adds path2gammagl to execute in command line.
-import time
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
+
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
 from gammagl.models import AGNNModel
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.utils import add_self_loops, mask_to_index
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, model, loss_fn):
@@ -134,7 +131,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_att_layers", type = int, default = 2)
     parser.add_argument("--l2_coef", type = float, default = 5e-4)
     parser.add_argument("--dataset", type = str, default = "cora")
-    parser.add_argument("--dataset_path", type = str, default = r"../")
+    parser.add_argument("--dataset_path", type = str, default = r"")
     parser.add_argument("--best_model_path", type = str, default = r"./")
     
     args = parser.parse_args()

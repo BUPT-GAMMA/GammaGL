@@ -14,12 +14,24 @@ from .typing import parse_types
 
 
 class Inspector(object):
+    r"""The class of inspecotr, which can help distribute the parameters of function.
+
+    """
+
     def __init__(self, base_class: Any):
         self.base_class: Any = base_class
         self.params: Dict[str, Dict[str, Any]] = {}
 
     def inspect(self, func: Callable,
                 pop_first: bool = False) -> Dict[str, Any]:
+        """
+        Args:
+            func: the function which is need to get the parameters list
+            pop_first:
+
+        Returns:
+
+        """
         params = inspect.signature(func).parameters
         params = OrderedDict(params)
         if pop_first:
@@ -27,6 +39,13 @@ class Inspector(object):
         self.params[func.__name__] = params
 
     def keys(self, func_names: Optional[List[str]] = None) -> Set[str]:
+        """get the set of parameters required by all functions in the parameter list func_names.
+        Args:
+            func_names:
+
+        Returns:
+
+        """
         keys = []
         for func in func_names or list(self.params.keys()):
             keys += self.params[func].keys()
@@ -40,12 +59,24 @@ class Inspector(object):
         return any(self.__implements__(c, func_name) for c in cls.__bases__)
 
     def implements(self, func_name: str) -> bool:
+        """check whether a class implements the function `func_name`
+        Args:
+            func_name:
+        Returns:
+        """
         return self.__implements__(self.base_class.__class__, func_name)
 
     def types(self, func_names: Optional[List[str]] = None) -> Dict[str, str]:
+        """check the parameter of the func, whether the type matches.
+        Args:
+            func_names:
+
+        Returns:
+
+        """
         out: Dict[str, str] = {}
         for func_name in func_names or list(self.params.keys()):
-            func = getattr(self.base_class, func_name)
+            func = getattr(self.base_class, func_name)  # getattr用来获取类属性`self.base_class`中名为`func_name`的函数对象
             arg_types = parse_types(func)[0][0]
             for key in self.params[func_name].keys():
                 if key in out and out[key] != arg_types[key]:
@@ -57,6 +88,14 @@ class Inspector(object):
         return out
 
     def distribute(self, func_name, kwargs: Dict[str, Any]):
+        """
+        Args:
+            func_name: the name of the function
+            kwargs: the dict of the parameters
+
+        Returns:
+            the dict of the parameters and values
+        """
         out = {}
         for key, param in self.params[func_name].items():
             data = kwargs.get(key, inspect.Parameter.empty)

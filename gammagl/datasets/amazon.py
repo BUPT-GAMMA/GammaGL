@@ -14,18 +14,23 @@ class Amazon(InMemoryDataset):
     Given product reviews as bag-of-words node features, the task is to
     map goods to their respective product category.
 
-    Args:
-        root (string): Root directory where the dataset should be saved.
-        name (string): The name of the dataset (:obj:`"Computers"`,
-            :obj:`"Photo"`).
-        transform (callable, optional): A function/transform that takes in an
-            :obj:`gammagl.data.Graph` object and returns a transformed
-            version. The data object will be transformed before every access.
-            (default: :obj:`None`)
-        pre_transform (callable, optional): A function/transform that takes in
-            an :obj:`gammagl.data.Graph` object and returns a
-            transformed version. The data object will be transformed before
-            being saved to disk. (default: :obj:`None`)
+    Parameters
+    ----------
+    root: str, optional
+        Root directory where the dataset should be saved.
+    name: str, optional
+        The name of the dataset (:obj:`"Computers"`,
+        :obj:`"Photo"`).
+    transform: callable, optional
+        A function/transform that takes in an
+        :obj:`gammagl.data.Graph` object and returns a transformed
+        version. The data object will be transformed before every access.
+        (default: :obj:`None`)
+    pre_transform: callable, optional
+        A function/transform that takes in
+        an :obj:`gammagl.data.Graph` object and returns a
+        transformed version. The data object will be transformed before
+        being saved to disk. (default: :obj:`None`)
 
     Stats:
         .. list-table::
@@ -51,14 +56,14 @@ class Amazon(InMemoryDataset):
 
     url = 'https://github.com/shchur/gnn-benchmark/raw/master/data/npz/'
 
-    def __init__(self, root: str, name: str,
+    def __init__(self, root: str = None, name: str = 'computers',
                  transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None):
         self.name = name.lower()
         assert self.name in ['computers', 'photo']
         super().__init__(root, transform, pre_transform)
         self.data, self.slices = self.load_data(self.processed_paths[0])
-    
+
     @property
     def raw_dir(self) -> str:
         return osp.join(self.root, self.name.capitalize(), 'raw')
@@ -73,11 +78,11 @@ class Amazon(InMemoryDataset):
 
     @property
     def processed_file_names(self) -> str:
-        return tlx.BACKEND+'data.pt'
+        return tlx.BACKEND + 'data.pt'
 
     def download(self):
-        download_url(self.url+self.raw_file_names, self.raw_dir)
-        
+        download_url(self.url + self.raw_file_names, self.raw_dir)
+
     def process(self):
         data = read_npz(self.raw_paths[0])
         data = data if self.pre_transform is None else self.pre_transform(data)
@@ -86,5 +91,5 @@ class Amazon(InMemoryDataset):
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}{self.name.capitalize()}()'
 
-#data=Amazon(root='./Amazon/',name='photo')
-#data.process()
+# data=Amazon(root='./Amazon/',name='photo')
+# data.process()

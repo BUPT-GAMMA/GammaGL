@@ -34,9 +34,9 @@ class TUDataset(InMemoryDataset):
 
     Parameters
     ----------
-    root: string
+    root: str, optional
         Root directory where the dataset should be saved.
-    name: string
+    name: str, optional
         The `name
         <https://chrsmrrs.github.io/datasets/docs/datasets/>`_ of the
         dataset.
@@ -127,7 +127,7 @@ class TUDataset(InMemoryDataset):
     cleaned_url = ('https://raw.githubusercontent.com/nd7141/'
                    'graph_datasets/master/datasets')
 
-    def __init__(self, root: str, name: str,
+    def __init__(self, root: str = None, name: str = 'MUTAG',
                  transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None,
                  pre_filter: Optional[Callable] = None,

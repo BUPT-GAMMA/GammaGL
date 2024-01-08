@@ -7,18 +7,17 @@
 """
 
 import os
-# os.environ['TL_BACKEND'] = 'torch'
-# os.environ["CUDA_VISIBLE_DEVICES"] = "5"
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
-import sys
-sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
 from gammagl.models import FAGCNModel
 from gammagl.utils import mask_to_index, calc_gcn_norm
 from tensorlayerx.model import TrainOneStep, WithLoss
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -130,7 +129,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_layers", type=int, default=3, help="number of fagcn layers")
     parser.add_argument('--eps', type=float, default=0.2, help='epsilon')
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     args = parser.parse_args()
 

@@ -5,28 +5,29 @@ import tensorlayerx as tlx
 from gammagl.layers.conv import HPNConv
 
 class HPN(tlx.nn.Module):
-    '''
-    HPN proposed in `Heterogeneous Graph Propagation Network`_.
+    r'''HPN proposed in `"Heterogeneous Graph Propagation Network"
+        <https://ieeexplore.ieee.org/abstract/document/9428609>`_ paper.
 
-    .. _Heterogeneous Graph Propagation Network:
-        https://ieeexplore.ieee.org/abstract/document/9428609
 
-    Parameters
-    ----------
-    in_channels: int
-        input dimension of the feature
-    out_channels: int
-        output dimension of the feature
-    metadata: Tuple[List[str], List[Tuple[str, str, str]]]
-        the metadata of the heterogeneous graph
-    drop_rate: float
-        dropout probability
-    iter_K: int
-        number of iteration used in APPNPConv
-    hidden_channels: int, optional
-        hidden dimension of the feature
-    alpha: float, optional
-        parameters used in APPNPConv
+        Parameters
+        ----------
+        in_channels: int
+            input dimension of the feature.
+        out_channels: int
+            output dimension of the feature.
+        metadata: Tuple[List[str], List[Tuple[str, str, str]]]
+            the metadata of the heterogeneous graph.
+        drop_rate: float
+            dropout probability.
+        iter_K: int
+            number of iteration used in APPNPConv.
+        hidden_channels: int, optional
+            hidden dimension of the feature.
+        alpha: float, optional
+            parameters used in APPNPConv.
+        name: str, optional
+            model name.
+
     '''
     def __init__(self,
                  in_channels,

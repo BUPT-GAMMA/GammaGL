@@ -4,9 +4,7 @@ from gammagl.datasets import Flickr
 
 
 def test():
-	dataset = Flickr('./Flickr', 'flickr')
+	dataset = Flickr()
 	g = dataset.data
 	pass
 
-
-test()

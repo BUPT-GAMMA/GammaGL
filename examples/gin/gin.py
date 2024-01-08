@@ -1,21 +1,17 @@
+import os
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
+
 
 import numpy
-import os
-import sys
-
-sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
-
 import argparse
-import numpy as np
-
 import tensorlayerx as tlx
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.loader import DataLoader
 from gammagl.datasets import TUDataset
 from gammagl.models import GINModel
-
-tlx.set_device('GPU', 5)
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -118,10 +114,8 @@ if __name__ == '__main__':
     parser.add_argument("--hidden_dim", type=int, default=32, help="dimention of hidden layers")
     parser.add_argument("--drop_rate", type=float, default=0.1, help="drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
-    # parser.add_argument('--dataset', type=str, default='MUTAG', help='dataset(MUTAG/IMDB-BINARY/REDDIT-BINARY)')
-    # parser.add_argument('--dataset', type=str, default='IMDB-BINARY', help='dataset(MUTAG/IMDB-BINARY/REDDIT-BINARY)')
-    # parser.add_argument('--dataset', type=str, default='REDDIT-BINARY', help='dataset(MUTAG/IMDB-BINARY/REDDIT-BINARY)')
-    parser.add_argument("--dataset_path", type=str, default=r'../../../data', help="path to save dataset")
+    parser.add_argument('--dataset', type=str, default='MUTAG', help='dataset(MUTAG/IMDB-BINARY/REDDIT-BINARY)')
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     parser.add_argument("--num_layers", type=int, default=5, help="num of gin layers")

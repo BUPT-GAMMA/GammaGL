@@ -6,20 +6,18 @@
 @Author  :   yunhe
 """
 
+import os
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
+
 from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.utils import add_self_loops, mask_to_index
 from gammagl.models import GaANModel
 from gammagl.datasets import Planetoid
 import tensorlayerx as tlx
 import argparse
-import os
-# os.environ['CUDA_VISIBLE_DEVICES']='1'
-# os.environ['TL_BACKEND'] = 'paddle'
-
-import sys
-# adds path2gammagl to execute in command line.
-sys.path.insert(0, os.path.abspath('../../'))
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -144,7 +142,7 @@ if __name__ == "__main__":
                         help="parameter to compute gate")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
     parser.add_argument("--dataset_path", type=str,
-                        default=r'../', help="path to save dataset")
+                        default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str,
                         default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1,

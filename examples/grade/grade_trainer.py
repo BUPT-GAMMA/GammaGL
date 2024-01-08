@@ -1,7 +1,9 @@
 import os
-# os.environ['TL_BACKEND'] = 'torch'
-# os.environ['CUDA_VISIBLE_DEVICES']=' '
-# set your backend here, default 'tensorflow', you can choose 'paddle'、'tensorflow'、'torch'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
+
 
 import tensorlayerx as tlx
 import argparse
@@ -13,7 +15,6 @@ from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.utils.corrupt_graph import add_self_loops, dfde_norm_g
 from warnings import filterwarnings
 filterwarnings("ignore")
-
 
 class Unsupervised_Loss(WithLoss):
     def __init__(self, model):
@@ -96,6 +97,6 @@ if __name__ == '__main__':
     parser.add_argument("--temp", type=float, default=0.5)
     parser.add_argument("--num_layers", type=int, default=2)
     parser.add_argument('--dataset', type=str, default='cora')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     args = parser.parse_args()
     main(args)

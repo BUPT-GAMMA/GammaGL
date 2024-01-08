@@ -1,7 +1,9 @@
-import sys
 import os
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
-sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 import argparse
 import tensorlayerx as tlx
 from tensorlayerx.model import TrainOneStep, WithLoss
@@ -9,7 +11,6 @@ from gammagl.datasets.ppi import PPI
 from gammagl.models import FILMModel
 from gammagl.loader import DataLoader
 from sklearn.metrics import f1_score
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -30,9 +31,9 @@ def calculate_acc(logits, y, metrics):
 
 def main(args):
     print("loading ppi dataset...")
-    train_dataset = PPI(args.dataset_path)
-    val_dataset = PPI(args.dataset_path, split='val')
-    test_dataset = PPI(args.dataset_path, split='test')
+    train_dataset = PPI()
+    val_dataset = PPI(split='val')
+    test_dataset = PPI(split='test')
 
     batch_size = int(args.batch_size)
 
@@ -100,7 +101,7 @@ if __name__ == '__main__':
     parser.add_argument("--drop_rate", type=float, default=0.1, help="drop_rate")
     parser.add_argument("--l2_coef", type=float, default=5e-4, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='ppi', help='dataset(ppi)')
-    parser.add_argument("--dataset_path", type=str, default=r'../../../data', help="path to save dataset")
+    # parser.add_argument("--dataset_path", type=str, default=r'../../../data', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     parser.add_argument("--batch_size", type=int, default=2, help="batch_size of dataloader")

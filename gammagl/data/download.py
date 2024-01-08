@@ -3,6 +3,7 @@ import os.path as osp
 import ssl
 import sys
 import urllib
+from tqdm import tqdm
 from typing import Optional
 
 from .makedirs import makedirs
@@ -12,11 +13,18 @@ def download_url(url: str, folder: str, log: bool = True,
                  filename: Optional[str] = None):
     r"""Downloads the content of an URL to a specific folder.
 
-    Args:
-        url (string): The url.
-        folder (string): The folder.
-        log (bool, optional): If :obj:`False`, will not print anything to the
+        Parameters
+        ----------
+        url: str
+            The url.
+        folder: str
+            The folder.
+        log: bool, optional
+            If :obj:`False`, will not print anything to the
             console. (default: :obj:`True`)
+        filename: str, optional
+            The name of the file.
+
     """
 
     if filename is None:
@@ -37,15 +45,25 @@ def download_url(url: str, folder: str, log: bool = True,
     makedirs(folder)
 
     context = ssl._create_unverified_context()
-    data = urllib.request.urlopen(url, context=context)
+    response = urllib.request.urlopen(url, context=context)
+
+    file_size = response.getheader('Content-Length', '0')
+
+    # print(f"downloading {filename} ...")
+    file_size = int(file_size)
+    if file_size == 0:
+        print(f"Remote file size not found.")
 
     with open(path, 'wb') as f:
         # workaround for https://bugs.python.org/issue42853
-        while True:
-            chunk = data.read(10 * 1024 * 1024)
-            if not chunk:
-                break
-            f.write(chunk)
+        # add download progress bar
+        with tqdm(total=file_size, unit='B', unit_divisor=1024, unit_scale=True, desc=f'{filename}') as pbar:
+            chunk_size = 10 * 1024 * 1024
+            while True:
+                chunk = response.read(chunk_size)
+                if not chunk:
+                    break
+                f.write(chunk)
+                pbar.update(chunk_size)
 
     return path
-

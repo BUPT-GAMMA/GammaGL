@@ -9,7 +9,7 @@ gammagl.loader
     :template: autosummary/loader_class.rst
 
     gammagl.loader.DataLoader
-    gammagl.loader.Neighbor_Sampler
-    gammagl.loader.Neighbor_Sampler_python
-    gammagl.loader.Hetero_Neighbor_Sampler
+    gammagl.loader.NeighborSampler
+    gammagl.loader.NodeNeighborLoader
+    gammagl.loader.LinkNeighborLoader
     gammagl.loader.RandomWalk

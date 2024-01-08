@@ -1,13 +1,10 @@
 import os
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
-# os.environ['TL_BACKEND'] = 'paddle'
-# os.environ['CUDA_VISIBLE_DEVICES']=' '
-# set your backend here, default 'tensorflow', you can choose 'paddle'、'tensorflow'、'torch'
-
-from gammagl.utils import add_self_loops, calc_gcn_norm, mask_to_index
-
-
-
+from gammagl.utils import add_self_loops, calc_gcn_norm
 import argparse
 from tqdm import tqdm
 from gammagl.data import Graph
@@ -96,7 +93,7 @@ if __name__ == '__main__':
     parser.add_argument("--l2", type=float, default=1e-5, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='citeseer', help='dataset,cora/pubmed/citeseer')
     parser.add_argument('--split', type=str, default='random', help='random or public')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     args = parser.parse_args()

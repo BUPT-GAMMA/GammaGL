@@ -33,36 +33,43 @@ class ZINC(InMemoryDataset):
     `"Grammar Variational Autoencoder"
     <https://proceedings.mlr.press/v70/kusner17a.html>`_ papers.
 
-    Args:
-        root (string): Root directory where the dataset should be saved.
-        subset (boolean, optional): If set to :obj:`True`, will only load a
-            subset of the dataset (12,000 molecular graphs), following the
-            `"Benchmarking Graph Neural Networks"
-            <https://arxiv.org/abs/2003.00982>`_ paper. (default: :obj:`False`)
-        split (string, optional): If :obj:`"train"`, loads the training
-            dataset.
-            If :obj:`"val"`, loads the validation dataset.
-            If :obj:`"test"`, loads the test dataset.
-            (default: :obj:`"train"`)
-        transform (callable, optional): A function/transform that takes in an
-            :obj:`gammagl.data.Graph` object and returns a transformed
-            version. The data object will be transformed before every access.
-            (default: :obj:`None`)
-        pre_transform (callable, optional): A function/transform that takes in
-            an :obj:`gammagl.data.Graph` object and returns a
-            transformed version. The data object will be transformed before
-            being saved to disk. (default: :obj:`None`)
-        pre_filter (callable, optional): A function that takes in an
-            :obj:`gammagl.data.Graph` object and returns a boolean
-            value, indicating whether the data object should be included in the
-            final dataset. (default: :obj:`None`)
+    Parameters
+    ----------
+    root: str, optional
+        Root directory where the dataset should be saved.
+    subset: bool, optional
+        If set to :obj:`True`, will only load a
+        subset of the dataset (12,000 molecular graphs), following the
+        `"Benchmarking Graph Neural Networks"
+        <https://arxiv.org/abs/2003.00982>`_ paper. (default: :obj:`False`)
+    split: str, optional
+        If :obj:`"train"`, loads the training
+        dataset.
+        If :obj:`"val"`, loads the validation dataset.
+        If :obj:`"test"`, loads the test dataset.
+        (default: :obj:`"train"`)
+    transform: callable, optional
+        A function/transform that takes in an
+        :obj:`gammagl.data.Graph` object and returns a transformed
+        version. The data object will be transformed before every access.
+        (default: :obj:`None`)
+    pre_transform: callable, optional
+        A function/transform that takes in
+        an :obj:`gammagl.data.Graph` object and returns a
+        transformed version. The data object will be transformed before
+        being saved to disk. (default: :obj:`None`)
+    pre_filter: callable, optional
+        A function that takes in an
+        :obj:`gammagl.data.Graph` object and returns a boolean
+        value, indicating whether the data object should be included in the
+        final dataset. (default: :obj:`None`)
     """
 
     url = 'https://www.dropbox.com/s/feo9qle74kg48gy/molecules.zip?dl=1'
     split_url = ('https://raw.githubusercontent.com/graphdeeplearning/'
                  'benchmarking-gnns/master/data/molecules/{}.index')
 
-    def __init__(self, root, subset=False, split='train', transform=None,
+    def __init__(self, root: str = None, subset=False, split='train', transform=None,
                  pre_transform=None, pre_filter=None):
         self.subset = subset
         assert split in ['train', 'val', 'test']

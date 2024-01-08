@@ -13,7 +13,7 @@ from gammagl.utils import remove_self_loops
 class PPI(InMemoryDataset):
     url = 'https://data.dgl.ai/dataset/ppi.zip'
 
-    def __init__(self, root, split='train', transform=None, pre_transform=None,
+    def __init__(self, root=None, split='train', transform=None, pre_transform=None,
                  pre_filter=None):
 
         assert split in ['train', 'val', 'valid', 'test']
@@ -26,14 +26,6 @@ class PPI(InMemoryDataset):
             self.data, self.slices = self.load_data(self.processed_paths[1])
         elif split == 'test':
             self.data, self.slices = self.load_data(self.processed_paths[2])
-
-    @property
-    def raw_dir(self) -> str:
-        return osp.join(self.root, 'ppi', 'raw')
-
-    @property
-    def processed_dir(self) -> str:
-        return osp.join(self.root, 'ppi', 'processed')
 
     @property
     def raw_file_names(self):
@@ -84,3 +76,4 @@ class PPI(InMemoryDataset):
                 graph = Graph(edge_index=edge_index, x=x[mask], y=y[mask])
                 graph_list.append(graph)
             self.save_data(self.collate(graph_list), self.processed_paths[s])
+

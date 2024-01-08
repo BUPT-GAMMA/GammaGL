@@ -18,15 +18,25 @@ class MixHopConv(MessagePassing):
 
     Parameters
     ----------
-        in_channels: int
-            Size of each input sample
-        out_channels: int
-            Size of each output sample
-        p: list
-            The list of integer adjacency powers
-        add_bias: bool
-            If set to :obj:`False`, the layer will not learn
-            an additive bias. (default: :obj:`True`)
+    in_channels: int
+        Size of each input sample
+    out_channels: int
+        Size of each output sample
+    p: list
+        The list of integer adjacency powers
+    norm: str, optional
+        How to apply the normalizer.  Can be one of the following values:
+        
+            * ``right``, to divide the aggregated messages by each node's in-degrees, which is equivalent to averaging the received messages.
+
+            * ``none``, where no normalization is applied.
+
+            * ``both`` (default), where the messages are scaled with :math:`1/c_{ji}` above, equivalent to symmetric normalization.
+
+            * ``left``, to divide the messages sent out from each node by its out-degrees, equivalent to random walk normalization.
+    add_bias: bool
+        If set to :obj:`False`, the layer will not learn
+        an additive bias. (default: :obj:`True`)
 
     """
 

@@ -3,10 +3,10 @@
 
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-# os.environ['TL_BACKEND'] = 'paddle'
+os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
-import sys
-sys.path.insert(0, os.path.abspath('../../'))  # adds path2gammagl to execute in command line.
 from gammagl.models import GraphGAN
 from gammagl.utils import read_embeddings
 from gammagl.datasets import CA_GrQc
@@ -16,8 +16,6 @@ from functools import partial
 import numpy as np
 import glob
 import argparse
-# tlx.set_device("GPU", 0)
-
 
 def calculate_acc(n_node, test_edges, test_edges_neg, args):
     """
@@ -429,7 +427,7 @@ if __name__ == '__main__':
 
     # Path settings
     parser.add_argument("--dataset_path", type=str,
-                        default='gan_dataset', help="path to save dataset")
+                        default=r'', help="path to save dataset")
     parser.add_argument("--emb_folder", type=str,
                         default='gan_results',
                         help="embeddings during training filenames")
