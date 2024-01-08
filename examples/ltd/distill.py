@@ -1,5 +1,4 @@
 import tensorlayerx as tlx
-import numpy as np
 from gammagl.utils import add_self_loops, remove_self_loops
 from gammagl.mpops import *
 from gammagl.models import GCNModel, GATModel, MLP
@@ -178,11 +177,11 @@ def model_train(configs, model, graph, teacher_logits):
         epoch += 1
     model.load_weights(model.name + ".npz", format='npz_dict')
     print("Optimization Finished!")
-    acc_test = distill_test(model, graph, configs, teacher_logits)
+    acc_test = distill_test(model, graph, configs)
     return acc_test
 
 
-def distill_test(model, graph, configs, teacher_logits):
+def distill_test(model, graph, configs):
     model.set_eval()
     edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes)
     if configs['student'] in ['GCN', 'LogReg', 'MLP']:
@@ -193,12 +192,6 @@ def distill_test(model, graph, configs, teacher_logits):
         logits = model(graph.x, edge_index, graph.num_nodes)
     elif configs['student'] in ['GraphSAGE', 'SGC']:
         logits = model(graph.x)
-    loss_test = tlx.losses.softmax_cross_entropy_with_logits(logits, graph.y)
     logp = tlx.ops.log(tlx.ops.softmax(logits))
     acc_test = accuracy(logp[graph.test_mask], graph.y[graph.test_mask])
-    acc_teacher_test = accuracy(teacher_logits[graph.test_mask], graph.y[graph.test_mask])
-    acc_dis = np.abs(acc_teacher_test.item() - acc_test.item())
-    print(
-        "Test set results: loss = {:.4f} acc_test = {:.4f} acc_teacher_test = {:.4f} acc_dis = {:.4f}".format(
-            loss_test.item(), acc_test.item(), acc_teacher_test.item(), acc_dis))
     return acc_test

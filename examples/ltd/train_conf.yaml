@@ -1,0 +1,95 @@
+GCN:
+  cora:
+    train_per_class: 20
+    val_per_class: 20
+    my_val_per_class: 10
+    num_test: 2358
+    hidden_dim: 64
+    drop_rate: 0.8
+    num_layers: 2
+    my_lr: 0.0010048137731444346
+    my_t_lr: 0.00013337740190874308
+    lam: 1
+    k: 1
+    t_lr: 0.005
+    l2_coef: 0.01
+    n_epoch: 200
+  citeseer:
+    train_per_class: 20
+    val_per_class: 20
+    my_val_per_class: 10
+    num_test: 3000
+    hidden_dim: 64
+    drop_rate: 0.8
+    num_layers: 2
+    my_lr: 0.0008736877838717051
+    my_t_lr: 0.0019445362780140703
+    lam: 1
+    k: 1
+    t_lr: 0.01
+    l2_coef: 0.01
+    n_epoch: 200
+  pubmed:
+    train_per_class: 20
+    val_per_class: 20
+    my_val_per_class: 10
+    num_test: 19000
+    hidden_dim: 64
+    drop_rate: 0.8
+    num_layers: 2
+    my_lr: 7.39520400332059E-07
+    my_t_lr: 0.0000937937968682644
+    lam: 1000
+    k: 1
+    t_lr: 0.01
+    l2_coef: 0.002
+    n_epoch: 200
+GAT:
+  cora:
+    train_per_class: 20
+    val_per_class: 20
+    my_val_per_class: 10
+    num_test: 2358
+    hidden_dim: 8
+    heads: 8
+    drop_rate: 0.6
+    num_layers: 2
+    my_lr: 0.0012033602084655297
+    my_t_lr: 0.0009098411162144382
+    lam: 1
+    k: 2
+    t_lr: 0.01
+    l2_coef: 0.005
+    n_epoch: 50
+  citeseer:
+    train_per_class: 20
+    val_per_class: 20
+    my_val_per_class: 10
+    num_test: 3000
+    hidden_dim: 8
+    heads: 8
+    drop_rate: 0.6
+    num_layers: 2
+    my_lr: 0.000858867483786378
+    my_t_lr: 0.00156837256987387
+    lam: 1
+    k: 2
+    t_lr: 0.01
+    l2_coef: 0.01
+    n_epoch: 50
+  pubmed:
+    train_per_class: 20
+    val_per_class: 20
+    my_val_per_class: 10
+    num_test: 19000
+    hidden_dim: 8
+    heads: 8
+    drop_rate: 0.6
+    num_layers: 2
+    my_lr: 0.0000295072855477947
+    my_t_lr: 0.000003722992284806
+    lam: 200
+    k: 2
+    t_lr: 0.01
+    l2_coef: 0.001
+    n_epoch: 50
