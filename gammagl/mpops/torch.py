@@ -1,7 +1,6 @@
 import torch
 use_ext = False
 try:
-    from .torch_ext._torch_ext import c_segment_sum, c_segment_mean, c_segment_max, c_spmm_sum
     use_ext = True
 except:
     pass
@@ -297,5 +296,9 @@ def gspmm(index, weight, x, reduce='sum'):
     """
     if reduce == 'sum':
         return c_spmm_sum(index, weight, x)
+    elif reduce == 'mean':
+        return c_spmm_mean(index, weight, x)
+    elif reduce == 'max':
+        return c_spmm_max(index, weight, x)
     else:
         raise Exception("Unsupported reduce type, please choose from ['sum', ].")
