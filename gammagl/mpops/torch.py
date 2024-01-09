@@ -1,6 +1,7 @@
 import torch
 use_ext = False
 try:
+    from .torch_ext._torch_ext import c_segment_sum, c_segment_mean, c_segment_max, c_spmm_sum, c_spmm_mean, c_spmm_max
     use_ext = True
 except:
     pass
