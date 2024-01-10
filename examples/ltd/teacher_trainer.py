@@ -35,17 +35,13 @@ def calculate_acc(logits, y, metrics):
     return rst
 
 
-def teacher_trainer(configs):
+def teacher_trainer(graph, configs):
     print("-------------------teacher model training------------------------")
-    if str.lower(configs['dataset']) not in ['cora', 'pubmed', 'citeseer']:
-        raise ValueError('Unknown dataset: {}'.format(configs['dataset']))
-    dataset = Planetoid(configs['dataset_path'], configs['dataset'])
-    graph = dataset[0]
     edge_index, _ = add_self_loops(graph.edge_index, n_loops=1, num_nodes=graph.num_nodes)
 
-    train_idx = mask_to_index(graph.train_mask)
+    train_idx = mask_to_index(configs['t_train_mask'])
     test_idx = mask_to_index(graph.test_mask)
-    val_idx = mask_to_index(graph.val_mask)
+    val_idx = mask_to_index(configs['my_val_mask'])
 
     net = choose_model(configs)
 

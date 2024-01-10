@@ -78,7 +78,7 @@ def distill_train(epoch, model, configs, graph, nei_entropy, t_model, teacher_lo
         axis=1)
 
     temparature = t_model(extract_x)
-    temparature = (temparature + 0.2) * configs['k']
+    temparature = (tlx.ops.sigmoid(temparature) - 0.2) * configs['k']
     temparature = tlx.ops.where(tlx.ops.abs(temparature) < 0.0001, 0.001 * tlx.ops.ones_like(temparature),
                                 temparature)
     teacher_logits_t = tlx.ops.transpose(
@@ -153,8 +153,8 @@ def model_train(configs, model, graph, teacher_logits):
         if nei_entropy[i] != nei_entropy[i]:
             nei_entropy[i] = 0.0001
 
-    t_model = MLP(num_layers=2, in_channels=configs['num_classes'] + 2, hidden_channels=64, out_channels=1, dropout=0.4,
-                  norm=None)
+    t_model = MLP(num_layers=2, in_channels=configs['num_classes'] + 2, hidden_channels=64, out_channels=1, dropout=0.6,
+                  norm=None, act=tlx.nn.ReLU())
 
     best = 0
     cnt = 0

@@ -51,6 +51,7 @@ def load_dataset(configs):
         graph = dataset[0]
     else:
         raise ValueError('Unknown dataset: {}'.format(configs['dataset']))
+
     train_mask, val_mask, my_val_mask = split_train_mask(graph, dataset.num_classes, configs['train_per_class'],
                                                          configs['val_per_class'], configs['my_val_per_class'])
     dataset_configs = {
@@ -58,7 +59,8 @@ def load_dataset(configs):
         'num_classes': dataset.num_classes,
         'train_mask': train_mask,
         'val_mask': val_mask,
-        'my_val_mask': my_val_mask
+        'my_val_mask': my_val_mask,
+        't_train_mask': train_mask | val_mask
     }
     configs = dict(
         configs, **dataset_configs)
@@ -68,7 +70,7 @@ def load_dataset(configs):
 def main(args):
     configs = get_training_config("train_conf.yaml", args)
     configs, graph = load_dataset(configs)
-    teacher_logits, acc_teacher_test = teacher_trainer(configs)
+    teacher_logits, acc_teacher_test = teacher_trainer(graph, configs)
     teacher_logits = layer_normalize(teacher_logits)
     model = choose_model(configs)
     best_acc_test = model_train(configs, model, graph, teacher_logits)
@@ -81,9 +83,9 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default='cora', help='Dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument('--teacher', type=str,
-                        default='GAT', help='Teacher Model')
+                        default='GCN', help='Teacher Model')
     parser.add_argument('--student', type=str,
-                        default='GAT', help='Student Model')
+                        default='GCN', help='Student Model')
     parser.add_argument("--max_epoch", type=int, default=300, help="max number of epoch")
     parser.add_argument("--patience", type=int, default=200, help="early stopping epoch")
     args = parser.parse_args()

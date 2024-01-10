@@ -7,8 +7,8 @@ GCN:
     hidden_dim: 64
     drop_rate: 0.8
     num_layers: 2
-    my_lr: 0.0010048137731444346
-    my_t_lr: 0.00013337740190874308
+    my_lr: 1.92E-04
+    my_t_lr: 2.60E-04
     lam: 1
     k: 1
     t_lr: 0.005
@@ -18,12 +18,12 @@ GCN:
     train_per_class: 20
     val_per_class: 20
     my_val_per_class: 10
-    num_test: 3000
+    num_test: 3027
     hidden_dim: 64
     drop_rate: 0.8
     num_layers: 2
-    my_lr: 0.0008736877838717051
-    my_t_lr: 0.0019445362780140703
+    my_lr: 6.90E-06
+    my_t_lr: 7.46E-05
     lam: 1
     k: 1
     t_lr: 0.01
@@ -33,13 +33,13 @@ GCN:
     train_per_class: 20
     val_per_class: 20
     my_val_per_class: 10
-    num_test: 19000
+    num_test: 19567
     hidden_dim: 64
     drop_rate: 0.8
     num_layers: 2
-    my_lr: 7.39520400332059E-07
-    my_t_lr: 0.0000937937968682644
-    lam: 1000
+    my_lr: 7.40E-06
+    my_t_lr: 9.38E-05
+    lam: 200
     k: 1
     t_lr: 0.01
     l2_coef: 0.002
@@ -50,12 +50,12 @@ GAT:
     val_per_class: 20
     my_val_per_class: 10
     num_test: 2358
-    hidden_dim: 8
+    hidden_dim: 64
     heads: 8
     drop_rate: 0.6
     num_layers: 2
-    my_lr: 0.0012033602084655297
-    my_t_lr: 0.0009098411162144382
+    my_lr: 1.68E-03
+    my_t_lr: 3.29E-04
     lam: 1
     k: 2
     t_lr: 0.01
@@ -65,13 +65,13 @@ GAT:
     train_per_class: 20
     val_per_class: 20
     my_val_per_class: 10
-    num_test: 3000
-    hidden_dim: 8
+    num_test: 3027
+    hidden_dim: 64
     heads: 8
     drop_rate: 0.6
     num_layers: 2
-    my_lr: 0.000858867483786378
-    my_t_lr: 0.00156837256987387
+    my_lr: 6.24E-05
+    my_t_lr: 1.71E-04
     lam: 1
     k: 2
     t_lr: 0.01
@@ -81,13 +81,13 @@ GAT:
     train_per_class: 20
     val_per_class: 20
     my_val_per_class: 10
-    num_test: 19000
-    hidden_dim: 8
+    num_test: 19567
+    hidden_dim: 64
     heads: 8
     drop_rate: 0.6
     num_layers: 2
-    my_lr: 0.0000295072855477947
-    my_t_lr: 0.000003722992284806
+    my_lr: 2.95E-05
+    my_t_lr: 3.27E-06
     lam: 200
     k: 2
     t_lr: 0.01
