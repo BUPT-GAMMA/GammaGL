@@ -91,7 +91,6 @@ def distill_train(epoch, model, configs, graph, nei_entropy, t_model, teacher_lo
     for p_name, p in model.named_parameters():
         agr = torch.autograd.grad(distill_loss, p, create_graph=True)[0]
         model_dict[p_name] = p - configs['my_lr'] * agr
-    model.load_state_dict(model_dict)
 
     evaluate_loss = torch.tensor(0)
     if epoch > 20:
@@ -101,21 +100,19 @@ def distill_train(epoch, model, configs, graph, nei_entropy, t_model, teacher_lo
         elif configs['model'] == 'GAT':
             logits = model(graph.x, edge_index, graph.num_nodes)
         evaluate_loss = compute_evaluate_loss(logits, graph, configs)
-        for name, t in model.named_parameters():
-            t_grad = torch.autograd.grad(evaluate_loss, t, create_graph=True, allow_unused=True)[0]
-            t_grad = t_grad.detach()
-            model_dict[name] = model_dict[name] * t_grad
         t_model_dict = {}
         for name, t in t_model.named_parameters():
             t_model_dict[name] = t.detach()
-        for p_name, p in model.named_parameters():
-            for name, t in t_model.named_parameters():
-                agr = torch.autograd.grad(tlx.reduce_sum(model_dict[p_name]), t, create_graph=True, allow_unused=True)[
-                    0]
-                t_model_dict[name] = t_model_dict[name] - configs['my_t_lr'] * agr
-
+        for name, t in model.named_parameters():
+            t_grad = torch.autograd.grad(evaluate_loss, t, create_graph=True, allow_unused=True)[0]
+            t_grad = t_grad.detach()
+            temp = model_dict[name] * t_grad
+            for name_t, t_t in t_model.named_parameters():
+                agr = torch.autograd.grad(tlx.reduce_sum(temp), t_t, create_graph=True, allow_unused=True)[0]
+                t_model_dict[name_t] = (t_model_dict[name_t] - configs['my_t_lr'] * agr).detach()
         t_model.load_state_dict(t_model_dict)
         zero_grad(t_model)
+    model.load_state_dict(model_dict)
     model.set_eval()
     edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes)
     if configs['model'] == 'GCN':
