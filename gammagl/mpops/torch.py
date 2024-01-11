@@ -302,4 +302,4 @@ def gspmm(index, weight, x, reduce='sum'):
     elif reduce == 'max':
         return c_spmm_max(index, weight, x)
     else:
-        raise Exception("Unsupported reduce type, please choose from ['sum', ].")
+        raise Exception("Unsupported reduce type, please choose from ['sum', 'mean', 'max'].")

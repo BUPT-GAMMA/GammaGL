@@ -45,7 +45,7 @@ torch::Tensor device_dispatch_forward(SpMMOpType op_type,
             case MEAN:
                 return spmm_mean_cpu_forward(index, weight, x);
             case MAX:
-                return spmm_max_cpu_forward(index, weight, x); 
+                return spmm_max_cpu_forward(index, weight, x, max_indices); 
         }
     } else {
         AT_ERROR("Tensor device inconsistent error.");
@@ -66,7 +66,7 @@ torch::Tensor device_dispatch_backward(SpMMOpType op_type,
       case MEAN:
         return spmm_sum_cuda_backward(index, weight, grad);
       case MAX:
-        return spmm_sum_cuda_backward(index, weight, grad);
+        return spmm_sum_cuda_backward(index, weight, grad, max_indices);
     }
 #else
     AT_ERROR("The program is not compiled with CUDA support, but tensors are located on GPU. Please recompile with CUDA support or move tensors to CPU.");
@@ -125,15 +125,16 @@ std::vector<torch::Tensor> SpMMMean::backward(torch::autograd::AutogradContext *
 
 torch::Tensor SpMMMax::forward(torch::autograd::AutogradContext *ctx, torch::Tensor index,
                                torch::Tensor weight, torch::Tensor x) {
-    ctx->save_for_backward({index, weight, x});
+    torch::Tensor max_indices;
+    ctx->save_for_backward({index, weight, x, max_indices});
     ctx->mark_non_differentiable({index, weight});
-    torch::Tensor out = device_dispatch_forward(MAX, index, weight, x);
+    torch::Tensor out = spmm_max_cpu_forward(MAX, index, weight, x, max_indices);
     return out;
-  }
+}
 
 std::vector<torch::Tensor> SpMMMax::backward(torch::autograd::AutogradContext *ctx, std::vector<torch::Tensor> grad_outs) {
     auto saved = ctx->get_saved_variables();
-    auto index = saved[0], weight = saved[1], x = saved[2];
-    torch::Tensor grad_x = device_dispatch_backward(MAX, index, weight, grad_outs[0]);
+    auto index = saved[0], weight = saved[1], x = saved[2], max_indices = saved[3];
+    torch::Tensor grad_x = spmm_max_cpu_backward(MAX, index, weight, grad_outs[0], max_indices);
     return {torch::Tensor(), torch::Tensor(), grad_x};
-  }
+}

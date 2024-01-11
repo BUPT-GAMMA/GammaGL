@@ -13,7 +13,7 @@ torch::Tensor spmm_sum_cpu_forward(torch::Tensor &index, torch::Tensor &weight, 
     }
     torch::Tensor out = torch::zeros_like(x, x.options());
     auto E = index.size(1);
-    auto K = x.size(1);
+    auto K = x.numel() / x.size(0);
 
     auto index_data = index.data_ptr<int64_t>();
     using scalar_t = float;
@@ -51,7 +51,7 @@ torch::Tensor spmm_sum_cpu_backward(torch::Tensor &index, torch::Tensor &weight,
     }
     torch::Tensor out = torch::zeros_like(grad, grad.options());
     auto E = index.size(1);
-    auto K = grad.size(1);
+    auto K = grad.numel() / grad.size(0);
 
     auto index_data = index.data_ptr<int64_t>();
     using scalar_t = float;

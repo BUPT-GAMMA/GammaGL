@@ -1,7 +1,7 @@
 #include "spmm_max_cpu.h"
 #include <torch/torch.h>
 
-torch::Tensor spmm_max_cpu_forward(torch::Tensor &index, torch::Tensor &weight, torch::Tensor &x) {
+torch::Tensor spmm_max_cpu_forward(torch::Tensor &index, torch::Tensor &weight, torch::Tensor &x, torch::Tensor &max_indices) {
     if (!x.is_contiguous()) {
         x = x.contiguous();
     }
@@ -14,13 +14,16 @@ torch::Tensor spmm_max_cpu_forward(torch::Tensor &index, torch::Tensor &weight, 
     using scalar_t = float;
     // 初始化输出张量为最小浮点数
     torch::Tensor out = torch::full_like(x, std::numeric_limits<scalar_t>::lowest(), x.options()); 
+    max_indices = torch::zeros_like(x, torch::kInt64); // 保存最大值索引
+
     auto E = index.size(1);
-    auto K = x.size(1);
+    auto K = x.numel() / x.size(0);
 
     auto index_data = index.data_ptr<int64_t>();
     auto x_data = x.data_ptr<scalar_t>();
     auto out_data = out.data_ptr<scalar_t>();
     auto weight_data = weight.data_ptr<scalar_t>();
+    auto max_indices_data = max_indices.data_ptr<int64_t>();
 
 #ifdef COMPILE_WITH_OMP
 #pragma omp parallel for
@@ -35,7 +38,10 @@ torch::Tensor spmm_max_cpu_forward(torch::Tensor &index, torch::Tensor &weight, 
             #pragma omp critical
             #endif
             {
-                out_data[dst * K + k] = std::max(out_data[dst * K + k], weighted_value);
+                if (out_data[dst * K + k] < weighted_value) {
+                    out_data[dst * K + k] = weighted_value;
+                    max_indices_data[dst * K + k] = src; // 保存产生最大值的索引
+                }
             }
         }
     }
@@ -43,7 +49,7 @@ torch::Tensor spmm_max_cpu_forward(torch::Tensor &index, torch::Tensor &weight, 
     return out;
 }
 
-torch::Tensor spmm_max_cpu_backward(torch::Tensor &index, torch::Tensor &weight, torch::Tensor &grad) {
+torch::Tensor spmm_max_cpu_backward(torch::Tensor &index, torch::Tensor &weight, torch::Tensor &grad, torch::Tensor &max_indices) {
     if (!grad.is_contiguous()) {
         grad = grad.contiguous();
     }
@@ -62,6 +68,7 @@ torch::Tensor spmm_max_cpu_backward(torch::Tensor &index, torch::Tensor &weight,
     auto grad_data = grad.data_ptr<scalar_t>();
     auto out_data = out.data_ptr<scalar_t>();
     auto weight_data = weight.data_ptr<scalar_t>();
+    auto max_indices_data = max_indices.data_ptr<int64_t>();
 
 #ifdef COMPILE_WITH_OMP
 #pragma omp parallel for
@@ -71,13 +78,15 @@ torch::Tensor spmm_max_cpu_backward(torch::Tensor &index, torch::Tensor &weight,
         auto dst = index_data[e + E];
 
         for (auto k = 0; k < K; ++k) {
-            scalar_t weighted_value = weight_data[e] * grad_data[dst * K + k];
-            #ifdef COMPILE_WITH_OMP
-            #pragma omp critical
-            #endif
-            {
-                out_data[src * K + k] = std::max(out_data[src * K + k], weighted_value);
-            }     
+            if (max_indices_data[dst * K + k] == src) { // 检查是否是贡献最大的元素
+                scalar_t weighted_value = weight_data[e] * grad_data[dst * K + k];
+                #ifdef COMPILE_WITH_OMP
+                #pragma omp critical
+                #endif
+                {
+                    out_data[src * K + k] += weighted_value;
+                }
+            }
         }
     }
 

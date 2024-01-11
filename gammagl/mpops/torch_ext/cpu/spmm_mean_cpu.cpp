@@ -13,7 +13,7 @@ torch::Tensor spmm_mean_cpu_forward(torch::Tensor &index, torch::Tensor &weight,
     }
     torch::Tensor out = torch::zeros_like(x, x.options());
     auto E = index.size(1);
-    auto K = x.size(1);
+    auto K = x.numel() / x.size(0);
 
     auto index_data = index.data_ptr<int64_t>();
     using scalar_t = float;
@@ -23,11 +23,6 @@ torch::Tensor spmm_mean_cpu_forward(torch::Tensor &index, torch::Tensor &weight,
 
     // 创建一个向量来存储每个节点的收到的消息数量(入度)
     std::vector<int> messages_count(x.size(0), 0);
-    for (auto e = 0; e < E; ++e) {
-        auto dst = index_data[e + E];
-        messages_count[dst]++;
-    }
-
     // 加权求和
 #ifdef COMPILE_WITH_OMP
 #pragma omp parallel for
@@ -35,6 +30,7 @@ torch::Tensor spmm_mean_cpu_forward(torch::Tensor &index, torch::Tensor &weight,
     for (auto e = 0; e < E; ++e) {
         auto src = index_data[e];
         auto dst = index_data[e + E];
+        messages_count[dst]++;
 
         for (auto k = 0; k < K; ++k) {
 #ifdef COMPILE_WITH_OMP
@@ -72,7 +68,7 @@ torch::Tensor spmm_mean_cpu_backward(torch::Tensor &index, torch::Tensor &weight
     }
     torch::Tensor out = torch::zeros_like(grad, grad.options());
     auto E = index.size(1);
-    auto K = grad.size(1);
+    auto K = grad.numel() / grad.size(0);
 
     auto index_data = index.data_ptr<int64_t>();
     using scalar_t = float;
@@ -82,17 +78,14 @@ torch::Tensor spmm_mean_cpu_backward(torch::Tensor &index, torch::Tensor &weight
 
     // 创建一个向量来存储每个节点的出度
     std::vector<int> outdegree_count(grad.size(0), 0);
-    for (auto e = 0; e < E; ++e) {
-        auto src = index_data[e];
-        outdegree_count[src]++;
-    }
-// 计算反向传播的梯度
+    // 计算反向传播的梯度
 #ifdef COMPILE_WITH_OMP
 #pragma omp parallel for
 #endif
     for (auto e = 0; e < E; ++e) {
         auto src = index_data[e];
         auto dst = index_data[e + E];
+        outdegree_count[src]++;
 
         for (auto k = 0; k < K; ++k) {
 #ifdef COMPILE_WITH_OMP
