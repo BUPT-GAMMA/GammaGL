@@ -8,17 +8,18 @@ import logging
 
 tlx_logger = logging.getLogger("tensorlayerx")
 tlx_logger.setLevel(logging.ERROR)
-from distill import choose_model, model_train, layer_normalize
+from distill import model_train
 from gammagl.datasets import Planetoid
 import yaml
 from teacher_trainer import teacher_trainer
+from gammagl.models import GCNModel, GATModel
 
 
 def get_training_config(config_path, args):
     with open(config_path, 'r') as conf:
         full_config = yaml.load(conf, Loader=yaml.FullLoader)
     configs = dict(
-        args.__dict__, **full_config[args.teacher][args.dataset])
+        args.__dict__, **full_config[args.model][args.dataset])
     return configs
 
 
@@ -66,14 +67,35 @@ def load_dataset(configs):
         configs, **dataset_configs)
     return configs, graph
 
+def choose_model(configs):
+    if configs['model'] == 'GCN':
+        model = GCNModel(feature_dim=configs['num_node_features'],
+                         hidden_dim=configs['hidden_dim'],
+                         num_class=configs['num_classes'],
+                         drop_rate=configs['drop_rate'],
+                         num_layers=configs['num_layers'],
+                         norm='both',
+                         name='GCN')
+    elif configs['model'] == 'GAT':
+        model = GATModel(feature_dim=configs['num_node_features'],
+                         hidden_dim=configs['hidden_dim'],
+                         num_class=configs['num_classes'],
+                         heads=configs['heads'],
+                         drop_rate=configs['drop_rate'],
+                         num_layers=configs['num_layers'],
+                         name="GAT",
+                         )
+    else:
+        raise ValueError(f'Undefined Model.')
+    return model
 
 def main(args):
     configs = get_training_config("train_conf.yaml", args)
     configs, graph = load_dataset(configs)
-    teacher_logits, acc_teacher_test = teacher_trainer(graph, configs)
-    teacher_logits = layer_normalize(teacher_logits)
-    model = choose_model(configs)
-    best_acc_test = model_train(configs, model, graph, teacher_logits)
+    teacher_model = choose_model(configs)
+    teacher_logits, acc_teacher_test = teacher_trainer(graph, configs, teacher_model)
+    student_model = choose_model(configs)
+    best_acc_test = model_train(configs, student_model, graph, teacher_logits)
     print(
         "acc_student_test: {:.4f}  acc_teacher_test: {:.4f}".format(best_acc_test.item(), acc_teacher_test.item()))
 
@@ -82,10 +104,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='cora', help='Dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
-    parser.add_argument('--teacher', type=str,
-                        default='GCN', help='Teacher Model')
-    parser.add_argument('--student', type=str,
-                        default='GCN', help='Student Model')
+    parser.add_argument('--model', type=str,
+                        default='GCN', help='Teacher and student Model')
     parser.add_argument("--max_epoch", type=int, default=300, help="max number of epoch")
     parser.add_argument("--patience", type=int, default=200, help="early stopping epoch")
     args = parser.parse_args()
