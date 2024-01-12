@@ -257,19 +257,19 @@ def segment_sum(x, segment_ids, num_segments=None):
     return unsorted_segment_sum(x, segment_ids, num_segments)
 
 
-def gspmm(index, weight, x, reduce='sum'):
+def gspmm(index, weight=None, x=None, reduce='sum'):
     """
     Generalized Sparse Matrix Multiplication interface.
     It fuses two steps into one kernel: compute messages and aggregate the messages.
 
     Parameters
     ----------
-    index : Tensor
+    index: Tensor
         Edge indices of shape [2, num_edges].
-    weight : Tensor
+    weight: Tensor, optional
         The edge weight tensor.
-    x : Tensor
-        The node feature matrix, the dimension is [num_nodex, embedding_dim].
+    x: Tensor, optional
+        The node feature matrix, the dimension is [num_nodes, embedding_dim].
 
     Examples
     --------
@@ -277,24 +277,18 @@ def gspmm(index, weight, x, reduce='sum'):
     >>> os.environ['TL_BACKEND'] = 'torch'
     >>> from gammagl.mpops import gspmm
     >>> import tensorlayerx as tlx
-
     >>> index = tlx.convert_to_tensor([[0, 1, 1, 1, 2, 3, 3, 4], [1, 0, 2, 3, 1, 1, 4, 3]])
-    >>> init = tlx.initializers.ones()
-    >>> weight = init(shape=(tlx.get_tensor_shape(index)[1],), dtype=tlx.float32)
-    >>> x = tlx.random_uniform(shape=(max(index[0]) + 1, 16))
-
+    >>> weight = 2 * tlx.ones(shape=(tlx.get_tensor_shape(index)[1],), dtype=tlx.float32)
+    >>> x = 2 * tlx.ones(shape=(max(index[0]) + 1, 8))
     >>> gspmm(index, weight, x)
-    tensor([[0.1123, 0.2300, 0.4464, 0.5848, 0.8047, 0.5649, 0.7504, 0.4823, 0.7156,
-             0.4271, 0.6715, 0.7112, 0.4459, 0.9655, 0.2233, 0.0599],
-            [2.2809, 0.8530, 1.1699, 1.6673, 1.0730, 1.2713, 2.3989, 1.3777, 1.4817,
-             1.6304, 1.0347, 2.7464, 2.0170, 1.4555, 1.4429, 1.9210],
-            [0.1123, 0.2300, 0.4464, 0.5848, 0.8047, 0.5649, 0.7504, 0.4823, 0.7156,
-             0.4271, 0.6715, 0.7112, 0.4459, 0.9655, 0.2233, 0.0599],
-            [0.2478, 0.4594, 1.0902, 0.8880, 1.6013, 1.0133, 1.5038, 1.3352, 1.6161,
-             1.1601, 0.7074, 1.3606, 1.3575, 1.5835, 0.4036, 0.6374],
-            [0.8745, 0.5974, 0.0056, 0.8762, 0.3908, 0.4323, 0.7849, 0.1171, 0.5689,
-             0.6753, 0.0697, 0.8450, 0.7830, 0.6934, 0.4399, 0.9917]])
+    tensor([[ 4.,  4.,  4.,  4.,  4.,  4.,  4.,  4.],
+        [12., 12., 12., 12., 12., 12., 12., 12.],
+        [ 4.,  4.,  4.,  4.,  4.,  4.,  4.,  4.],
+        [ 8.,  8.,  8.,  8.,  8.,  8.,  8.,  8.],
+        [ 4.,  4.,  4.,  4.,  4.,  4.,  4.,  4.]])
     """
+    if weight == None:
+        weight = torch.ones(size=(index.shape[1], ), dtype=torch.float32)
     if reduce == 'sum':
         return c_spmm_sum(index, weight, x)
     else:
