@@ -1,7 +1,8 @@
 from gammagl.transforms import BaseTransform
 from scipy.stats import bernoulli
-from gammagl.data import graph
+from gammagl.data import Graph
 import tensorlayerx as tlx
+import numpy as np
 
 class DropEdge(BaseTransform):
     r"""Randomly drop edges, as described in
@@ -66,23 +67,21 @@ class DropEdge(BaseTransform):
     def __call__(self, g):
         if self.p == 0:
             return g
-        if (type(g)==graph.Graph):
-            samples = tlx.ops.convert_to_tensor(bernoulli.rvs(1-self.p, size=g.num_edges),dtype=bool)
+        if isinstance(g, Graph):
+            samples = tlx.convert_to_tensor(bernoulli.rvs(1-self.p, size=g.num_edges), dtype=tlx.bool)
 
-            if tlx.is_tensor(g.edge_index)==False:
+            if not tlx.is_tensor(g.edge_index) and not isinstance(g.edge_index, np.ndarray):
                 return g
-            elif tlx.is_tensor(g.edge_attr)==False:
-                g.edge_index = tlx.ops.transpose(tlx.ops.transpose(g.edge_index)[samples])
-
+            elif not tlx.is_tensor(g.edge_attr) and not isinstance(g.edge_index, np.ndarray):
+                g.edge_index = tlx.gather(g.edge_index, samples, axis=1)
                 return g
             else:
-                g.edge_index = tlx.ops.transpose(tlx.ops.transpose(g.edge_index)[samples])
-
-                g.edge_attr = g.edge_attr[samples]
+                g.edge_index = tlx.gather(g.edge_index, samples, axis=1)
+                g.edge_attr = tlx.gather(g.edge_attr, samples)
                 return g
         else:
             for e_type in g.metadata()[-1]:
-                samples = tlx.ops.convert_to_tensor(bernoulli.rvs(1-self.p, size=tlx.ops.get_tensor_shape(g[e_type].edge_index)[-1]), dtype=tlx.bool)
+                samples = tlx.convert_to_tensor(bernoulli.rvs(1-self.p, size=tlx.get_tensor_shape(g[e_type].edge_index)[-1]), dtype=tlx.bool)
                 if hasattr(g[e_type],'edge_index'):
                     g[e_type].edge_index = tlx.mask_select(g[e_type].edge_index, samples, axis = 1)
                     if hasattr(g[e_type],'edge_attr'):

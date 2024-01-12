@@ -17,6 +17,7 @@ from .zinc import ZINC
 from .aminer import AMiner
 from .polblogs import PolBlogs
 from .wikics import WikiCS
+from .blogcatalog import BlogCatalog
 
 __all__ = [
     'Amazon',
