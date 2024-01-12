@@ -406,6 +406,7 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [MVGRL [ICML 2020]](./examples/mvgrl)          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [InfoGraph [ICLR 2020]](./examples/infograph)  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [MERIT [IJCAI 2021]](./examples/merit)         | :heavy_check_mark: |                    | :heavy_check_mark: |           |
+| [GNN-POT [NeurIPS 2023]](./examples/grace_pot) |                    | :heavy_check_mark: |                    |           |
 
 | Heterogeneous Graph Learning                 | TensorFlow         | PyTorch            | Paddle             | MindSpore |
 | -------------------------------------------- | ------------------ | ------------------ | ------------------ | --------- |
