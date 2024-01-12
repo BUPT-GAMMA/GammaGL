@@ -75,8 +75,6 @@ class GraphSAGE_Sample_Model(tlx.nn.Module):
 
     def forward(self, x, edgeIndices):
         for l, (layer, edgeIndex) in enumerate(zip(self.convs, edgeIndices)):
-            if tlx.BACKEND == 'torch':
-                edgeIndex.to(x.device)
             target_x = tlx.gather(x, tlx.arange(0, edgeIndex.size[1]))  # Target nodes are always placed first.
             x = layer((x, target_x), edgeIndex.edge_index)
             if l != len(self.convs) - 1:
@@ -84,19 +82,13 @@ class GraphSAGE_Sample_Model(tlx.nn.Module):
         return x
 
     def inference(self, feat, dataloader, cur_x):
-        if tlx.BACKEND == 'torch':
-            feat = feat.to(cur_x.device)
         for l, layer in enumerate(self.convs):
             y = tlx.zeros((feat.shape[0], self.num_class if l == len(self.convs) - 1 else self.hid_feat))
-            if tlx.BACKEND == 'torch':
-                y = y.to(feat.device)
             for dst_node, n_id, adjs in dataloader:
                 if isinstance(adjs, (List, Tuple)):
                     sg = adjs[0]
                 else:
                     sg = adjs
-                if tlx.BACKEND == 'torch':
-                    sg.to(y.device)
                 h = tlx.gather(feat, n_id)
                 target_feat = tlx.gather(h, tlx.arange(0, sg.size[1]))
                 h = layer((h, target_feat), sg.edge_index)
