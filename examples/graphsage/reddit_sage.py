@@ -78,9 +78,6 @@ def main(args):
         pbar = tqdm(total=int(len(train_loader.dataset)))
         pbar.set_description(f'Epoch {epoch:02d}')
         for dst_node, n_id, adjs in train_loader:
-            print("---------------")
-            print(adjs)
-            print(type(adjs))
             net.set_train()
             # input : sampled subgraphs, sampled node's feat
             data = {"x": tlx.gather(x, n_id),
