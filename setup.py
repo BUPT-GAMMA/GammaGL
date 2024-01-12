@@ -91,7 +91,7 @@ def load_ops_extensions():
 
 # Start to include cuda ops, if no cuda found, will only compile cpu ops
 def load_extensions():
-    extensions = load_mpops_extensions() + load_ops_extensions()
+    extensions = load_mpops_extensions()
 
     return extensions
 
