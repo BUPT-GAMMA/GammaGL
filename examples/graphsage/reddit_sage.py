@@ -48,15 +48,15 @@ def main(args):
     test_idx = mask_to_index(graph.test_mask)
     val_idx = mask_to_index(graph.val_mask)
 
-    train_loader = NeighborSampler(edge_index=graph.edge_index.numpy(),
-                                   node_idx=tlx.convert_to_numpy(train_idx),
+    train_loader = NeighborSampler(edge_index=graph.edge_index,
+                                   node_idx=train_idx,
                                    sample_lists=[25, 10], batch_size=2048, shuffle=True, num_workers=0)
 
-    val_loader = NeighborSampler(edge_index=graph.edge_index.numpy(),
-                                 node_idx=tlx.convert_to_numpy(val_idx),
+    val_loader = NeighborSampler(edge_index=graph.edge_index,
+                                 node_idx=val_idx,
                                  sample_lists=[-1], batch_size=2048 * 2, shuffle=False, num_workers=0)
-    test_loader = NeighborSampler(edge_index=graph.edge_index.numpy(),
-                                  node_idx=tlx.convert_to_numpy(test_idx),
+    test_loader = NeighborSampler(edge_index=graph.edge_index,
+                                  node_idx=test_idx,
                                   sample_lists=[-1], batch_size=2048 * 2, shuffle=False, num_workers=0)
 
     x = tlx.convert_to_tensor(graph.x)
@@ -78,6 +78,9 @@ def main(args):
         pbar = tqdm(total=int(len(train_loader.dataset)))
         pbar.set_description(f'Epoch {epoch:02d}')
         for dst_node, n_id, adjs in train_loader:
+            print("---------------")
+            print(adjs)
+            print(type(adjs))
             net.set_train()
             # input : sampled subgraphs, sampled node's feat
             data = {"x": tlx.gather(x, n_id),
