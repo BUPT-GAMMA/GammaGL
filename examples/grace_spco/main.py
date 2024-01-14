@@ -19,6 +19,7 @@ from tensorlayerx.model import TrainOneStep, WithLoss
 
 from eval import label_classification
 import scipy.sparse as ssp
+# tlx.set_device("GPU", 5)
 
 class train_loss(WithLoss):
     def __init__(self, model):
@@ -147,12 +148,15 @@ def main(args):
     scope = add_self_loops(edge_index)[0]
     num_nodes = graph.num_nodes
     num_features = tlx.get_tensor_shape(feat)[-1]
-    adj = ssp.coo_matrix((np.ones(tlx.get_tensor_shape(edge_index)[1]), (tlx.to_device(edge_index[0, :], "cpu"), tlx.to_device(edge_index[1, :], "cpu"))),
+    adj = ssp.coo_matrix((np.ones(tlx.get_tensor_shape(edge_index)[1]),
+                          (tlx.to_device(edge_index[0, :], "cpu"), tlx.to_device(edge_index[1, :], "cpu"))),
                           shape=[num_nodes, num_nodes])
     laplace = ssp.eye(adj.shape[0]) - normalize_adj(adj)
-    scope_matrix = ssp.coo_matrix((np.ones(tlx.get_tensor_shape(scope)[1]), (tlx.to_device(scope[0, :], "cpu"), tlx.to_device(scope[1, :], "cpu"))),
+    scope_matrix = ssp.coo_matrix((np.ones(tlx.get_tensor_shape(scope)[1]),
+                                   (tlx.to_device(scope[0, :], "cpu"), tlx.to_device(scope[1, :], "cpu"))),
                                     shape = [num_nodes, num_nodes]).A
     dist = adj.A.sum(-1) / adj.A.sum()
+
     if args.gpu_id >= 0:
         tlx.set_device("GPU", args.gpu_id)
     else:
@@ -221,7 +225,7 @@ if __name__ == '__main__':
     parser.add_argument('--sin_iter', type=int, default=3) 
 
     parser.add_argument('--lam', type=float, default=1.0) 
-    parser.add_argument('--num_epochs', type=int, default=150)
+    parser.add_argument('--num_epochs', type=int, default=1000)
     parser.add_argument('--turn', type=int, default=20)
     parser.add_argument('--epsilon', type=float, default=0.01)
     parser.add_argument('--scope_flag', type=int, default=1)

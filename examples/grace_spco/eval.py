@@ -1,5 +1,6 @@
 import numpy as np
 import functools
+import tensorlayerx as tlx
 
 from sklearn.metrics import f1_score
 from sklearn.linear_model import LogisticRegression
@@ -28,32 +29,32 @@ def print_statistics(statistics, function_name):
 
 
 def label_classification(embeddings, y, idx_trains, idx_val, idx_test):
-    X = embeddings.detach().cpu().numpy()
-    Y = y.detach().cpu().numpy()
+    X = tlx.convert_to_numpy(tlx.to_device(embeddings, "cpu"))
+    Y = tlx.convert_to_numpy(tlx.to_device(y, "cpu"))
+    idx_trains = tlx.to_device(idx_trains, "cpu")
+    idx_test = tlx.to_device(idx_test, "cpu")
     Y = Y.reshape(-1, 1)
     onehot_encoder = OneHotEncoder(categories='auto').fit(Y)
     Y = onehot_encoder.transform(Y).toarray().astype(np.bool)
 
     X = normalize(X, norm='l2')
     
-    label_dict = {0:"5", 1:"10", 2:"20"}
-    for i in range(3):
-        X_train = X[idx_trains[i]]
-        X_test = X[idx_test]
-        y_train = Y[idx_trains[i]]
-        y_test = Y[idx_test]
+    X_train = X[idx_trains]
+    X_test = X[idx_test]
+    y_train = Y[idx_trains]
+    y_test = Y[idx_test]
     
-        logreg = LogisticRegression(solver='liblinear')
-        c = 2.0 ** np.arange(-10, 10)
-    
-        clf = GridSearchCV(estimator=OneVsRestClassifier(logreg),
-                           param_grid=dict(estimator__C=c), n_jobs=8, cv=5,
-                           verbose=0)
-        clf.fit(X_train, y_train)
-    
-        y_pred = clf.predict_proba(X_test)
-        y_pred = prob_to_one_hot(y_pred)
-    
-        micro = f1_score(y_test, y_pred, average="micro")
-        macro = f1_score(y_test, y_pred, average="macro")
-        print('F1Mi ', micro,'F1Ma ', macro)
+    logreg = LogisticRegression(solver='liblinear')
+    c = 2.0 ** np.arange(-10, 10)
+
+    clf = GridSearchCV(estimator=OneVsRestClassifier(logreg),
+                        param_grid=dict(estimator__C=c), n_jobs=8, cv=5,
+                        verbose=0)
+    clf.fit(X_train, y_train)
+
+    y_pred = clf.predict_proba(X_test)
+    y_pred = prob_to_one_hot(y_pred)
+
+    micro = f1_score(y_test, y_pred, average="micro")
+    macro = f1_score(y_test, y_pred, average="macro")
+    print('F1Mi ', micro,'F1Ma ', macro)
