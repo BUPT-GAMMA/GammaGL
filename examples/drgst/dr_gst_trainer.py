@@ -180,7 +180,7 @@ class DR_GST():
             "beta": args.beta
         }
 
-        for epoch in range(args.epochs):
+        for epoch in range(args.n_epoch):
             net.set_train()
             train_loss = train_one_step(train_data, tlx.detach(data.y))
 
@@ -430,7 +430,7 @@ if __name__ == '__main__':
     parser.add_argument('--labelrate', type=int, default=20)
     parser.add_argument('--weight_decay', type=float, default=5e-4,
                         help='Weight decay (L2 loss on parameters).')
-    parser.add_argument('--epochs', type=int, default=1,
+    parser.add_argument('--n_epoch', type=int, default=1,
                         help='Number of epochs to train.')
     parser.add_argument('--stage', type=int, default=2)
     parser.add_argument('--threshold', type=float, default=0.53)

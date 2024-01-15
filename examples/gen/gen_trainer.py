@@ -104,7 +104,7 @@ def main(args):
     for iter in range(args.iter):
         start = time.time()
         best_val_acc = 0
-        for epoch in range(args.epoch):
+        for epoch in range(args.n_epoch):
             net.set_train()
             train_loss = train_one_step(data, graph.y)
 
@@ -181,7 +181,7 @@ if __name__ == '__main__':
     parser.add_argument("--dataset_path", type=str, default=r'', help="path to"
                                                                          " save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
-    parser.add_argument('--epoch', type=int, default=200, help='number of epochs to train the base model')
+    parser.add_argument('--n_epoch', type=int, default=200, help='number of epochs to train the base model')
     parser.add_argument('--iter', type=int, default=30, help='number of iterations to train the GEN')
     parser.add_argument('--k', type=int, default=9, help='k of knn graph')
     parser.add_argument('--threshold', type=float, default=.5, help='threshold for adjacency matrix')

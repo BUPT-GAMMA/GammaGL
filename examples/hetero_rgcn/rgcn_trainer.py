@@ -264,7 +264,7 @@ if __name__ == '__main__':
     parser.add_argument("--n-bases", type=int, default=8,
                         help="number of filter weight matrices, default: -1 [use all]")
     parser.add_argument("--early_stopping", type=int, default=10)
-    parser.add_argument("--n-epoch", type=int, default=20)
+    parser.add_argument("--n_epoch", type=int, default=20)
     # test部分后续再增加
     parser.add_argument("--test-file", type=str, default="")
 

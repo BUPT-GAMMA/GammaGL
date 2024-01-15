@@ -73,7 +73,7 @@ def main(args):
     results = []
     result_over_runs = []
     features = tlx.convert_to_tensor(np.array(features), dtype='float32')
-    for epoch in tqdm(range(args.epochs)):
+    for epoch in tqdm(range(args.n_epoch)):
         net.set_train()
         for _ in range(args.batch_size):
             graph1 = dfde_norm_g(graph.edge_index, features, args.drop_feat_rate_1,
@@ -116,7 +116,7 @@ if __name__ == '__main__':
     parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument('--runs', type=int, default=1)
     parser.add_argument('--eval_every_epoch', type=int, default=1)
-    parser.add_argument('--epochs', type=int, default=500)
+    parser.add_argument('--n_epoch', type=int, default=500)
     parser.add_argument('--lr', type=float, default=3e-4)
     parser.add_argument('--weight_decay', type=float, default=0.0)
     parser.add_argument('--batch_size', type=int, default=4)

@@ -208,8 +208,8 @@ def main(args):
         config['drop_edge_rate_2'] = args.drop_2
     if args.tau != -1:
         config['tau'] = args.tau
-    if args.num_epochs != -1:
-        config['num_epochs'] = args.num_epochs
+    if args.n_epoch != -1:
+        config['num_epochs'] = args.n_epoch
     print(args)
     print(config)
 
@@ -281,7 +281,7 @@ if __name__ == '__main__':
     parser.add_argument('--drop_1', type=float, default=0.4)
     parser.add_argument('--drop_2', type=float, default=0.3)
     parser.add_argument('--tau', type=float, default=0.9) # temperature of nce loss
-    parser.add_argument('--num_epochs',type=int,default=-1)
+    parser.add_argument('--n_epoch',type=int,default=-1)
     parser.add_argument('--save_file', type=str, default=".")
     parser.add_argument('--seed', type=int, default=12345)
     args = parser.parse_args()
