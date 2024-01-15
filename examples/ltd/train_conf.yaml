@@ -3,7 +3,6 @@ GCN:
     train_per_class: 20
     val_per_class: 20
     my_val_per_class: 10
-    num_test: 2358
     hidden_dim: 64
     drop_rate: 0.8
     num_layers: 2
@@ -18,7 +17,6 @@ GCN:
     train_per_class: 20
     val_per_class: 20
     my_val_per_class: 10
-    num_test: 3027
     hidden_dim: 64
     drop_rate: 0.8
     num_layers: 2
@@ -33,7 +31,6 @@ GCN:
     train_per_class: 20
     val_per_class: 20
     my_val_per_class: 10
-    num_test: 19567
     hidden_dim: 64
     drop_rate: 0.8
     num_layers: 2
@@ -49,7 +46,6 @@ GAT:
     train_per_class: 20
     val_per_class: 20
     my_val_per_class: 10
-    num_test: 2358
     hidden_dim: 64
     heads: 8
     drop_rate: 0.6
@@ -65,7 +61,6 @@ GAT:
     train_per_class: 20
     val_per_class: 20
     my_val_per_class: 10
-    num_test: 3027
     hidden_dim: 64
     heads: 8
     drop_rate: 0.6
@@ -81,7 +76,6 @@ GAT:
     train_per_class: 20
     val_per_class: 20
     my_val_per_class: 10
-    num_test: 19567
     hidden_dim: 64
     heads: 8
     drop_rate: 0.6
