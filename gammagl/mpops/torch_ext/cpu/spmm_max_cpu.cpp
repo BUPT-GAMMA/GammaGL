@@ -1,7 +1,7 @@
 #include "spmm_max_cpu.h"
 #include <torch/torch.h>
 
-torch::Tensor spmm_max_cpu_forward(torch::Tensor &index, torch::Tensor &weight, torch::Tensor &x, torch::Tensor &max_indices) {
+std::tuple<torch::Tensor, torch::Tensor> spmm_max_cpu_forward(torch::Tensor &index, torch::Tensor &weight, torch::Tensor &x) {
     if (!x.is_contiguous()) {
         x = x.contiguous();
     }
@@ -14,7 +14,7 @@ torch::Tensor spmm_max_cpu_forward(torch::Tensor &index, torch::Tensor &weight, 
     using scalar_t = float;
     // 初始化输出张量为最小浮点数
     torch::Tensor out = torch::full_like(x, std::numeric_limits<scalar_t>::lowest(), x.options()); 
-    max_indices = torch::zeros_like(x, torch::kInt64); // 保存最大值索引
+    torch::Tensor max_indices = torch::zeros_like(x, torch::kInt64); // 保存最大值索引
 
     auto E = index.size(1);
     auto K = x.numel() / x.size(0);
@@ -46,7 +46,8 @@ torch::Tensor spmm_max_cpu_forward(torch::Tensor &index, torch::Tensor &weight, 
         }
     }
 
-    return out;
+    // return out;
+    return std::make_tuple(out, max_indices);
 }
 
 torch::Tensor spmm_max_cpu_backward(torch::Tensor &index, torch::Tensor &weight, torch::Tensor &grad, torch::Tensor &max_indices) {
