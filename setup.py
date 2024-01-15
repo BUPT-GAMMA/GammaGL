@@ -3,8 +3,10 @@
 import os
 import os.path as osp
 from setuptools import setup, find_packages
-from torch.utils.cpp_extension import CUDAExtension, CppExtension
-from gammagl.utils.ggl_build_extension import BuildExtension, PyCudaExtension, PyCPUExtension
+# from torch.utils.cpp_extension import CUDAExtension, CppExtension
+from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtension
+# from gammagl.utils.ggl_build_extension import BuildExtension, PyCudaExtension, PyCPUExtension
+from gammagl.utils.ggl_build_extension import PyCudaExtension, PyCPUExtension
 
 # TODO will depend on different host
 WITH_CUDA = False
@@ -13,7 +15,7 @@ WITH_CUDA = False
 cuda_macro = ('COMPILE_WITH_CUDA', True)
 omp_macro = ('COMPLIE_WITH_OMP', True)  # Note: OpenMP needs gcc>4.2.0
 compile_args = {
-    'cxx': ['-fopenmp']
+    'cxx': ['-fopenmp', '-std=c++17']
 }
 
 def is_src_file(filename: str):
@@ -94,13 +96,15 @@ def load_ops_extensions():
                 extensions.append(PyCPUExtension(
                     name=osp.join(ops_dir, f'_{ops_prefix}').replace(osp.sep, "."),
                     sources=[osp.join(src_dir, f) for f in src_files],
-                    include_dirs=[osp.join('third_party', d) for d in ops_third_party_deps[i]]
+                    include_dirs=[osp.join('third_party', d) for d in ops_third_party_deps[i]],
+                    extra_compile_args=['-std=c++17']
                 ))
             else:
                 extensions.append(PyCudaExtension(
                     name=osp.join(ops_dir, f'_{ops_prefix}_cuda').replace(osp.sep, "."),
                     sources=[osp.join(src_dir, f) for f in src_files],
-                    include_dirs=[osp.join('third_party', d) for d in ops_third_party_deps[i]]
+                    include_dirs=[osp.join('third_party', d) for d in ops_third_party_deps[i]],
+                    extra_compile_args=['-std=c++17']
                 ))
 
     return extensions
