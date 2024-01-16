@@ -173,6 +173,12 @@ if __name__ == '__main__':
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     parser.add_argument("--k", type=int, default=7, help="dimention of hidden layers")
     # parser.add_argument("--n", type=int, default=10, help="dimention of hidden layers")
+    parser.add_argument("--gpu", type = int, default=0)
+    
     args = parser.parse_args()
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
 
     main(args)
