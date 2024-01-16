@@ -82,7 +82,8 @@ class Dataset(Dataset):
     def __init__(self, root: Optional[str] = None,
                  transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None,
-                 pre_filter: Optional[Callable] = None):
+                 pre_filter: Optional[Callable] = None,
+                 force_reload: bool = False):
         super().__init__()
 
         self.raw_root = root
@@ -98,6 +99,7 @@ class Dataset(Dataset):
         self.pre_transform = pre_transform
         self.pre_filter = pre_filter
         self._indices: Optional[Sequence] = None
+        self.force_reload = force_reload
 
         # when finished，record dataset path to .ggl/datasets.json
         # next time will use this dataset to avoid download repeatedly.
@@ -326,7 +328,7 @@ class Dataset(Dataset):
                 "use of another pre-fitering technique, make sure to delete "
                 "'{self.processed_dir}' first")
 
-        if files_exist(self.processed_paths):  # pragma: no cover
+        if not self.force_reload and files_exist(self.processed_paths):  # pragma: no cover
             # self.process()
             return
 

@@ -54,11 +54,13 @@ class InMemoryDataset(Dataset):
     def __init__(self, root: Optional[str] = None,
                  transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None,
-                 pre_filter: Optional[Callable] = None):
-        super().__init__(root, transform, pre_transform, pre_filter)
+                 pre_filter: Optional[Callable] = None,
+                 force_reload: bool = False):
+        super().__init__(root, transform, pre_transform, pre_filter, force_reload)
         self.data = None
         self.slices = None
         self._data_list: Optional[List[Graph]] = None
+
 
     @property
     def num_classes(self) -> int:
