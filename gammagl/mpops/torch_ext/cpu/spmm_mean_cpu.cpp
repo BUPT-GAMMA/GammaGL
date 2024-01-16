@@ -1,7 +1,7 @@
 #include "spmm_mean_cpu.h"
 #include <torch/torch.h>
 
-std::tuple<torch::Tensor, std::vector<int>> spmm_mean_cpu_forward(torch::Tensor &index, torch::Tensor &weight, torch::Tensor &x) {
+std::tuple<torch::Tensor, torch::Tensor> spmm_mean_cpu_forward(torch::Tensor &index, torch::Tensor &weight, torch::Tensor &x) {
     if (!x.is_contiguous()) {
         x = x.contiguous();
     }
@@ -21,8 +21,8 @@ std::tuple<torch::Tensor, std::vector<int>> spmm_mean_cpu_forward(torch::Tensor 
     auto out_data = out.data_ptr<scalar_t>();
     auto weight_data = weight.data_ptr<scalar_t>();
 
-    // 创建一个向量来存储每个节点的收到的消息数量(入度)
-    std::vector<int> messages_count(x.size(0), 0);
+    // 创建一个张量来存储每个节点的收到的消息数量(入度)
+    torch::Tensor messages_count(x.size(0), 0);
     // 加权求和
 #ifdef COMPILE_WITH_OMP
 #pragma omp parallel for
@@ -57,7 +57,7 @@ std::tuple<torch::Tensor, std::vector<int>> spmm_mean_cpu_forward(torch::Tensor 
 }
 
 
-torch::Tensor spmm_mean_cpu_backward(torch::Tensor &index, torch::Tensor &weight, torch::Tensor &grad, std::vector<int> &messages_count) {
+torch::Tensor spmm_mean_cpu_backward(torch::Tensor &index, torch::Tensor &weight, torch::Tensor &grad, torch::Tensor &messages_count) {
     if (!grad.is_contiguous()) {
         grad = grad.contiguous();
     }

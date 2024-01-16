@@ -96,7 +96,7 @@ torch::Tensor SpMMMean::forward(torch::autograd::AutogradContext *ctx, torch::Te
 
 std::vector<torch::Tensor> SpMMMean::backward(torch::autograd::AutogradContext *ctx, std::vector<torch::Tensor> grad_outs) {
     auto saved = ctx->get_saved_variables();
-    auto index = saved[0], weight = saved[1], x = saved[2], messages_count = saved[3];;
+    auto index = saved[0], weight = saved[1], x = saved[2], messages_count = saved[3];
     auto grad = grad_outs[0];
     torch::Tensor grad_x;
 
