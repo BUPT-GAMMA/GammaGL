@@ -22,7 +22,7 @@ std::tuple<torch::Tensor, torch::Tensor> spmm_mean_cpu_forward(torch::Tensor &in
     auto weight_data = weight.data_ptr<scalar_t>();
 
     // 创建一个张量来存储每个节点的收到的消息数量(入度)
-    torch::Tensor messages_count(x.size(0), 0);
+    torch::Tensor messages_count = torch::zeros_like(x, torch::kInt64);
     // 加权求和
 #ifdef COMPILE_WITH_OMP
 #pragma omp parallel for
