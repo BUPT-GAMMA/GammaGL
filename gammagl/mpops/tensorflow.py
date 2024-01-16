@@ -57,3 +57,6 @@ def segment_min(x, segment_ids, num_segments=None):
         assert tf.reduce_max(segment_ids) < num_segments
     return tf.math.segment_min(x, segment_ids)
 
+
+def gspmm(index, weight=None, x=None, reduce='sum'):
+    pass
