@@ -1,7 +1,7 @@
 #include "spmm_mean_cpu.h"
 #include <torch/torch.h>
 
-torch::Tensor spmm_mean_cpu_forward(torch::Tensor &index, torch::Tensor &weight, torch::Tensor &x) {
+std::tuple<torch::Tensor, torch::Tensor> spmm_mean_cpu_forward(torch::Tensor &index, torch::Tensor &weight, torch::Tensor &x) {
     if (!x.is_contiguous()) {
         x = x.contiguous();
     }
@@ -52,11 +52,12 @@ torch::Tensor spmm_mean_cpu_forward(torch::Tensor &index, torch::Tensor &weight,
         }
     }
 
-    return out;
+    // return out;
+    return std::make_tuple(out, messages_count);
 }
 
 
-torch::Tensor spmm_mean_cpu_backward(torch::Tensor &index, torch::Tensor &weight, torch::Tensor &grad) {
+torch::Tensor spmm_mean_cpu_backward(torch::Tensor &index, torch::Tensor &weight, torch::Tensor &grad, std::vector<int> &messages_count) {
     if (!grad.is_contiguous()) {
         grad = grad.contiguous();
     }
@@ -76,8 +77,6 @@ torch::Tensor spmm_mean_cpu_backward(torch::Tensor &index, torch::Tensor &weight
     auto out_data = out.data_ptr<scalar_t>();
     auto weight_data = weight.data_ptr<scalar_t>();
 
-    // 创建一个向量来存储每个节点的出度
-    std::vector<int> outdegree_count(grad.size(0), 0);
     // 计算反向传播的梯度
 #ifdef COMPILE_WITH_OMP
 #pragma omp parallel for
@@ -85,26 +84,14 @@ torch::Tensor spmm_mean_cpu_backward(torch::Tensor &index, torch::Tensor &weight
     for (auto e = 0; e < E; ++e) {
         auto src = index_data[e];
         auto dst = index_data[e + E];
-        outdegree_count[src]++;
 
         for (auto k = 0; k < K; ++k) {
+            auto grad_contribution = grad_data[dst * K + k] / messages_count[dst] * weight_data[e];
 #ifdef COMPILE_WITH_OMP
 #pragma omp atomic
 #endif
-            out_data[src * K + k] += weight_data[e] * grad_data[dst * K + k];
+            out_data[src * K + k] += grad_contribution;
         }
     }
-
-#ifdef COMPILE_WITH_OMP
-#pragma omp parallel for
-#endif
-    for (auto n = 0; n < grad.size(0); ++n) {
-        if (outdegree_count[n] > 0) {
-            for (auto k = 0; k < K; ++k) {
-                out_data[n * K + k] /= outdegree_count[n];
-            }
-        }
-    }
-
     return out;
 }
