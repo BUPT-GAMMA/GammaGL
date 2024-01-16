@@ -348,7 +348,9 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 
 > Note
 > 
-> The DEFAULT backend is  `tensorflow` and GPU is `0`. The backend TensorFlow will take up all GPU left memory by default.
+> The DEFAULT backend is  `torch` and GPU is `0`. 
+>
+> The backend TensorFlow will take up all GPU left memory by default.
 > 
 > The CANDIDATE backends are `tensorflow`, `paddle`, `torch` and `mindspore`.
 > 
@@ -393,6 +395,9 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [MGNNI [NeurIPS 2022]](./examples/mgnni)         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [MAGCL [AAAI 2023]](./examples/magcl)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [CAGCN [NeurIPS 2021]](./examples/cagcn)         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [DR-GST [WWW 2022]](./examples/drgst)            | :heavy_check_mark: | :heavy_check_mark: |                    |                    |
+| [Specformer [ICLR 2023]](./examples/specformer)  |                    | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [AM-GCN [KDD 2020]](./examples/amgcn)            |                    | :heavy_check_mark: |                    |                    |
 
 | Contrastive Learning                           | TensorFlow         | PyTorch            | Paddle             | MindSpore |
 | ---------------------------------------------- | ------------------ | ------------------ | ------------------ | --------- |
@@ -401,6 +406,7 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [MVGRL [ICML 2020]](./examples/mvgrl)          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [InfoGraph [ICLR 2020]](./examples/infograph)  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |           |
 | [MERIT [IJCAI 2021]](./examples/merit)         | :heavy_check_mark: |                    | :heavy_check_mark: |           |
+| [GNN-POT [NeurIPS 2023]](./examples/grace_pot) |                    | :heavy_check_mark: |                    |           |
 
 | Heterogeneous Graph Learning                 | TensorFlow         | PyTorch            | Paddle             | MindSpore |
 | -------------------------------------------- | ------------------ | ------------------ | ------------------ | --------- |

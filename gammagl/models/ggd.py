@@ -33,12 +33,3 @@ class GGDModel(nn.Module):
         h_2 = h_2.unsqueeze(0)
 
         return h_1.detach(), h_2.detach()
-
-class LogReg(nn.Module):
-    def __init__(self, ft_in, nb_classes):
-        super(LogReg, self).__init__()
-        self.fc = nn.Linear(in_features=ft_in, out_features=nb_classes, W_init=tlx.initializers.xavier_uniform())
-
-    def forward(self, seq):
-        ret = self.fc(seq)
-        return ret

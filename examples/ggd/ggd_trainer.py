@@ -10,9 +10,10 @@ import sys
 sys.path.insert(0, os.path.abspath('../../'))
 os.environ['TL_BACKEND'] = 'torch'
 import tensorlayerx as tlx
+import tensorlayerx.nn as nn
 from gammagl.datasets import Planetoid
 from gammagl.datasets import Amazon
-from gammagl.models import GGDModel, LogReg
+from gammagl.models import GGDModel
 from gammagl.utils import add_self_loops, mask_to_index, calc_gcn_norm, to_scipy_sparse_matrix
 from tensorlayerx.model import TrainOneStep, WithLoss
 
@@ -41,6 +42,15 @@ class LogRegLoss(WithLoss):
         logits = self.backbone_network(data['train_embs'])
         loss = self._loss_fn(logits, data['train_lbls'])
         return loss
+
+class LogReg(nn.Module):
+    def __init__(self, ft_in, nb_classes):
+        super(LogReg, self).__init__()
+        self.fc = nn.Linear(in_features=ft_in, out_features=nb_classes, W_init=tlx.initializers.xavier_uniform())
+
+    def forward(self, seq):
+        ret = self.fc(seq)
+        return ret
 
 def sparse_mx_to_edge_index(sparse_mx):
     """Convert a scipy sparse matrix to a tlx sparse tensor."""
