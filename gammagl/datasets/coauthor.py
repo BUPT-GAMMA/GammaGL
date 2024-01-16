@@ -58,7 +58,8 @@ class Coauthor(InMemoryDataset):
 
     def __init__(self, root: str = None, name: str = 'cs',
                  transform: Optional[Callable] = None,
-                 pre_transform: Optional[Callable] = None):
+                 pre_transform: Optional[Callable] = None,
+                 force_reload: bool = False):
         assert name.lower() in ['cs', 'physics']
         self.name = 'CS' if name.lower() == 'cs' else 'Physics'
         super().__init__(root, transform, pre_transform)

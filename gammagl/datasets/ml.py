@@ -11,7 +11,7 @@ class MLDataset(InMemoryDataset):
     # url = 'https://recbole.s3-accelerate.amazonaws.com/ProcessedDatasets/MovieLens/ml-100k.zip'
 
     def __init__(self, root=None, split='train', transform=None, pre_transform=None,
-                 pre_filter=None, dataset_name='ml-100k'):
+                 pre_filter=None, dataset_name='ml-100k', force_reload: bool = False):
         assert split in ['train', 'val', 'valid', 'test']
 
         assert dataset_name in ['ml-100k', 'ml-1m', 'ml-10m', 'ml-20m']

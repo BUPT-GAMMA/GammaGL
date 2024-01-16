@@ -36,7 +36,7 @@ class WebKB(InMemoryDataset):
 
     url = 'https://raw.githubusercontent.com/graphdml-uiuc-jlu/geom-gcn/master'
 
-    def __init__(self, root=None, name='cornell', transform=None, pre_transform=None):
+    def __init__(self, root=None, name='cornell', transform=None, pre_transform=None, force_reload: bool = False):
         self.name = name.lower()
         assert self.name in ['cornell', 'texas', 'wisconsin']
 

@@ -70,7 +70,7 @@ class ZINC(InMemoryDataset):
                  'benchmarking-gnns/master/data/molecules/{}.index')
 
     def __init__(self, root: str = None, subset=False, split='train', transform=None,
-                 pre_transform=None, pre_filter=None):
+                 pre_transform=None, pre_filter=None, force_reload: bool = False):
         self.subset = subset
         assert split in ['train', 'val', 'test']
         super().__init__(root, transform, pre_transform, pre_filter)

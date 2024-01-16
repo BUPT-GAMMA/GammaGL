@@ -94,7 +94,8 @@ class Planetoid(InMemoryDataset):
     def __init__(self, root: str = None, name: str = 'cora', split: str = "public",
                  num_train_per_class: int = 20, num_val: int = 500,
                  num_test: int = 1000, transform: Optional[Callable] = None,
-                 pre_transform: Optional[Callable] = None):
+                 pre_transform: Optional[Callable] = None,
+                 force_reload: bool = False):
         self.name = name
 
         super().__init__(root, transform, pre_transform)

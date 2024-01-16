@@ -52,7 +52,8 @@ class WikipediaNetwork(InMemoryDataset):
 
     def __init__(self, root: str = None, name: str = 'chameleon', geom_gcn_preprocess: bool = True,
                  transform: Optional[Callable] = None,
-                 pre_transform: Optional[Callable] = None):
+                 pre_transform: Optional[Callable] = None,
+                 force_reload: bool = False):
         self.name = name.lower()
         self.geom_gcn_preprocess = geom_gcn_preprocess
         assert self.name in ['chameleon', 'crocodile', 'squirrel']

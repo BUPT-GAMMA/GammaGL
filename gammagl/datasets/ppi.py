@@ -14,7 +14,7 @@ class PPI(InMemoryDataset):
     url = 'https://data.dgl.ai/dataset/ppi.zip'
 
     def __init__(self, root=None, split='train', transform=None, pre_transform=None,
-                 pre_filter=None):
+                 pre_filter=None, force_reload: bool = False):
 
         assert split in ['train', 'val', 'valid', 'test']
 

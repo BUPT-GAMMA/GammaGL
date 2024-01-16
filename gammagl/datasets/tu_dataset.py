@@ -132,7 +132,8 @@ class TUDataset(InMemoryDataset):
                  pre_transform: Optional[Callable] = None,
                  pre_filter: Optional[Callable] = None,
                  use_node_attr: bool = False, use_edge_attr: bool = False,
-                 cleaned: bool = False):
+                 cleaned: bool = False,
+                 force_reload: bool = False):
         self.name = name
         self.cleaned = cleaned
         super().__init__(root, transform, pre_transform, pre_filter)

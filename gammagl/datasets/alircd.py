@@ -17,6 +17,7 @@ class AliRCD(InMemoryDataset):
     def __init__(self, root=None, transform=None, pre_transform=None):
         self.edge_size = 157814864
         self.node_size = 13806619
+        force_reload: bool = False
         super().__init__(root, transform, pre_transform)
         self.data, self.slices = self.load_data(self.processed_paths[0])
 

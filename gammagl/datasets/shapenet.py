@@ -108,7 +108,7 @@ class ShapeNet(InMemoryDataset):
 
     def __init__(self, root=None, categories=None, include_normals=True,
                  split='trainval', transform=None, pre_transform=None,
-                 pre_filter=None):
+                 pre_filter=None, force_reload: bool = False):
         if categories is None:
             categories = list(self.category_ids.keys())
         if isinstance(categories, str):

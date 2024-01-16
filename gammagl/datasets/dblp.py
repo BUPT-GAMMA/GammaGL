@@ -46,7 +46,7 @@ class DBLP(InMemoryDataset):
     url = 'https://www.dropbox.com/s/yh4grpeks87ugr2/DBLP_processed.zip?dl=1'
 
     def __init__(self, root: str = None, transform: Optional[Callable] = None,
-                 pre_transform: Optional[Callable] = None):
+                 pre_transform: Optional[Callable] = None, force_reload: bool = False):
         super().__init__(root, transform, pre_transform)
         self.data, self.slices = self.load_data(self.processed_paths[0])
 

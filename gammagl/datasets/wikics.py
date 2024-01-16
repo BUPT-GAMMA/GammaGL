@@ -37,7 +37,8 @@ class WikiCS(InMemoryDataset):
 
     def __init__(self, root: str = None, transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None,
-                 is_undirected: Optional[bool] = None):
+                 is_undirected: Optional[bool] = None,
+                 force_reload: bool = False):
         if is_undirected is None:
             warnings.warn(
                 f"The {self.__class__.__name__} dataset now returns an "
