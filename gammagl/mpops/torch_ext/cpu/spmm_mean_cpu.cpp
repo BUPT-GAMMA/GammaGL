@@ -1,7 +1,7 @@
 #include "spmm_mean_cpu.h"
 #include <torch/torch.h>
 
-std::tuple<torch::Tensor, torch::Tensor> spmm_mean_cpu_forward(torch::Tensor &index, torch::Tensor &weight, torch::Tensor &x) {
+std::tuple<torch::Tensor, std::vector<int>> spmm_mean_cpu_forward(torch::Tensor &index, torch::Tensor &weight, torch::Tensor &x) {
     if (!x.is_contiguous()) {
         x = x.contiguous();
     }
