@@ -52,7 +52,7 @@ def load_mpops_extensions():
             ))
         else:
             extensions.append(CUDAExtension(
-                name=osp.join(mpops_dir, f'_{mpops_prefix}_cuda').replace(osp.sep, "."),
+                name=osp.join(mpops_dir, f'_{mpops_prefix}').replace(osp.sep, "."),
                 sources=[f for f in file_list],
                 define_macros=[
                     cuda_macro,
