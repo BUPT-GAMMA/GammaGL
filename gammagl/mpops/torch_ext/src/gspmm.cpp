@@ -72,7 +72,7 @@ torch::Tensor SpMMMean::forward(torch::autograd::AutogradContext *ctx, torch::Te
     std::tuple<torch::Tensor, torch::Tensor> result;
 
     // CUDA
-    if (grad.is_cuda() && index.is_cuda() && weight.is_cuda()) {
+    if (x.is_cuda() && index.is_cuda() && weight.is_cuda()) {
       AT_ERROR("The program is not support CUDA !");
   // #ifdef COMPILE_WITH_CUDA
   //     // grad_x = spmm_sum_cuda_backward(index, weight, grad, max_indices);

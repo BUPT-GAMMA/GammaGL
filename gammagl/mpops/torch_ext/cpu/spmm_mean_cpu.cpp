@@ -22,7 +22,9 @@ std::tuple<torch::Tensor, torch::Tensor> spmm_mean_cpu_forward(torch::Tensor &in
     auto weight_data = weight.data_ptr<scalar_t>();
 
     // 创建一个张量来存储每个节点的收到的消息数量(入度)
-    torch::Tensor messages_count = torch::zeros_like(x, torch::kInt64);
+    torch::Tensor messages_count = torch::zeros(x.size(0), torch::kInt64);
+    auto messages_count_data = messages_count.data_ptr<int64_t>();
+
     // 加权求和
 #ifdef COMPILE_WITH_OMP
 #pragma omp parallel for
@@ -30,7 +32,7 @@ std::tuple<torch::Tensor, torch::Tensor> spmm_mean_cpu_forward(torch::Tensor &in
     for (auto e = 0; e < E; ++e) {
         auto src = index_data[e];
         auto dst = index_data[e + E];
-        messages_count[dst]++;
+        messages_count_data[dst]++;
 
         for (auto k = 0; k < K; ++k) {
 #ifdef COMPILE_WITH_OMP
@@ -45,14 +47,14 @@ std::tuple<torch::Tensor, torch::Tensor> spmm_mean_cpu_forward(torch::Tensor &in
 #pragma omp parallel for
 #endif
     for (auto n = 0; n < x.size(0); ++n) {
-        if (messages_count[n] > 0) {
+        auto msg_count_val = messages_count_data[n];
+        if (msg_count_val > 0) {
             for (auto k = 0; k < K; ++k) {
-                out_data[n * K + k] /= messages_count[n];
+                out_data[n * K + k] /= static_cast<scalar_t>(msg_count_val);
             }
         }
     }
 
-    // return out;
     return std::make_tuple(out, messages_count);
 }
 
@@ -67,6 +69,7 @@ torch::Tensor spmm_mean_cpu_backward(torch::Tensor &index, torch::Tensor &weight
     if (!index.is_contiguous()) {
         index = index.contiguous();
     }
+
     torch::Tensor out = torch::zeros_like(grad, grad.options());
     auto E = index.size(1);
     auto K = grad.numel() / grad.size(0);
@@ -86,7 +89,7 @@ torch::Tensor spmm_mean_cpu_backward(torch::Tensor &index, torch::Tensor &weight
         auto dst = index_data[e + E];
 
         for (auto k = 0; k < K; ++k) {
-            auto grad_contribution = grad_data[dst * K + k] / messages_count[dst] * weight_data[e];
+            auto grad_contribution = grad_data[dst * K + k] / messages_count[dst].item<int64_t>() * weight_data[e];
 #ifdef COMPILE_WITH_OMP
 #pragma omp atomic
 #endif
