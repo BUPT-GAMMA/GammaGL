@@ -1,6 +1,6 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
@@ -80,9 +80,6 @@ def calculate_acc(logits, y, metrics):
 def main(args):
     data = AliRCD(args.dataset_path)
     hgraph = data[0]
-    if tlx.BACKEND == 'torch':
-        import torch
-        device = torch.device(args.device_id if torch.cuda.is_available() else 'cpu')
     labeled_class = args.labeled_class
 
     train_idx = hgraph[labeled_class].pop('train_idx')
@@ -272,8 +269,12 @@ if __name__ == '__main__':
     # parser.add_argument("--record-file", type=str, default="record.txt")
     parser.add_argument("--lr", type=float, default=0.002)
     parser.add_argument("--model-id", type=str, default="0")
-    parser.add_argument("--device-id", type=int, default=0)
+    parser.add_argument("--gpu", type=int, default=0)
 
     args = parser.parse_args()
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
 
     main(args)

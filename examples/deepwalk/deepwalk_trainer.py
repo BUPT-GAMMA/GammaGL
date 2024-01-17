@@ -115,7 +115,7 @@ if __name__ == '__main__':
     parser.add_argument("--walk_length", type=int, default=10)
     parser.add_argument("--num_walks", type=int, default=10)
     parser.add_argument("--window_size", type=int, default=5)
-    parser.add_argument("--gpu", type = int, default=-1)
+    parser.add_argument("--gpu", type=int, default=-1)
     
     args = parser.parse_args()
     if args.gpu >= 0:

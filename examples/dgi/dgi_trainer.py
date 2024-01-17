@@ -163,7 +163,7 @@ if __name__ == '__main__':
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     parser.add_argument("--num_evaluation", type=int, default=50, help="number of evaluate classifier")
     parser.add_argument("--patience", type=int, default=20)
-    parser.add_argument("--gpu", type = int, default=0)
+    parser.add_argument("--gpu", type=int, default=0)
     
     args = parser.parse_args()
     if args.gpu >= 0:

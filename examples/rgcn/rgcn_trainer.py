@@ -6,7 +6,7 @@
 # @FileName: trainer.py.py
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
@@ -111,12 +111,11 @@ def main(args):
         targetType = {
             'imdb': 'movie',
         }
-        path = osp.join(osp.dirname(osp.realpath(__file__)), '../IMDB')
         metapaths = [[('movie', 'actor'), ('actor', 'movie')],
                      [('movie', 'director'), ('director', 'movie')]]
         transform = T.AddMetaPaths(metapaths=metapaths, drop_orig_edges=True,
                                    drop_unconnected_nodes=True)
-        dataset = IMDB(path, transform=transform)
+        dataset = IMDB(args.dataset_path, transform=transform)
         heterograph = dataset[0]
         y = heterograph[targetType[str.lower(args.dataset)]].y
         num_classes = max(y) + 1
@@ -136,7 +135,7 @@ def main(args):
             [edge_index_dict[('movie', 'metapath_0', 'movie')], edge_index_dict[('movie', 'metapath_1', 'movie')]],
             axis=1)
         if tlx.BACKEND == 'tensorflow':
-            edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int32)
+            edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int64)
         else:
             edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int64)
         edge_type0 = tlx.zeros(shape=(len(edge_index_dict[('movie', 'metapath_0', 'movie')][0]),), dtype=tlx.int64)
@@ -158,8 +157,7 @@ def main(args):
         }
 
     else:
-        path = osp.join(osp.dirname(osp.realpath(__file__)), '../Entities')
-        dataset = Entities(path, args.dataset)
+        dataset = Entities(args.dataset_path, args.dataset)
         graph = dataset[0]
 
         graph.numpy()
@@ -247,9 +245,15 @@ if __name__ == '__main__':
     parser.add_argument('--num_bases', type=int, default=None, help='number of bases')
     parser.add_argument('--num_blocks', type=int, default=None, help='numbere of blocks')
     parser.add_argument("--aggregation", type=str, default='sum', help='aggregate type')
-    parser.add_argument('--dataset', type=str, default='am', help='dataset')
+    parser.add_argument('--dataset', type=str, default='aifb', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
+    parser.add_argument("--gpu", type=int, default=0)
+
     args = parser.parse_args()
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
 
     main(args)

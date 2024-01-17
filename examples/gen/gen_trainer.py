@@ -186,7 +186,7 @@ if __name__ == '__main__':
     parser.add_argument('--k', type=int, default=9, help='k of knn graph')
     parser.add_argument('--threshold', type=float, default=.5, help='threshold for adjacency matrix')
     parser.add_argument('--tolerance', type=float, default=.01, help='tolerance to stop EM algorithm')
-    parser.add_argument("--gpu", type = int, default=0)
+    parser.add_argument("--gpu", type=int, default=0)
     
     args = parser.parse_args()
     if args.gpu >= 0:

@@ -423,7 +423,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='GCN')
-    parser.add_argument('--dataset', type=str, default="Cora",
+    parser.add_argument('--dataset', type=str, default="cora",
                         help='dataset for training')
     parser.add_argument("--dataset_path", type=str, default=r'./',
                         help="path to save dataset")
@@ -450,7 +450,7 @@ if __name__ == '__main__':
     parser.add_argument("--num_layers", type=int, default=2, help="number of layers")
     parser.add_argument("--norm", type=str, default='both', help="how to apply the normalizer.")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
-    parser.add_argument("--gpu", type = int, default=0)
+    parser.add_argument("--gpu", type=int, default=0)
     
     args = parser.parse_args()
     if args.gpu >= 0:

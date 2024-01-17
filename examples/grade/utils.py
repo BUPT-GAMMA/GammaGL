@@ -89,18 +89,18 @@ def load(name, mode,path):
     assert name in ['cora', 'citeseer', 'photo', 'computers']
     assert mode in ['full', 'part']
     if name == 'cora':
-        dataset = Planetoid(root=path,name='Cora')
+        dataset = Planetoid(root=path, name='cora')
         #idx_test = idx_test[1400:2400]
     elif name == 'citeseer':
-        dataset = Planetoid(root=path,name='Citeseer')
+        dataset = Planetoid(root=path, name='citeseer')
         #idx_test = idx_test[:1000]
 
     elif name == 'photo':
-        dataset = Amazon(root=path,name='Photo')
+        dataset = Amazon(root=path, name='photo')
         #idx_test = idx_test[1000:2000]
 
     elif name == 'computers':
-        dataset = Amazon(root=path,name='Computers')
+        dataset = Amazon(root=path, name='Computers')
 
     graph = dataset[0]
     num_nodes = graph.num_nodes
@@ -111,7 +111,7 @@ def load(name, mode,path):
     num_class = dataset.num_classes
 
     # get nodes of which 0<degree<50
-    idx_test = [i for i in range(num_nodes) if degree[i]>0 and degree[i]<50]
+    idx_test = [i for i in range(num_nodes) if degree[i] > 0 and degree[i] < 50]
     #get 1000 nodes for testing
     if name == 'cora':
         idx_test = idx_test[1400:2400]

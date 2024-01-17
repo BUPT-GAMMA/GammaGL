@@ -84,7 +84,7 @@ class GINEncoder(nn.Module):
                 nn.ReLU(),
                 nn.Linear(out_features=n_out, W_init=tlx.initializers.xavier_uniform(), in_features=n_out)
                 )
-            conv = GINConv(apply_func=block, aggregator_type='sum')
+            conv = GINConv(nn=block)
             bn = nn.BatchNorm1d(num_features=out_feat)
             convs_list.append(conv)
             bns_list.append(bn)

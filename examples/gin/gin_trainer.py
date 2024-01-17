@@ -120,7 +120,7 @@ if __name__ == '__main__':
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     parser.add_argument("--num_layers", type=int, default=5, help="num of gin layers")
     parser.add_argument("--batch_size", type=int, default=100, help="batch_size of the data_loader")
-    parser.add_argument("--gpu", type = int, default=0)
+    parser.add_argument("--gpu", type=int, default=0)
     
     args = parser.parse_args()
     if args.gpu >= 0:

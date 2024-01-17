@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
@@ -120,15 +120,6 @@ def main(args):
     test_y = tlx.gather(data['y'], data['test_idx'])
     test_acc = calculate_acc(test_logits, test_y, metrics)
     print("Test acc:  {:.4f}".format(test_acc))
-    with open("output.txt", "a") as f:
-        f.write(tlx.BACKEND + ":\n")
-        f.write("lr: " + str(args.lr) + ", " + \
-            "hidden_dim: " + str(args.hidden_dim) + ", " + \
-            "l2_coef: " + str(args.l2_coef) + "\n")
-        f.write("iter_K: " + str(args.iter_K) + ", " + \
-            "drop_rate: " + str(args.drop_rate) + ", " + \
-            "alpha: " + str(args.alpha) + "\n")
-        f.write("Test acc:  {:.4f}\n\n".format(test_acc))
 
 if __name__ == '__main__':
     # parameters setting
@@ -143,5 +134,11 @@ if __name__ == '__main__':
     parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     # parser.add_argument('--dataset', type=str, default='IMDB', help='dataset')
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
+    parser.add_argument("--gpu", type=int, default=0)
+
     args = parser.parse_args()
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
     main(args)

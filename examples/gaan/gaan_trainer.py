@@ -147,7 +147,7 @@ if __name__ == "__main__":
                         default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1,
                         help="number of graph self-loop")
-    parser.add_argument("--gpu", type = int, default=0)
+    parser.add_argument("--gpu", type=int, default=0)
     
     args = parser.parse_args()
     if args.gpu >= 0:

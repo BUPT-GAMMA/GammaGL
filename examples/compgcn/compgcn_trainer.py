@@ -166,7 +166,7 @@ if __name__ == '__main__':
     parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--op", type=str, default='sub', help="op between entity and relation,sub or mult")
-    parser.add_argument("--gpu", type = int, default=0)
+    parser.add_argument("--gpu", type=int, default=0)
     
     args = parser.parse_args()
     if args.gpu >= 0:

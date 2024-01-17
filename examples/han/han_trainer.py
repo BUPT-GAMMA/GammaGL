@@ -6,7 +6,7 @@
 # @FileName: han_trainer.py
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
@@ -52,8 +52,6 @@ def main(args):
     # If you want to execute HAN on other dataset (e.g. ACM),
     # you will be needed to init `metepaths`
     # and set `movie` string with proper values.
-
-    set_device(args.gpu)
     # path = osp.join(osp.dirname(osp.realpath(__file__)), '../IMDB')
     metapaths = [[('movie', 'actor'), ('actor', 'movie')],
                  [('movie', 'director'), ('director', 'movie')]]
@@ -148,6 +146,11 @@ if __name__ == '__main__':
     parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     # parser.add_argument('--dataset', type=str, default='IMDB', help='dataset')
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
+
     args = parser.parse_args()
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
 
     main(args)
