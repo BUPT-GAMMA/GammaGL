@@ -5,6 +5,8 @@
 
 # Dataset Statics
 
+## Raw Data Statics
+
 | Dataset  | # Nodes | # Edges | # Classes |
 |----------|---------|---------|-----------|
 | Cora     | 2,708   | 10,556  | 7         |
@@ -13,8 +15,15 @@
 
 Refer to [Planetoid](https://gammagl.readthedocs.io/en/latest/api/gammagl.datasets.html#gammagl.datasets.Planetoid).
 
-Results
--------
+## Largest Connected Component Statics
+
+| Dataset  | # Nodes | # Edges | # Classes |
+| -------- | ------- | ------- | --------- |
+| Cora     | 2,485   | 10,138  | 7         |
+| Citeseer | 2,120   | 7,358   | 6         |
+| Pubmed   | 19,717  | 88,651  | 3         |
+
+# Results
 
 ```bash
 # available dataset: "cora", "citeseer", "pubmed" 
@@ -32,5 +41,5 @@ TL_BACKEND="torch" python gcn_trainer.py --dataset pubmed --model GAT
 | cora     | GAT  | 86.56                              | 82.40±1.38 | 84.35±0.42                       |
 | citeseer | GCN  | 78.51                              | 72.39±1.09 | 74.69±1.12                       |
 | citeseer | GAT  | 77.35                              | 72.85±0.71 | 76.27±0.62                       |
-| pubmed   | GCN  | 81.91                              | 74.83±1.23 | 74.83±1.23                       |
-| pubmed   | GAT  | 82.74                              | 75.88±1.22 | 75.88±1.22                       |
+| pubmed   | GCN  | 81.91                              | 79.54±0.70 | 79.54±0.70                       |
+| pubmed   | GAT  | 82.74                              | 78.77±0.90 | 78.77±0.90                       |

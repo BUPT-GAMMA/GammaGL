@@ -37,8 +37,8 @@ def teacher_trainer(graph, configs, net):
     edge_index, _ = add_self_loops(graph.edge_index, n_loops=1, num_nodes=graph.num_nodes)
 
     train_idx = mask_to_index(configs['t_train_mask'])
-    test_idx = mask_to_index(graph.test_mask)
-    val_idx = mask_to_index(configs['my_val_mask'])
+    test_idx = mask_to_index(configs['t_test_mask'])
+    val_idx = mask_to_index(configs['t_val_mask'])
 
     loss = tlx.losses.softmax_cross_entropy_with_logits
     optimizer = tlx.optimizers.Adam(lr=configs['t_lr'], weight_decay=configs['l2_coef'])

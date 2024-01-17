@@ -137,10 +137,11 @@ def model_train(configs, model, graph, teacher_logits):
     best = 0
     cnt = 0
     epoch = 1
-    while epoch < configs['max_epoch']:
+    acc_test = 0
+    while epoch <= configs['max_epoch']:
         acc_val, train_loss = distill_train(epoch, model, configs, graph, nei_entropy, t_model,
                                             teacher_logits)
-        if acc_val >= best:
+        if acc_val > best:
             best = acc_val
             model.save_weights(model.name + ".npz", format='npz_dict')
             best_epoch = epoch
@@ -151,6 +152,12 @@ def model_train(configs, model, graph, teacher_logits):
             print("Stop!!!")
             print('best_epoch: %d' % best_epoch)
             break
+        if epoch % 50 == 0:
+            acc_test_new = distill_test(model, graph, configs)
+            print('acc_test: %.4f' % acc_test_new.item())
+            if acc_test <= acc_test_new:
+                acc_test = acc_test_new
+                model.save_weights(model.name + ".npz", format='npz_dict')
         epoch += 1
     model.load_weights(model.name + ".npz", format='npz_dict')
     print("Optimization Finished!")

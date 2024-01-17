@@ -76,23 +76,17 @@ def get_train_val_test_split(graph, configs):
 
 
 def edge_index_to_csr_matrix(edge_index, num_nodes):
-    # 创建一个稀疏矩阵的表示
     coo_matrix = sp.coo_matrix((torch.ones(edge_index.shape[1]), (edge_index[0], edge_index[1])),
                                shape=(num_nodes, num_nodes), dtype=float)
-
-    # 转换为 CSR 格式
     csr_matrix = coo_matrix.tocsr()
 
     return csr_matrix
 
 
 def csr_matrix_to_edge_index(csr_matrix):
-    # 获取非零元素的行索引和列索引
     coo_matrix = csr_matrix.tocoo()
     row_indices = torch.tensor(coo_matrix.row, dtype=torch.long)
     col_indices = torch.tensor(coo_matrix.col, dtype=torch.long)
-
-    # 将行索引和列索引堆叠成 edge_index tensor
     edge_index = torch.stack([row_indices, col_indices], dim=0)
 
     return edge_index
@@ -146,7 +140,9 @@ def load_dataset(configs):
         'train_mask': train_mask,
         'val_mask': val_mask,
         'my_val_mask': my_val_mask,
-        't_train_mask': train_mask | val_mask
+        't_train_mask': graph.train_mask,
+        't_val_mask': graph.val_mask,
+        't_test_mask': graph.test_mask
     }
     configs = dict(
         configs, **dataset_configs)
@@ -176,25 +172,64 @@ def choose_model(configs):
     return model
 
 
+# def main(args):
+#     configs = get_training_config("train_conf.yaml", args)
+#     configs, graph = load_dataset(configs)
+#     teacher_model = choose_model(configs)
+#     teacher_logits, acc_teacher_test = teacher_trainer(graph, configs, teacher_model)
+#     student_model = choose_model(configs)
+#     best_acc_test = model_train(configs, student_model, graph, teacher_logits)
+#     print(
+#         "acc_student_test: {:.4f}  acc_teacher_test: {:.4f}".format(best_acc_test.item(), acc_teacher_test.item()))
+
 def main(args):
     configs = get_training_config("train_conf.yaml", args)
-    configs, graph = load_dataset(configs)
-    teacher_model = choose_model(configs)
-    teacher_logits, acc_teacher_test = teacher_trainer(graph, configs, teacher_model)
-    student_model = choose_model(configs)
-    best_acc_test = model_train(configs, student_model, graph, teacher_logits)
-    print(
-        "acc_student_test: {:.4f}  acc_teacher_test: {:.4f}".format(best_acc_test.item(), acc_teacher_test.item()))
+    acc_student_test_list = []
+    acc_teacher_test_list = []
+    for _ in range(10):
+        configs, graph = load_dataset(configs)
+        teacher_model = choose_model(configs)
+        teacher_logits, acc_teacher_test = teacher_trainer(graph, configs, teacher_model)
+        student_model = choose_model(configs)
+        best_acc_test = model_train(configs, student_model, graph, teacher_logits)
+
+        print("acc_student_test: {:.4f}  acc_teacher_test: {:.4f}".format(best_acc_test.item(), acc_teacher_test.item()))
+        acc_student_test_list.append(best_acc_test.item())
+        acc_teacher_test_list.append(acc_teacher_test.item())
+
+    formatted_acc_student_test_list = ["{:.4f}".format(item) for item in acc_student_test_list]
+    formatted_acc_teacher_test_list = ["{:.4f}".format(item) for item in acc_teacher_test_list]
+
+    print("acc_student_test_list:", formatted_acc_student_test_list)
+    print("acc_teacher_test_list:", formatted_acc_teacher_test_list)
+    avg_acc_student_test = np.mean(acc_student_test_list)
+    max_acc_student_test = np.max(acc_student_test_list)
+    min_acc_student_test = np.min(acc_student_test_list)
+    std_dev_acc_student_test = np.std(acc_student_test_list)
+
+    avg_acc_teacher_test = np.mean(acc_teacher_test_list)
+    max_acc_teacher_test = np.max(acc_teacher_test_list)
+    min_acc_teacher_test = np.min(acc_teacher_test_list)
+    std_dev_acc_teacher_test = np.std(acc_teacher_test_list)
+    print("avg_acc_student_test: {:.4f}".format(avg_acc_student_test))
+    print("max_acc_student_test: {:.4f}".format(max_acc_student_test))
+    print("min_acc_student_test: {:.4f}".format(min_acc_student_test))
+    print("std_dev_acc_student_test: {:.4f}".format(std_dev_acc_student_test))
+
+    print("avg_acc_teacher_test: {:.4f}".format(avg_acc_teacher_test))
+    print("max_acc_teacher_test: {:.4f}".format(max_acc_teacher_test))
+    print("min_acc_teacher_test: {:.4f}".format(min_acc_teacher_test))
+    print("std_dev_acc_teacher_test: {:.4f}".format(std_dev_acc_teacher_test))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='cora', help='Dataset')
+    parser.add_argument('--dataset', type=str, default='pubmed', help='Dataset')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument('--model', type=str,
-                        default='GCN', help='Teacher and student Model')
-    parser.add_argument("--max_epoch", type=int, default=600, help="max number of epoch")
-    parser.add_argument("--patience", type=int, default=200, help="early stopping epoch")
+                        default='GAT', help='Teacher and student Model')
+    parser.add_argument("--max_epoch", type=int, default=1600, help="max number of epoch")
+    parser.add_argument("--patience", type=int, default=800, help="early stopping epoch")
     parser.add_argument('--largest_connected_component', type=bool, default=True,
                         help='use largest connected component or not')
     args = parser.parse_args()

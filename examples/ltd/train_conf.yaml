@@ -31,8 +31,8 @@ GCN:
     train_per_class: 20
     val_per_class: 20
     my_val_per_class: 10
-    hidden_dim: 64
-    drop_rate: 0.8
+    hidden_dim: 16
+    drop_rate: 0.5
     num_layers: 2
     my_lr: 7.40E-06
     my_t_lr: 9.38E-05
@@ -76,9 +76,9 @@ GAT:
     train_per_class: 20
     val_per_class: 20
     my_val_per_class: 10
-    hidden_dim: 64
+    hidden_dim: 8
     heads: 8
-    drop_rate: 0.6
+    drop_rate: 0.2
     num_layers: 2
     my_lr: 2.95E-05
     my_t_lr: 3.27E-06
