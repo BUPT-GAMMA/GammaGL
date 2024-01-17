@@ -172,54 +172,15 @@ def choose_model(configs):
     return model
 
 
-# def main(args):
-#     configs = get_training_config("train_conf.yaml", args)
-#     configs, graph = load_dataset(configs)
-#     teacher_model = choose_model(configs)
-#     teacher_logits, acc_teacher_test = teacher_trainer(graph, configs, teacher_model)
-#     student_model = choose_model(configs)
-#     best_acc_test = model_train(configs, student_model, graph, teacher_logits)
-#     print(
-#         "acc_student_test: {:.4f}  acc_teacher_test: {:.4f}".format(best_acc_test.item(), acc_teacher_test.item()))
-
 def main(args):
     configs = get_training_config("train_conf.yaml", args)
-    acc_student_test_list = []
-    acc_teacher_test_list = []
-    for _ in range(10):
-        configs, graph = load_dataset(configs)
-        teacher_model = choose_model(configs)
-        teacher_logits, acc_teacher_test = teacher_trainer(graph, configs, teacher_model)
-        student_model = choose_model(configs)
-        best_acc_test = model_train(configs, student_model, graph, teacher_logits)
-
-        print("acc_student_test: {:.4f}  acc_teacher_test: {:.4f}".format(best_acc_test.item(), acc_teacher_test.item()))
-        acc_student_test_list.append(best_acc_test.item())
-        acc_teacher_test_list.append(acc_teacher_test.item())
-
-    formatted_acc_student_test_list = ["{:.4f}".format(item) for item in acc_student_test_list]
-    formatted_acc_teacher_test_list = ["{:.4f}".format(item) for item in acc_teacher_test_list]
-
-    print("acc_student_test_list:", formatted_acc_student_test_list)
-    print("acc_teacher_test_list:", formatted_acc_teacher_test_list)
-    avg_acc_student_test = np.mean(acc_student_test_list)
-    max_acc_student_test = np.max(acc_student_test_list)
-    min_acc_student_test = np.min(acc_student_test_list)
-    std_dev_acc_student_test = np.std(acc_student_test_list)
-
-    avg_acc_teacher_test = np.mean(acc_teacher_test_list)
-    max_acc_teacher_test = np.max(acc_teacher_test_list)
-    min_acc_teacher_test = np.min(acc_teacher_test_list)
-    std_dev_acc_teacher_test = np.std(acc_teacher_test_list)
-    print("avg_acc_student_test: {:.4f}".format(avg_acc_student_test))
-    print("max_acc_student_test: {:.4f}".format(max_acc_student_test))
-    print("min_acc_student_test: {:.4f}".format(min_acc_student_test))
-    print("std_dev_acc_student_test: {:.4f}".format(std_dev_acc_student_test))
-
-    print("avg_acc_teacher_test: {:.4f}".format(avg_acc_teacher_test))
-    print("max_acc_teacher_test: {:.4f}".format(max_acc_teacher_test))
-    print("min_acc_teacher_test: {:.4f}".format(min_acc_teacher_test))
-    print("std_dev_acc_teacher_test: {:.4f}".format(std_dev_acc_teacher_test))
+    configs, graph = load_dataset(configs)
+    teacher_model = choose_model(configs)
+    teacher_logits, acc_teacher_test = teacher_trainer(graph, configs, teacher_model)
+    student_model = choose_model(configs)
+    best_acc_test = model_train(configs, student_model, graph, teacher_logits)
+    print(
+        "acc_student_test: {:.4f}  acc_teacher_test: {:.4f}".format(best_acc_test.item(), acc_teacher_test.item()))
 
 
 if __name__ == '__main__':
