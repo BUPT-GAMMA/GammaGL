@@ -3,6 +3,8 @@ import tensorlayerx as tlx
 import numpy as np
 
 from .num_nodes import maybe_num_nodes
+
+
 def to_scipy_sparse_matrix(edge_index, edge_attr = None, num_nodes = None):
     r"""Converts a graph given by edge indices and edge attributes to a scipy
     sparse matrix.

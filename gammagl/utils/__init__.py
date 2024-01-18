@@ -37,6 +37,7 @@ __all__ = [
     'to_scipy_sparse_matrix',
     'read_embeddings',
     'homophily',
+    'to_dense_adj'
 
 ]
 
