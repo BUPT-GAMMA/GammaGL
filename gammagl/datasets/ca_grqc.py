@@ -21,7 +21,7 @@ class CA_GrQc():
 
     url = 'https://raw.githubusercontent.com/hwwang55/GraphGAN/master'
 
-    def __init__(self, dir: str, n_emb: int, force_reload: bool = False):
+    def __init__(self, dir: str, n_emb: int):
 
         self.download(dir)
         self.n_node, self.graph = self.read_edges(f'{dir}/CA-GrQc_train.txt', f'{dir}/CA-GrQc_test.txt')

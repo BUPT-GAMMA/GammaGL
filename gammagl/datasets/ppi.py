@@ -18,7 +18,7 @@ class PPI(InMemoryDataset):
 
         assert split in ['train', 'val', 'valid', 'test']
 
-        super().__init__(root, transform, pre_transform, pre_filter)
+        super().__init__(root, transform, pre_transform, pre_filter, force_reload = force_reload)
 
         if split == 'train':
             self.data, self.slices = self.load_data(self.processed_paths[0])

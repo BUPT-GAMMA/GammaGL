@@ -66,6 +66,8 @@ class TUDataset(InMemoryDataset):
     cleaned: bool, optional
         If :obj:`True`, the dataset will
         contain only non-isomorphic graphs. (default: :obj:`False`)
+    force_reload (bool, optional): Whether to re-process the dataset.
+        (default: :obj:`False`)
 
     Tip
     ---
@@ -136,7 +138,7 @@ class TUDataset(InMemoryDataset):
                  force_reload: bool = False):
         self.name = name
         self.cleaned = cleaned
-        super().__init__(root, transform, pre_transform, pre_filter)
+        super().__init__(root, transform, pre_transform, pre_filter, force_reload = force_reload)
         self.data, self.slices, self.sizes = self.load_data(self.processed_paths[0])
         if self.data.x is not None and not use_node_attr:
             num_node_attributes = self.num_node_attributes

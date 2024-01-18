@@ -21,7 +21,7 @@ class MLDataset(InMemoryDataset):
         url_post = '.zip'
         self.url = f'{url_pre}{self.dataset_name}{url_post}'
 
-        super().__init__(root, transform, pre_transform, pre_filter)
+        super().__init__(root, transform, pre_transform, pre_filter, force_reload = force_reload)
 
         self.data, self.slices = self.load_data(self.processed_paths[0])
 

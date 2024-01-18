@@ -43,6 +43,8 @@ class WikipediaNetwork(InMemoryDataset):
         an :obj:`gammagl.data.Graph` object and returns a
         transformed version. The data object will be transformed before
         being saved to disk. (default: :obj:`None`)
+    force_reload (bool, optional): Whether to re-process the dataset.
+        (default: :obj:`False`)
 
     """
 
@@ -60,7 +62,7 @@ class WikipediaNetwork(InMemoryDataset):
         if geom_gcn_preprocess and self.name == 'crocodile':
             raise AttributeError("The dataset 'crocodile' is not available in "
                                  "case 'geom_gcn_preprocess=True'")
-        super().__init__(root, transform, pre_transform)
+        super().__init__(root, transform, pre_transform, force_reload = force_reload)
         self.data, self.slices = self.load_data(self.processed_paths[0])
 
     @property

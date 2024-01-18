@@ -31,6 +31,8 @@ class Coauthor(InMemoryDataset):
         an :obj:`gammagl.data.Graph` object and returns a
         transformed version. The data object will be transformed before
         being saved to disk. (default: :obj:`None`)
+    force_reload (bool, optional): Whether to re-process the dataset.
+        (default: :obj:`False`)
 
     Stats:
         .. list-table::
@@ -62,7 +64,7 @@ class Coauthor(InMemoryDataset):
                  force_reload: bool = False):
         assert name.lower() in ['cs', 'physics']
         self.name = 'CS' if name.lower() == 'cs' else 'Physics'
-        super().__init__(root, transform, pre_transform)
+        super().__init__(root, transform, pre_transform, force_reload = force_reload)
         self.data, self.slices = self.load_data(self.processed_paths[0])
 
     @property

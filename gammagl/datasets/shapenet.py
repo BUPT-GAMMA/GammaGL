@@ -62,6 +62,8 @@ class ShapeNet(InMemoryDataset):
         :obj:`gammagl.data.Graph` object and returns a boolean
         value, indicating whether the data object should be included in the
         final dataset. (default: :obj:`None`)
+    force_reload (bool, optional): Whether to re-process the dataset.
+        (default: :obj:`False`)
 
     """
 
@@ -115,7 +117,7 @@ class ShapeNet(InMemoryDataset):
             categories = [categories]
         assert all(category in self.category_ids for category in categories)
         self.categories = categories
-        super().__init__(root, transform, pre_transform, pre_filter)
+        super().__init__(root, transform, pre_transform, pre_filter, force_reload = force_reload)
 
         if split == 'train':
             path = self.processed_paths[0]

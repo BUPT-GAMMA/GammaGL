@@ -48,6 +48,8 @@ class Dataset(Dataset):
             :obj:`gammagl.data.Graph` object and returns a boolean
             value, indicating whether the graph object should be included in the
             final dataset. (default: :obj:`None`)
+        force_reload: bool, optional
+            Whether to re-process the dataset.(default: :obj:`False`)
 
     """
 
@@ -318,7 +320,8 @@ class Dataset(Dataset):
                 f"The `pre_transform` argument differs from the one used in "
                 f"the pre-processed version of this dataset. If you want to "
                 f"make use of another pre-processing technique, make sure to "
-                f"sure to delete '{self.processed_dir}' first")
+                f"sure to delete '{self.processed_dir}' first"
+                f"`force_reload=True` explicitly to reload the dataset.")
 
         f = osp.join(self.processed_dir, tlx.BACKEND + '_pre_filter.pt')
         if osp.exists(f) and self.load_with_pickle(f) != _repr(self.pre_filter):
@@ -326,7 +329,8 @@ class Dataset(Dataset):
                 "The `pre_filter` argument differs from the one used in the "
                 "pre-processed version of this dataset. If you want to make "
                 "use of another pre-fitering technique, make sure to delete "
-                "'{self.processed_dir}' first")
+                "'{self.processed_dir}' first"
+                "`force_reload=True` explicitly to reload the dataset.")
 
         if not self.force_reload and files_exist(self.processed_paths):  # pragma: no cover
             # self.process()

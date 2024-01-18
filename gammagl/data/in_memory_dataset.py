@@ -35,6 +35,8 @@ class InMemoryDataset(Dataset):
             :obj:`gammagl.data.Graph` object and returns a boolean
             value, indicating whether the graph object should be included in the
             final dataset. (default: :obj:`None`)
+        force_reload: bool, optional
+            Whether to re-process the dataset.(default: :obj:`False`)
 
     """
     @property
