@@ -37,6 +37,9 @@ def test_han_conv():
     assert tlx.get_tensor_shape(out_dict1['paper']) == [5, 32]
 
 def test_han_conv_empty_tensor():
+    if tlx.BACKEND == 'mindspore':
+        # mindspore input_data can not contain zero dimension
+        return
     x_dict = {
         'author': tlx.random_normal((6, 16), dtype = tlx.float32),
         'paper': tlx.random_normal((0, 12), dtype = tlx.float32),
