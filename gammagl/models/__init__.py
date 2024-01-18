@@ -47,6 +47,7 @@ from .magcl import NewGrace
 from .cagcn import CAGCNModel
 from .cogsl import CoGSLModel
 from .specformer import Specformer, SpecLayer
+from .grace_pot import Grace_POT_Encoder, Grace_POT_Model
 from .sfgcn import SFGCNModel
 
 __all__ = [
