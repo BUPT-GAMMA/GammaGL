@@ -85,7 +85,9 @@ def test_add_self_loops():
     # assert out[0].tolist() == expected
     # assert out[1].tolist() == [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.],
     #                            [0., 1., 1.], [1., 0., 0.]]
-
+    if tlx.BACKEND == 'mindspore':
+        # mindspore input_data can not contain zero dimension
+        return
     edge_index = tlx.convert_to_tensor([[], []])
     edge_weight = tlx.convert_to_tensor([], dtype=tlx.float32)
     out = add_self_loops(edge_index, edge_weight, num_nodes=1)
