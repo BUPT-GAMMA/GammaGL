@@ -1,5 +1,6 @@
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
+import copy
 from gammagl.layers.conv import GCNConv
 from gammagl.utils import to_scipy_sparse_matrix
 
@@ -25,11 +26,11 @@ class GGDModel(nn.Module):
     # Detach the return variables
     def embed(self, seq, edge_index, edge_weight):
         h_1 = self.gcn(seq, edge_index, edge_weight)
-        h_2 = h_1.clone().squeeze(0)
+        h_2 = tlx.squeeze(copy.deepcopy(h_1), axis=0)
         adj = to_scipy_sparse_matrix(edge_index, edge_weight)
         for i in range(5):
             h_2 = tlx.convert_to_tensor(adj.A) @ h_2
 
-        h_2 = h_2.unsqueeze(0)
+        h_2 = tlx.expand_dims(h_2, axis=0)
 
-        return h_1.detach(), h_2.detach()
+        return tlx.detach(h_1), tlx.detach(h_2)

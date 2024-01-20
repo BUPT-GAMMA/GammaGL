@@ -7,7 +7,7 @@ import random
 import argparse
 import sys
 
-sys.path.insert(0, os.path.abspath('../../'))
+# sys.path.insert(0, os.path.abspath('../../'))
 os.environ['TL_BACKEND'] = 'torch'
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
@@ -62,12 +62,12 @@ def sparse_mx_to_edge_index(sparse_mx):
 
 def preprocess_features(features):
     """Row-normalize feature matrix and convert to tuple representation"""
-    rowsum = np.array(features.sum(1))
+    rowsum = np.array(tlx.reduce_sum(features, axis=1))
     r_inv = np.power(rowsum, -1).flatten()
     r_inv[np.isinf(r_inv)] = 0.
     r_mat_inv = sp.diags(r_inv)
     features = r_mat_inv.dot(features)
-    return features
+    return tlx.convert_to_tensor(features)
 
 def normalize_adj(adj):
     """Symmetrically normalize adjacency matrix."""
@@ -118,20 +118,20 @@ if __name__ == '__main__':
     parser.add_argument('--sparse', action='store_true', help='Whether to use sparse tensors')
     parser.add_argument('--dataset', type=str, default='cora', help='Dataset name: cora, citeseer, pubmed, computer, photo')
     parser.add_argument('--num_hop', type=int, default=0, help='graph power')
-    parser.add_argument('--n_trials', type=int, default=5, help='number of trails')
+    parser.add_argument('--n_trials', type=int, default=1, help='number of trails')
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
+    parser.add_argument("--gpu", type=int, default=0, help="gpu id, -1 means cpu")
+    args = parser.parse_args()
 
-    try:
-        args = parser.parse_args()
-    except:
-        parser.print_help()
-        sys.exit(0)
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
 
     n_trails = args.n_trials
     acc_res = []
     for i in range(n_trails):
-        tlx.set_device("CPU")
 
         dataset = args.dataset
 
@@ -152,10 +152,10 @@ if __name__ == '__main__':
             dataset = Planetoid(args.dataset_path, args.dataset)
             graph = dataset[0]
             edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=args.self_loops)
-            features = tlx.convert_to_numpy(graph.x)
-            labels = tlx.convert_to_numpy(graph.y)
-            n_values = np.max(labels) + 1
-            labels = np.eye(n_values)[labels]
+            features = graph.x
+            labels = graph.y
+            n_values = tlx.reduce_max(labels) + 1
+            labels = tlx.gather(tlx.eye(n_values), labels)
             idx_train = mask_to_index(graph.train_mask)
             idx_test = mask_to_index(graph.test_mask)
             idx_val = mask_to_index(graph.val_mask)
@@ -186,13 +186,10 @@ if __name__ == '__main__':
         #preprocessing and initialisation
         features = preprocess_features(features)
 
-        nb_nodes = features.shape[0]
-        nb_classes = labels.shape[1]
+        nb_nodes = tlx.get_tensor_shape(features)[0]
+        nb_classes = tlx.get_tensor_shape(labels)[1]
+        ft_size = tlx.get_tensor_shape(features)[1]
 
-
-        ft_size = features.shape[1]
-
-        features = tlx.convert_to_tensor(features)
         original_features = tlx.expand_dims(features, 0)
         ggd = GGDModel(ft_size, hid_units, nb_classes)
         train_weights = ggd.trainable_weights
@@ -221,7 +218,7 @@ if __name__ == '__main__':
         #generate a random number --> later use as a tag for saved model
         tag = str(int(np.random.random() * 10000000000))
 
-        nb_feats = features.shape[2]
+        nb_feats = tlx.get_tensor_shape(features)[2]
 
         avg_time = 0
         counts = 0
@@ -229,6 +226,7 @@ if __name__ == '__main__':
         for epoch in range(nb_epochs):
             ggd.set_train()
             loss_disc = train_one_step(data, graph.y)
+            print("Epoch ", epoch, ":\tloss: {:.4f}".format(loss_disc))
 
             if loss_disc < best:
                 best = loss_disc
@@ -243,10 +241,8 @@ if __name__ == '__main__':
                 break
 
         ggd.load_weights('best_dgi' + tag + '.npz', format='npz_dict')
-        if tlx.BACKEND == 'torch':
-            ggd.to(data['features'].device)
 
-        or_embeds, pr_embeds = ggd.embed(original_features.squeeze(0), edge_index, edge_weight)
+        or_embeds, pr_embeds = ggd.embed(tlx.squeeze(original_features, axis=0), edge_index, edge_weight)
 
         embeds = or_embeds + pr_embeds
 
@@ -254,7 +250,7 @@ if __name__ == '__main__':
         val_embs = embeds[0, idx_val]
         test_embs = embeds[0, idx_test]
 
-        labels = tlx.convert_to_tensor(labels).unsqueeze(0)
+        labels = tlx.expand_dims(labels, axis=0)
         train_lbls = tlx.argmax(labels[0, idx_train], axis=1)
         val_lbls = tlx.argmax(labels[0, idx_val], axis=1)
         test_lbls = tlx.argmax(labels[0, idx_test], axis=1)
@@ -269,9 +265,8 @@ if __name__ == '__main__':
         accs = []
 
         for _ in range(50):
-            log = LogReg(train_embs.shape[1], nb_classes)
+            log = LogReg(tlx.get_tensor_shape(train_embs)[1], nb_classes)
             train_weights = log.trainable_weights
-            # lack nn.CrossEntropyLoss()
             log_loss_func = LogRegLoss(log, tlx.losses.softmax_cross_entropy_with_logits)
             opt = tlx.optimizers.Adam(lr=0.01, weight_decay=0.0)
             train_one_step = TrainOneStep(log_loss_func, opt, train_weights)
@@ -285,17 +280,13 @@ if __name__ == '__main__':
             log.set_eval()
             logits = log(test_embs)
             preds = tlx.argmax(logits, axis=1)
-            acc = tlx.reduce_sum(preds == test_lbls).float() / test_lbls.shape[0]
+            acc = tlx.reduce_sum(preds == test_lbls).float() / tlx.get_tensor_shape(test_lbls)[0]
             accs.append(acc * 100)
             tot += acc
 
         accs = tlx.stack(accs)
-        print(accs.mean())
-        acc_results.append(accs.mean().cpu().numpy())
+        print(tlx.reduce_mean(accs))
+        acc_results.append(tlx.convert_to_numpy(tlx.to_device(tlx.reduce_mean(accs), "cpu")))
 
-    print(np.mean(acc_results))
+    print("Test acc: ", np.mean(acc_results))
 
-    with open('gslog_{}.txt'.format(args.dataset), 'a') as f:
-        f.write(str(args))
-        f.write('\n' + str(np.mean(acc_results)) + '\n')
-        f.write(str(np.std(acc_results)) + '\n')
