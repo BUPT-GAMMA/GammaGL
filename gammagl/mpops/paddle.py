@@ -218,3 +218,7 @@ def _scatter(x, index, updates, overwrite=True):
         attrs={'overwrite': overwrite},
         outputs={"Out": out})
     return out
+
+
+def gspmm(index, weight=None, x=None, reduce='sum'):
+    pass

@@ -4,6 +4,7 @@ import os
 import os.path as osp
 from setuptools import setup, find_packages
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtension
+from gammagl.utils.ggl_build_extension import PyCudaExtension, PyCPUExtension
 
 # TODO will depend on different host
 WITH_CUDA = False
@@ -47,11 +48,11 @@ def load_mpops_extensions():
             extensions.append(CppExtension(
                 name=osp.join(mpops_dir, f'_{mpops_prefix}').replace(osp.sep, "."),
                 sources=[f for f in file_list],
-                extra_compile_args=['-std=c++17']
+                extra_compile_args=compile_args
             ))
         else:
             extensions.append(CUDAExtension(
-                name=osp.join(mpops_dir, f'_{mpops_prefix}_cuda').replace(osp.sep, "."),
+                name=osp.join(mpops_dir, f'_{mpops_prefix}').replace(osp.sep, "."),
                 sources=[f for f in file_list],
                 define_macros=[
                     cuda_macro,
@@ -90,14 +91,14 @@ def load_ops_extensions():
             if not src_files:
                 continue
             if not is_cuda_ext:
-                extensions.append(CppExtension(
+                extensions.append(PyCPUExtension(
                     name=osp.join(ops_dir, f'_{ops_prefix}').replace(osp.sep, "."),
                     sources=[osp.join(src_dir, f) for f in src_files],
                     include_dirs=[osp.join('third_party', d) for d in ops_third_party_deps[i]],
                     extra_compile_args=['-std=c++17']
                 ))
             else:
-                extensions.append(CUDAExtension(
+                extensions.append(PyCudaExtension(
                     name=osp.join(ops_dir, f'_{ops_prefix}_cuda').replace(osp.sep, "."),
                     sources=[osp.join(src_dir, f) for f in src_files],
                     include_dirs=[osp.join('third_party', d) for d in ops_third_party_deps[i]],

@@ -7,8 +7,8 @@ import numpy as np
 
 
 def knn(x, k):
-    inner = -2*tlx.bmm(tlx.transpose(x, (0, 2, 1)), x)
-    xx = tlx.reduce_sum(x**2, axis=1, keepdims=True)
+    inner = -2 * tlx.bmm(tlx.transpose(x, (0, 2, 1)), x)
+    xx = tlx.reduce_sum(x ** 2, axis=1, keepdims=True)
     pairwise_distance = xx + inner + tlx.transpose(xx, (0, 2, 1))
 
     # idx = pairwise_distance.topk(k=k, dim=-1)[1]  # indices
@@ -38,7 +38,7 @@ def get_graph_feature(x, k=20, idx=None):
     x = tlx.transpose(x, (0, 2, 1))
     feature = tlx.gather(tlx.reshape(x, (batch_size*num_points, -1)), idx, axis=0)
     feature = tlx.reshape(feature, (batch_size, num_points, k, num_dims))
-    x = tlx.tile(tlx.reshape(x, (batch_size, num_points, 1, num_dims)), [1, 1, k, 1])
+    x = tlx.tile(tlx.reshape(x, (batch_size, num_points, 1, num_dims)), (1, 1, k, 1))
     feature = tlx.concat([feature - x, x], axis=3)
     return feature
 

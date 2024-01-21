@@ -1,6 +1,6 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
@@ -115,8 +115,7 @@ def main(args):
             break
     net.load_weights(args.best_model_path + "DGI_" + args.dataset + ".npz")
     net.set_eval()
-    if tlx.BACKEND == 'torch':
-        net.to(data['x'].device)
+
     embed = net.gcn(data['x'],
                     data['edge_index'],
                     data['edge_weight'],
@@ -125,9 +124,7 @@ def main(args):
     train_embs = tlx.gather(embed, data['train_idx'])
     test_embs = tlx.gather(embed, data['test_idx'])
 
-    if tlx.BACKEND != 'tensorflow':
-        # todo: support ms
-        train_embs = train_embs.detach()
+    train_embs = tlx.detach(train_embs)
 
     train_lbls = tlx.gather(data['y'], data['train_idx'])
     test_lbls = tlx.gather(data['y'], data['test_idx'])
@@ -166,8 +163,14 @@ if __name__ == '__main__':
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
     parser.add_argument("--num_evaluation", type=int, default=50, help="number of evaluate classifier")
     parser.add_argument("--patience", type=int, default=20)
+    parser.add_argument("--gpu", type=int, default=0)
+    
     args = parser.parse_args()
-    # main(args)
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
+
     accs = []
     print(args)
     for i in range(5):

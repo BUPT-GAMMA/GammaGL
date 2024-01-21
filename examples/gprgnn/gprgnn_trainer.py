@@ -1,6 +1,6 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
@@ -86,9 +86,6 @@ def random_planetoid_splits(data, num_classes, percls_trn=20, val_lb=500, Flag=0
         data.test_mask = index_to_mask(rest_index, size=data.num_nodes)
     return data
 
-
-
-
 def main(args):
     # load datasets
     if str.lower(args.dataset) in ['cora','pubmed','citeseer']:
@@ -117,7 +114,7 @@ def main(args):
         graph.edge_index = preProcDs[0].edge_index
     else:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
-        
+
     graph.numpy()
     graph.num_nodes = graph.x.shape[0]
 
@@ -150,7 +147,7 @@ def main(args):
     train_weights = net.trainable_weights
     loss_func = SemiSpvzLoss(net, tlx.losses.softmax_cross_entropy_with_logits)
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
-    
+
     data = {
         "x": x,
         "edge_index": edge_index,
@@ -185,14 +182,14 @@ def main(args):
             if val_acc < tmp:
                 break
 
-    net.load_weights(args.best_model_path+net.name+'_'+args.dataset+".npz", format='npz_dict')
+    net.load_weights(args.best_model_path + net.name + '_'+args.dataset + ".npz", format='npz_dict')
     test_acc = evaluate(net, data, graph.y, data['test_mask'], metrics)
     print("Test acc:  {:.4f}".format(test_acc))
-    print("learnable weight:{}".format(tlx.convert_to_numpy(net.all_weights[-1])))
-    record_path = osp.abspath("./test_accuracy")
-    
-    with open(record_path, "a+") as f:
-        f.write("{} {} {:.2f}\n".format(tlx.BACKEND, args.dataset, test_acc * 100))
+    # print("learnable weight:{}".format(tlx.convert_to_numpy(net.all_weights[-1])))
+    # record_path = osp.abspath("./test_accuracy")
+
+    # with open(record_path, "a+") as f:
+    #     f.write("{} {} {:.2f}\n".format(tlx.BACKEND, args.dataset, test_acc * 100))
 
 
 if __name__ == '__main__':
@@ -214,10 +211,13 @@ if __name__ == '__main__':
     parser.add_argument("--Init", type=str, choices=['SGC', 'PPR', 'NPPR', 'Random', 'WS', 'Null'], default="PPR", help="initializaiton method of learnable weight of gprprop")
     parser.add_argument("--K", type=int, default=10, help="depth of gprprop")
     parser.add_argument("--alpha", type=float, default=0.2, help="initialization of learnable weight of gprprop")
-    parser.add_argument("--Gamma", type=int)
+    parser.add_argument("--Gamma", type=int, default=2)
+    parser.add_argument("--gpu", type=int, default=0)
+
     args = parser.parse_args()
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
 
     main(args)
-
-
-

@@ -1,6 +1,6 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
@@ -104,7 +104,7 @@ def main(args):
     for iter in range(args.iter):
         start = time.time()
         best_val_acc = 0
-        for epoch in range(args.epoch):
+        for epoch in range(args.n_epoch):
             net.set_train()
             train_loss = train_one_step(data, graph.y)
 
@@ -181,11 +181,18 @@ if __name__ == '__main__':
     parser.add_argument("--dataset_path", type=str, default=r'', help="path to"
                                                                          " save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
-    parser.add_argument('--epoch', type=int, default=200, help='number of epochs to train the base model')
+    parser.add_argument('--n_epoch', type=int, default=200, help='number of epochs to train the base model')
     parser.add_argument('--iter', type=int, default=30, help='number of iterations to train the GEN')
     parser.add_argument('--k', type=int, default=9, help='k of knn graph')
     parser.add_argument('--threshold', type=float, default=.5, help='threshold for adjacency matrix')
     parser.add_argument('--tolerance', type=float, default=.01, help='tolerance to stop EM algorithm')
+    parser.add_argument("--gpu", type=int, default=0)
+    
     args = parser.parse_args()
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
+
 
     main(args)

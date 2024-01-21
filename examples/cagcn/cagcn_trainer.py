@@ -8,7 +8,7 @@
 
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
@@ -19,13 +19,6 @@ from gammagl.models.gcn import GCNModel
 from gammagl.models.gat import GATModel
 from gammagl.models.cagcn import CAGCNModel
 from gammagl.utils import mask_to_index
-
-if tlx.BACKEND == 'torch':  # when the backend is torch and you want to use GPU
-    try:
-        tlx.set_device(device='GPU', id=2)
-    except:
-        print("GPU is not available")
-
 
 def load_dataset(args):
     if str.lower(args.dataset) not in ['cora', 'pubmed', 'citeseer']:
@@ -218,7 +211,7 @@ def train(args, epoch_id, Lambda, model, metrics, optimizer, data, train_weights
 
     print(f'epoch[{epoch_id:04d}]',
           f'train_loss {train_loss:.4f}',
-          f'val_loss {val_loss:.4f}',
+          f'val_loss {tlx.convert_to_numpy(val_loss):.4f}',
           f'val_acc {val_acc:.4f}')
     return val_acc
 
@@ -257,7 +250,7 @@ def main(args):
         # Save the best base model weights
         best_val_acc = 0
         bad_counter = 0
-        for epoch in range(args.epochs):
+        for epoch in range(args.n_epoch):
             val_acc = train(args, epoch, args.Lambda, base_model, metrics, base_optimizer, pesudo_data,
                             base_model.trainable_weights)
             if val_acc > best_val_acc:
@@ -280,7 +273,7 @@ def main(args):
         # Save the best calibration model weights
         best_val_acc = 0
         bad_counter = 0
-        epochs = args.epoch_for_st if times != args.stage - 1 else args.epochs
+        epochs = args.epoch_for_st if times != args.stage - 1 else args.n_epoch
         temp_data = pesudo_data
         if times == args.stage - 1:
             temp_data['train_idx'] = pesudo_data['val_idx']
@@ -342,9 +335,9 @@ if __name__ == "__main__":
     # Training settings
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='GAT')
-    parser.add_argument('--dataset', type=str, default="Cora", help='dataset for training')
+    parser.add_argument('--dataset', type=str, default="cora", help='dataset for training')
     parser.add_argument('--stage', type=int, default=1, help='times of retraining')
-    parser.add_argument('--epochs', type=int, default=2000, help='Number of epochs to train.')
+    parser.add_argument('--n_epoch', type=int, default=2000, help='Number of epochs to train.')
     parser.add_argument('--epoch_for_st', type=int, default=200,
                         help='Number of epochs to calibration for self-training')
     parser.add_argument('--lr', type=float, default=0.01, help='Initial learning rate.')
@@ -361,7 +354,12 @@ if __name__ == "__main__":
     parser.add_argument('--threshold', type=float, default=0.85)
     parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset, default in peer dir.")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
-
+    parser.add_argument("--gpu", type=int, default=0)
+    
     args = parser.parse_args()
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
 
     main(args)

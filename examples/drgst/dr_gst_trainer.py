@@ -1,6 +1,6 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
@@ -180,7 +180,7 @@ class DR_GST():
             "beta": args.beta
         }
 
-        for epoch in range(args.epochs):
+        for epoch in range(args.n_epoch):
             net.set_train()
             train_loss = train_one_step(train_data, tlx.detach(data.y))
 
@@ -423,14 +423,14 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='GCN')
-    parser.add_argument('--dataset', type=str, default="Cora",
+    parser.add_argument('--dataset', type=str, default="cora",
                         help='dataset for training')
     parser.add_argument("--dataset_path", type=str, default=r'./',
                         help="path to save dataset")
     parser.add_argument('--labelrate', type=int, default=20)
     parser.add_argument('--weight_decay', type=float, default=5e-4,
                         help='Weight decay (L2 loss on parameters).')
-    parser.add_argument('--epochs', type=int, default=1,
+    parser.add_argument('--n_epoch', type=int, default=1,
                         help='Number of epochs to train.')
     parser.add_argument('--stage', type=int, default=2)
     parser.add_argument('--threshold', type=float, default=0.53)
@@ -450,6 +450,12 @@ if __name__ == '__main__':
     parser.add_argument("--num_layers", type=int, default=2, help="number of layers")
     parser.add_argument("--norm", type=str, default='both', help="how to apply the normalizer.")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
-
+    parser.add_argument("--gpu", type=int, default=0)
+    
     args = parser.parse_args()
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
+    
     main(args)

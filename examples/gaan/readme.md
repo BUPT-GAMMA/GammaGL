@@ -20,9 +20,9 @@ Results
 -------
 
 ```bash
-TL_BACKEND="tensorflow" python GaAN_trainer.py --dataset cora --n_epoch 200 --lr 0.005 --l2_coef 0.01 --drop_rate 0.1 --heads 8 --v 64 --m 64
-TL_BACKEND="tensorflow" python GaAN_trainer.py --dataset citeseer --n_epoch 200 --lr 0.003 --l2_coef 0.005 --drop_rate 0.4 --heads 8 --v 32 --m 32
-TL_BACKEND="tensorflow" python GaAN_trainer.py --dataset pubmed --n_epoch 300 --lr 0.005 --l2_coef 0.0005 --drop_rate 0.4 --heads 8 --v 64 --m 64
+TL_BACKEND="tensorflow" python gaan_trainer.py --dataset cora --n_epoch 200 --lr 0.005 --l2_coef 0.01 --drop_rate 0.1 --heads 8 --v 64 --m 64
+TL_BACKEND="tensorflow" python gaan_trainer.py --dataset citeseer --n_epoch 200 --lr 0.003 --l2_coef 0.005 --drop_rate 0.4 --heads 8 --v 32 --m 32
+TL_BACKEND="tensorflow" python gaan_trainer.py --dataset pubmed --n_epoch 300 --lr 0.005 --l2_coef 0.0005 --drop_rate 0.4 --heads 8 --v 64 --m 64
 ```
 
 | Dataset  | GAT(Paper) | Our(tf)      |
