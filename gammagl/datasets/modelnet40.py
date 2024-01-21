@@ -34,14 +34,16 @@ class ModelNet40(InMemoryDataset):
         (:obj:`"train"`, :obj:`"test"`).
     num_points: int, optional
         The number of points used to train or test.
+    force_reload (bool, optional): Whether to re-process the dataset.
+        (default: :obj:`False`)
 
     """
     url = 'https://shapenet.cs.stanford.edu/media/modelnet40_ply_hdf5_2048.zip'
 
-    def __init__(self, root=None, transform=None, pre_transform=None, pre_filter=None, split='train', num_points=1024):
+    def __init__(self, root=None, transform=None, pre_transform=None, pre_filter=None, split='train', num_points=1024, force_reload: bool = False):
         self.num_points = num_points
         self.split = split
-        super(ModelNet40, self).__init__(root, transform, pre_transform, pre_filter)
+        super(ModelNet40, self).__init__(root, transform, pre_transform, pre_filter, force_reload = force_reload)
         assert split in ['train', 'test']
         path = self.processed_paths[0] if split == 'train' else self.processed_paths[1]
         self.data, self.slices = self.load_data(path)

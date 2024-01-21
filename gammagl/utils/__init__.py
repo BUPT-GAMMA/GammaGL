@@ -16,6 +16,7 @@ from .convert import to_scipy_sparse_matrix
 from .read_embeddings import read_embeddings
 from .homophily import homophily
 from .to_dense_adj import to_dense_adj
+from .smiles import from_smiles
 
 __all__ = [
     'calc_A_norm_hat',
@@ -37,7 +38,8 @@ __all__ = [
     'to_scipy_sparse_matrix',
     'read_embeddings',
     'homophily',
-    'to_dense_adj'
+    'to_dense_adj',
+    'from_smiles'
 
 ]
 
