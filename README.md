@@ -398,6 +398,7 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 | [DR-GST [WWW 2022]](./examples/drgst)            | :heavy_check_mark: | :heavy_check_mark: |                    |                    |
 | [Specformer [ICLR 2023]](./examples/specformer)  |                    | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [AM-GCN [KDD 2020]](./examples/amgcn)            |                    | :heavy_check_mark: |                    |                    |
+| [GGD [NeurIPS 2022]](./examples/ggd)             |                    | :heavy_check_mark: |                    |                    |
 
 | Contrastive Learning                           | TensorFlow         | PyTorch            | Paddle             | MindSpore |
 | ---------------------------------------------- | ------------------ | ------------------ | ------------------ | --------- |
