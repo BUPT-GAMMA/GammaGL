@@ -26,7 +26,7 @@ class GGDModel(nn.Module):
     # Detach the return variables
     def embed(self, seq, edge_index, edge_weight):
         h_1 = self.gcn(seq, edge_index, edge_weight)
-        h_2 = tlx.squeeze(copy.deepcopy(h_1), axis=0)
+        h_2 = tlx.squeeze(copy.copy(h_1), axis=0)
         adj = to_scipy_sparse_matrix(edge_index, edge_weight)
         for i in range(5):
             h_2 = tlx.convert_to_tensor(adj.A) @ h_2

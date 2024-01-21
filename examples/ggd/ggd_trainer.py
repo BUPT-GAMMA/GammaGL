@@ -7,8 +7,9 @@ import random
 import argparse
 import sys
 
-# sys.path.insert(0, os.path.abspath('../../'))
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
 from gammagl.datasets import Planetoid
@@ -30,8 +31,9 @@ class GGDLoss(WithLoss):
         lbl_2 = tlx.zeros((data['batch_size'], data['num_nodes']))
         lbl = tlx.concat((lbl_1, lbl_2), 1)
 
-        logits_1 = self.backbone_network(aug_fts,  shuf_fts, data['edge_index'], data['edge_weight'], data['num_nodes'])
+        logits_1 = self.backbone_network(aug_fts, shuf_fts, data['edge_index'], data['edge_weight'], data['num_nodes'])
         loss_disc = self._loss_fn(tlx.sigmoid(logits_1), lbl)
+
         return loss_disc
 
 class LogRegLoss(WithLoss):
@@ -62,11 +64,11 @@ def sparse_mx_to_edge_index(sparse_mx):
 
 def preprocess_features(features):
     """Row-normalize feature matrix and convert to tuple representation"""
-    rowsum = np.array(tlx.reduce_sum(features, axis=1))
+    rowsum = tlx.convert_to_numpy(tlx.reduce_sum(tlx.to_device(features, "cpu"), axis=1))
     r_inv = np.power(rowsum, -1).flatten()
     r_inv[np.isinf(r_inv)] = 0.
     r_mat_inv = sp.diags(r_inv)
-    features = r_mat_inv.dot(features)
+    features = r_mat_inv.dot(tlx.to_device(features, "cpu"))
     return tlx.convert_to_tensor(features)
 
 def normalize_adj(adj):
@@ -154,7 +156,7 @@ if __name__ == '__main__':
             edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=args.self_loops)
             features = graph.x
             labels = graph.y
-            n_values = tlx.reduce_max(labels) + 1
+            n_values = tlx.convert_to_numpy(tlx.reduce_max(labels) + 1).item()
             labels = tlx.gather(tlx.eye(n_values), labels)
             idx_train = mask_to_index(graph.train_mask)
             idx_test = mask_to_index(graph.test_mask)
@@ -208,18 +210,11 @@ if __name__ == '__main__':
             "num_nodes": graph.num_nodes,
             "batch_size": batch_size,
         }
-
         cnt_wait = 0
         best = 1e9
         best_t = 0
-
         features = tlx.expand_dims(features, 0)
-
-        #generate a random number --> later use as a tag for saved model
-        tag = str(int(np.random.random() * 10000000000))
-
         nb_feats = tlx.get_tensor_shape(features)[2]
-
         avg_time = 0
         counts = 0
 
@@ -232,7 +227,7 @@ if __name__ == '__main__':
                 best = loss_disc
                 best_t = epoch
                 cnt_wait = 0
-                ggd.save_weights('best_dgi' + tag + '.npz', format='npz_dict')
+                ggd.save_weights('GGD.npz', format='npz_dict')
             else:
                 cnt_wait += 1
 
@@ -240,12 +235,9 @@ if __name__ == '__main__':
                 print('Early stopping!')
                 break
 
-        ggd.load_weights('best_dgi' + tag + '.npz', format='npz_dict')
-
+        ggd.load_weights('GGD.npz', format='npz_dict')
         or_embeds, pr_embeds = ggd.embed(tlx.squeeze(original_features, axis=0), edge_index, edge_weight)
-
         embeds = or_embeds + pr_embeds
-
         train_embs = embeds[0, idx_train]
         val_embs = embeds[0, idx_val]
         test_embs = embeds[0, idx_test]
@@ -261,9 +253,7 @@ if __name__ == '__main__':
         }
 
         tot = 0
-
         accs = []
-
         for _ in range(50):
             log = LogReg(tlx.get_tensor_shape(train_embs)[1], nb_classes)
             train_weights = log.trainable_weights
