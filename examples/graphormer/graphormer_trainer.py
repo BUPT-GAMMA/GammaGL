@@ -1,6 +1,6 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '4'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '4'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import argparse
 import sys
@@ -96,13 +96,11 @@ if __name__ == '__main__':
     parser.add_argument("--max_out_degree", type=int, default=5, help="max out degree of node")
     parser.add_argument("--max_path_distance", type=int, default=5, help="max path distance")
     
-    parser.add_argument("--gpu", type=int, default=0)
-    
+    parser.add_argument("--gpu", type=int, default=-1)
     args = parser.parse_args()
     if args.gpu >= 0:
         tlx.set_device("GPU", args.gpu)
     else:
         tlx.set_device("CPU")
-
 
     main(args)
