@@ -1,7 +1,3 @@
-# import torch
-# import torch.nn as nn
-# import torch.nn.functional as F
-# from torch_geometric.nn import GCNConv
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
 from gammagl.layers.conv import GCNConv

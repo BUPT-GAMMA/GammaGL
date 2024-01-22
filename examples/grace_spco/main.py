@@ -1,13 +1,13 @@
 import os
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 import numpy as np
 import argparse
 import yaml
 from yaml import SafeLoader
 import tensorlayerx as tlx
-
-import sys
-sys.path.insert(0, os.path.abspath('../../'))
 
 from gammagl.datasets import Planetoid, Flickr, BlogCatalog
 from gammagl.layers.conv import GCNConv
@@ -19,7 +19,6 @@ from tensorlayerx.model import TrainOneStep, WithLoss
 
 from eval import label_classification
 import scipy.sparse as ssp
-# tlx.set_device("GPU", 5)
 
 class train_loss(WithLoss):
     def __init__(self, model):
@@ -107,11 +106,6 @@ def update(theta, epoch, total):
     return theta
 
 def main(args):
-    if args.gpu_id >= 0:
-        tlx.set_device("GPU", 0)
-    else:
-        tlx.set_device("CPU")
-
     config = yaml.load(open(args.config), Loader=SafeLoader)[args.dataset]
 
     learning_rate = config['learning_rate']
@@ -156,11 +150,6 @@ def main(args):
                                    (tlx.to_device(scope[0, :], "cpu"), tlx.to_device(scope[1, :], "cpu"))),
                                     shape = [num_nodes, num_nodes]).A
     dist = adj.A.sum(-1) / adj.A.sum()
-
-    if args.gpu_id >= 0:
-        tlx.set_device("GPU", args.gpu_id)
-    else:
-        tlx.set_device("CPU")
 
     encoder = Grace_Spco_Encoder(num_features, num_hidden, activation,
                       base_model=base_model, k=num_layers)
@@ -214,8 +203,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--dataset', type=str, default="citeseer") 
-    parser.add_argument('--gpu_id', type=int, default=-1) 
+    parser.add_argument('--dataset', type=str, default="cora") 
+    parser.add_argument('--gpu', type=int, default=0) 
     parser.add_argument('--config', type=str, default='config.yaml')
     parser.add_argument('--seed', type=int, default=0) 
 
@@ -232,5 +221,9 @@ if __name__ == '__main__':
     #####################################
 
     args, _ = parser.parse_known_args()
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
 
     main(args)
