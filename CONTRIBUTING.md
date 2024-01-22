@@ -31,6 +31,7 @@ Contribution is always welcomed. Please feel free to open an issue or email to y
   - Yuxin Guo (Gamma Lab)
   - Zihao Zhao (Gamma Lab)
   - Feng Guo (Gamma Lab)
+  - Shujie Li (Gamma Lab)
   - Yuxuan Shan (BUPT)
   - Zeyao Ma (BUPT)
   - Yiming Jia (BUPT)
