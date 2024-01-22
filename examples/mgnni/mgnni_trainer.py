@@ -1,6 +1,6 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
@@ -64,7 +64,7 @@ def main(args):
     ks = eval(args.ks)
     ks_str = '-'.join(map(str, ks))
     result_name = '_'.join(
-        [str(tlx.BACKEND), str(args.dataset), args.model, ks_str, str(args.epochs), str(args.lr), str(args.l2_coef),
+        [str(tlx.BACKEND), str(args.dataset), args.model, ks_str, str(args.n_epoch), str(args.lr), str(args.l2_coef),
          str(args.gamma),
          str(args.idx_split), str(int(time.time()))]) + '.txt'
     result_path = os.path.join(args.path, result_name)
@@ -129,7 +129,7 @@ def main(args):
 
     best_val_acc = 0
     best_test_acc = 0
-    for epoch in range(args.epochs):
+    for epoch in range(args.n_epoch):
         # optimizer.zero_grad()
         net.set_train()
         train_loss = train_one_step(data, graph.y)
@@ -177,7 +177,7 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--epochs', type=int, default=300,
+    parser.add_argument('--n_epoch', type=int, default=300,
                         help='Number of epochs to train.')
     parser.add_argument('--lr', type=float, default=0.5,
                         help='Initial learning rate.')
@@ -197,7 +197,12 @@ if __name__ == '__main__':
     parser.add_argument('--batch_norm', type=int, default=0, choices=[0, 1], help='whether to use batch norm')
     parser.add_argument('--path', type=str, default='./results/')
     parser.add_argument('--idx_split', type=int, default=5)
+    parser.add_argument("--gpu", type=int, default=0)
 
     args = parser.parse_args()
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
 
     main(args)

@@ -46,8 +46,11 @@ from .mgnni import MGNNI_m_MLP, MGNNI_m_att
 from .magcl import NewGrace
 from .cagcn import CAGCNModel
 from .cogsl import CoGSLModel
+from .ggd import GGDModel
 from .specformer import Specformer, SpecLayer
+from .grace_pot import Grace_POT_Encoder, Grace_POT_Model
 from .sfgcn import SFGCNModel
+from .grace_spco import Grace_Spco_Encoder, Grace_Spco_Model
 
 __all__ = [
     'GCNModel',
@@ -100,6 +103,7 @@ __all__ = [
     'NewGrace',
     'CAGCNModel',
     'CoGSLModel',
+    'GGDModel',
     'Specformer',
     'SFGCNModel'
 ]

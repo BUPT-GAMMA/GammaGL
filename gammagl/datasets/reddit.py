@@ -28,13 +28,15 @@ class Reddit(InMemoryDataset):
         an :obj:`gammagl.data.Graph` object and returns a
         transformed version. The data object will be transformed before
         being saved to disk. (default: :obj:`None`)
+    force_reload (bool, optional): Whether to re-process the dataset.
+        (default: :obj:`False`)
 
     """
 
     url = 'https://data.dgl.ai/dataset/reddit.zip'
 
-    def __init__(self, root=None, transform=None, pre_transform=None):
-        super().__init__(root, transform, pre_transform)
+    def __init__(self, root=None, transform=None, pre_transform=None, force_reload: bool = False):
+        super().__init__(root, transform, pre_transform, force_reload = force_reload)
         self.data, self.slices = self.load_data(self.processed_paths[0])
 
     @property
@@ -52,13 +54,13 @@ class Reddit(InMemoryDataset):
 
     def process(self):
         data = np.load(osp.join(self.raw_dir, 'reddit_data.npz'))
-        x = np.array(data['feature'], dtype=np.float32)
-        y = np.array(data['label'], np.int32)
+        x = tlx.convert_to_tensor(data['feature'], dtype=tlx.float32)
+        y = tlx.convert_to_tensor(data['label'], dtype=tlx.int64)
         split = np.array(data['node_types'])
 
         adj = sp.load_npz(osp.join(self.raw_dir, 'reddit_graph.npz'))
 
-        edge = np.array([adj.row, adj.col], dtype=np.int64)
+        edge = tlx.convert_to_tensor([adj.row, adj.col], dtype=tlx.int64)
 
         edge, _ = coalesce(edge, None, x.shape[0], x.shape[0])
 

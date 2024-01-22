@@ -7,7 +7,7 @@
 
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
@@ -63,6 +63,7 @@ def main(args):
                    num_class=dataset.num_classes,
                    heads=args.heads,
                    drop_rate=args.drop_rate,
+                   num_layers=args.num_layers,
                    name="GAT")
 
     loss = tlx.losses.softmax_cross_entropy_with_logits
@@ -104,8 +105,6 @@ def main(args):
             net.save_weights(args.best_model_path+net.name+".npz", format='npz_dict')
 
     net.load_weights(args.best_model_path+net.name+".npz", format='npz_dict')
-    if tlx.BACKEND == 'torch':
-        net.to(data['x'].device)
     net.set_eval()
     logits = net(data['x'], data['edge_index'], data['num_nodes'])
     test_logits = tlx.gather(logits, data['test_idx'])
@@ -122,11 +121,17 @@ if __name__ == '__main__':
     parser.add_argument("--hidden_dim", type=int, default=8, help="dimension of hidden layers")
     parser.add_argument("--heads", type=int, default=8, help="number of heads for stablization")
     parser.add_argument("--drop_rate", type=float, default=0.4, help="drop_rate")
+    parser.add_argument("--num_layers", type=int, default=2, help="number of layers")
     parser.add_argument("--l2_coef", type=float, default=1e-4, help="l2 loss coeficient")
     parser.add_argument('--dataset', type=str, default='cora', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
+    parser.add_argument("--gpu", type=int, default=0)
+    
     args = parser.parse_args()
-
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
     main(args)

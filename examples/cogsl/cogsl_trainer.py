@@ -1,6 +1,6 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
@@ -247,7 +247,7 @@ def main(args):
     best_loss_val = 1e9
     best_v = None
 
-    for epoch in range(args.main_epoch):
+    for epoch in range(args.n_epoch):
         curr = np.log(1 + args.temp_r * epoch)
         curr = min(max(0.05, curr), 0.1)
         data['curr'] = curr
@@ -320,7 +320,7 @@ def polblogs_params():
     parser.add_argument('--mi_lr', type=float, default=0.01)
     parser.add_argument('--mi_weight_decay', type=float, default=0.)
     ## iter
-    parser.add_argument('--main_epoch', type=int, default=150)
+    parser.add_argument('--n_epoch', type=int, default=150)
     parser.add_argument('--inner_ve_epoch', type=int, default=1)
     parser.add_argument('--inner_cls_epoch', type=int, default=5)
     parser.add_argument('--inner_mi_epoch', type=int, default=5)
@@ -364,7 +364,7 @@ def citeseer_params():
     parser.add_argument('--mi_lr', type=float, default=0.01)
     parser.add_argument('--mi_weight_decay', type=float, default=0.)
     ## iter
-    parser.add_argument('--main_epoch', type=int, default=200)
+    parser.add_argument('--n_epoch', type=int, default=200)
     parser.add_argument('--inner_ve_epoch', type=int, default=5)
     parser.add_argument('--inner_cls_epoch', type=int, default=5)
     parser.add_argument('--inner_mi_epoch', type=int, default=10)
@@ -408,7 +408,7 @@ def wikics_params():
     parser.add_argument('--mi_lr', type=float, default=0.01)
     parser.add_argument('--mi_weight_decay', type=float, default=0.)
     ## iter
-    parser.add_argument('--main_epoch', type=int, default=200)
+    parser.add_argument('--n_epoch', type=int, default=200)
     parser.add_argument('--inner_ve_epoch', type=int, default=1)
     parser.add_argument('--inner_cls_epoch', type=int, default=1)
     parser.add_argument('--inner_mi_epoch', type=int, default=1)
@@ -452,7 +452,7 @@ def ms_params():
     parser.add_argument('--mi_lr', type=float, default=0.01)
     parser.add_argument('--mi_weight_decay', type=float, default=0.)
     ## iter
-    parser.add_argument('--main_epoch', type=int, default=200)
+    parser.add_argument('--n_epoch', type=int, default=200)
     parser.add_argument('--inner_ve_epoch', type=int, default=1)
     parser.add_argument('--inner_cls_epoch', type=int, default=15)
     parser.add_argument('--inner_mi_epoch', type=int, default=10)

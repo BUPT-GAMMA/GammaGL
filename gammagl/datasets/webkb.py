@@ -32,15 +32,18 @@ class WebKB(InMemoryDataset):
         an :obj:`gammagl.data.Graph` object and returns a
         transformed version. The data object will be transformed before
         being saved to disk. (default: :obj:`None`)
+    force_reload (bool, optional): Whether to re-process the dataset.
+        (default: :obj:`False`)
+        
     """
 
     url = 'https://raw.githubusercontent.com/graphdml-uiuc-jlu/geom-gcn/master'
 
-    def __init__(self, root=None, name='cornell', transform=None, pre_transform=None):
+    def __init__(self, root=None, name='cornell', transform=None, pre_transform=None, force_reload: bool = False):
         self.name = name.lower()
         assert self.name in ['cornell', 'texas', 'wisconsin']
 
-        super().__init__(root, transform, pre_transform)
+        super().__init__(root, transform, pre_transform, force_reload = force_reload)
         self.data, self.slices = self.load_data(self.processed_paths[0])
 
     @property

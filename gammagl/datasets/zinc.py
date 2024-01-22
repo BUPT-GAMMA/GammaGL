@@ -63,6 +63,9 @@ class ZINC(InMemoryDataset):
         :obj:`gammagl.data.Graph` object and returns a boolean
         value, indicating whether the data object should be included in the
         final dataset. (default: :obj:`None`)
+    force_reload (bool, optional): Whether to re-process the dataset.
+        (default: :obj:`False`)
+
     """
 
     url = 'https://www.dropbox.com/s/feo9qle74kg48gy/molecules.zip?dl=1'
@@ -70,10 +73,10 @@ class ZINC(InMemoryDataset):
                  'benchmarking-gnns/master/data/molecules/{}.index')
 
     def __init__(self, root: str = None, subset=False, split='train', transform=None,
-                 pre_transform=None, pre_filter=None):
+                 pre_transform=None, pre_filter=None, force_reload: bool = False):
         self.subset = subset
         assert split in ['train', 'val', 'test']
-        super().__init__(root, transform, pre_transform, pre_filter)
+        super().__init__(root, transform, pre_transform, pre_filter, force_reload = force_reload)
         path = osp.join(self.processed_dir, f'{split}.pt')
         self.data, self.slices = self.load_data(path)
 

@@ -3,7 +3,8 @@ import numpy as np
 from gammagl.mpops import unsorted_segment_mean
 from gammagl.utils import degree
 
-def homophily(edge_index, y, batch=None, method: str = 'edge'): 
+
+def homophily(edge_index, y, batch=None, method: str = 'edge'):
     r"""The homophily of a graph characterizes how likely nodes with the same 
     label are near each other in a graph.
     There are many measures of homophily that fits this definition.
@@ -91,7 +92,7 @@ def homophily(edge_index, y, batch=None, method: str = 'edge'):
         if batch is None:
             return float(out.mean())
         else:
-            out = tlx.convert_to_tensor(out)
+            out = tlx.convert_to_tensor(out, dtype=tlx.float32)
             col = tlx.convert_to_tensor(col)
             batch = tlx.convert_to_tensor(batch)
             return unsorted_segment_mean(out, tlx.gather(batch, col))
@@ -99,8 +100,8 @@ def homophily(edge_index, y, batch=None, method: str = 'edge'):
     elif method == 'node':
         out = np.zeros(row.shape[0])
         out[y[row] == y[col]] = 1.
-        
-        out = unsorted_segment_mean(tlx.convert_to_tensor(out), tlx.convert_to_tensor(col))
+
+        out = unsorted_segment_mean(tlx.convert_to_tensor(out, dtype=tlx.float32), tlx.convert_to_tensor(col))
         print(out)
         if batch is None:
             return float(tlx.reduce_mean(out))

@@ -1,6 +1,6 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
@@ -39,12 +39,10 @@ def test(model, loader):
 
 
 def main(args):
-    tlx.set_device('GPU', id=args.gpu_id)
     tlx.set_seed(args.seed)
 
     # data.
-    path = osp.join(args.data_dir, 'Planetoid')
-    dataset = Planetoid(path, name=args.dataset)
+    dataset = Planetoid(args.data_dir, name=args.dataset)
     data = dataset[0]
     train_dataset = SEALDataset(dataset, num_hops=args.hop, neg_sampling_ratio=args.neg_sampling_ratio, split='train', env=f'{tlx.BACKEND}_{args.dataset}')
     val_dataset = SEALDataset(dataset, num_hops=args.hop, neg_sampling_ratio=args.neg_sampling_ratio, split='val', env=f'{tlx.BACKEND}_{args.dataset}')
@@ -88,7 +86,7 @@ def main(args):
 
     # training.
     best_val_auc = best_auc = best_epoch = 0
-    for epoch in range(args.epochs):
+    for epoch in range(args.n_epoch):
         start_time = time.time()
         
         model.set_train()
@@ -116,7 +114,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="SEAL")
     # data
     parser.add_argument("--data_dir", type=str, default="")
-    parser.add_argument("--dataset", type=str, default="Cora")
+    parser.add_argument("--dataset", type=str, default="cora")
 
     # seal preprocess
     parser.add_argument("--hop", type=int, default=2)
@@ -142,12 +140,17 @@ if __name__ == '__main__':
     parser.add_argument("--learn_eps", type=bool, default=False, help="learn the epsilon weighting")
 
     # training
-    parser.add_argument("--epochs", type=int, default=81)
+    parser.add_argument("--n_epoch", type=int, default=81)
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--eval_steps", type=int, default=5)
     parser.add_argument("--seed", type=int, default=1313)
-    parser.add_argument("--gpu_id", type=int, default=0)
+    parser.add_argument("--gpu", type=int, default=0)
+
     args = parser.parse_args()
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
 
     logging.basicConfig(
         level=logging.INFO,

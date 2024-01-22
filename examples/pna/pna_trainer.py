@@ -7,7 +7,7 @@
 """
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
@@ -142,5 +142,11 @@ if __name__ == '__main__':
     parser.add_argument('--post_layers', type=int, default=1, help='Number of MLP layers after aggregation')
     parser.add_argument('--divide_input', type=bool, default=False, help='Whether the input features shouldbe split '
                                                                          'between towers or not')
+    parser.add_argument("--gpu", type=int, default=0)
+
     args = parser.parse_args()
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
     main(args)

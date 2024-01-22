@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 # @author WuJing
 # @created 2023/4/18
+import os
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 
 from gammagl.utils import mask_to_index
 from tensorlayerx.model import WithLoss, TrainOneStep
@@ -48,15 +52,15 @@ def main(args):
     test_idx = mask_to_index(graph.test_mask)
     val_idx = mask_to_index(graph.val_mask)
 
-    train_loader = NeighborSampler(edge_index=graph.edge_index.numpy(),
-                                   node_idx=tlx.convert_to_numpy(train_idx),
+    train_loader = NeighborSampler(edge_index=graph.edge_index,
+                                   node_idx=train_idx,
                                    sample_lists=[25, 10], batch_size=2048, shuffle=True, num_workers=0)
 
-    val_loader = NeighborSampler(edge_index=graph.edge_index.numpy(),
-                                 node_idx=tlx.convert_to_numpy(val_idx),
+    val_loader = NeighborSampler(edge_index=graph.edge_index,
+                                 node_idx=val_idx,
                                  sample_lists=[-1], batch_size=2048 * 2, shuffle=False, num_workers=0)
-    test_loader = NeighborSampler(edge_index=graph.edge_index.numpy(),
-                                  node_idx=tlx.convert_to_numpy(test_idx),
+    test_loader = NeighborSampler(edge_index=graph.edge_index,
+                                  node_idx=test_idx,
                                   sample_lists=[-1], batch_size=2048 * 2, shuffle=False, num_workers=0)
 
     x = tlx.convert_to_tensor(graph.x)
@@ -116,6 +120,12 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default='reddit', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     # parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
+    parser.add_argument("--gpu", type=int, default=0)
+
     args = parser.parse_args()
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
 
     main(args)

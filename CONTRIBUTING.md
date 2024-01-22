@@ -16,6 +16,7 @@ Contribution is always welcomed. Please feel free to open an issue or email to y
   - Hongyi Zhang
   - Guangyu Zhou
   - Dashuai Yue
+  - Xingyuan Ji
   
   Model Implementation
   
@@ -27,9 +28,9 @@ Contribution is always welcomed. Please feel free to open an issue or email to y
   - Jixi Liu (Gamma Lab)
   - Haoran Dai (Gamma Lab)
   - Jinyu Yang (Gamma Lab)
-  - Xingyuan Ji (Gamma Lab)
   - Yuxin Guo (Gamma Lab)
   - Zihao Zhao (Gamma Lab)
+  - Feng Guo (Gamma Lab)
   - Shujie Li (Gamma Lab)
   - Yuxuan Shan (BUPT)
   - Zeyao Ma (BUPT)

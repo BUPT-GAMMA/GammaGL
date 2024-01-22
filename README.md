@@ -357,67 +357,70 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 > Set `CUDA_VISIBLE_DEVICES=" "` if you want to run it in CPU.
 
 ## Supported Models
+<details>
+<summary>
+Now, GammaGL supports over 50 models, we welcome everyone to use or contribute models.</summary>
 
 |                                                    | TensorFlow         | PyTorch            | Paddle             | MindSpore          |
 | -------------------------------------------------- | ------------------ | ------------------ | ------------------ | ------------------ |
 | [GCN [ICLR 2017]](./examples/gcn)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [GAT [ICLR 2018]](./examples/gat)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [GraphSAGE [NeurIPS 2017]](./examples/graphsage)   | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [ChebNet [NeurIPS 2016]](./examples/chebnet)       | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
-| [GCNII [ICLR 2017]](./examples/gcnii)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [ChebNet [NeurIPS 2016]](./examples/chebnet)       | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [GCNII [ICLR 2017]](./examples/gcnii)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [JKNet [ICML 2018]](./examples/jknet)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
-| [DiffPool [NeurIPS 2018]](./examples/diffpool)     |                    |                    |                    |                    |
 | [SGC [ICML 2019]](./examples/sgc)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [GIN [ICLR 2019]](./examples/gin)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [APPNP [ICLR 2019]](./examples/appnp)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [AGNN [arxiv]](./examples/agnn)                    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [SIGN [ICML 2020 Workshop]](./examples/sign)       | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [DropEdge [ICLR 2020]](./examples/dropedge)        | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [GPRGNN [ICLR 2021]](./examples/gprgnn)            | :heavy_check_mark: |                    |                    |                    |
+| [GPRGNN [ICLR 2021]](./examples/gprgnn)            | :heavy_check_mark: | :heavy_check_mark: |                    | :heavy_check_mark: |
 | [GNN-FiLM [ICML 2020]](./examples/film)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [GraphGAN [AAAI 2018]](./examples/graphgan)        | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
-| [HardGAT [KDD 2019]](./examples/hardgat)           | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [HardGAT [KDD 2019]](./examples/hardgat)           | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [MixHop [ICML 2019]](./examples/mixhop)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [PNA [NeurIPS 2020]](./examples/pna)               | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [FAGCN [AAAI 2021]](./examples/fagcn)              | :heavy_check_mark: | :heavy_check_mark: |                    | :heavy_check_mark: |
-| [GATv2 [ICLR 2021]](./examples/gatv2)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
-| [GEN [WWW 2021]](./examples/gen)                   | :heavy_check_mark: | :heavy_check_mark: |                    |                    |
-| [GAE [NeurIPS 2016]](./examples/vgae)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
-| [VGAE [NeurIPS 2016]](./examples/vgae)             | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [GATv2 [ICLR 2021]](./examples/gatv2)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [GEN [WWW 2021]](./examples/gen)                   | :heavy_check_mark: | :heavy_check_mark: |                    | :heavy_check_mark: |
+| [GAE [NeurIPS 2016]](./examples/vgae)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [VGAE [NeurIPS 2016]](./examples/vgae)             | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [HCHA [PR 2021]](./examples/hcha)                  |                    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [Node2Vec [KDD 2016]](./examples/node2vec)         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [DeepWalk [KDD 2014]](./examples/deepwalk)         | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [DGCNN [ACM T GRAPHIC 2019]](./examples/dgcnn)     | :heavy_check_mark: | :heavy_check_mark: |                    |                    |
-| [GaAN [UAI 2018]](./examples/gaan)                 | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
-| [GRADE [NeurIPS 2022]](./examples/grade)           | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [GaAN [UAI 2018]](./examples/gaan)                 | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [GMM [CVPR 2017]](./examples/gmm)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [TADW [IJCAI 2015]](./examples/tadw)               | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [MGNNI [NeurIPS 2022]](./examples/mgnni)           | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
-| [MAGCL [AAAI 2023]](./examples/magcl)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
-| [CAGCN [NeurIPS 2021]](./examples/cagcn)           | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [MGNNI [NeurIPS 2022]](./examples/mgnni)           | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [CAGCN [NeurIPS 2021]](./examples/cagcn)           | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [DR-GST [WWW 2022]](./examples/drgst)              | :heavy_check_mark: | :heavy_check_mark: |                    |                    |
 | [Specformer [ICLR 2023]](./examples/specformer)    |                    | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [CoGSL [WWW 2022]](./examples/cogsl)               |                    | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [AM-GCN [KDD 2020]](./examples/amgcn)              |                    | :heavy_check_mark: |                    |                    |
+| [GGD [NeurIPS 2022]](./examples/ggd)               |                    | :heavy_check_mark: |                    |                    |
 | [LTD [WSDM 2022]](./examples/ltd)                  |                    | :heavy_check_mark: |                    |                    |
 
 
 | Contrastive Learning                               | TensorFlow         | PyTorch            | Paddle             | MindSpore          |
 | -------------------------------------------------- | ------------------ | ------------------ | ------------------ | ------------------ |
 | [DGI [ICLR 2019]](./examples/dgi)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
-| [GRACE [ICML 2020 Workshop]](./examples/grace)     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
-| [MVGRL [ICML 2020]](./examples/mvgrl)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [GRACE [ICML 2020 Workshop]](./examples/grace)     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [GRADE [NeurIPS 2022]](./examples/grade)           | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [MVGRL [ICML 2020]](./examples/mvgrl)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [InfoGraph [ICLR 2020]](./examples/infograph)      | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [MERIT [IJCAI 2021]](./examples/merit)             | :heavy_check_mark: |                    | :heavy_check_mark: |                    |
-| [GRACE-POT [NeurIPS 2022]](./examples/grace_pot)   |                    | :heavy_check_mark: |                    |                    |
+| [GNN-POT [NeurIPS 2023]](./examples/grace_pot)     |                    | :heavy_check_mark: |                    |                    |
+| [MAGCL [AAAI 2023]](./examples/magcl)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 
 | Heterogeneous Graph Learning                       | TensorFlow         | PyTorch            | Paddle             | MindSpore          |
 | -------------------------------------------------- | ------------------ | ------------------ | ------------------ | ------------------ |
 | [RGCN [ESWC 2018]](./examples/rgcn)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [HAN [WWW 2019]](./examples/han)                   | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [HGT [WWW 2020]](./examples/hgt/)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [HGT [WWW 2020]](./examples/hgt/)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [SimpleHGN [KDD 2021]](./examples/simplehgn)       | :heavy_check_mark: |                    |                    |                    |
-| [CompGCN [ICLR 2020]](./examples/compgcn)          |                    | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [CompGCN [ICLR 2020]](./examples/compgcn)          |                    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [HPN [TKDE 2021]](./examples/hpn)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [ieHGCN [TKDE 2021]](./examples/iehgcn)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [MetaPath2Vec [KDD 2017]](./examples/metapath2vec) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
@@ -427,6 +430,7 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 > 
 > The models can be run in mindspore backend. Howerver, the results of experiments are not satisfying due to training component issue,
 > which will be fixed in future.
+</details>
 
 ## Contributors
 
@@ -440,10 +444,21 @@ Contribution is always welcomed. Please feel free to open an issue or email to y
 If you use GammaGL in a scientific publication, we would appreciate citations to the following paper:
 
 ```
-@inproceedings{Liu2023gammagl,
-  title={GammaGL: A Multi-Backend Library for Graph Neural Networks},
-  author={Yaoqi Liu, Cheng Yang, Tianyu Zhao, Hui Han, Siyuan Zhang, Jing Wu, Guangyu Zhou, Hai Huang, Hui Wang, Chuan Shi},
-  booktitle={SIGIR},
-  year={2023}
+@inproceedings{10.1145/3539618.3591891,
+author = {Liu, Yaoqi and Yang, Cheng and Zhao, Tianyu and Han, Hui and Zhang, Siyuan and Wu, Jing and Zhou, Guangyu and Huang, Hai and Wang, Hui and Shi, Chuan},
+title = {GammaGL: A Multi-Backend Library for Graph Neural Networks},
+year = {2023},
+isbn = {9781450394086},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3539618.3591891},
+doi = {10.1145/3539618.3591891},
+booktitle = {Proceedings of the 46th International ACM SIGIR Conference on Research and Development in Information Retrieval},
+pages = {2861–2870},
+numpages = {10},
+keywords = {graph neural networks, frameworks, deep learning},
+location = {, Taipei, Taiwan, },
+series = {SIGIR '23}
 }
+
 ```

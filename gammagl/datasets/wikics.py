@@ -10,34 +10,38 @@ from gammagl.utils import to_undirected
 
 class WikiCS(InMemoryDataset):
     r"""The semi-supervised Wikipedia-based dataset from the
-        `"Wiki-CS: A Wikipedia-Based Benchmark for Graph Neural Networks"
-        <https://arxiv.org/abs/2007.02901>`_ paper, containing 11,701 nodes,
-        216,123 edges, 10 classes and 20 different training splits.
+    `"Wiki-CS: A Wikipedia-Based Benchmark for Graph Neural Networks"
+    <https://arxiv.org/abs/2007.02901>`_ paper, containing 11,701 nodes,
+    216,123 edges, 10 classes and 20 different training splits.
 
-        Parameters
-        ----------
-        root: str, optional
-            Root directory where the dataset should be saved.
-        transform: callable, optional
-            A function/transform that takes in an
-            :obj:`gammagl.data.Graph` object and returns a transformed
-            version. The data object will be transformed before every access.
-            (default: :obj:`None`)
-        pre_transform: callable, optional
-            A function/transform that takes in
-            an :obj:`gammagl.data.Graph` object and returns a
-            transformed version. The data object will be transformed before
-            being saved to disk. (default: :obj:`None`)
-        is_undirected: bool, optional
-            Whether the graph is undirected.
-            (default: :obj:`True`)
-        """
+    Parameters
+    ----------
+    root: str, optional
+        Root directory where the dataset should be saved.
+    transform: callable, optional
+        A function/transform that takes in an
+        :obj:`gammagl.data.Graph` object and returns a transformed
+        version. The data object will be transformed before every access.
+        (default: :obj:`None`)
+    pre_transform: callable, optional
+        A function/transform that takes in
+        an :obj:`gammagl.data.Graph` object and returns a
+        transformed version. The data object will be transformed before
+        being saved to disk. (default: :obj:`None`)
+    is_undirected: bool, optional
+        Whether the graph is undirected.
+        (default: :obj:`True`)
+    force_reload (bool, optional): Whether to re-process the dataset.
+        (default: :obj:`False`)
+        
+    """
 
     url = 'https://github.com/pmernyei/wiki-cs-dataset/raw/master/dataset'
 
     def __init__(self, root: str = None, transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None,
-                 is_undirected: Optional[bool] = None):
+                 is_undirected: Optional[bool] = None,
+                 force_reload: bool = False):
         if is_undirected is None:
             warnings.warn(
                 f"The {self.__class__.__name__} dataset now returns an "
@@ -45,7 +49,7 @@ class WikiCS(InMemoryDataset):
                 f"'is_undirected=False' to restore the old behavior.")
             is_undirected = True
         self.is_undirected = is_undirected
-        super().__init__(root, transform, pre_transform)
+        super().__init__(root, transform, pre_transform, force_reload = force_reload)
         self.data, self.slices = self.load_data(self.processed_paths[0])
 
     @property
