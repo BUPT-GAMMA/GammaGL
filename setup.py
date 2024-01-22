@@ -4,7 +4,7 @@ import os
 import os.path as osp
 from setuptools import setup, find_packages
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtension
-from gammagl.utils.ggl_build_extension import PyCudaExtension, PyCPUExtension
+from ggl_build_extension import PyCudaExtension, PyCPUExtension
 
 # TODO will depend on different host
 WITH_CUDA = False
