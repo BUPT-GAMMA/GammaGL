@@ -1,8 +1,3 @@
-import os
-
-os.environ['TL_BACKEND'] = 'torch'
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-
 import tensorlayerx as tlx
 from gammagl.utils import add_self_loops, mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss

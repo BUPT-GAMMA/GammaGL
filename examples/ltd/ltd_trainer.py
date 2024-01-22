@@ -1,6 +1,8 @@
 import os
-
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 import argparse
 import numpy as np
 import tensorlayerx as tlx
@@ -102,7 +104,7 @@ def create_subgraph(graph, nodes_to_keep=None):
     graph.edge_index = csr_matrix_to_edge_index(new_adj_matrix)
     graph.x = graph.x[nodes_to_keep]
     graph.y = graph.y[nodes_to_keep]
-    graph.num_nodes = graph.x.shape[0]
+    graph.num_nodes = tlx.get_tensor_shape(graph.x)[0]
     return graph
 
 
@@ -185,8 +187,8 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='pubmed', help='Dataset')
-    parser.add_argument("--dataset_path", type=str, default=r'../', help="path to save dataset")
+    parser.add_argument('--dataset', type=str, default='cora', help='Dataset')
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument('--model', type=str,
                         default='GAT', help='Teacher and student Model')
     parser.add_argument("--max_epoch", type=int, default=1600, help="max number of epoch")

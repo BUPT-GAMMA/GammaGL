@@ -27,12 +27,12 @@ Refer to [Planetoid](https://gammagl.readthedocs.io/en/latest/api/gammagl.datase
 
 ```bash
 # available dataset: "cora", "citeseer", "pubmed" 
-TL_BACKEND="torch" python gcn_trainer.py --dataset cora --model GCN
-TL_BACKEND="torch" python gcn_trainer.py --dataset cora --model GAT
-TL_BACKEND="torch" python gcn_trainer.py --dataset citeseer --model GCN 
-TL_BACKEND="torch" python gcn_trainer.py --dataset citeseer --model GAT
-TL_BACKEND="torch" python gcn_trainer.py --dataset pubmed --model GCN 
-TL_BACKEND="torch" python gcn_trainer.py --dataset pubmed --model GAT
+TL_BACKEND="torch" python ltd_trainer.py --dataset cora --model GCN
+TL_BACKEND="torch" python ltd_trainer.py --dataset cora --model GAT
+TL_BACKEND="torch" python ltd_trainer.py --dataset citeseer --model GCN 
+TL_BACKEND="torch" python ltd_trainer.py --dataset citeseer --model GAT
+TL_BACKEND="torch" python ltd_trainer.py --dataset pubmed --model GCN 
+TL_BACKEND="torch" python ltd_trainer.py --dataset pubmed --model GAT
 ```
 
 | Dataset  | GNN  | paper(Largest Connected Component) | Our        | Our(Largest Connected Component) |
