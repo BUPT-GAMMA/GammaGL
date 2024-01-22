@@ -18,7 +18,6 @@ Results
 -------
 
 ```bash
-# available dataset: "cora", "citeseer", "pubmed"
 TL_BACKEND="paddle" python mgnni_trainner.py --dataset cornell --lr 0.5 --l2_coef 5e-6 --model MGNNI_m_att --ks [1,2] --epochs 300
 TL_BACKEND="paddle" python mgnni_trainner.py --dataset texas --lr 0.5 --l2_coef 5e-6 --model MGNNI_m_att --ks [1,2] --epochs 300
 TL_BACKEND="paddle" python mgnni_trainner.py --dataset wisconsin --lr 0.5 --l2_coef 5e-6 --model MGNNI_m_att --ks [1,2] --epochs 300

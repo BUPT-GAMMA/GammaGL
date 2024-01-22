@@ -1,7 +1,7 @@
 import argparse
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
@@ -12,12 +12,6 @@ from gammagl.models import HERec
 from tensorlayerx.model import WithLoss, TrainOneStep
 from sklearn.linear_model import LogisticRegression
 import numpy as np
-
-if tlx.BACKEND == 'torch':  # when the backend is torch and you want to use GPU
-    try:
-        tlx.set_device(device='GPU', id=0)
-    except:
-        print("GPU is not available")
 
 
 class Unsupervised_Loss(WithLoss):
@@ -158,7 +152,12 @@ if __name__ == '__main__':
     parser.add_argument("--train_ratio", type=float, default=0.5)
     parser.add_argument("--num_negative_samples", type=int, default=5)
     parser.add_argument("--batch_size", type=int, default=128)
+    parser.add_argument("--gpu", type=int, default=0)
 
     args = parser.parse_args()
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
 
     main(args, log_steps=10)

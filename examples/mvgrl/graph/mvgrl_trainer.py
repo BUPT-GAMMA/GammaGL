@@ -118,7 +118,12 @@ if __name__ == '__main__':
     parser.add_argument('--num_layers', type=int, default=4, help='the number of GCNConv layer')
     parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
+    parser.add_argument("--gpu", type=int, default=0)
 
     args = parser.parse_args()
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
 
     main(args)

@@ -6,7 +6,7 @@
 # @FileName: compgcn_trainer.py
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
@@ -59,8 +59,7 @@ def main(args):
     # load cora dataset
     if str.lower(args.dataset) not in ['aifb', 'mutag', 'bgs', 'am']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
-    path = osp.join(osp.dirname(osp.realpath(__file__)), '../Entities')
-    dataset = Entities(path, args.dataset)
+    dataset = Entities("./", args.dataset)
     graph = dataset[0]
 
     train_y = graph.train_y
@@ -167,6 +166,11 @@ if __name__ == '__main__':
     parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--op", type=str, default='sub', help="op between entity and relation,sub or mult")
+    parser.add_argument("--gpu", type=int, default=0)
+    
     args = parser.parse_args()
-
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
     main(args)

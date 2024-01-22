@@ -7,7 +7,7 @@
 """
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
@@ -72,11 +72,11 @@ def main(args):
     print(str(net))
 
     if args.use_sgd is True:
-        scheduler = tlx.optimizers.lr.CosineAnnealingDecay(learning_rate=args.lr, T_max=args.epochs, eta_min=args.lr)
+        scheduler = tlx.optimizers.lr.CosineAnnealingDecay(learning_rate=args.lr, T_max=args.n_epoch, eta_min=args.lr)
         print("Use SGD")
         opt = tlx.optimizers.SGD(lr=scheduler, momentum=args.momentum, weight_decay=1e-4)
     else:
-        scheduler = tlx.optimizers.lr.CosineAnnealingDecay(learning_rate=args.lr, T_max=args.epochs, eta_min=args.lr)
+        scheduler = tlx.optimizers.lr.CosineAnnealingDecay(learning_rate=args.lr, T_max=args.n_epoch, eta_min=args.lr)
         print("Use Adam")
         opt = tlx.optimizers.Adam(lr=scheduler, weight_decay=1e-4)
 
@@ -86,7 +86,7 @@ def main(args):
 
     best_test_acc = 0
 
-    for epoch in range(args.epochs):
+    for epoch in range(args.n_epoch):
         train_loss = 0.
         count = 0.
         scheduler.step()
@@ -143,7 +143,7 @@ if __name__ == "__main__":
     parser.add_argument('--exp_name', type=str, default='exp', metavar='N', help='Name of the experiment')
     parser.add_argument('--batch_size', type=int, default=32, metavar='batch_size', help='Size of batch')
     parser.add_argument('--test_batch_size', type=int, default=16, metavar='batch_size', help='Size of batch')
-    parser.add_argument('--epochs', type=int, default=250, metavar='N', help='number of episode to train ')
+    parser.add_argument('--n_epoch', type=int, default=250, metavar='N', help='number of episode to train ')
     parser.add_argument('--lr', type=float, default=0.001, metavar='LR', help='learning rate (default: 0.001, 0.1 if '
                                                                               'using sgd)')
     parser.add_argument('--in_channel', type=int, default=3, help='input feature dimension')
@@ -159,6 +159,11 @@ if __name__ == "__main__":
     parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
+    parser.add_argument("--gpu", type=int, default=0)
+    
     args = parser.parse_args()
-
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
     main(args)

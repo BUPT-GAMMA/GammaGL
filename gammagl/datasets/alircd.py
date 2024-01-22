@@ -14,10 +14,10 @@ class AliRCD(InMemoryDataset):
     """
     url = "https://s3.cn-north-1.amazonaws.com.cn/dgl-data/dataset/openhgnn/AliRCD_session1.zip"
 
-    def __init__(self, root=None, transform=None, pre_transform=None):
+    def __init__(self, root=None, transform=None, pre_transform=None, force_reload: bool = False):
         self.edge_size = 157814864
         self.node_size = 13806619
-        super().__init__(root, transform, pre_transform)
+        super().__init__(root, transform, pre_transform, force_reload = force_reload)
         self.data, self.slices = self.load_data(self.processed_paths[0])
 
     @property

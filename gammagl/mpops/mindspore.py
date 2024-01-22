@@ -56,3 +56,7 @@ def segment_max(x, segment_ids, num_segments=None):
         num_segments = int(segment_ids.asnumpy().max() + 1)
     op = P.UnsortedSegmentMax()
     return op(x, segment_ids, num_segments)
+
+
+def gspmm(index, weight=None, x=None, reduce='sum'):
+    pass

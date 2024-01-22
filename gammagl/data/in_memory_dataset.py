@@ -35,6 +35,8 @@ class InMemoryDataset(Dataset):
             :obj:`gammagl.data.Graph` object and returns a boolean
             value, indicating whether the graph object should be included in the
             final dataset. (default: :obj:`None`)
+        force_reload: bool, optional
+            Whether to re-process the dataset.(default: :obj:`False`)
 
     """
     @property
@@ -54,11 +56,13 @@ class InMemoryDataset(Dataset):
     def __init__(self, root: Optional[str] = None,
                  transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None,
-                 pre_filter: Optional[Callable] = None):
-        super().__init__(root, transform, pre_transform, pre_filter)
+                 pre_filter: Optional[Callable] = None,
+                 force_reload: bool = False):
+        super().__init__(root, transform, pre_transform, pre_filter, force_reload)
         self.data = None
         self.slices = None
         self._data_list: Optional[List[Graph]] = None
+
 
     @property
     def num_classes(self) -> int:
