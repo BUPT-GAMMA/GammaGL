@@ -25,6 +25,31 @@ Following [PyTorch Geometric(PyG)](https://github.com/pyg-team/pytorch_geometric
 
 ## News
 <details>
+<summary>2024-01-24 release v0.4
+</summary>
+</br>
+We release the latest version v0.4.
+
+- 60 GNN models
+- More fused operators and users can truly use these operators
+- Support the latest version of PyTorch and MindSpore
+- Support for graph database like neo4j
+
+</details>
+
+<details>
+<summary>2023-07-12 release v0.3
+</summary>
+</br>
+We release the latest version v0.3.
+
+- 50 GNN models
+- Efficient message passing operators and fused operator
+- Rebuild sampling architecture.
+
+</details>
+
+<details>
 
 <summary>
 2023-04-01 paper accepted
@@ -82,6 +107,77 @@ We release the latest version v0.1.
 - 20+ GNN models
 
 </details>
+
+## Get Started
+
+Currently, GammaGL requires **Python Version >= 3.9**.
+
+
+1. **Python environment** (Optional): We recommend using Conda package manager
+   
+   ```bash
+   $ conda create -n ggl python=3.9
+   $ source activate ggl
+   ```
+
+2. **Install Backend**
+   
+   ```bash
+   # For tensorflow
+   $ pip install tensorflow-gpu # GPU version
+   $ pip install tensorflow # CPU version
+   
+   # For torch, version 2.1+cuda 11.8
+   # https://pytorch.org/get-started/locally/
+   $ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+   
+   # For paddle, any latest stable version
+   # https://www.paddlepaddle.org.cn/
+   $ python -m pip install paddlepaddle-gpu
+   
+   # For mindspore, GammaGL supports version 2.2.0, GPU-CUDA 11.6
+   # https://www.mindspore.cn/install
+   $ pip install https://ms-release.obs.cn-north-4.myhuaweicloud.com/2.2.0/MindSpore/unified/x86_64/mindspore-2.2.0-cp39-cp39-linux_x86_64.whl --trusted-host ms-release.obs.cn-north-4.myhuaweicloud.com -i https://pypi.tuna.tsinghua.edu.cn/simple
+   ```
+   
+   For other backend with specific version, [please check whether TLX supports](https://tensorlayerx.readthedocs.io/en/latest/user/installation.html#install-backend).
+   
+   Install TensorLayerX
+   
+   ```bash
+   pip install git+https://github.com/dddg617/tensorlayerx.git@nightly 
+   ```
+
+
+   **Note**:
+   > - PyTorch is necessary when installing TensorLayerX.
+   > - This TensorLayerX is supported by **BUPT GAMMA Lab Team**.
+
+3. **Download GammaGL**
+
+    You may download the nightly version through the following commands:
+
+   ```bash
+   $ git clone --recursive https://github.com/BUPT-GAMMA/GammaGL.git
+   $ pip install pybind11 pyparsing
+   $ python setup.py install
+   ```
+
+   or directly use the stable version:
+
+   ```bash
+   $ pip install gammagl
+   ```
+   > 大陆用户如果遇到网络问题，推荐从启智社区安装
+   > 
+   > Try to git clone from OpenI
+   > 
+   > `git clone --recursive https://git.openi.org.cn/GAMMALab/GammaGL.git`
+   
+   **Note**:
+   > "--recursive" is necessary, if you forgot, you can run command below in GammaGL root dir:
+   > 
+   > `git submodule update --init`
 
 ## Quick Tour for New Users
 
@@ -265,71 +361,7 @@ class EdgeConv(MessagePassing):
         return self.mlp(tmp)
 ```
 
-## Get Started
 
-1. **Python environment** (Optional): We recommend using Conda package manager
-   
-   ```bash
-   $ conda create -n ggl python=3.8
-   $ source activate ggl
-   ```
-
-2. **Install Backend**
-   
-   ```bash
-   # For tensorflow
-   $ pip install tensorflow-gpu # GPU version
-   $ pip install tensorflow # CPU version
-   
-   # For torch, version 1.10
-   # https://pytorch.org/get-started/locally/
-   $ pip install torch==1.10.1+cu111 torchvision==0.11.2+cu111 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu111/torch_stable.html
-   
-   # For paddle, any latest stable version
-   # https://www.paddlepaddle.org.cn/
-   $ python -m pip install paddlepaddle-gpu
-   
-   # For mindspore, GammaGL only supports version 1.8.1, GPU-CUDA 11.1
-   # https://www.mindspore.cn/install
-   $ pip install https://ms-release.obs.cn-north-4.myhuaweicloud.com/1.8.1/MindSpore/gpu/x86_64/cuda-11.1/mindspore_gpu-1.8.1-cp37-cp37m-linux_x86_64.whl --trusted-host ms-release.obs.cn-north-4.myhuaweicloud.com -i https://pypi.tuna.tsinghua.edu.cn/simple
-   ```
-   
-   For other backend with specific version, [please check whether TLX supports](https://tensorlayerx.readthedocs.io/en/latest/user/installation.html#install-backend).
-   
-   [Install TensorLayerX](https://tensorlayerx.readthedocs.io/en/latest/user/installation.html#install-tensorlayerx)
-   
-   ```bash
-   pip install git+https://github.com/tensorlayer/tensorlayerx.git 
-   ```
-   
-   > 大陆用户如果遇到网络问题，推荐从启智社区安装
-   > 
-   > Try to git clone from OpenI
-   > 
-   > `pip install git+https://git.openi.org.cn/OpenI/TensorLayerX.git`
-
-   **Note**:
-   > - TensorFlow is necessary when installing TensorLayerX.
-   > - The version of *protobuf* should be 3.19.6, remember to re-install it after you install TensorLayerX.
-
-3. **Download GammaGL**
-   
-   ```bash
-   $ git clone --recursive https://github.com/BUPT-GAMMA/GammaGL.git
-   $ pip install pybind11 pyparsing
-   $ python setup.py install
-   ```
-
-   > 大陆用户如果遇到网络问题，推荐从启智社区安装
-   > 
-   > Try to git clone from OpenI
-   > 
-   > `git clone --recursive https://git.openi.org.cn/GAMMALab/GammaGL.git`
-   
-   **Note**:
-   > "--recursive" is necessary, if you forgot, you can run command below in GammaGL root dir:
-   > 
-   > `git submodule update --init`
 ## How to Run
 
 Take [GCN](./examples/gcn) as an example:
@@ -357,9 +389,8 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 > Set `CUDA_VISIBLE_DEVICES=" "` if you want to run it in CPU.
 
 ## Supported Models
-<details>
-<summary>
-Now, GammaGL supports over 50 models, we welcome everyone to use or contribute models.</summary>
+
+Now, GammaGL supports about 60 models, we welcome everyone to use or contribute models.
 
 |                                                    | TensorFlow         | PyTorch            | Paddle             | MindSpore          |
 | -------------------------------------------------- | ------------------ | ------------------ | ------------------ | ------------------ |
@@ -368,6 +399,12 @@ Now, GammaGL supports over 50 models, we welcome everyone to use or contribute m
 | [GraphSAGE [NeurIPS 2017]](./examples/graphsage)   | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [ChebNet [NeurIPS 2016]](./examples/chebnet)       | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [GCNII [ICLR 2017]](./examples/gcnii)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+
+<details>
+<summary>You may see the other models here.</summary>
+
+|                                                    | TensorFlow         | PyTorch            | Paddle             | MindSpore          |
+| -------------------------------------------------- | ------------------ | ------------------ | ------------------ | ------------------ |
 | [JKNet [ICML 2018]](./examples/jknet)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | [SGC [ICML 2019]](./examples/sgc)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [GIN [ICLR 2019]](./examples/gin)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |

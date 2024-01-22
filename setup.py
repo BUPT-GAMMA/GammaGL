@@ -115,8 +115,8 @@ def load_extensions():
     return extensions
 
 
-install_requires = ['numpy', 'pandas', 'numba', 'scipy', 'protobuf==3.19.6', 'pyparsing',
-                    'tensorboardx<=2.5', 'pytest', 'tensorlayerx', 'rich', 'tqdm', 'pybind11', 'panda<=2.0.3']
+install_requires = ['numpy', 'pandas', 'numba', 'scipy', 'protobuf', 'pyparsing',
+                    'tensorboardx', 'pytest', 'rich', 'tqdm', 'pybind11', 'panda']
 
 classifiers = [
     'Development Status :: 3 - Alpha',
@@ -132,7 +132,7 @@ def readme():
 
 setup(
     name="gammagl",
-    version="0.3.0",
+    version="0.4.0",
     author="BUPT-GAMMA LAB",
     author_email="tyzhao@bupt.edu.cn",
     maintainer="Tianyu Zhao",
