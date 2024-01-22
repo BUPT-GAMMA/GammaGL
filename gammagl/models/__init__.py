@@ -51,6 +51,7 @@ from .specformer import Specformer, SpecLayer
 from .grace_pot import Grace_POT_Encoder, Grace_POT_Model
 from .sfgcn import SFGCNModel
 from .grace_spco import Grace_Spco_Encoder, Grace_Spco_Model
+from .graphormer import Graphormer
 
 __all__ = [
     'GCNModel',
@@ -105,7 +106,8 @@ __all__ = [
     'CoGSLModel',
     'GGDModel',
     'Specformer',
-    'SFGCNModel'
+    'SFGCNModel',
+    'Graphormer'
 ]
 
 classes = __all__

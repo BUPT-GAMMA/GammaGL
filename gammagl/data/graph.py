@@ -172,6 +172,15 @@ class BaseGraph:
         For undirected graphs, this will return the number of bi-directional
         edges, which is double the amount of unique edges."""
         return sum([v.num_edges for v in self.edge_stores])
+    
+    @property
+    def node_offsets(self) -> Dict[NodeType, int]:
+        out: Dict[NodeType, int] = {}
+        offset: int = 0
+        for store in self.node_stores:
+            out[store._key] = offset
+            offset += store.num_nodes
+        return out
 
     def is_coalesced(self) -> bool:
         r"""Returns :obj:`True` if the :obj:`edge_index` is sorted
