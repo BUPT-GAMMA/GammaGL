@@ -175,7 +175,7 @@ class MoleculeNet(InMemoryDataset):
 
     @property
     def processed_file_names(self) -> str:
-        return 'data.pt'
+        return tlx.BACKEND + '_data.pt'
 
     def download(self) -> None:
         url = self.url.format(self.names[self.name][1])
@@ -200,7 +200,7 @@ class MoleculeNet(InMemoryDataset):
 
             ys = [float(y) if len(y) > 0 else float('NaN') for y in labels]
 
-            y = tlx.convert_to_tensor(ys, dtype=tlx.float32).reshape(1, -1)
+            y = tlx.reshape(tlx.convert_to_tensor(ys, dtype=tlx.float32), (1, -1))
             data = from_smiles(smiles)
             data.y = y
 

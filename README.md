@@ -438,6 +438,7 @@ Now, GammaGL supports about 60 models, we welcome everyone to use or contribute 
 | [AM-GCN [KDD 2020]](./examples/amgcn)              |                    | :heavy_check_mark: |                    |                    |
 | [GGD [NeurIPS 2022]](./examples/ggd)               |                    | :heavy_check_mark: |                    |                    |
 | [LTD [WSDM 2022]](./examples/ltd)                  |                    | :heavy_check_mark: |                    |                    |
+| [Graphormer [NeurIPS 2021]](./examples/graphormer) |                    | :heavy_check_mark: |                    |                    |
 
 
 | Contrastive Learning                               | TensorFlow         | PyTorch            | Paddle             | MindSpore          |

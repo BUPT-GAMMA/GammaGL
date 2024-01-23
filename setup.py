@@ -4,7 +4,7 @@ import os
 import os.path as osp
 from setuptools import setup, find_packages
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtension
-from gammagl.utils.ggl_build_extension import PyCudaExtension, PyCPUExtension
+from ggl_build_extension import PyCudaExtension, PyCPUExtension
 
 # TODO will depend on different host
 WITH_CUDA = False
@@ -114,9 +114,8 @@ def load_extensions():
 
     return extensions
 
-
-install_requires = ['numpy', 'pandas', 'numba', 'scipy', 'protobuf', 'pyparsing',
-                    'tensorboardx', 'pytest', 'rich', 'tqdm', 'pybind11', 'panda']
+install_requires = ['numpy', 'pandas', 'numba', 'scipy', 'protobuf', 'pyparsing', 'rdkit',
+                    'tensorboardx', 'pytest', 'tensorlayerx', 'rich', 'tqdm', 'pybind11', 'panda']
 
 classifiers = [
     'Development Status :: 3 - Alpha',
