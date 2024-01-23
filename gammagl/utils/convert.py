@@ -111,7 +111,7 @@ def to_networkx(data, node_attrs = None, edge_attrs = None, graph_attrs = None,
             G.add_node(start + i, **node_kwargs)
 
     for edge_store in data.edge_stores:
-        for i, (v, w) in enumerate(edge_store.edge_index.t().tolist()):
+        for i, (v, w) in enumerate(tlx.convert_to_numpy(tlx.transpose(edge_store.edge_index)).tolist()):
             if to_undirected_upper and v > w:
                 continue
             elif to_undirected_lower and v < w:

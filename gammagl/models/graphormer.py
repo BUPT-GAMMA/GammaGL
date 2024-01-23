@@ -1,6 +1,5 @@
 from gammagl.data import Graph
 import tensorlayerx as tlx
-from tensorlayerx.nn import Linear
 from tensorlayerx import nn
 
 from ..utils import shortest_path_distance, batched_shortest_path_distance
@@ -82,14 +81,14 @@ class Graphormer(nn.Module):
                 max_path_distance=self.max_path_distance) for _ in range(self.num_layers)
         ])
 
-        self.node_out_lin = Linear(in_features=self.node_dim, out_features=self.output_dim)
+        self.node_out_lin = nn.Linear(in_features=self.node_dim, out_features=self.output_dim)
 
     def forward(self, data):
-        x = data.x.float()
-        edge_index = data.edge_index.long()
-        edge_attr = data.edge_attr.float()
+        x = tlx.cast(data.x, dtype=tlx.float32)
+        edge_index = tlx.cast(data.edge_index, dtype=tlx.int64)
+        edge_attr = tlx.cast(data.edge_attr, dtype=tlx.float32)
 
-        if type(data) == Graph:
+        if isinstance(data, Graph):
             ptr = None
             node_paths, edge_paths = shortest_path_distance(data)
         else:

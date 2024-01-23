@@ -16,7 +16,7 @@ class EdgeEncoding(nn.Module):
         self.edge_vector = nn.Parameter(tlx.random_normal((self.max_path_distance, self.edge_dim)))
 
     def forward(self, x, edge_attr, edge_paths):
-        cij = tlx.zeros((x.shape[0], x.shape[0])).to(next(self.parameters()).device)
+        cij = tlx.zeros((x.shape[0], x.shape[0]))
 
         for src in edge_paths:
             for dst in edge_paths[src]:

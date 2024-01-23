@@ -118,7 +118,7 @@ def from_smiles(smiles: str, with_hydrogen: bool = False,
         row.append(x_map['is_in_ring'].index(atom.IsInRing()))
         xs.append(row)
 
-    x = tlx.convert_to_tensor(xs, dtype=tlx.int64).reshape(-1, 9)
+    x = tlx.reshape(tlx.convert_to_tensor(xs, dtype=tlx.int64), (-1, 9))
 
     edge_indices, edge_attrs = [], []
     for bond in mol.GetBonds():
@@ -134,11 +134,11 @@ def from_smiles(smiles: str, with_hydrogen: bool = False,
         edge_attrs += [e, e]
 
     edge_index = tlx.convert_to_tensor(edge_indices)
-    edge_index = edge_index.t().to(tlx.int64).reshape(2, -1)
-    edge_attr = tlx.convert_to_tensor(edge_attrs, dtype=tlx.int64).reshape(-1, 3)
+    edge_index = tlx.reshape(tlx.cast(tlx.transpose(edge_index), tlx.int64), (2, -1))
+    edge_attr = tlx.reshape(tlx.convert_to_tensor(edge_attrs, dtype=tlx.int64), (-1, 3))
 
-    if edge_index.numel() > 0:  # Sort indices.
-        perm = (edge_index[0] * x.size(0) + edge_index[1]).argsort()
-        edge_index, edge_attr = edge_index[:, perm], edge_attr[perm]
+    if tlx.numel(edge_index) > 0:  # Sort indices.
+        perm = tlx.argsort(edge_index[0] * tlx.get_tensor_shape(x)[0] + edge_index[1])
+        edge_index, edge_attr = tlx.gather(edge_index, perm, axis=1), tlx.gather(edge_attr, perm)
 
     return Graph(x=x, edge_index=edge_index, edge_attr=edge_attr, smiles=smiles)

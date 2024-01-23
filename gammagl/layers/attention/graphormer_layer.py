@@ -17,28 +17,29 @@ class GraphormerAttentionHead(nn.Module):
 
     def forward(self, query, key, value, edge_attr, b, edge_paths, ptr):
         matrix = np.full((query.shape[0], query.shape[0]), fill_value=-1e6)
-        batch_mask_neg_inf = tlx.convert_to_tensor(matrix).to(
-            next(self.parameters()).device)
-        batch_mask_zeros = tlx.zeros(shape=(query.shape[0], query.shape[0])).to(next(self.parameters()).device)
+        batch_mask_neg_inf = tlx.convert_to_tensor(matrix)
+        batch_mask_zeros = tlx.zeros(shape=(query.shape[0], query.shape[0]))
 
-        if type(ptr) == type(None):
-            batch_mask_neg_inf = tlx.ones(size=(query.shape[0], query.shape[0])).to(next(self.parameters()).device)
+        if ptr == None:
+            batch_mask_neg_inf = tlx.ones(shape=(query.shape[0], query.shape[0]))
             batch_mask_zeros += 1
         else:
             for i in range(len(ptr) - 1):
-                batch_mask_neg_inf[ptr[i]:ptr[i + 1], ptr[i]:ptr[i + 1]] = 1
-                batch_mask_zeros[ptr[i]:ptr[i + 1], ptr[i]:ptr[i + 1]] = 1
+                batch_mask_neg_inf[ptr[i] : ptr[i + 1], ptr[i] : ptr[i + 1]] = 1
+                batch_mask_zeros[ptr[i] : ptr[i + 1], ptr[i] : ptr[i + 1]] = 1
 
         query = self.q(query)
         key = self.k(key)
         value = self.v(value)
-        value = tlx.convert_to_tensor(value, dtype=tlx.float64)
+        value = tlx.convert_to_tensor(value, dtype=tlx.float32)
 
         c = self.edge_encoding(query, edge_attr, edge_paths)
-        a = query.mm(key.transpose(0, 1)) / query.size(-1) ** 0.5
+        ndims = len(tlx.get_tensor_shape(key))
+        perm = [1, 0] + list(range(2, ndims))
+        a = tlx.matmul(query, (tlx.transpose(key, perm))) / tlx.get_tensor_shape(query)[-1] ** 0.5
         a = (a + b + c) * batch_mask_neg_inf
         softmax = tlx.softmax(logits=a, axis=-1) * batch_mask_zeros
-        x = softmax.mm(value)
+        x = tlx.matmul(softmax, value)
         return x
 
 
@@ -49,7 +50,6 @@ class GraphormerMultiHeadAttention(nn.Module):
         self.heads = nn.ModuleList(
             [GraphormerAttentionHead(dim_in, dim_q, dim_k, edge_dim, max_path_distance) for _ in range(num_heads)]
         )
-        
         self.linear = nn.Linear(in_features=num_heads*dim_k, out_features=dim_in)
 
     def forward(self, x, edge_attr, b, edge_paths, ptr):
@@ -77,12 +77,10 @@ class GraphormerLayer(nn.Module):
 
         self.ln_1 = nn.LayerNorm(node_dim)
         self.ln_2 = nn.LayerNorm(node_dim)
-
         self.ff = nn.Linear(in_features=node_dim, out_features=node_dim)
 
     def forward(self, x, edge_attr, b, edge_paths, ptr):
         x_prime = self.attention(self.ln_1(x), edge_attr, b, edge_paths, ptr) + x
-
         x_new = self.ff(self.ln_2(x_prime)) + x_prime
 
         return x_new

@@ -14,7 +14,6 @@ from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.layers.pool import global_mean_pool
 from tqdm import tqdm
 
-
 class Loss(WithLoss):
     def __init__(self, net, loss_fn):
         super(Loss, self).__init__(backbone=net, loss_fn=loss_fn)
@@ -24,7 +23,6 @@ class Loss(WithLoss):
         output = global_mean_pool(logits, data.batch)
         loss = self._loss_fn(output, label)
         return loss
-
 
 def main(args):
     if str.lower(args.dataset) not in ['esol']:
@@ -40,7 +38,7 @@ def main(args):
         node_dim=args.node_dim,
         input_edge_dim=dataset.num_edge_features,
         edge_dim=args.edge_dim,
-        output_dim=dataset[0].y.shape[1],
+        output_dim=tlx.get_tensor_shape(dataset[0].y)[1],
         n_heads=args.heads,
         max_in_degree=args.max_in_degree,
         max_out_degree=args.max_out_degree,
@@ -66,7 +64,6 @@ def main(args):
             loss = batch_loss
             model.save_weights(args.best_model_path + model.name + ".npz", format='npz_dict')
 
-
     model.load_weights(args.best_model_path+model.name+".npz", format='npz_dict')
     model.set_eval()
     batch_loss = 0.0
@@ -75,8 +72,7 @@ def main(args):
         batch_loss += loss.item()
 
     print((f'EVAL_LOSS: {batch_loss / len(test_ids):.4f}'))
-        
-        
+
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
@@ -95,8 +91,8 @@ if __name__ == '__main__':
     parser.add_argument("--max_in_degree", type=int, default=5, help="max in degree of node")
     parser.add_argument("--max_out_degree", type=int, default=5, help="max out degree of node")
     parser.add_argument("--max_path_distance", type=int, default=5, help="max path distance")
-    
-    parser.add_argument("--gpu", type=int, default=-1)
+
+    parser.add_argument("--gpu", type=int, default=0)
     args = parser.parse_args()
     if args.gpu >= 0:
         tlx.set_device("GPU", args.gpu)
