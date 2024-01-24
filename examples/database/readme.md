@@ -12,16 +12,22 @@ gdbi link: [https://github.com/xy-Ji/gdbi](https://github.com/xy-Ji/gdbi)
 
 ## Example
 ```python
-from gdbi import NodeExportConfig, EdgeExportConfig, Neo4jInterface
+from gdbi import NodeExportConfig, EdgeExportConfig, Neo4jInterface, NebulaInterface
 
 node_export_config = list(NodeExportConfig(labelname, x_property_names, y_property_names))
 edge_export_config = list(EdgeExportConfig(labelname, src_dst_label, x_property_names, y_property_names))
+
+# neo4j 
 graph_database = Neo4jInterface()
+
+# nebula 
+graph_database = NebulaInterface()
+
 conn = graph_database.GraphDBConnection(graph_address, user_name, password)
 graph = graph_database.get_graph(conn, graph_name, node_export_config, edge_export_config)
 ```
 
-Run example
+**Run example**
 ```bash
 TL_BACKEND=torch python cora_sage.py --dataset cora --n_epoch 500 --lr 0.005 --hidden_dim 512 --drop_rate 0.8
 ```
