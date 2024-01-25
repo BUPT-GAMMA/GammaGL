@@ -8,15 +8,15 @@ Contribution is always welcomed. Please feel free to open an issue or email to y
   
   Core Developer
   
-  - [Tianyu Zhao](https://github.com/Theheavens)
-  - [Hui Han](https://github.com/clearhanhui)
-  - [Siyuan Zhang](https://github.com/zsy0828)
   - Yaoqi Liu
   - Jing Wu
   - Hongyi Zhang
   - Guangyu Zhou
   - Dashuai Yue
   - Xingyuan Ji
+  - [Tianyu Zhao](https://github.com/Theheavens) (already graduated)
+  - [Hui Han](https://github.com/clearhanhui) (already graduated)
+  - [Siyuan Zhang](https://github.com/zsy0828) (already graduated)
   
   Model Implementation
   
