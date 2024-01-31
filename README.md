@@ -163,11 +163,6 @@ Currently, GammaGL requires **Python Version >= 3.9**.
    $ python setup.py install
    ```
 
-   or directly use the stable version:
-
-   ```bash
-   $ pip install gammagl
-   ```
    > 大陆用户如果遇到网络问题，推荐从启智社区安装
    > 
    > Try to git clone from OpenI
@@ -178,6 +173,8 @@ Currently, GammaGL requires **Python Version >= 3.9**.
    > "--recursive" is necessary, if you forgot, you can run command below in GammaGL root dir:
    > 
    > `git submodule update --init`
+
+    You may also download the stable version refer to our [document](https://gammagl.readthedocs.io/en/latest/notes/installation.html).
 
 ## Quick Tour for New Users
 

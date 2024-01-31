@@ -6,17 +6,25 @@ System requrements
 GammaGL works with the following operating systems:
 
 * Linux
-* Windows
+* Windows (Currently, we only support python 3.9, pytorch 2.1 and CPU on Windows)
 
-GammaGL requires Python version 3.9 or 3.10(partially).
+GammaGL requires Python version 3.9, 3.10, 3.11.
 
 Backend
 -------
 
 - `tensorflow <https://www.tensorflow.org/api_docs/>`_ : We recommend tensorflow version under 2.12.0
-- `pytorch <https://pytorch.org/get-started/locally/>`_ : Support version from 1.9 to 2.1
+- `pytorch <https://pytorch.org/get-started/locally/>`_ : Support version from 1.9 to 2.1, the defalut backend
 - `paddlepaddle <https://www.paddlepaddle.org.cn/>`_ : We recommend paddlepaddle version under 2.3.2
 - `mindspore <https://www.mindspore.cn/install>`_ : Support version to 2.2.10
+
+Quick Start with PyTorch
+------------------------
+
+.. raw:: html
+   :file: quick-start.html
+
+If you choose the other backend, you can directly install gammagl with `pip install gammagl`.
 
 Install from pip
 ----------------
@@ -51,7 +59,7 @@ Install from pip
 **3. GammaGL:** Install `GammaGL <https://github.com/BUPT-GAMMA/GammaGL>`_ and its dependencies.
 
 .. code:: bash
-    
+
     pip install gammgl
 
 Install from source

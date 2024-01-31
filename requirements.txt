@@ -1,7 +1,7 @@
-numpy<=1.23
+numpy
 scipy
 pybind11
-tensorflow
+torch
 git+https://github.com/tensorlayer/tensorlayerx.git
 pytest
 tqdm
