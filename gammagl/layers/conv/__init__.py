@@ -30,6 +30,7 @@ from .gmm_conv import GMMConv
 from .iehgcn_conv import ieHGCNConv
 from .mgnni_m_iter import MGNNI_m_iter
 from .magcl_conv import MAGCLConv
+from .fusedgat_conv import FusedGATConv
 
 __all__ = [
     'MessagePassing',
@@ -64,7 +65,8 @@ __all__ = [
     'ieHGCNConv',
     'MGNNI_m_iter',
     'MAGCLConv',
-
+    'FusedGATConv',
+    
 ]
 
 classes = __all__
