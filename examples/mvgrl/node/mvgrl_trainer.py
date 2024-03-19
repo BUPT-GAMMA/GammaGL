@@ -82,7 +82,7 @@ def main(args):
     train_lbls = y[graph.train_mask]
 
     test_lbls = y[graph.test_mask]
-    if tlx.BACKEND != 'tensorflow':
+    if tlx.BACKEND not in ['tensorflow', 'mindspore']:
         train_embs = train_embs.detach()
     accs = 0.
     for e in range(5):

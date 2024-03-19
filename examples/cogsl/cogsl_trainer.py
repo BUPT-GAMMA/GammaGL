@@ -80,18 +80,18 @@ class ClsLoss(WithLoss):
 
 def gen_auc_mima(logits, label):
     preds = tlx.argmax(logits, axis=1)
-    test_f1_macro = f1_score(label.cpu(), preds.cpu(), average='macro')
-    test_f1_micro = f1_score(label.cpu(), preds.cpu(), average='micro')
+    test_f1_macro = f1_score(label, preds, average='macro')
+    test_f1_micro = f1_score(label, preds, average='micro')
 
     best_proba = nn.Softmax(axis=1)(logits)
     if logits.shape[1] != 2:
-        auc = roc_auc_score(y_true=label.detach().cpu().numpy(),
-                            y_score=best_proba.detach().cpu().numpy(),
+        auc = roc_auc_score(y_true=label.numpy(),
+                            y_score=best_proba.numpy(),
                             multi_class='ovr'
                             )
     else:
-        auc = roc_auc_score(y_true=label.detach().cpu().numpy(),
-                            y_score=best_proba[:, 1].detach().cpu().numpy()
+        auc = roc_auc_score(y_true=label.numpy(),
+                            y_score=best_proba[:, 1].numpy()
                             )
     return test_f1_macro, test_f1_micro, auc
 
@@ -161,8 +161,10 @@ def diff(adj, alpha):
     return adj
 
 def main(args):
-    if tlx.BACKEND == 'torch' and args.gpu >= 0:
-        set_device(int(args.gpu))
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
 
     if args.dataset == 'citeseer':
         dataset = Planetoid('', args.dataset)
@@ -191,7 +193,7 @@ def main(args):
         val_idx = mask_to_index(graph.val_mask)
     edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=1)
     value = np.ones(edge_index[0].shape)
-    view1 = sp.coo_matrix((value, (edge_index.cpu())), shape=(graph.num_nodes, graph.num_nodes))
+    view1 = sp.coo_matrix((value, (edge_index)), shape=(graph.num_nodes, graph.num_nodes))
     v1_indice = get_khop_indices(args.v1_p, view1)
     if args.dataset == 'wikics' or args.dataset == 'ms':
         view2 = view1

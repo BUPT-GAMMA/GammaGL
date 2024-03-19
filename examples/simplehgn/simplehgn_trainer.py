@@ -61,7 +61,7 @@ def main(args):
             e_feat.append(num_etypes)
         else:
             e_feat.append(edge2feat[(edge_index_numpy[0,i], edge_index_numpy[1,i])])
-    e_feat = tlx.ops.convert_to_tensor(e_feat)
+    e_feat = tlx.stack(e_feat)
 
     activation = tlx.nn.activation.ELU()
 

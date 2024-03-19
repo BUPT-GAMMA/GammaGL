@@ -1,3 +1,4 @@
+import math
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'torch'
@@ -124,7 +125,8 @@ def main(args):
     train_embs = tlx.gather(embed, data['train_idx'])
     test_embs = tlx.gather(embed, data['test_idx'])
 
-    train_embs = tlx.detach(train_embs)
+    if tlx.BACKEND not in ['tensorflow', 'mindspore']:
+        train_embs = train_embs.detach()
 
     train_lbls = tlx.gather(data['y'], data['train_idx'])
     test_lbls = tlx.gather(data['y'], data['test_idx'])

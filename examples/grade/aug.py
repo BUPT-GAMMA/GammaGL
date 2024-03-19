@@ -69,7 +69,7 @@ def multinomial(input, num_samples):
     '''
     input = tlx.convert_to_numpy(input)
     dim1, dim2 = input.shape[0], input.shape[1]
-    input = input /np.sum(input, axis=1, keepdims=True)
+    input = np.abs(input) /np.sum(np.abs(input), axis=1, keepdims=True)
     store_sample = []
     for i in range(dim1):
         sample = np.random.choice(dim2, num_samples, p=input[i], replace=False)
