@@ -30,6 +30,8 @@ from .gmm_conv import GMMConv
 from .iehgcn_conv import ieHGCNConv
 from .mgnni_m_iter import MGNNI_m_iter
 from .magcl_conv import MAGCLConv
+from .hgat_conv import HGATConv
+from .hin_conv import HINConv
 
 __all__ = [
     'MessagePassing',
@@ -64,6 +66,9 @@ __all__ = [
     'ieHGCNConv',
     'MGNNI_m_iter',
     'MAGCLConv',
+    'HGATConv',
+    'HINConv'
+    
 
 ]
 
