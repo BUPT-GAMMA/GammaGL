@@ -1,10 +1,8 @@
 import tensorlayerx as tlx
 from tensorlayerx.nn import ModuleDict
 from gammagl.layers.conv import MessagePassing, GCNConv, HINConv, HGATConv
-from gammagl.utils import segment_softmax
-from gammagl.mpops import unsorted_segment_sum
 
-class GGL_HGATModel(tlx.nn.Module):
+class HGAT(tlx.nn.Module):
     def __init__(self,
                  in_channels,
                  out_channels,
