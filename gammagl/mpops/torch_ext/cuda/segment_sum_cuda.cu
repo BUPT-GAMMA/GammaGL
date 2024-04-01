@@ -41,8 +41,8 @@ torch::Tensor segment_sum_cuda_forward(
       x.size(0) == index.size(0),
       "fisrt dimension of x and index should be same");
   // only support float Tensor
-  TORCH_CHECK_TYPE(
-      x.scalar_type() == c10::ScalarType::Float, "x should be float Tensor")
+  // TORCH_CHECK_TYPE(
+  //     x.scalar_type() == c10::ScalarType::Float, "x should be float Tensor")
   cudaSetDevice(x.get_device());
   x = x.contiguous();
   index = index.contiguous();
@@ -67,15 +67,61 @@ torch::Tensor segment_sum_cuda_forward(
   auto stream = at::cuda::getCurrentCUDAStream();
 
   // AT_DISPATCH_ALL_TYPES(x.scalar_type(), "__ops_name",  [&] {
-  using scalar_t = float;  // temporary usage, delete later
-  auto x_data = x.data_ptr<scalar_t>();
-  auto out_data = out.data_ptr<scalar_t>();
-  auto index_data = index.data_ptr<int64_t>();
+  // using scalar_t = float;  // temporary usage, delete later
+  // using scalar_t = x.scalar_type();  // temporary usage, delete later
+  // auto x_data = x.data_ptr<scalar_t>();
+  // auto out_data = out.data_ptr<scalar_t>();
+  // auto index_data = index.data_ptr<int64_t>();
 
-  segment_sum_cuda_forward_kernel<scalar_t>
-      <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
-          x_data, index_data, out_data, E, K, N, x.numel());
+  // segment_sum_cuda_forward_kernel<scalar_t>
+  //     <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
+  //         x_data, index_data, out_data, E, K, N, x.numel());
   // });
+
+  if (x.dtype() == torch::kInt8 || x.dtype() == torch::kInt16 || x.dtype() == torch::kInt32 || x.dtype() == torch::kInt64) {
+    auto type = x.dtype();
+    using scalar_t = int;
+    if (x.dtype() == torch::kInt8 || x.dtype() == torch::kInt16 || x.dtype() == torch::kInt64) {
+      x = x.to(torch::kInt32);
+      out = out.to(torch::kInt32);
+    }
+    std::cout << x.dtype() << std::endl;
+    auto x_data = x.data_ptr<scalar_t>();
+    auto out_data = out.data_ptr<scalar_t>();
+    auto index_data = index.data_ptr<int64_t>();
+
+    segment_sum_cuda_forward_kernel<scalar_t>
+        <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
+            x_data, index_data, out_data, E, K, N, x.numel());
+    
+    out = out.to(type);
+  } else if (x.dtype() == torch::kFloat16 || x.dtype() == torch::kFloat32) {
+    auto type = x.dtype();
+    using scalar_t = float;
+    if (x.dtype() == torch::kFloat16) {
+      x = x.to(torch::kFloat32);
+      out = out.to(torch::kFloat32);
+    }
+
+    auto x_data = x.data_ptr<scalar_t>();
+    auto out_data = out.data_ptr<scalar_t>();
+    auto index_data = index.data_ptr<int64_t>();
+
+    segment_sum_cuda_forward_kernel<scalar_t>
+        <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
+            x_data, index_data, out_data, E, K, N, x.numel());
+    
+    out = out.to(type);
+  } else if (x.dtype() == torch::kFloat64) {
+    using scalar_t = double;
+    auto x_data = x.data_ptr<scalar_t>();
+    auto out_data = out.data_ptr<scalar_t>();
+    auto index_data = index.data_ptr<int64_t>();
+
+    segment_sum_cuda_forward_kernel<scalar_t>
+        <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
+            x_data, index_data, out_data, E, K, N, x.numel());
+  }
 
   return out;
 }
