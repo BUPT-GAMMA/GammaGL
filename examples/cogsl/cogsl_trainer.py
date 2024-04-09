@@ -80,19 +80,14 @@ class ClsLoss(WithLoss):
 
 def gen_auc_mima(logits, label):
     preds = tlx.argmax(logits, axis=1)
-    test_f1_macro = f1_score(label, preds, average='macro')
-    test_f1_micro = f1_score(label, preds, average='micro')
+    test_f1_macro = f1_score(tlx.convert_to_numpy(label), tlx.convert_to_numpy(preds), average='macro')
+    test_f1_micro = f1_score(tlx.convert_to_numpy(label), tlx.convert_to_numpy(preds), average='micro')
 
     best_proba = nn.Softmax(axis=1)(logits)
     if logits.shape[1] != 2:
-        auc = roc_auc_score(y_true=label.numpy(),
-                            y_score=best_proba.numpy(),
-                            multi_class='ovr'
-                            )
+        auc = roc_auc_score(y_true=tlx.convert_to_numpy(label), y_score=tlx.convert_to_numpy(best_proba), multi_class='ovr')
     else:
-        auc = roc_auc_score(y_true=label.numpy(),
-                            y_score=best_proba[:, 1].numpy()
-                            )
+        auc = roc_auc_score(y_true=tlx.convert_to_numpy(label), y_score=tlx.convert_to_numpy(best_proba[:, 1]))
     return test_f1_macro, test_f1_micro, auc
 
 def accuracy(output, label):
@@ -193,7 +188,7 @@ def main(args):
         val_idx = mask_to_index(graph.val_mask)
     edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=1)
     value = np.ones(edge_index[0].shape)
-    view1 = sp.coo_matrix((value, (edge_index)), shape=(graph.num_nodes, graph.num_nodes))
+    view1 = sp.coo_matrix((value, (tlx.convert_to_numpy(edge_index))), shape=(graph.num_nodes, graph.num_nodes))
     v1_indice = get_khop_indices(args.v1_p, view1)
     if args.dataset == 'wikics' or args.dataset == 'ms':
         view2 = view1
@@ -288,10 +283,6 @@ def main(args):
     probs = net.cls.encoder_v(data['x'], best_v)
     test_f1_macro, test_f1_micro, auc = gen_auc_mima(probs[data['test_idx']], data['y'][data['test_idx']])
     print("Test_Macro: ", test_f1_macro, "\tTest_Micro: ", test_f1_micro, "\tAUC: ", auc)
-
-    f = open(f'{tlx.BACKEND}_results/{args.dataset}' + ".txt", "a")
-    f.write("v1_p=" + str(args.v1_p) + "\t" + "v2_p=" + str(args.v2_p) + "\t" + str(test_f1_macro) + "\t" + str(test_f1_micro) + "\t" + str(auc) + "\n")
-    f.close()
 
 def polblogs_params():
     parser = argparse.ArgumentParser()

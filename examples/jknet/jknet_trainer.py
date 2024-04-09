@@ -71,14 +71,9 @@ def main(args):
     val_num = int(useful_node * 0.2)
     test_num = useful_node - train_num - val_num
 
-    if tlx.BACKEND == 'mindspore':
-        graph.train_mask = graph.train_mask.numpy()
-        graph.val_mask = graph.val_mask.numpy()
-        graph.test_mask = graph.test_mask.numpy()
-    else:
-        graph.train_mask = graph.train_mask.cpu().numpy()
-        graph.val_mask = graph.val_mask.cpu().numpy()
-        graph.test_mask = graph.test_mask.cpu().numpy()
+    graph.train_mask = tlx.convert_to_numpy(graph.train_mask)
+    graph.val_mask = tlx.convert_to_numpy(graph.val_mask)
+    graph.test_mask = tlx.convert_to_numpy(graph.test_mask)
 
 
     graph.train_mask[:] = False

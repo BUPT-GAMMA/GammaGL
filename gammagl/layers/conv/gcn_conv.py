@@ -81,7 +81,8 @@ class GCNConv(MessagePassing):
             edge_weight = tlx.ones(shape=(edge_index.shape[1], 1))
         edge_weight = tlx.reshape(edge_weight,(-1,))
         weights = edge_weight
-        num_nodes = tlx.reduce_max(edge_index) + 1
+        # num_nodes = tlx.reduce_max(edge_index) + 1
+        num_nodes = x.shape[0]
         
         if self._norm in ['left', 'both']:
             deg = degree(src, num_nodes=num_nodes, dtype = tlx.float32)
