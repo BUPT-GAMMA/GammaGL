@@ -96,18 +96,6 @@ __global__ void arg_segment_max_cuda_forward_kernel(
       // }
     }
   }
-
-  // if (thread_idx < numel) {
-  //   int64_t idx = index_data[e];
-  //   scalar_t current_max = out_data[idx * K + k];
-  //   scalar_t current_val = x_data[thread_idx];
-
-  //   if (current_val == current_max) {
-  //     // atomicCAS(&arg_out_data[idx * K + k], N, e);
-  //     atomicMax(reinterpret_cast<unsigned int*>(&arg_out_data[idx * K + k]),
-  //     static_cast<unsigned int>(e));
-  //   }
-  // }
 }
 
 std::tuple<torch::Tensor, torch::Tensor> segment_max_cuda_forward(
@@ -144,26 +132,6 @@ std::tuple<torch::Tensor, torch::Tensor> segment_max_cuda_forward(
   auto E = x.size(0);
   auto K = x.numel() / x.size(0);
   auto stream = at::cuda::getCurrentCUDAStream();
-
-  // AT_DISPATCH_ALL_TYPES(x.scalar_type(), "__ops_name",  [&] {
-  // using scalar_t = float;  // temporary usage, delete later
-  // auto x_data = x.data_ptr<scalar_t>();
-  // auto out_data = out.data_ptr<scalar_t>();
-  // auto index_data = index.data_ptr<int64_t>();
-
-  // segment_max_cuda_forward_kernel<scalar_t>
-  //     <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
-  //         x_data, index_data, out_data, E, K, N, x.numel());
-
-  // // out.masked_fill_(out == std::numeric_limits<int64_t>::lowest(),
-  // // (scalar_t)0);
-
-  // arg_segment_max_cuda_forward_kernel<scalar_t>
-  //     <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
-  //         x_data, index_data, out_data, arg_out_data, E, K, N, x.numel(),
-  //         out.size(0));
-  // });
-
 
   if (x.dtype() == torch::kInt8 || x.dtype() == torch::kInt16 || x.dtype() == torch::kInt32 || x.dtype() == torch::kInt64) {
     if (x.dtype() == torch::kInt8){

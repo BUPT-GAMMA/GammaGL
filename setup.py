@@ -94,14 +94,14 @@ def load_ops_extensions():
                 extensions.append(PyCPUExtension(
                     name=osp.join(ops_dir, f'_{ops_prefix}').replace(osp.sep, "."),
                     sources=[osp.join(src_dir, f) for f in src_files],
-                    include_dirs=[osp.join('third_party', d) for d in ops_third_party_deps[i]],
+                    include_dirs=[osp.abspath(osp.join('third_party', d)) for d in ops_third_party_deps[i]],
                     extra_compile_args=['-std=c++17']
                 ))
             else:
                 extensions.append(PyCudaExtension(
                     name=osp.join(ops_dir, f'_{ops_prefix}_cuda').replace(osp.sep, "."),
                     sources=[osp.join(src_dir, f) for f in src_files],
-                    include_dirs=[osp.join('third_party', d) for d in ops_third_party_deps[i]],
+                    include_dirs=[ops.abspath(osp.join('third_party', d)) for d in ops_third_party_deps[i]],
                     extra_compile_args=['-std=c++17']
                 ))
 
@@ -115,7 +115,7 @@ def load_extensions():
     return extensions
 
 install_requires = ['numpy', 'pandas', 'numba', 'scipy', 'protobuf', 'pyparsing', 'rdkit',
-                    'tensorboardx', 'pytest', 'tensorlayerx', 'rich', 'tqdm', 'pybind11', 'panda']
+                    'tensorboardx', 'pytest', 'tensorlayerx', 'rich', 'tqdm', 'pybind11', 'panda', 'ninja']
 
 classifiers = [
     'Development Status :: 3 - Alpha',

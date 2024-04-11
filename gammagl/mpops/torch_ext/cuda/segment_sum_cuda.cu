@@ -66,18 +66,6 @@ torch::Tensor segment_sum_cuda_forward(
   auto K = x.numel() / x.size(0);
   auto stream = at::cuda::getCurrentCUDAStream();
 
-  // AT_DISPATCH_ALL_TYPES(x.scalar_type(), "__ops_name",  [&] {
-  // using scalar_t = float;  // temporary usage, delete later
-  // using scalar_t = x.scalar_type();  // temporary usage, delete later
-  // auto x_data = x.data_ptr<scalar_t>();
-  // auto out_data = out.data_ptr<scalar_t>();
-  // auto index_data = index.data_ptr<int64_t>();
-
-  // segment_sum_cuda_forward_kernel<scalar_t>
-  //     <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
-  //         x_data, index_data, out_data, E, K, N, x.numel());
-  // });
-
   if (x.dtype() == torch::kInt8 || x.dtype() == torch::kInt16 || x.dtype() == torch::kInt32 || x.dtype() == torch::kInt64) {
     auto type = x.dtype();
     using scalar_t = int;
@@ -85,7 +73,6 @@ torch::Tensor segment_sum_cuda_forward(
       x = x.to(torch::kInt32);
       out = out.to(torch::kInt32);
     }
-    std::cout << x.dtype() << std::endl;
     auto x_data = x.data_ptr<scalar_t>();
     auto out_data = out.data_ptr<scalar_t>();
     auto index_data = index.data_ptr<int64_t>();

@@ -19,16 +19,6 @@ using torch::autograd::variable_list;
 #define THREADS 1024
 #define BLOCKS(N) (N + THREADS - 1) / THREADS
 
-// inline __device__ void atomic_max_float(float *addr, float value) {
-//   int *addr_as_i = (int *)addr;
-//   int old = *addr_as_i;
-//   int assumed;
-//   do{
-//     assumed = old;
-//     old = atomicCAS(addr_as_i, assumed,
-//                     __float_as_int(max(value, __int_as_float(assumed))));
-//   } while (assumed != old);
-// }
 
 template <typename scalar_t>
 __global__ void segment_mean_cuda_forward_kernel(
@@ -98,25 +88,6 @@ torch::Tensor segment_mean_cuda_forward(
   auto E = x.size(0);
   auto K = x.numel() / x.size(0);
   auto stream = at::cuda::getCurrentCUDAStream();
-
-  // AT_DISPATCH_ALL_TYPES(x.scalar_type(), "__ops_name",  [&] {
-  // using scalar_t = float;  // temporary usage, delete later
-  // auto x_data = x.data_ptr<scalar_t>();
-  // auto out_data = out.data_ptr<scalar_t>();
-  // auto index_data = index.data_ptr<int64_t>();
-
-  // torch::Tensor count = torch::full_like(out, 0.0, x.options());
-  // scalar_t *count_data = count.data_ptr<scalar_t>();
-
-  // segment_mean_cuda_forward_kernel<scalar_t>
-  //     <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
-  //         x_data, index_data, out_data, count_data, E, K, N, x.numel());
-
-  // arg_segment_mean_cuda_forward_kernel<scalar_t>
-  //     <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
-  //         x_data, index_data, out_data, arg_out_data, count_data, E, K, N,
-  //         x.numel());
-  // });
 
   if (x.dtype() == torch::kInt8 || x.dtype() == torch::kInt16 || x.dtype() == torch::kInt32 || x.dtype() == torch::kInt64) {
     auto type = x.dtype();
