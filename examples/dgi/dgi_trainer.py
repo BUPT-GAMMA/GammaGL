@@ -125,9 +125,7 @@ def main(args):
     train_embs = tlx.gather(embed, data['train_idx'])
     test_embs = tlx.gather(embed, data['test_idx'])
 
-    if tlx.BACKEND not in ['tensorflow', 'mindspore']:
-        train_embs = train_embs.detach()
-
+    train_embs = tlx.detach(train_embs)
     train_lbls = tlx.gather(data['y'], data['train_idx'])
     test_lbls = tlx.gather(data['y'], data['test_idx'])
     accs = 0.
