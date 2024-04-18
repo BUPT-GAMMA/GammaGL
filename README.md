@@ -407,7 +407,7 @@ Now, GammaGL supports about 60 models, we welcome everyone to use or contribute 
 | [GIN [ICLR 2019]](./examples/gin)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [APPNP [ICLR 2019]](./examples/appnp)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [AGNN [arxiv]](./examples/agnn)                    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [SIGN [ICML 2020 Workshop]](./examples/sign)       | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [SIGN [ICML 2020 Workshop]](./examples/sign)       | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [DropEdge [ICLR 2020]](./examples/dropedge)        | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [GPRGNN [ICLR 2021]](./examples/gprgnn)            | :heavy_check_mark: | :heavy_check_mark: |                    | :heavy_check_mark: |
 | [GNN-FiLM [ICML 2020]](./examples/film)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
