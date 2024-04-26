@@ -7,8 +7,8 @@ from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtensio
 from ggl_build_extension import PyCudaExtension, PyCPUExtension
 
 # TODO will depend on different host
-WITH_CUDA = False
-# WITH_CUDA = True
+#WITH_CUDA = False
+WITH_CUDA = True
 
 cuda_macro = ('COMPILE_WITH_CUDA', True)
 omp_macro = ('COMPLIE_WITH_OMP', True)  # Note: OpenMP needs gcc>4.2.0

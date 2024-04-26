@@ -1,6 +1,6 @@
 import os
 import sys
-sys.path.insert(0, '/home/zgy/interns/Yzk/GammaGL')
+# sys.path.insert(0, '/home/zgy/interns/Yzk/GammaGL')
 import argparse
 #import gammagl.transforms as T
 import tensorlayerx as tlx
