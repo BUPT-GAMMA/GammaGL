@@ -19,6 +19,8 @@ from .to_dense_adj import to_dense_adj
 from .smiles import from_smiles
 from .shortest_path import shortest_path_distance, batched_shortest_path_distance
 __all__ = [
+    'cal_g_gradient',
+    'gcn_norm'
     'calc_A_norm_hat',
     'calc_gcn_norm',
     'segment_softmax',

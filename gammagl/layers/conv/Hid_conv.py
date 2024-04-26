@@ -64,7 +64,6 @@ class Hid_conv(MessagePassing):
                  dropout,
                  sigma1,
                  sigma2):
-        # kwargs.setdefault('aggr', 'add')
         super().__init__()
         self.k = k
         self.alpha = alpha
@@ -72,12 +71,8 @@ class Hid_conv(MessagePassing):
         self.gamma = gamma
         self.sigma1 = sigma1
         self.sigma2 = sigma2
-        #drop指的是是否需要dropout
         self.drop = drop
-        #dropout指的是dropout的概率
         self.dropout = dropout
-        # if args.dataset == 'pubmed':
-        #     self.calg = 'g4'
         self.add_self_loops = add_self_loops
         self.normalize = normalize
 
@@ -87,7 +82,6 @@ class Hid_conv(MessagePassing):
         self.relu = tlx.ReLU()
         
         self.Dropout = tlx.layers.Dropout(self.dropout)
-        #self.reg_params = list(self.lin1.parameters())
         if bias:
             initor = tlx.initializers.Zeros()
             self.bias = self._get_weights("bias", shape=(1,self.out_channels), init=initor)
@@ -101,61 +95,37 @@ class Hid_conv(MessagePassing):
     
     def forward(self, x, edge_index, edge_weight=None,num_nodes=0):
         
-        # 如果设置了normalize
         if self.normalize:
-            # 获取边的索引和权重
             edgei = edge_index
             edgew = edge_weight
-
 
             edge_index,edge_weight = gcn_norm(
                 edgei, num_nodes,edgew,add_self_loop=True)
 
-                #对边的索引和权重进行归一化处理并且确保每个节点都有自环
             edge_index2,edge_weight2 = gcn_norm(
                 edgei, num_nodes,edgew,add_self_loop=False)
 
-            # 将边的权重调整为合适的形状
             ew=tlx.reshape(edge_weight,(-1,1))
             ew2=tlx.reshape(edge_weight2,(-1,1))
 
-
-        # 预处理
-        # 如果设置了dropout
         if self.drop == 'True':
-            # 对输入的特征进行dropout处理
             x = self.Dropout(x)
 
         
         x = self.lin1(x)
-        # 查看权重
-        
-
-        # 查看偏置
-        
-        # 对结果进行ReLU激活
         x = self.relu(x)
-        # 再次进行dropout处理
         x = self.Dropout(x)
-        # 通过第二层线性变换
         x = self.lin2(x)
-        # 保存当前的特征作为h
         h = x
-        # 进行k次循环
+
         for k in range(self.k):
             g=cal_g_gradient(edge_index=edge_index2,x=x,edge_weight=ew2,sigma1=self.sigma1,sigma2=self.sigma2,dtype=None)
-            
-            
             
             x1=x
             Ax=x
             Gx=x
-            # Ax=self.gcn(x,edge_index1,edge_weight1)
+
             Ax=self.propagate(Ax,edge_index,edge_weight=edge_weight,num_nodes=num_nodes)
-            # 计算邻接矩阵和梯度的乘积
-            # Gx = torch.spmm(adj, g)
-            # Gx=self.gcn(g,edge_index1,edge_weight1)
-            
             Gx=self.propagate(g,edge_index,edge_weight=edge_weight,num_nodes=num_nodes)
 
             x = self.alpha * h + (1 - self.alpha - self.beta) * x1 \

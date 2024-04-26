@@ -1,8 +1,7 @@
 import os
 import sys
-# sys.path.insert(0, '/home/zgy/interns/Yzk/GammaGL')
 import argparse
-#import gammagl.transforms as T
+import gammagl.transforms as T
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
 from tensorlayerx.model import TrainOneStep, WithLoss
@@ -14,10 +13,8 @@ import argparse
 from gammagl.datasets import WikipediaNetwork
 from gammagl.models import hid_net
 from gammagl.utils import mask_to_index
-import torch
-print(torch.__version__)
-warnings.filterwarnings('ignore')
 
+warnings.filterwarnings('ignore')
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -120,8 +117,7 @@ def main():
         test_idx = mask_to_index(graph.test_mask)
         val_idx = mask_to_index(graph.val_mask)
     elif args.dataset in ['chameleon', 'squirrel']:
-        # dataset = WikipediaNetwork(root=f'./data', name=args.dataset,transform=T.NormalizeFeatures())
-        dataset = WikipediaNetwork(root=f'./data', name=args.dataset)
+        dataset = WikipediaNetwork(root=f'./data', name=args.dataset,transform=T.NormalizeFeatures())
         i = args.split
         graph = dataset[0]
         train_idx, val_idx, test_idx = get_split(y=graph.y, nclass=dataset.num_classes)
@@ -139,7 +135,6 @@ def main():
 
     for seed in range(args.repeat):
         tlx.set_seed(seed)
-                # 将模型移动到指定的设备
         if args.gpu >= 0:
             tlx.set_device("GPU", args.gpu) 
         else:
