@@ -108,7 +108,7 @@ def main(args):
         tlx.set_device("GPU", args.gpu) 
     else:
         tlx.set_device("CPU")
-        # 创建模型实例
+
     model = hid_net(in_feats=dataset.num_features,
                     n_hidden=args.hidden,
                     n_classes=dataset.num_classes,
