@@ -3,25 +3,6 @@ from gammagl.layers.conv import MessagePassing
 import tensorlayerx as tlx
 from gammagl.mpops import *
 from gammagl.utils.loop import remove_self_loops, add_self_loops,contains_self_loops
-
-def gcn_norm(edge_index, num_nodes, edge_weight=None,add_self_loop=False):
-   
-    if edge_weight is None:
-        edge_weight = tlx.ones(shape=(edge_index.shape[1], 1))  
-    if add_self_loop:
-        if contains_self_loops(edge_index):
-            edge_index, edge_weight = remove_self_loops(edge_index, edge_weight)
-            edge_index,edge_weight= add_self_loops(edge_index, edge_weight)
-        else:
-            edge_index,edge_weight= add_self_loops(edge_index, edge_weight)
-    src, dst = edge_index[0], edge_index[1]
-
-
-    deg = tlx.reshape(unsorted_segment_sum(edge_weight,src , num_segments=edge_index[0].shape[0]), (-1,))
-    deg_inv_sqrt = tlx.pow(deg+1e-8, -0.5)
-    weights = tlx.gather(deg_inv_sqrt, src) * tlx.reshape(edge_weight, (-1,)) * tlx.gather(deg_inv_sqrt, dst)
-    return edge_index,weights
-
 def cal_g_gradient(edge_index, x, edge_weight=None, sigma1=0.5, sigma2=0.5, num_nodes=None, improved=False,
              add_self_loops=True, dtype=None):
     row, col = edge_index[0], edge_index[1]
@@ -50,10 +31,48 @@ def cal_g_gradient(edge_index, x, edge_weight=None, sigma1=0.5, sigma2=0.5, num_
     return result
 
 class Hid_conv(MessagePassing):
-    def __init__(self, in_feats,
-                 n_hidden,
-                 n_classes,
-                 k,
+    r'''The proposed high-order graph diffusion equation is given by:
+
+    .. math::
+        \frac{\partial x(t)_i}{\partial t} = 
+        \alpha(x(0)_i - x(t)_i) + 
+        \beta \text{div}(f(\nabla x(t)_{ij})) + 
+        \gamma(\nabla x(t)_j),
+
+    where \( \alpha \), \( \beta \), and \( \gamma \) are parameters of the model. 
+    This equation integrates the high-order diffusion process by considering the influence of both first-order and second-order neighbors in the graph. 
+    The iteration step based on this equation is formulated as:
+
+    .. math::
+        x(t+\Delta t)_i = \\alpha \Delta t x(0)_i + 
+        (1 - \alpha \Delta t)x(t)_i + \beta \Delta t \text{div}(f(\nabla x(t)_i)) + 
+            \beta \gamma \Delta t \text{div}((\nabla x(t))_j),
+
+    which represents the diffusion-based message passing scheme (DMP) of the High-order Graph Diffusion Network (HiD-Net). 
+    This scheme leverages the information from two-hop neighbors, offering two main advantages: 
+    it captures the local environment around a node, enhancing the robustness of the model against abnormal features within one-hop neighbors; 
+    and it utilizes the monophily property of two-hop neighbors, which provides a stronger correlation with labels 
+    and thus enables better predictions even in the presence of heterophily within one-hop neighbors.
+
+    Parameters
+    ----------
+    alpha: float
+    beta: float
+    gamma: float
+    bias: bool 
+        add bias or not.
+    add_self_loops: bool
+        add loops or not.
+    drop: bool
+        drop or not.
+    dropout: float
+        the value of dropout.
+    sigma1: float
+    sigma2: float
+
+    
+    '''
+    def __init__(self,
                  alpha,
                  beta,
                  gamma,
@@ -65,7 +84,6 @@ class Hid_conv(MessagePassing):
                  sigma1,
                  sigma2):
         super().__init__()
-        self.k = k
         self.alpha = alpha
         self.beta =  beta
         self.gamma = gamma
@@ -75,17 +93,6 @@ class Hid_conv(MessagePassing):
         self.dropout = dropout
         self.add_self_loops = add_self_loops
         self.normalize = normalize
-
-        initor=tlx.initializers.xavier_normal()
-        self.lin1 = tlx.layers.Linear(in_features=in_feats, out_features=n_hidden, W_init=initor,b_init=None)
-        self.lin2 = tlx.layers.Linear(in_features=n_hidden, out_features=n_classes, W_init=initor,b_init=None)
-        self.relu = tlx.ReLU()
-        
-        self.Dropout = tlx.layers.Dropout(self.dropout)
-        if bias:
-            initor = tlx.initializers.Zeros()
-            self.bias = self._get_weights("bias", shape=(1,self.out_channels), init=initor)
-        
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -93,44 +100,21 @@ class Hid_conv(MessagePassing):
         self._cached_edge_index = None
         self._cached_adj_t = None
     
-    def forward(self, x, edge_index, edge_weight=None,num_nodes=0):
-        
-        if self.normalize:
-            edgei = edge_index
-            edgew = edge_weight
+    def forward(self,x,origin, edge_index, edge_weight,edge_index2,edge_weight2,num_nodes=0):
+        ew2=tlx.reshape(edge_weight2,(-1,1))
 
-            edge_index,edge_weight = gcn_norm(
-                edgei, num_nodes,edgew,add_self_loop=True)
-
-            edge_index2,edge_weight2 = gcn_norm(
-                edgei, num_nodes,edgew,add_self_loop=False)
-
-            ew=tlx.reshape(edge_weight,(-1,1))
-            ew2=tlx.reshape(edge_weight2,(-1,1))
-
-        if self.drop == 'True':
-            x = self.Dropout(x)
-
-        
-        x = self.lin1(x)
-        x = self.relu(x)
-        x = self.Dropout(x)
-        x = self.lin2(x)
-        h = x
-
-        for k in range(self.k):
-            g=cal_g_gradient(edge_index=edge_index2,x=x,edge_weight=ew2,sigma1=self.sigma1,sigma2=self.sigma2,dtype=None)
+        g=cal_g_gradient(edge_index=edge_index2,x=x,edge_weight=ew2,sigma1=self.sigma1,sigma2=self.sigma2,dtype=None)
             
-            x1=x
-            Ax=x
-            Gx=x
+        x1=x
+        Ax=x
+        Gx=x
 
-            Ax=self.propagate(Ax,edge_index,edge_weight=edge_weight,num_nodes=num_nodes)
-            Gx=self.propagate(g,edge_index,edge_weight=edge_weight,num_nodes=num_nodes)
+        Ax=self.propagate(Ax,edge_index,edge_weight=edge_weight,num_nodes=num_nodes)
+        Gx=self.propagate(g,edge_index,edge_weight=edge_weight,num_nodes=num_nodes)
 
-            x = self.alpha * h + (1 - self.alpha - self.beta) * x1 \
-                + self.beta * Ax \
-                 + self.beta * self.gamma * Gx
+        x = self.alpha * origin + (1 - self.alpha - self.beta) * x1 \
+            + self.beta * Ax \
+            + self.beta * self.gamma * Gx
             
            
         return x
@@ -138,3 +122,4 @@ class Hid_conv(MessagePassing):
         x_j=tlx.gather(x,edge_index[0,:])
         return x_j if edge_weight is None else tlx.reshape(edge_weight,(-1,1)) * x_j
         
+       

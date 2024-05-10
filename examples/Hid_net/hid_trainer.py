@@ -69,39 +69,8 @@ def calculate_acc(logits, y, metrics):
     rst = metrics.result()
     metrics.reset()
     return rst
-def main():
-    # Training settings
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--times', type=int, default=3, help='config times')
-    parser.add_argument('--seed', type=int, default=9, help='random seed')
-    parser.add_argument('--repeat', type=int, default=5, help='repeat time')
-    parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
-    parser.add_argument('--weight_decay', type=float, default=0.00, help='weight decay (L2 loss on parameters)')
-    parser.add_argument('--hidden', type=int, default=128, help='hidden size')
-    parser.add_argument('--head1', type=int, default=1, help='gat head1')
-    parser.add_argument('--head2', type=int, default=1, help='gat head2')
-    parser.add_argument('--dropout', type=float, default=0.55, help='dropout rate')
-    parser.add_argument('--drop', type=str, default='False', help='whether to dropout or not')
-    parser.add_argument('--dataset', type=str, default='cora', choices=['cora', 'citeseer', 'pubmed', 'chameleon', 'squirrel', 'actor', 'sbm'])
-    parser.add_argument('--dataset_path', type=str, default='./data', help='path to save dataset')
-    parser.add_argument('--split', type=int, default=0)
-    parser.add_argument('--k', type=int, default=10, help='k')
-    parser.add_argument('--alpha', type=float, default=0.1, help='tolerance to stop EM algorithm')
-    parser.add_argument('--beta', type=float, default=0.9, help='tolerance to stop EM algorithm')
-    parser.add_argument('--gamma', type=float, default=0.3, help='tolerance to stop EM algorithm')
-    parser.add_argument('--sigma1', type=float, default=0.5, help='tolerance to stop EM algorithm')
-    parser.add_argument('--sigma2', type=float, default=0.5, help='tolerance to stop EM algorithm')
-    parser.add_argument('--gpu',  default='-1', type=int, help='-1 means cpu')
-    parser.add_argument('--bias', type=bool, default=False, help='if tune')
-    parser.add_argument('--add_self_loops', type=bool, default=True, help='if tune')
-    parser.add_argument('--normalize', type=bool, default=True, help='if tune')
-    args = parser.parse_args()
 
-    
-    absolute_path = os.path.abspath(args.dataset_path)
-    print(absolute_path)
-
-    print(args)
+def main(args):
     if args.gpu >= 0:
             
             tlx.set_device("GPU", args.gpu) 
@@ -133,46 +102,48 @@ def main():
     }
     accs = []
 
-    for seed in range(args.repeat):
-        tlx.set_seed(seed)
-        if args.gpu >= 0:
-            tlx.set_device("GPU", args.gpu) 
-        else:
-            tlx.set_device("CPU")
+
+
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu) 
+    else:
+        tlx.set_device("CPU")
         # 创建模型实例
-        model = hid_net(in_feats=dataset.num_features,
-                        n_hidden=args.hidden,
-                        n_classes=dataset.num_classes,
-                        k=args.k,
-                        alpha=args.alpha,
-                        beta=args.beta,
-                        gamma=args.gamma,
-                        bias=args.bias,
-                        normalize=args.normalize,
-                        add_self_loops=args.add_self_loops,
-                        drop=args.drop,
-                        dropout=args.dropout,
-                        sigma1=args.sigma1,
-                        sigma2=args.sigma2)
-        #
+    model = hid_net(in_feats=dataset.num_features,
+                    n_hidden=args.hidden,
+                    n_classes=dataset.num_classes,
+                    k=args.k,
+                    alpha=args.alpha,
+                    beta=args.beta,
+                    gamma=args.gamma,
+                    bias=args.bias,
+                    normalize=args.normalize,
+                    add_self_loops=args.add_self_loops,
+                    drop=args.drop,
+                    dropout=args.dropout,
+                    sigma1=args.sigma1,
+                    sigma2=args.sigma2)
         
+
 
         # TODO
         
-        optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.weight_decay)
-        metrics = tlx.metrics.Accuracy()
-        train_weights = model.trainable_weights
-        criterion = tlx.losses.softmax_cross_entropy_with_logits
-        loss_func = SemiSpvzLoss(model, criterion)
+    optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.weight_decay)
+    metrics = tlx.metrics.Accuracy()
+    train_weights = model.trainable_weights
+    criterion = tlx.losses.softmax_cross_entropy_with_logits
+    loss_func = SemiSpvzLoss(model, criterion)
 
-        val_accs = []
-        test_accs = []
-
+    val_accs = []
+    test_accs = []
 
         
-        train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
+        
 
-        for epoch in range(150):
+        
+    train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
+
+    for epoch in range(args.repeat):
             
             val_accs = []
             test_accs = []
@@ -183,7 +154,7 @@ def main():
 
     
             model.set_eval()
-            out= model(data['x'], data['edge_index'],num_nodes=data['num_nodes'])
+            out= model(data['x'], data['edge_index'],data['edge_weight'],num_nodes=data['num_nodes'])
 
             
             train_preds=tlx.gather(out,data['train_mask'])
@@ -203,26 +174,16 @@ def main():
             test_acc=calculate_acc(test_preds,test_y,metrics)
             test_accs.append(test_acc)
 
-            # print(f"Epoch {epoch}: "
-            #       f"Train loss = {train_loss:.2f}, "
-            #       f"train acc = {train_acc * 100:.2f}, "
-            #       f"val loss = {val_loss:.2f}, "
-            #       f"val acc = {val_acc * 100:.2f} "             
-            #       f"test acc = {test_acc * 100:.2f} "
-            #       )
-            
-
             print(f"Epoch {epoch}: "
-      f"Train loss = {train_loss.item():.2f}, "
-      f"train acc = {train_acc.item() * 100:.2f}, "
-      f"val loss = {val_loss.asnumpy().item():.2f}, "
-      f"val acc = {val_acc.item() * 100:.2f} "
-      f"test acc = {test_acc.item() * 100:.2f} ")
-
-
-            
-        max_iter = val_accs.index(max(val_accs))
-        accs.append(test_accs[max_iter])
+                  f"Train loss = {train_loss:.2f}, "
+                  f"train acc = {train_acc * 100:.2f}, "
+                  f"val loss = {val_loss:.2f}, "
+                  f"val acc = {val_acc * 100:.2f} "             
+                  f"test acc = {test_acc * 100:.2f} "
+                  )
+        
+    max_iter = val_accs.index(max(val_accs))
+    accs.append(test_accs[max_iter])
 
 
     print("\t[Classification] acc_mean {:.4f} acc_std {:.4f}"
@@ -232,7 +193,34 @@ def main():
             )
         )
 if __name__=='__main__':
-    main()
+# Training settings
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--times', type=int, default=3, help='config times')
+    parser.add_argument('--seed', type=int, default=9, help='random seed')
+    parser.add_argument('--repeat', type=int, default=150, help='repeat time')
+    parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
+    parser.add_argument('--weight_decay', type=float, default=0.00, help='weight decay (L2 loss on parameters)')
+    parser.add_argument('--hidden', type=int, default=128, help='hidden size')
+    parser.add_argument('--head1', type=int, default=1, help='gat head1')
+    parser.add_argument('--head2', type=int, default=1, help='gat head2')
+    parser.add_argument('--dropout', type=float, default=0.55, help='dropout rate')
+    parser.add_argument('--drop', type=str, default='False', help='whether to dropout or not')
+    parser.add_argument('--dataset', type=str, default='cora', choices=['cora', 'citeseer', 'pubmed', 'chameleon', 'squirrel', 'actor', 'sbm'])
+    parser.add_argument('--dataset_path', type=str, default='./data', help='path to save dataset')
+    parser.add_argument('--split', type=int, default=0)
+    parser.add_argument('--k', type=int, default=10, help='k')
+    parser.add_argument('--alpha', type=float, default=0.1, help='tolerance to stop EM algorithm')
+    parser.add_argument('--beta', type=float, default=0.9, help='tolerance to stop EM algorithm')
+    parser.add_argument('--gamma', type=float, default=0.3, help='tolerance to stop EM algorithm')
+    parser.add_argument('--sigma1', type=float, default=0.5, help='tolerance to stop EM algorithm')
+    parser.add_argument('--sigma2', type=float, default=0.5, help='tolerance to stop EM algorithm')
+    parser.add_argument('--gpu',  default='-1', type=int, help='-1 means cpu')
+    parser.add_argument('--bias', type=bool, default=False, help='if tune')
+    parser.add_argument('--add_self_loops', type=bool, default=True, help='if tune')
+    parser.add_argument('--normalize', type=bool, default=True, help='if tune')
+    args = parser.parse_args()
+    print(args)
+    main(args)
     os._exit(0)
 
 
