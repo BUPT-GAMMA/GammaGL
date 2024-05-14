@@ -89,7 +89,6 @@ class hid_net(tlx.nn.Module):
                     sigma2))
             
     def forward(self, x, edge, edge_weight=None,num_nodes=0):
-
         origin = x
         if self.normalize:
             edgei = edge_index
@@ -101,12 +100,9 @@ class hid_net(tlx.nn.Module):
             edge_index2,edge_weight2 = gcn_norm(
                 edgei, num_nodes,edgew,add_self_loop=False)
 
-
-
         if self.drop == 'True':
             x = self.Dropout(x)
 
-        
         x = self.lin1(x)
         x = self.relu(x)
         x = self.Dropout(x)

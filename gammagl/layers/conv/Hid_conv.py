@@ -116,7 +116,6 @@ class Hid_conv(MessagePassing):
             + self.beta * Ax \
             + self.beta * self.gamma * Gx
             
-           
         return x
     def message(self, x, edge_index, edge_weight=None):
         x_j=tlx.gather(x,edge_index[0,:])
