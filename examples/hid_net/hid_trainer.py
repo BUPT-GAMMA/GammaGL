@@ -12,7 +12,7 @@ import warnings
 import sys
 import argparse
 from gammagl.datasets import WikipediaNetwork
-from gammagl.models import hid_net
+from gammagl.models import Hid_net
 from gammagl.utils import mask_to_index
 
 warnings.filterwarnings('ignore')
@@ -66,7 +66,7 @@ def main(args):
         "num_nodes": graph.num_nodes,
     }
 
-    model = hid_net(in_feats=dataset.num_features,
+    model = Hid_net(in_feats=dataset.num_features,
                     n_hidden=args.hidden,
                     n_classes=dataset.num_classes,
                     k=args.k,
@@ -75,7 +75,6 @@ def main(args):
                     gamma=args.gamma,
                     bias=args.bias,
                     normalize=args.normalize,
-                    add_self_loops=args.add_self_loops,
                     drop=args.drop,
                     dropout=args.dropout,
                     sigma1=args.sigma1,

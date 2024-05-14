@@ -30,7 +30,7 @@ from .gmm_conv import GMMConv
 from .iehgcn_conv import ieHGCNConv
 from .mgnni_m_iter import MGNNI_m_iter
 from .magcl_conv import MAGCLConv
-from .Hid_conv import Hid_conv
+from .hid_conv import Hid_conv
 __all__ = [
     'MessagePassing',
     'GCNConv',

@@ -2,9 +2,8 @@ import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
 import tensorlayerx as tlx
 from gammagl.mpops import *
-from gammagl.utils.loop import remove_self_loops, add_self_loops,contains_self_loops
-def cal_g_gradient(edge_index, x, edge_weight=None, sigma1=0.5, sigma2=0.5, num_nodes=None, improved=False,
-             add_self_loops=True, dtype=None):
+def cal_g_gradient(edge_index, x, edge_weight=None, sigma1=0.5, sigma2=0.5, num_nodes=None,
+             dtype=None):
     row, col = edge_index[0], edge_index[1]
     ones = tlx.ones([edge_index[0].shape[0]])
     if dtype is not None:
@@ -59,14 +58,6 @@ class Hid_conv(MessagePassing):
     alpha: float
     beta: float
     gamma: float
-    bias: bool 
-        add bias or not.
-    add_self_loops: bool
-        add loops or not.
-    drop: bool
-        drop or not.
-    dropout: float
-        the value of dropout.
     sigma1: float
     sigma2: float
 
@@ -76,11 +67,6 @@ class Hid_conv(MessagePassing):
                  alpha,
                  beta,
                  gamma,
-                 bias,
-                 normalize,
-                 add_self_loops,
-                 drop,
-                 dropout,
                  sigma1,
                  sigma2):
         super().__init__()
@@ -89,10 +75,6 @@ class Hid_conv(MessagePassing):
         self.gamma = gamma
         self.sigma1 = sigma1
         self.sigma2 = sigma2
-        self.drop = drop
-        self.dropout = dropout
-        self.add_self_loops = add_self_loops
-        self.normalize = normalize
         self.reset_parameters()
 
     def reset_parameters(self):
