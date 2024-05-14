@@ -2,6 +2,9 @@ import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
 import tensorlayerx as tlx
 from gammagl.mpops import *
+from gammagl.utils.num_nodes import maybe_num_nodes
+
+
 def cal_g_gradient(edge_index, x, edge_weight=None, sigma1=0.5, sigma2=0.5, num_nodes=None,
              dtype=None):
     row, col = edge_index[0], edge_index[1]
@@ -82,15 +85,17 @@ class Hid_conv(MessagePassing):
         self._cached_edge_index = None
         self._cached_adj_t = None
     
-    def forward(self,x,origin, edge_index, edge_weight,edge_index2,edge_weight2,num_nodes=0):
-        ew2=tlx.reshape(edge_weight2,(-1,1))
+    def forward(self,x,origin, edge_index, edge_weight,edge_index_without_selfloops,edge_weight_without_selfloops,num_nodes=None):
+    
+        ew2=tlx.reshape(edge_weight_without_selfloops,(-1,1))
 
-        g=cal_g_gradient(edge_index=edge_index2,x=x,edge_weight=ew2,sigma1=self.sigma1,sigma2=self.sigma2,dtype=None)
+        g=cal_g_gradient(edge_index=edge_index_without_selfloops,x=x,edge_weight=ew2,sigma1=self.sigma1,sigma2=self.sigma2,dtype=None)
             
         x1=x
         Ax=x
         Gx=x
-
+        if num_nodes==None:
+             num_nodes=maybe_num_nodes(edge_index,num_nodes)
         Ax=self.propagate(Ax,edge_index,edge_weight=edge_weight,num_nodes=num_nodes)
         Gx=self.propagate(g,edge_index,edge_weight=edge_weight,num_nodes=num_nodes)
 

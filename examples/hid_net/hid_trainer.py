@@ -14,8 +14,8 @@ import argparse
 from gammagl.datasets import WikipediaNetwork
 from gammagl.models import Hid_net
 from gammagl.utils import mask_to_index
-
 warnings.filterwarnings('ignore')
+
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):

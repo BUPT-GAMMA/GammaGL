@@ -1,9 +1,10 @@
 import tensorlayerx as tlx
-
 from gammagl.layers.conv import Hid_conv
 from gammagl.utils.loop import remove_self_loops, add_self_loops,contains_self_loops
 from gammagl.mpops import *
 from gammagl.utils.norm import calc_gcn_norm
+
+
 class Hid_net(tlx.nn.Module):
     r"""High-Order Graph Diffusion Network (HiD-Net) proposed in `"A Generalized Neural Diffusion Framework on Graphs"
         <https://arxiv.org/abs/2312.08616>`_ paper.
@@ -63,7 +64,7 @@ class Hid_net(tlx.nn.Module):
                     sigma1,
                     sigma2))
             
-    def forward(self, x, edge_index, edge_weight=None,num_nodes=0):
+    def forward(self, x, edge_index, edge_weight=None,num_nodes=None):
         if self.normalize:
             edgei = edge_index
             edgew = edge_weight
@@ -80,8 +81,8 @@ class Hid_net(tlx.nn.Module):
 
             edge_weight=calc_gcn_norm(edge_index,num_nodes,edge_weight)
 
-            edge_index2=edgei
-            edge_weight2=calc_gcn_norm(edgei,num_nodes,edgew)
+            edge_index_without_selfloops=edgei
+            edge_weight_without_selfloops=calc_gcn_norm(edgei,num_nodes,edgew)
             
 
         if self.drop == 'True':
@@ -93,5 +94,5 @@ class Hid_net(tlx.nn.Module):
         x = self.lin2(x)
         origin = x
         for l, layer in enumerate(self.convs):
-            x = layer(x,origin, edge_index,edge_weight,edge_index2,edge_weight2,num_nodes)
+            x = layer(x,origin, edge_index,edge_weight,edge_index_without_selfloops,edge_weight_without_selfloops,num_nodes)
         return x
