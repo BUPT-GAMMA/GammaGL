@@ -147,7 +147,6 @@ if __name__=='__main__':
     parser.add_argument('--sigma2', type=float, default=0.5, help='tolerance to stop EM algorithm')
     parser.add_argument('--gpu',  default='-1', type=int, help='-1 means cpu')
     parser.add_argument('--bias', type=bool, default=False, help='if tune')
-    parser.add_argument('--add_self_loops', type=bool, default=True, help='if tune')
     parser.add_argument('--normalize', type=bool, default=True, help='if tune')
     args = parser.parse_args()
 
