@@ -68,8 +68,9 @@ class hid_net(tlx.nn.Module):
         self.lin1 = tlx.layers.Linear(in_features=in_feats, out_features=n_hidden, W_init=initor,b_init=None)
         self.lin2 = tlx.layers.Linear(in_features=n_hidden, out_features=n_classes, W_init=initor,b_init=None)
         self.relu = tlx.ReLU()
-        
-        self.Dropout = tlx.layers.Dropout(self.dropout)
+        self.normalize=normalize
+        self.drop=drop
+        self.Dropout = tlx.layers.Dropout(dropout)
         if bias:
             initor = tlx.initializers.Zeros()
             self.bias = self._get_weights("bias", shape=(1,self.out_channels), init=initor)
