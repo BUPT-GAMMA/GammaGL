@@ -4,6 +4,7 @@
 #include <torch/extension.h>
 #include <torch/script.h>
 #include <torch/torch.h>
+#include <ATen/ATen.h>
 
 #include <iostream>
 #include <vector>
@@ -30,49 +31,50 @@ torch::Tensor segment_mean_cpu_forward(
   }
 
   auto E = x.size(0);
-  auto K = x.numel() / x.size(0);
+  auto K = x.numel() / E;
   auto index_data = index.data_ptr<int64_t>();
   auto arg_out_data = arg_out.data_ptr<int64_t>();
 
-  // AT_DISPATCH_ALL_TYPES(x.scalar_type(), "__ops_name", [&] {
-  using scalar_t = float;
-  auto x_data = x.data_ptr<scalar_t>();
-  auto out_data = out.data_ptr<scalar_t>();
+  AT_DISPATCH_ALL_TYPES_AND2(at::ScalarType::Half, at::ScalarType::BFloat16, x.scalar_type(), "segment_mean_cpu_forward", [&]() {
 
-  torch::Tensor degree = torch::zeros({1, index.size(0)}, x.options());
-  auto degree_data = degree.data_ptr<scalar_t>();
+      auto x_data = x.data_ptr<scalar_t>();
+      auto out_data = out.data_ptr<scalar_t>();
 
-#ifdef COMPILE_WITH_OMP
-#pragma omp parallel for
-#endif
-  for (auto e = 0; e < E; ++e) {
-    auto idx = index_data[e];
-    degree_data[idx] += 1;
-    for (auto k = 0; k < K; ++k) {
-#ifdef COMPILE_WITH_OMP
-#pragma omp critical
-#endif
-      out_data[idx * K + k] += x_data[e * K + k];
-      arg_out_data[idx * K + k] = e;
-    }
-  }
-  // });
-  out = out.contiguous();
-  degree = degree.contiguous();
+      torch::Tensor degree = torch::zeros({1, index.size(0)}, x.options());
+      auto degree_data = degree.data_ptr<scalar_t>();
 
-#ifdef COMPILE_WITH_OMP
-#pragma omp parallel for
-#endif
-  for (auto e = 0; e < E; ++e) {
-    if (degree_data[e] > 1) {
-      for (auto k = 0; k < K; ++k) {
-#ifdef COMPILE_WITH_OMP
-#pragma omp critical
-#endif
-        out_data[e * K + k] /= degree_data[e];
+    #ifdef COMPILE_WITH_OMP
+    #pragma omp parallel for
+    #endif
+      for (auto e = 0; e < E; ++e) {
+        auto idx = index_data[e];
+        degree_data[idx] += 1;
+        for (auto k = 0; k < K; ++k) {
+    #ifdef COMPILE_WITH_OMP
+    #pragma omp critical
+    #endif
+          out_data[idx * K + k] += x_data[e * K + k];
+          arg_out_data[idx * K + k] = e;
+        }
       }
-    }
-  }
+      out = out.contiguous();
+      degree = degree.contiguous();
+
+    #ifdef COMPILE_WITH_OMP
+    #pragma omp parallel for
+    #endif
+      for (auto e = 0; e < E; ++e) {
+        if (degree_data[e] > 1) {
+          for (auto k = 0; k < K; ++k) {
+    #ifdef COMPILE_WITH_OMP
+    #pragma omp critical
+    #endif
+            out_data[e * K + k] /= degree_data[e];
+          }
+        }
+      }
+
+  });
 
   return out;
 }
