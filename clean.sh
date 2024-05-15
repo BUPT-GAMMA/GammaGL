@@ -2,7 +2,7 @@
 
 # 设置 GammaGL 目录的路径
 # GAMMAGL_DIR="/home/zgy/GammaGL"
-GAMMAGL_DIR="/home/zgy/operator0309/operator0411/GammaGL"
+GAMMAGL_DIR="/home/zgy/GammaGL"
 
 # 删除 build、dist 和 gammagl.egg-info 目录
 rm -rf "$GAMMAGL_DIR/build" "$GAMMAGL_DIR/dist" "$GAMMAGL_DIR/gammagl.egg-info"
