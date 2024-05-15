@@ -1,5 +1,5 @@
-tensorlayerx
-numpy<=1.23.5
+git+https://github.com/dddg617/TensorLayerX.git@nightly
+numpy
 scipy
 tensorflow==2.11.0
 paddlepaddle==2.3.2
