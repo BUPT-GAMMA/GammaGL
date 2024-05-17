@@ -1,10 +1,5 @@
 # !/usr/bin/env python
 # -*- encoding: utf-8 -*-
-"""
-@File    :   gat_trainer.py
-@Time    :   2024/03/02 14:35:38
-@Author  :   Yang Zhijie
-"""
 
 """
 TL_BACKEND="torch" python test_gat.py --dataset cora --lr 0.01 --l2_coef 0.005 --drop_rate 0.7

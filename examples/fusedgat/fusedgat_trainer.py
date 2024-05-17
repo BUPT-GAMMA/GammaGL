@@ -1,10 +1,5 @@
 # !/usr/bin/env python
 # -*- encoding: utf-8 -*-
-"""
-@File    :   gat_trainer.py
-@Time    :   2024/03/02 14:35:38
-@Author  :   Yang Zhijie
-"""
 
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
