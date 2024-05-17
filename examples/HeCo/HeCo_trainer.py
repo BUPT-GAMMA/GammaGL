@@ -73,6 +73,8 @@ def evaluate(embeds, ratio, idx_train, idx_val, idx_test, label, nb_classes, dat
             #print(lr)
         optimizer = tlx.optimizers.Adam(lr=lr, weight_decay=float(wd)) #Adam method
         loss = tlx.losses.softmax_cross_entropy_with_logits
+        log_with_loss = tlx.model.WithLoss(log, loss)
+        train_one_step = tlx.model.TrainOneStep(log_with_loss, optimizer, log.trainable_weights)
         val_accs = []
         test_accs = []
         val_micro_f1s = []
@@ -82,8 +84,6 @@ def evaluate(embeds, ratio, idx_train, idx_val, idx_test, label, nb_classes, dat
         logits_list = []
         for iter_ in range(200):#set this parameter: 'acm'=200
             log.set_train()
-            log_with_loss = tlx.model.WithLoss(log, loss)
-            train_one_step = tlx.model.TrainOneStep(log_with_loss, optimizer, log.trainable_weights)
             train_one_step(train_embs, train_lbls_idx)
             logits = log(val_embs)
             preds = tlx.argmax(logits, axis = 1) 
@@ -161,31 +161,12 @@ def main(args):
     best = 1e9
     best_t = 0
     cnt = 0
+    model_with_loss = tlx.model.WithLoss(model, contrast_loss)
+    weights_to_train = model.trainable_weights+contrast_loss.trainable_weights
+    train_one_step = tlx.model.TrainOneStep(model_with_loss, optimizer, weights_to_train)
     for epoch in range(args.nb_epochs):  #args.nb_epochs
-        model_with_loss = tlx.model.WithLoss(model, contrast_loss)
-        weights_to_train = model.trainable_weights+contrast_loss.trainable_weights
-        train_one_step = tlx.model.TrainOneStep(model_with_loss, optimizer, weights_to_train)
-            
         loss = train_one_step(datas, pos)
         print("loss ", loss)
-        '''loss = model(datas, pos)
-        grads_in = optimizer.gradient(loss, model.trainable_weights)
-        optimizer.apply_gradients(zip(grads_in, model.trainable_weights))
-            print("loss ", loss)'''
-
-
-            # use your file directory to remove 'str', the files to install are '.npz' files
-        if loss < best:
-            best = loss
-            best_t = epoch
-            cnt_wait = 0
-            model.save_weights('str', format='npz_dict')
-        else:
-            cnt_wait += 1
-
-        if cnt_wait == args.patience:
-            print('Early stopping!')
-            break
     print('Loading {}th epoch'.format(best_t))
     model.load_weights('str', format='npz_dict')
     model.set_eval()
