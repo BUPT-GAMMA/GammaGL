@@ -53,5 +53,7 @@ TL_BACKEND="torch" python test_gat.py --dataset pubmed --lr 0.01 --l2_coef 0.001
 | pubmed   | memory     |     505      |     427      |
 
 train : ms / epoch
+
 infer : ms / epoch
+
 memory: MB
