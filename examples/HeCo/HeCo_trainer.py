@@ -167,10 +167,13 @@ def main(args):
     for epoch in range(args.nb_epochs):  #args.nb_epochs
         loss = train_one_step(datas, pos)
         print("loss ", loss)
+        best = loss
+        best_t = epoch
+        model.save_weights(model.name+".npz", format='npz_dict')
     print('Loading {}th epoch'.format(best_t))
-    model.load_weights('str', format='npz_dict')
+    model.load_weights(model.name+".npz", format='npz_dict')
     model.set_eval()
-    os.remove('str')
+    os.remove(model.name+".npz")
     embeds = model.get_embeds(feats, mps)
     # To evaluate the HeCo model with different numbers of training labels, that is 20,40 and 60, which is indicated in the essay of HeCo
     for i in range(len(idx_train)):
