@@ -19,25 +19,39 @@ import requests
 import io
 import zipfile
 from gammagl.data import download_url
+url = 'https://github.com/liun-online/HeCo/raw/main/data/acm'
 class ACM4HeCo(InMemoryDataset):
-    def __init__(self, root: str = None, name: str = 'acm'):
-        self.name = name
-        self.dir = root
-        self.url = 'https://github.com/liun-online/HeCo/raw/main/data/acm'
-        
+    def __init__(self, root: Optional[str] = None, transform: Optional[Callable] = None,
+                 pre_transform: Optional[Callable] = None, pre_filter: Optional[Callable] = None,
+                 force_reload: bool = False):
+        super().__init__(root, transform, pre_transform, pre_filter, force_reload = force_reload)
+        self.data, self.slices = self.load_data(self.processed_paths[0])
 
 
 
+    @property
+    def raw_file_names(self) -> List[str]:
+        return ['pa.txt', 'ps.txt', 'labels.npy', 'p_feat.npz', 'train_20.npy', 
+                'train_40.npy', 'train_60.npy', 'test_20.npy', 'test_40.npy', 'test_60.npy',
+                  'val_20.npy', 'val_40.npy', 'val_60.npy']
 
 
+    @property
+    def processed_file_names(self) -> str:
+        return tlx.BACKEND + '_data.pt'
+    
     def download(self):
+        shutil.rmtree(self.raw_dir)
+        download_url(self.url, self.root)
+        os.rename(osp.join(self.root, 'acm'), self.raw_dir)
+
+    
+
+    ''' def download(self):
         print("---  download data  ---")
-        names = ['pa.txt', 'ps.txt', 'labels.npy', 'p_feat.npz', 'train_20.npy', 'train_40.npy', 'train_60.npy', 'test_20.npy', 'test_40.npy', 'test_60.npy', 'val_20.npy', 'val_40.npy', 'val_60.npy']
-        for name in names:
-            download_url(f'{self.url}/{name}', self.dir)
+        for name in self.raw_file_names:
+            download_url(f'{url}/{name}', self.dir)'''
            
-
-
 
     # onehot encoder
     def encode_onehot(self, labels):
@@ -69,22 +83,24 @@ class ACM4HeCo(InMemoryDataset):
     
     # get processed data from ACM
 
-    def data4HeCo (self, args):
-        type_num = args.type_num
+    def process (self):
+        data = HeteroGraph()
+        type_num = [4019, 7167, 60]
+        
         #data process for meta path
-        pa = np.genfromtxt(self.dir + "pa.txt")  #E:\\send_heco\\send_heco\\data\\acm\\
-        ps = np.genfromtxt(self.dir + "ps.txt")
-        label = np.load(self.dir + "labels.npy").astype('int32')
-        feat_p = sp.load_npz(self.dir + "p_feat.npz")
-        train_20 = np.load(self.dir + "train_20.npy")
-        train_40 = np.load(self.dir + "train_40.npy")
-        train_60 = np.load(self.dir + "train_60.npy")
-        test_20 = np.load(self.dir + "test_20.npy")
-        test_40 = np.load(self.dir + "test_40.npy")
-        test_60 = np.load(self.dir + "test_60.npy")
-        val_20 = np.load(self.dir + "val_20.npy")
-        val_40 = np.load(self.dir + "val_40.npy")
-        val_60 = np.load(self.dir + "val_60.npy")
+        pa = np.genfromtxt(osp.join(self.raw_dir,'pa.txt'))  #E:\\send_heco\\send_heco\\data\\acm\\
+        ps = np.genfromtxt(osp.join(self.raw_dir,'ps.txt'))
+        label = np.load(osp.join(self.raw_dir,'labels.npy')).astype('int32')
+        feat_p = sp.load_npz(osp.join(self.raw_dir,'p_feat.npz'))
+        train_20 = np.load(osp.join(self.raw_dir,'train_20.npy'))
+        train_40 = np.load(osp.join(self.raw_dir,'train_40.npy'))
+        train_60 = np.load(osp.join(self.raw_dir,'train_60.npy'))
+        test_20 = np.load(osp.join(self.raw_dir,'test_20.npy'))
+        test_40 = np.load(osp.join(self.raw_dir,'test_40.npy'))
+        test_60 = np.load(osp.join(self.raw_dir,'test_60.npy'))
+        val_20 = np.load(osp.join(self.raw_dir,'val_20.npy'))
+        val_40 = np.load(osp.join(self.raw_dir,'val_20.npy'))
+        val_60 = np.load(osp.join(self.raw_dir,'val_20.npy'))
     #print(relations)
         pa_row = []
         pa_col = []
@@ -147,10 +163,6 @@ class ACM4HeCo(InMemoryDataset):
         #data process for labels 
         label = self.encode_onehot(label)
         label = tlx.convert_to_tensor(label)
-        '''path = "E:\\send_heco\\send_heco\\data\\acm\\"
-        label = np.load(path + "labels.npy").astype('int32')
-        print(label[669])'''
-
 
         #data process for feature
         feat_a = sp.eye(type_num[1])  # 单位矩阵 7167*7167
@@ -202,4 +214,17 @@ class ACM4HeCo(InMemoryDataset):
         train = [tlx.convert_to_tensor(i, 'int64') for i in train]
         val = [tlx.convert_to_tensor(i, 'int64') for i in val]
         test = [tlx.convert_to_tensor(i, 'int64') for i in test]
-        return [nei_a, nei_s], [feat_p, feat_a, feat_s], [pap, psp], pos, label, train, val, test
+        data['paper'].nei = [nei_a, nei_s]
+        data['feat_p/a/s'].feat = [feat_p, feat_a, feat_s]
+        data['metapath'].path = [pap, psp]
+        data['pos_set_for_contrast'] = pos
+        data['paper'].label = label
+        data['train'].train = train
+        data['val'].val = val
+        data['test'].test = test
+    
+    
+        if self.pre_transform is not None:
+            data = self.pre_transform(data)
+
+        self.save_data(self.collate([data]), self.processed_paths[0])
