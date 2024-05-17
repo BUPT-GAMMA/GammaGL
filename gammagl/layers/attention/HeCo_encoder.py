@@ -1,7 +1,6 @@
 import numpy as np
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
-from layers.conv.gcn_forheco import metapathSpecificGCN
 from layers.attention.meta_path_attention import Attention
 from layers.attention.network_schema_attention import intra_att
 from layers.attention.network_schema_attention import inter_att
