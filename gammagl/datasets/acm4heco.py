@@ -19,7 +19,7 @@ import requests
 import io
 import zipfile
 from gammagl.data import download_url
-class ACM4HeCo(object):
+class ACM4HeCo(InMemoryDataset):
     def __init__(self, root: str = None, name: str = 'acm'):
         self.name = name
         self.dir = root
