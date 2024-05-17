@@ -1,4 +1,13 @@
+"""
+@File    :   HeCo_trainer.py
+@Time    :   
+@Author  :   tan jiarui
+"""
 import os
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 import numpy
 import random
 import argparse
@@ -16,9 +25,6 @@ from gammagl.datasets.ACM_data_process import ACM4HeCo
 import scipy.sparse as sp
 #Mention: all 'str' in this code should be replaced with your own file directories
 
-os.environ['TL_BACKEND'] = 'torch' # or you can choose your backend with 'paddle' or 'tensorflow'
-
-warnings.filterwarnings('ignore')
 
 class LogReg(nn.Module):
     def __init__(self, ft_in, nb_classes):
@@ -158,7 +164,7 @@ def main(args):
     for epoch in range(args.nb_epochs):  #args.nb_epochs
         model_with_loss = tlx.model.WithLoss(model, contrast_loss)
         weights_to_train = model.trainable_weights+contrast_loss.trainable_weights
-        train_one_step = tlx.model.TrainOneStep(model_with_loss, optimizer, weights_to_train)# 加上contrast的trainable weights
+        train_one_step = tlx.model.TrainOneStep(model_with_loss, optimizer, weights_to_train)
             
         loss = train_one_step(datas, pos)
         print("loss ", loss)
@@ -219,9 +225,6 @@ if __name__ == '__main__':
     args.type_num = [4019, 7167, 60]  # the number of every node type
     args.nei_num = 2  # the number of neighbors' types
     own_str = args.dataset
-    seed = args.seed
-    numpy.random.seed(seed)
-    random.seed(seed)
-    tlx.set_seed(seed)
+
     main(args)
     
