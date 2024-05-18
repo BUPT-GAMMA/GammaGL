@@ -22,13 +22,8 @@ class SemiSpvzLoss(WithLoss):
 
     def forward(self, data, label):
         logits = self._backbone(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
-        if tlx.BACKEND == 'mindspore':
-            idx = tlx.convert_to_tensor([i for i, v in enumerate(data['train_mask']) if v], dtype=tlx.int64)
-            train_logits = tlx.gather(logits,idx)
-            train_label = tlx.gather(label,idx)
-        else:
-            train_logits = logits[data['train_mask']]
-            train_label = label[data['train_mask']]
+        train_logits = logits[data['train_mask']]
+        train_label = label[data['train_mask']]
         loss = self._loss_fn(train_logits, train_label)
         return loss
 
@@ -36,13 +31,8 @@ class SemiSpvzLoss(WithLoss):
 def evaluate(net, data, y, mask, metrics):
     net.set_eval()
     logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
-    if tlx.BACKEND == 'mindspore':
-        idx = tlx.convert_to_tensor([i for i, v in enumerate(mask) if v],dtype=tlx.int64)
-        _logits = tlx.gather(logits,idx)
-        _label = tlx.gather(y,idx)
-    else:
-        _logits = logits[mask]
-        _label = y[mask]
+    _logits = logits[mask]
+    _label = y[mask]
     metrics.update(_logits, _label)
     acc = metrics.result()
     metrics.reset()
