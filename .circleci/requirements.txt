@@ -1,4 +1,4 @@
-tensorlayerx
+git+https://github.com/dddg617/TensorLayerX.git@nightly
 numpy<=1.23.5
 scipy
 tensorflow==2.11.0
