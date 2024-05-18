@@ -82,8 +82,7 @@ def main(args):
     train_lbls = y[graph.train_mask]
 
     test_lbls = y[graph.test_mask]
-    if tlx.BACKEND != 'tensorflow':
-        train_embs = train_embs.detach()
+    train_embs = tlx.detach(train_embs)
     accs = 0.
     for e in range(5):
         clf = LogReg(args.hidden_dim, dataset.num_classes)

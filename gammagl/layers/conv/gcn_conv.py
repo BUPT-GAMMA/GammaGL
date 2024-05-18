@@ -78,10 +78,11 @@ class GCNConv(MessagePassing):
         x = self.linear(x)
         src, dst = edge_index[0], edge_index[1]
         if edge_weight is None:
-            edge_weight = tlx.ones(shape=(edge_index.shape[1], 1))
+            edge_weight = tlx.ones(shape=(tlx.get_tensor_shape(edge_index)[1], 1))
         edge_weight = tlx.reshape(edge_weight,(-1,))
         weights = edge_weight
-        num_nodes = tlx.reduce_max(edge_index) + 1
+        # num_nodes = tlx.reduce_max(edge_index) + 1
+        num_nodes = tlx.get_tensor_shape(x)[0]
         
         if self._norm in ['left', 'both']:
             deg = degree(src, num_nodes=num_nodes, dtype = tlx.float32)

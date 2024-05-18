@@ -80,19 +80,14 @@ class ClsLoss(WithLoss):
 
 def gen_auc_mima(logits, label):
     preds = tlx.argmax(logits, axis=1)
-    test_f1_macro = f1_score(label.cpu(), preds.cpu(), average='macro')
-    test_f1_micro = f1_score(label.cpu(), preds.cpu(), average='micro')
+    test_f1_macro = f1_score(tlx.convert_to_numpy(label), tlx.convert_to_numpy(preds), average='macro')
+    test_f1_micro = f1_score(tlx.convert_to_numpy(label), tlx.convert_to_numpy(preds), average='micro')
 
     best_proba = nn.Softmax(axis=1)(logits)
     if logits.shape[1] != 2:
-        auc = roc_auc_score(y_true=label.detach().cpu().numpy(),
-                            y_score=best_proba.detach().cpu().numpy(),
-                            multi_class='ovr'
-                            )
+        auc = roc_auc_score(y_true=tlx.convert_to_numpy(label), y_score=tlx.convert_to_numpy(best_proba), multi_class='ovr')
     else:
-        auc = roc_auc_score(y_true=label.detach().cpu().numpy(),
-                            y_score=best_proba[:, 1].detach().cpu().numpy()
-                            )
+        auc = roc_auc_score(y_true=tlx.convert_to_numpy(label), y_score=tlx.convert_to_numpy(best_proba[:, 1]))
     return test_f1_macro, test_f1_micro, auc
 
 def accuracy(output, label):
@@ -161,9 +156,6 @@ def diff(adj, alpha):
     return adj
 
 def main(args):
-    if tlx.BACKEND == 'torch' and args.gpu >= 0:
-        set_device(int(args.gpu))
-
     if args.dataset == 'citeseer':
         dataset = Planetoid('', args.dataset)
     elif args.dataset == 'polblogs':
@@ -191,7 +183,7 @@ def main(args):
         val_idx = mask_to_index(graph.val_mask)
     edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes, n_loops=1)
     value = np.ones(edge_index[0].shape)
-    view1 = sp.coo_matrix((value, (edge_index.cpu())), shape=(graph.num_nodes, graph.num_nodes))
+    view1 = sp.coo_matrix((value, (tlx.convert_to_numpy(edge_index))), shape=(graph.num_nodes, graph.num_nodes))
     v1_indice = get_khop_indices(args.v1_p, view1)
     if args.dataset == 'wikics' or args.dataset == 'ms':
         view2 = view1
@@ -287,11 +279,7 @@ def main(args):
     test_f1_macro, test_f1_micro, auc = gen_auc_mima(probs[data['test_idx']], data['y'][data['test_idx']])
     print("Test_Macro: ", test_f1_macro, "\tTest_Micro: ", test_f1_micro, "\tAUC: ", auc)
 
-    f = open(f'{tlx.BACKEND}_results/{args.dataset}' + ".txt", "a")
-    f.write("v1_p=" + str(args.v1_p) + "\t" + "v2_p=" + str(args.v2_p) + "\t" + str(test_f1_macro) + "\t" + str(test_f1_micro) + "\t" + str(auc) + "\n")
-    f.close()
-
-def polblogs_params():
+if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     #####################################
     ## basic info
@@ -301,6 +289,8 @@ def polblogs_params():
     parser.add_argument('--v1_p', type=int, default=1)
     parser.add_argument('--v2_p', type=int, default=300)
     parser.add_argument('--cls_hid', type=int, default=16)
+    parser.add_argument('--ggl', type=bool, default=False)
+    parser.add_argument('--big', type=bool, default=False)
     ## gen
     parser.add_argument('--com_lambda_v1', type=float, default=0.1)
     parser.add_argument('--com_lambda_v2', type=float, default=1.0)
@@ -331,165 +321,9 @@ def polblogs_params():
     parser.add_argument('--tau', type=float, default=0.8)
     #####################################
 
-    args, _ = parser.parse_known_args()
-    return args
-
-
-def citeseer_params():
-    parser = argparse.ArgumentParser()
-    #####################################
-    ## basic info
-    parser.add_argument('--dataset', type=str, default="citeseer")
-    parser.add_argument('--batch', type=int, default=0)
-    parser.add_argument('--gpu', type=int, default=0)
-    parser.add_argument('--v1_p', type=int, default=2)
-    parser.add_argument('--v2_p', type=int, default=40)
-    parser.add_argument('--cls_hid', type=int, default=16)
-    ## gen
-    parser.add_argument('--com_lambda_v1', type=float, default=0.1)
-    parser.add_argument('--com_lambda_v2', type=float, default=0.1)
-    parser.add_argument('--gen_hid', type=int, default=32)
-    ## fusion
-    parser.add_argument('--lam', type=float, default=0.5)
-    parser.add_argument('--alpha', type=float, default=0.1)
-    ## mi
-    parser.add_argument('--mi_hid', type=int, default=128)
-    ## optimizer
-    parser.add_argument('--cls_lr', type=float, default=0.01)
-    parser.add_argument('--cls_weight_decay', type=float, default=5e-4)
-    parser.add_argument('--cls_dropout', type=float, default=0.5)
-    parser.add_argument('--ve_lr', type=float, default=0.001)
-    parser.add_argument('--ve_weight_decay', type=float, default=0.)
-    parser.add_argument('--ve_dropout', type=float, default=0.5)
-    parser.add_argument('--mi_lr', type=float, default=0.01)
-    parser.add_argument('--mi_weight_decay', type=float, default=0.)
-    ## iter
-    parser.add_argument('--n_epoch', type=int, default=200)
-    parser.add_argument('--inner_ve_epoch', type=int, default=5)
-    parser.add_argument('--inner_cls_epoch', type=int, default=5)
-    parser.add_argument('--inner_mi_epoch', type=int, default=10)
-    parser.add_argument('--temp_r', type=float, default=1e-4)
-    ## coe
-    parser.add_argument('--cls_coe', type=float, default=0.3)
-    parser.add_argument('--mi_coe', type=float, default=0.3)
-    parser.add_argument('--tau', type=float, default=0.8)
-    #####################################
-
-    args, _ = parser.parse_known_args()
-    return args
-
-
-def wikics_params():
-    parser = argparse.ArgumentParser()
-    #####################################
-    ## basic info
-    parser.add_argument('--dataset', type=str, default="wikics")
-    parser.add_argument('--batch', type=int, default=4000)
-    parser.add_argument('--gpu', type=int, default=1)
-    parser.add_argument('--v1_p', type=int, default=1)
-    parser.add_argument('--v2_p', type=int, default=1)
-    parser.add_argument('--cls_hid', type=int, default=16)
-    ## gen
-    parser.add_argument('--com_lambda_v1', type=float, default=0.5)
-    parser.add_argument('--com_lambda_v2', type=float, default=0.5)
-    parser.add_argument('--gen_hid', type=int, default=16)
-    ## fusion
-    parser.add_argument('--lam', type=float, default=0.1)
-    parser.add_argument('--alpha', type=float, default=0.1)
-    ## mi
-    parser.add_argument('--mi_hid', type=int, default=32)
-    ## optimizer
-    parser.add_argument('--cls_lr', type=float, default=0.01)
-    parser.add_argument('--cls_weight_decay', type=float, default=5e-4)
-    parser.add_argument('--cls_dropout', type=float, default=0.5)
-    parser.add_argument('--ve_lr', type=float, default=0.01)
-    parser.add_argument('--ve_weight_decay', type=float, default=0)
-    parser.add_argument('--ve_dropout', type=float, default=0.2)
-    parser.add_argument('--mi_lr', type=float, default=0.01)
-    parser.add_argument('--mi_weight_decay', type=float, default=0.)
-    ## iter
-    parser.add_argument('--n_epoch', type=int, default=200)
-    parser.add_argument('--inner_ve_epoch', type=int, default=1)
-    parser.add_argument('--inner_cls_epoch', type=int, default=1)
-    parser.add_argument('--inner_mi_epoch', type=int, default=1)
-    parser.add_argument('--temp_r', type=float, default=1e-3)
-    ## coe
-    parser.add_argument('--cls_coe', type=float, default=0.3)
-    parser.add_argument('--mi_coe', type=float, default=0.3)
-    parser.add_argument('--tau', type=float, default=0.5)
-    #####################################
-
-    args, _ = parser.parse_known_args()
-    return args
-
-
-def ms_params():
-    parser = argparse.ArgumentParser()
-    #####################################
-    ## basic info
-    parser.add_argument('--dataset', type=str, default="ms")
-    parser.add_argument('--batch', type=int, default=1000)
-    parser.add_argument('--gpu', type=int, default=1)
-    parser.add_argument('--v1_p', type=int, default=1)
-    parser.add_argument('--v2_p', type=int, default=1)
-    parser.add_argument('--cls_hid', type=int, default=16)
-    ## gen
-    parser.add_argument('--com_lambda_v1', type=float, default=0.5)
-    parser.add_argument('--com_lambda_v2', type=float, default=0.5)
-    parser.add_argument('--gen_hid', type=int, default=32)
-    ## fusion
-    parser.add_argument('--lam', type=float, default=0.2)
-    parser.add_argument('--alpha', type=float, default=1.0)
-    ## mi
-    parser.add_argument('--mi_hid', type=int, default=256)
-    ## optimizer
-    parser.add_argument('--cls_lr', type=float, default=0.01)
-    parser.add_argument('--cls_weight_decay', type=float, default=5e-4)
-    parser.add_argument('--cls_dropout', type=float, default=0.5)
-    parser.add_argument('--ve_lr', type=float, default=0.0001)
-    parser.add_argument('--ve_weight_decay', type=float, default=1e-10)
-    parser.add_argument('--ve_dropout', type=float, default=0.8)
-    parser.add_argument('--mi_lr', type=float, default=0.01)
-    parser.add_argument('--mi_weight_decay', type=float, default=0.)
-    ## iter
-    parser.add_argument('--n_epoch', type=int, default=200)
-    parser.add_argument('--inner_ve_epoch', type=int, default=1)
-    parser.add_argument('--inner_cls_epoch', type=int, default=15)
-    parser.add_argument('--inner_mi_epoch', type=int, default=10)
-    parser.add_argument('--temp_r', type=float, default=1e-4)
-    ## coe
-    parser.add_argument('--cls_coe', type=float, default=0.3)
-    parser.add_argument('--mi_coe', type=float, default=0.3)
-    parser.add_argument('--tau', type=float, default=0.5)
-    #####################################
-
-    args, _ = parser.parse_known_args()
-    return args
-
-argv = sys.argv
-dataset = argv[1].split(' ')[0]
-
-def set_params():
-    args = polblogs_params()
-    if dataset == "polblogs":
-        args = polblogs_params()
-        args.ggl = False
-        args.big = False
-    elif dataset == "citeseer":
-        args = citeseer_params()
-        args.ggl = False
-        args.big = False
-    elif dataset == "wikics":
-        args = wikics_params()
-        args.ggl = True
-        args.big = True
-    elif dataset == "ms":
-        args = ms_params()
-        args.ggl = True
-        args.big = True
-    return args
-
-
-if __name__ == '__main__':
-    args = set_params()
+    args = parser.parse_args()
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
     main(args)
