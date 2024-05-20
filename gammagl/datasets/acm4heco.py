@@ -215,13 +215,13 @@ class ACM4HeCo(InMemoryDataset):
         val = [tlx.convert_to_tensor(i, 'int64') for i in val]
         test = [tlx.convert_to_tensor(i, 'int64') for i in test]
         data['paper'].nei = [nei_a, nei_s]
-        data['feat_p/a/s'].feat = [feat_p, feat_a, feat_s]
-        data['metapath'].path = [pap, psp]
+        data['feat_p/a/s'] = [feat_p, feat_a, feat_s]
+        data['metapath'] = [pap, psp]
         data['pos_set_for_contrast'] = pos
         data['paper'].label = label
-        data['train'].train = train
-        data['val'].val = val
-        data['test'].test = test
+        data['train'] = train
+        data['val'] = val
+        data['test'] = test
     
     
         if self.pre_transform is not None:
