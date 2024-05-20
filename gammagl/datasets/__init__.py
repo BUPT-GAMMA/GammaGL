@@ -19,8 +19,9 @@ from .polblogs import PolBlogs
 from .wikics import WikiCS
 from .blogcatalog import BlogCatalog
 from .molecule_net import MoleculeNet
-
+from .acm4heco import ACM4HeCo
 __all__ = [
+    'ACM4HeCo',
     'Amazon',
     'Coauthor',
     'TUDataset',
