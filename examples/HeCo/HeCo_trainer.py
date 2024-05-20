@@ -20,11 +20,54 @@ from sklearn.metrics import f1_score
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import OneHotEncoder
 from gammagl.models.HeCo import HeCo
-from gammagl.models.contrast_learningHeCo import Contrast
-from gammagl.datasets.ACM_data_process import ACM4HeCo
+from tensorlayerx.model import WithLoss
+from gammagl.datasets.acm4heco import ACM4HeCo
+
 import scipy.sparse as sp
 #Mention: all 'str' in this code should be replaced with your own file directories
+class Contrast(nn.Module):
+    def __init__(self, hidden_dim, tau, lam):
+        super(Contrast, self).__init__()
+        self.proj = nn.Sequential(
+            nn.Linear(in_features=hidden_dim, out_features=hidden_dim, W_init='he_normal'),
+            nn.ELU(),
+            nn.Linear(in_features=hidden_dim, out_features=hidden_dim, W_init='he_normal')
+        )
+        self.tau = tau
+        self.lam = lam
+    def sim(self, z1, z2):
+        z1_norm = tlx.l2_normalize(z1, axis=-1)
+        z2_norm = tlx.l2_normalize(z2, axis=-1)
+        z1_norm = tlx.reshape(tlx.reduce_mean(z1/z1_norm, axis=-1), (-1, 1))
+        z2_norm = tlx.reshape(tlx.reduce_mean(z2/z2_norm, axis=-1), (-1, 1))
+        dot_numerator = tlx.matmul(z1, tlx.transpose(z2))
+        dot_denominator = tlx.matmul(z1_norm, tlx.transpose(z2_norm))
+        sim_matrix = tlx.exp(dot_numerator / dot_denominator / self.tau)
+        return sim_matrix
 
+    def forward(self , z, pos):
+        z_mp = z.get("z_mp")
+        z_sc = z.get("z_sc")
+        z_proj_mp = self.proj(z_mp)
+        z_proj_sc = self.proj(z_sc)
+        matrix_mp2sc = self.sim(z_proj_mp, z_proj_sc)
+        matrix_sc2mp = tlx.transpose(matrix_mp2sc)
+        
+        matrix_mp2sc = matrix_mp2sc / (tlx.reshape(tlx.reduce_sum(matrix_mp2sc, axis=1), (-1, 1)) + 1e-8)
+        lori_mp = -tlx.reduce_mean(tlx.log(tlx.reduce_sum(tlx.multiply(matrix_mp2sc, pos), axis=-1)))
+
+        matrix_sc2mp = matrix_sc2mp / (tlx.reshape(tlx.reduce_sum(matrix_sc2mp, axis=1), (-1, 1)) + 1e-8)
+        lori_sc = -tlx.reduce_mean(tlx.log(tlx.reduce_sum(tlx.multiply(matrix_sc2mp, pos), axis=-1)))
+        return self.lam * lori_mp + (1 - self.lam) * lori_sc
+
+class Contrast_Loss(WithLoss):
+    def __init__(self, net, loss_fn):
+        super(Contrast_Loss, self).__init__(backbone=net, loss_fn=loss_fn)
+    
+    def forward(self, datas, pos):
+        z = self.backbone_network(datas)
+        loss = self._loss_fn(z, pos)
+        return loss
 
 class LogReg(nn.Module):
     def __init__(self, ft_in, nb_classes):
@@ -137,9 +180,16 @@ def evaluate(embeds, ratio, idx_train, idx_val, idx_test, label, nb_classes, dat
         return np.mean(macro_f1s_val), np.mean(macro_f1s)
 
 def main(args):
-    data_load = ACM4HeCo("str", "acm") # str is your file directory
-    data_load.download()
-    nei_index, feats, mps, pos, label, idx_train, idx_val, idx_test = data_load.data4HeCo(args)
+    dataset = ACM4HeCo(args.LocalFilePath)
+    graph = dataset[0]
+    nei_index =  graph['paper'].nei
+    feats =  graph['feat_p/a/s']
+    mps = graph['metapath']
+    pos = graph['pos_set_for_contrast']
+    label = graph['paper'].label
+    idx_train = graph['train']
+    idx_val = graph['val']
+    idx_test = graph['test']
     isTest=True
     datas = {
         "feats": feats,
@@ -161,9 +211,9 @@ def main(args):
     best = 1e9
     best_t = 0
     cnt = 0
-    model_with_loss = tlx.model.WithLoss(model, contrast_loss)
+    loss_func = Contrast_Loss(model, contrast_loss)
     weights_to_train = model.trainable_weights+contrast_loss.trainable_weights
-    train_one_step = tlx.model.TrainOneStep(model_with_loss, optimizer, weights_to_train)
+    train_one_step = tlx.model.TrainOneStep(loss_func, optimizer, weights_to_train)
     for epoch in range(args.nb_epochs):  #args.nb_epochs
         loss = train_one_step(datas, pos)
         print("loss ", loss)
@@ -193,7 +243,7 @@ if __name__ == '__main__':
     parser.add_argument('--eva_lr', type=float, default=0.05)
     parser.add_argument('--eva_wd', type=float, default=0)
     
-    # The parameters of learning processz
+    # The parameters of learning process
     parser.add_argument('--patience', type=int, default=5)
     parser.add_argument('--lr', type=float, default=0.0001)  # 0.0008
     parser.add_argument('--l2_coef', type=float, default=0.0)
