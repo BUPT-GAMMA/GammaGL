@@ -19,6 +19,34 @@ import requests
 import io
 import zipfile
 from gammagl.data import download_url
+r"""The heterogeneous ACM dataset from the `"Self-supervised Heterogeneous Graph Neural Network with
+ Co-contrastive Learning"
+    <https://arxiv.org/abs/2105.09111>`_ paper, consisting of nodes from
+    type :obj:`"paper"`, :obj:`"author"` and :obj:`"subject"`.
+    ACM is a heterogeneous graph containing three types of entities - paper
+    (4019 nodes), author (7167 nodes), and subject (60 nodes).
+
+    Parameters
+    ----------
+    root: str, optional
+        Root directory where the dataset should be saved.
+    transform: callable, optional
+        A function/transform that takes in an
+        :obj:`gammagl.data.HeteroGraph` object and returns a
+        transformed version. The data object will be transformed before
+        every access. (default: :obj:`None`)
+    pre_transform: callable, optional
+        A function/transform that takes in
+        an :obj:`gammagl.data.HeteroGraph` object and returns a
+        transformed version. The data object will be transformed before
+        being saved to disk. (default: :obj:`None`)
+    force_reload (bool, optional): Whether to re-process the dataset.
+        (default: :obj:`False`)
+
+    """
+
+
+
 url = 'https://github.com/liun-online/HeCo/raw/main/data/acm'
 class ACM4HeCo(InMemoryDataset):
     def __init__(self, root: Optional[str] = None, transform: Optional[Callable] = None,
