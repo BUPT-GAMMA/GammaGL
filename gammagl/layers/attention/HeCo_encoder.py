@@ -161,23 +161,9 @@ class Sc_encoder(nn.Module):
             sample_num = self.sample_rate[i]
             for per_node_nei in nei_index[i]:
                 if len(per_node_nei) >= sample_num:
-                    if os.environ['TL_BACKEND'] == 'mindspore':
-                        per_node_nei_tmp = []
-                        for k in range (len(per_node_nei)):
-                            per_node_nei_tmp.append(per_node_nei[k].numpy())
-                        select_one = tlx.convert_to_tensor(np.random.choice(per_node_nei_tmp, sample_num,
-                                                               replace=False))
-                    else:
                         select_one = tlx.convert_to_tensor(np.random.choice(per_node_nei, sample_num,
                                                                replace=False))[np.newaxis]
                 else:
-                    if os.environ['TL_BACKEND'] == 'mindspore':
-                        per_node_nei_tmp = []
-                        for k in range (len(per_node_nei)):
-                            per_node_nei_tmp.append(per_node_nei[k].numpy())
-                        select_one = tlx.convert_to_tensor(np.random.choice(per_node_nei_tmp, sample_num,
-                                                               replace=True))
-                    else:
                         select_one = tlx.convert_to_tensor(np.random.choice(per_node_nei, sample_num,
                                                                replace=True))[np.newaxis]
                 sele_nei.append(select_one)
