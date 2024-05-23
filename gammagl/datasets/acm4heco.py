@@ -1,5 +1,3 @@
-
-from gammagl.datasets import HGBDataset, IMDB
 import scipy.sparse as sp
 import json
 import ssl
