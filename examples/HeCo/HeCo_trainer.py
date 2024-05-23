@@ -258,6 +258,7 @@ if __name__ == '__main__':
     args, _ = parser.parse_known_args()
     args.type_num = [4019, 7167, 60]  # the number of every node type
     args.nei_num = 2  # the number of neighbors' types
+    args.LocalFilePath = "path" #With your own local directory
     own_str = args.dataset
 
     main(args)
