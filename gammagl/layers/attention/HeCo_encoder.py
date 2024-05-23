@@ -54,7 +54,7 @@ class inter_att(nn.Module):
             beta_tmp = np.matmul(attn_curr_array[0], sp)
             beta_tmp = tlx.expand_dims(tlx.convert_to_tensor(beta_tmp), 0)
             beta.append(beta_tmp)
-            
+
         beta = tlx.reshape(tlx.concat(beta, axis=-1), (-1, ))  
         beta = self.softmax(beta)
         z_mc = 0
@@ -91,7 +91,7 @@ class intra_att(nn.Module):
         att = self.softmax(att)
         nei_emb = tlx.reduce_sum(att*nei_emb, axis=1)
         return nei_emb 
-        
+
 class Attention(nn.Module):
     def __init__(self, hidden_dim, attn_drop):
         super(Attention, self).__init__()
@@ -123,20 +123,12 @@ class Attention(nn.Module):
                 attn_curr_array = tlx.convert_to_numpy(attn_curr)
             #print(attn_curr_array[0])
             #print(tlx.matmul(attn_curr, tlx.transpose(sp)))
-            if os.environ['TL_BACKEND'] == 'mindspore':
-                sp = np.array(sp)
-                sp = np.transpose(sp)
-                #print(sp)
-                #print(attn_curr_array[0])
-                #sp_expand = np.expand_dims(sp, 0)
-                beta_tmp = np.matmul(attn_curr_array[0], sp)
-            else:
-                sp = tlx.transpose(sp)
-                sp = tlx.convert_to_numpy(sp)
-                beta_tmp = np.matmul(attn_curr_array[0], sp)
+            sp = tlx.transpose(sp)
+            sp = tlx.convert_to_numpy(sp)
+            beta_tmp = np.matmul(attn_curr_array[0], sp)
             beta_tmp = tlx.expand_dims(tlx.convert_to_tensor(beta_tmp), 0)
             beta.append(beta_tmp)
-        
+
         beta = tlx.reshape(tlx.concat(beta, axis=-1), (-1, ))
         beta = self.softmax(beta)
         # print("mp ", beta.data.cpu().numpy())
