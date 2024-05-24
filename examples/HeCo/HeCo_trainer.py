@@ -125,7 +125,7 @@ def evaluate(embeds, ratio, idx_train, idx_val, idx_test, label, nb_classes, dat
         val_macro_f1s = []
         test_macro_f1s = []
         logits_list = []
-        for iter_ in range(200):#set this parameter: 'acm'=200
+        for iter_ in range(400):#set this parameter: 'acm'=400
             log.set_train()
             train_one_step(train_embs, train_lbls_idx)
             logits = log(val_embs)
