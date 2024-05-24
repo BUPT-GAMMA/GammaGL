@@ -1,20 +1,19 @@
-
 import os
 from tensorlayerx.model import WithLoss, TrainOneStep
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import time
 import argparse
-from utils import init_params, seed_everything, split
+from gammagl.utils import split
 from evaluation_test import node_evaluation
-from model import GCN,EigenMLP, SpaSpeNode, Encoder, Basic, SAN
+from gammagl.models import EigenMLP, SpaSpeNode, Encoder
 from scipy.sparse import csr_matrix
 import numpy as np
 import scipy.sparse.linalg
 import tensorlayerx as tlx
 from gammagl.utils import to_scipy_sparse_matrix
 import networkx as nx
-from facebook_data import FacebookPagePage
+from gammagl.datasets import FacebookPagePage
 
 def connected_components(sparse_adj):
     G = nx.from_scipy_sparse_array(sparse_adj)
@@ -42,12 +41,8 @@ def compute_laplacian(data):
     D_inv_sqrt = csr_matrix((deg_inv_sqrt, (np.arange(num_nodes), np.arange(num_nodes))))
     L = I - D_inv_sqrt.dot(data_adj).dot(D_inv_sqrt)
     e, u = scipy.sparse.linalg.eigsh(L, k=100, which='SM', tol=1e-3)
-    print("e:",e)
-    print("u:",u)
     adj = to_scipy_sparse_matrix(data.edge_index)
     lens, components = connected_components(adj)
-    print("adj:",adj)
-    print("lens:",lens)
     data.e = tlx.convert_to_tensor(e, dtype=tlx.float32)
     data.u = tlx.convert_to_tensor(u, dtype=tlx.float32)
 
@@ -69,21 +64,17 @@ class ContrastiveLoss(WithLoss):
         return loss
 def main(args):
     global edge, e, u, test_idx
-    seed_everything(args.seed)
     print(args.dataset)
     if args.dataset in ['pubmed-3', 'flickr', 'arxiv', 'wiki', 'facebook']:
         dataset = FacebookPagePage(root='data/facebook')
         data = dataset[0]
         data, lens, components = compute_laplacian(data)
-
         x = tlx.convert_to_tensor(data.x, dtype=tlx.float32)
         edge = tlx.convert_to_tensor(data.edge_index, dtype=tlx.int64)
         e = tlx.convert_to_tensor(data.e[:args.spe_dim], dtype=tlx.float32)
         u = tlx.convert_to_tensor(data.u[:, :args.spe_dim], dtype=tlx.float32)
         y = tlx.convert_to_tensor(data.y)
         print(y.min().item(), y.max().item())
-
-
         if 'train_mask' in data.keys:
             if len(data.train_mask.size()) > 1:
                 train_idx = tlx.where(data.train_mask[:, args.seed])[0]
@@ -100,17 +91,9 @@ def main(args):
         pass
 
     print('test_idx:',len(test_idx))
-
-    # 初始化空间编码器和谱编码器
-    # spa_encoder = GCN(x.size(1), args.hidden_dim, args.hidden_dim)
     spa_encoder = Encoder(x.size(1), args.hidden_dim, args.hidden_dim)
     spe_encoder = EigenMLP(args.spe_dim, args.hidden_dim, args.hidden_dim, args.period)
-    #spe_encoder = Basic(args.spe_dim, args.hidden_dim, args.hidden_dim).to(device)
-    #spe_encoder = SAN(args.spe_dim, args.hidden_dim, args.hidden_dim).to(device)
-
     model = SpaSpeNode(spa_encoder, spe_encoder, hidden_dim=args.hidden_dim, t=args.t)
-    model.apply(init_params)
-
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.weight_decay)
     train_weights = model.trainable_weights
     loss_func = ContrastiveLoss(model, temp=args.t)
@@ -138,9 +121,6 @@ def main(args):
             spa_emb = model.spa_encoder(x, edge).detach()
             spe_emb = model.spe_encoder(e, u).detach()
             acc, pred = node_evaluation((spa_emb + spe_emb)/2, y, train_idx, val_idx, test_idx)
-            #acc, pred = node_evaluation(torch.cat((spa_emb, spe_emb), dim=-1), y, train_idx, val_idx, test_idx)
-            #acc, pred = node_evaluation(spe_emb, y, train_idx, val_idx, test_idx)
-
             print(acc)
 
 

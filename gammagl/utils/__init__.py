@@ -18,6 +18,7 @@ from .homophily import homophily
 from .to_dense_adj import to_dense_adj
 from .smiles import from_smiles
 from .shortest_path import shortest_path_distance, batched_shortest_path_distance
+from .split import split
 
 __all__ = [
     'calc_A_norm_hat',
@@ -42,7 +43,8 @@ __all__ = [
     'to_dense_adj',
     'from_smiles',
     'shortest_path_distance',
-    'batched_shortest_path_distance'
+    'batched_shortest_path_distance',
+    'split'
 
 ]
 
