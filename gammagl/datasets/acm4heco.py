@@ -17,8 +17,8 @@ import requests
 import io
 import zipfile
 from gammagl.data import download_url
-r"""The heterogeneous ACM dataset from the `"Self-supervised Heterogeneous Graph Neural Network with
- Co-contrastive Learning"
+    r"""The heterogeneous ACM dataset from the `"Self-supervised Heterogeneous Graph Neural Network with
+    Co-contrastive Learning"
     <https://arxiv.org/abs/2105.09111>`_ paper, consisting of nodes from
     type :obj:`"paper"`, :obj:`"author"` and :obj:`"subject"`.
     ACM is a heterogeneous graph containing three types of entities - paper
