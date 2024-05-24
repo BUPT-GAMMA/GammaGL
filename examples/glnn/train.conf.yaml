@@ -1,0 +1,267 @@
+global:
+  num_layers: 2
+  hidden_dim: 128
+  learning_rate: 0.01
+  
+cora: 
+  SAGE:
+    fan_out: 5,5
+    learning_rate: 0.01
+    dropout_ratio: 0
+    weight_decay: 0.0005
+  
+  GCN:
+    hidden_dim: 64
+    dropout_ratio: 0.8
+    weight_decay: 0.001
+  
+  MLP:
+    learning_rate: 0.01
+    weight_decay: 0.005
+    dropout_ratio: 0.6
+    
+  GAT:
+    dropout_ratio: 0.6
+    weight_decay: 0.01
+    num_heads: 8
+    attn_dropout_ratio: 0.3
+
+  APPNP:
+    dropout_ratio: 0.5
+    weight_decay: 0.01
+  
+  
+citeseer: 
+  SAGE:
+    fan_out: 5,5
+    learning_rate: 0.01
+    dropout_ratio: 0
+    weight_decay: 0.0005
+    
+  GCN:
+    hidden_dim: 64
+    dropout_ratio: 0.8
+    weight_decay: 0.001
+  
+  MLP:
+    learning_rate: 0.01
+    weight_decay: 0.001
+    dropout_ratio: 0.1
+
+  GAT:
+    dropout_ratio: 0.6
+    weight_decay: 0.01
+    num_heads: 8
+    attn_dropout_ratio: 0.3
+    
+  APPNP:
+    dropout_ratio: 0.5
+    weight_decay: 0.01
+
+pubmed:   
+  SAGE:
+    fan_out: 5,5
+    learning_rate: 0.01
+    dropout_ratio: 0
+    weight_decay: 0.0005
+    
+  GCN:
+    hidden_dim: 64
+    dropout_ratio: 0.8
+    weight_decay: 0.001
+  
+  MLP:
+    learning_rate: 0.005
+    weight_decay: 0
+    dropout_ratio: 0.4
+
+  GAT:
+    dropout_ratio: 0.6
+    weight_decay: 0.01
+    num_heads: 8
+    attn_dropout_ratio: 0.3
+    
+  APPNP:
+    dropout_ratio: 0.5
+    weight_decay: 0.01
+    
+computers: 
+  SAGE:
+    fan_out: 5,5
+    learning_rate: 0.01
+    dropout_ratio: 0
+    weight_decay: 0.0005
+
+  GCN:
+    hidden_dim: 64
+    dropout_ratio: 0.8
+    weight_decay: 0.001
+  
+  MLP:
+    learning_rate: 0.001
+    weight_decay: 0.002
+    dropout_ratio: 0.3
+
+  GAT:
+    dropout_ratio: 0.6
+    weight_decay: 0.01
+    num_heads: 8
+    attn_dropout_ratio: 0.3
+  
+  APPNP:
+    dropout_ratio: 0.5
+    weight_decay: 0.01
+    
+photo: 
+  SAGE:
+    fan_out: 5,5
+    learning_rate: 0.01
+    dropout_ratio: 0
+    weight_decay: 0.0005
+
+  GCN:
+    hidden_dim: 64
+    dropout_ratio: 0.8
+    weight_decay: 0.001
+  
+  MLP:
+    learning_rate: 0.005
+    weight_decay: 0.002
+    dropout_ratio: 0.3
+
+  GAT:
+    dropout_ratio: 0.6
+    weight_decay: 0.01
+    num_heads: 8
+    attn_dropout_ratio: 0.3
+    
+  APPNP:
+    dropout_ratio: 0.5
+    weight_decay: 0.01
+    
+ogbn-arxiv:
+  MLP:  
+    num_layers: 3
+    hidden_dim: 256
+    weight_decay: 0
+    dropout_ratio: 0.2
+    norm_type: batch
+
+  MLP3w4:
+    num_layers: 3
+    hidden_dim: 1024
+    weight_decay: 0
+    dropout_ratio: 0.5
+    norm_type: batch
+    
+  GA1MLP:  
+    num_layers: 3
+    hidden_dim: 256
+    weight_decay: 0
+    dropout_ratio: 0.2
+    norm_type: batch
+
+  GA1MLP3w4:
+    num_layers: 3
+    hidden_dim: 1024
+    weight_decay: 0
+    dropout_ratio: 0.2
+    norm_type: batch
+    
+  SAGE:  
+    num_layers: 3
+    hidden_dim: 256
+    dropout_ratio: 0.2
+    learning_rate: 0.01
+    weight_decay: 0
+    norm_type: batch
+    fan_out: 5,10,15
+  
+ogbn-products: 
+  MLP: 
+    num_layers: 3
+    hidden_dim: 256
+    dropout_ratio: 0.5
+    norm_type: batch
+    batch_size: 4096
+
+  MLP3w8:
+    num_layers: 3
+    hidden_dim: 2048
+    dropout_ratio: 0.2
+    learning_rate: 0.01
+    weight_decay: 0
+    norm_type: batch
+    batch_size: 4096
+    
+  SAGE:  
+    num_layers: 3
+    hidden_dim: 256
+    dropout_ratio: 0.5
+    learning_rate: 0.003
+    weight_decay: 0
+    norm_type: batch
+    fan_out: 5,10,15
+    batch_size: 4096
+
+pokec: 
+  GCN:  
+    num_layers: 2
+    hidden_dim: 32
+    dropout_ratio: 0.5
+    learning_rate: 0.01
+    weight_decay: 0
+    norm_type: batch
+    
+  MLP: 
+    num_layers: 3
+    hidden_dim: 256
+    dropout_ratio: 0.2
+    learning_rate: 0.001
+    norm_type: none
+
+  SAGE:  
+    num_layers: 2
+    hidden_dim: 32
+    dropout_ratio: 0.5
+    learning_rate: 0.001
+    weight_decay: 0
+    norm_type: batch
+    fan_out: 5,5
+    
+penn94: 
+  GCN:  
+    num_layers: 2
+    hidden_dim: 64
+    dropout_ratio: 0.5
+    learning_rate: 0.01
+    weight_decay: 0.001
+    norm_type: batch
+  
+  MLP:
+    num_layers: 3
+    hidden_dim: 256
+    dropout_ratio: 0
+    learning_rate: 0.001
+    norm_type: none
+
+vk_class: 
+  MLP: 
+    num_layers: 3
+    hidden_dim: 512
+    learning_rate: 0.01
+    dropout_ratio: 0
+    weight_decay: 0
+    norm_type: batch
+    batch_size: 6754
+
+house_class: 
+  MLP: 
+    num_layers: 3
+    hidden_dim: 512
+    learning_rate: 0.01
+    dropout_ratio: 0
+    weight_decay: 0
+    norm_type: layer
+    batch_size: 2580
+    
