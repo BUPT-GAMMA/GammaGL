@@ -1,3 +1,5 @@
+# !/usr/bin/env python
+# -*- encoding: utf-8 -*-
 """
 @File    :   HeCo_trainer.py
 @Time    :   
