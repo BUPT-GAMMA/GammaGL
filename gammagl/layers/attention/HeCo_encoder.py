@@ -1,9 +1,6 @@
 import numpy as np
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
-import numpy as np
-import tensorlayerx as tlx
-import tensorlayerx.nn as nn
 
 class metapathSpecificGCN(nn.Module):
     def __init__(self, in_ft, out_ft, bias=True):
