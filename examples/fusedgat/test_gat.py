@@ -1,12 +1,5 @@
 # !/usr/bin/env python
 # -*- encoding: utf-8 -*-
-
-"""
-TL_BACKEND="torch" python test_gat.py --dataset cora --lr 0.01 --l2_coef 0.005 --drop_rate 0.7
-TL_BACKEND="torch" python test_gat.py --dataset citeseer --lr 0.01 --l2_coef 0.01 --drop_rate 0.6
-TL_BACKEND="torch" python test_gat.py --dataset pubmed --lr 0.01 --l2_coef 0.001 --drop_rate 0.2
-"""
-
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'torch'
@@ -92,7 +85,7 @@ def main(args):
     
     net.set_train()
     max_memory = 0
-    for epoch in range(10):
+    for epoch in range(args.n_epoch):
         train_loss = train_one_step(data, graph.y)
         GPUs = GPUtil.getGPUs()
         max_memory = max(GPUs[args.gpu].memoryUsed, max_memory)
@@ -114,12 +107,12 @@ def main(args):
     start_time = time.time()
     for epoch in range(args.n_epoch):
         logits = net(data['x'], data['edge_index'], data['num_nodes'])
-        test_logits = tlx.gather(logits, data['test_idx'])
 
     torch.cuda.synchronize()
     end_time = time.time()
     infer_time = (end_time - start_time) / args.n_epoch
 
+    test_logits = tlx.gather(logits, data['test_idx'])
     test_y = tlx.gather(data['y'], data['test_idx'])
     test_acc = calculate_acc(test_logits, test_y, metrics)
     print("Test acc:  {:.4f}".format(test_acc))

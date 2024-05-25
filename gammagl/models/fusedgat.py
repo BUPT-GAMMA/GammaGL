@@ -1,7 +1,6 @@
-import os
-os.environ['TL_BACKEND'] = 'torch'
 import tensorlayerx as tlx
 from gammagl.layers.conv import FusedGATConv
+
 
 class FusedGATModel(tlx.nn.Module):
 
@@ -20,6 +19,8 @@ class FusedGATModel(tlx.nn.Module):
             number of attention heads.
         drop_rate: float
             dropout rate.
+        num_layers: int
+            number of layers.
         name: str, optional
             model name.
 

@@ -4,8 +4,6 @@ from gammagl.utils import sort_edge_index
 from gammagl.ops.sparse import ind2ptr
 
 
-
-
 class FusedGATConv(MessagePassing):
     r"""The fused graph attention operator from the
     `"Understanding GNN Computational Graph: A Coordinated Computation, IO, and Memory Perspective"
@@ -68,10 +66,6 @@ class FusedGATConv(MessagePassing):
         self.negative_slope = negative_slope
         self.dropout_rate = dropout_rate
         self.add_bias = add_bias
-
-        # from dgNN.operators import GATConvFuse, GATConvFuse_inference
-        # self.train_op = GATConvFuse
-        # self.eval_op = GATConvFuse_inference
         
         from dgNN.operators import GATConvFuse
         self.op = GATConvFuse
@@ -91,39 +85,6 @@ class FusedGATConv(MessagePassing):
             self.bias = self._get_weights("bias", shape=(self.heads * self.out_channels,), init=initor)
         elif self.add_bias and not concat:
             self.bias = self._get_weights("bias", shape=(self.out_channels,), init=initor)
-        
-    # def message(self, x, edge_index, edge_weight=None, num_nodes=None):
-    #     node_src = edge_index[0, :]
-    #     node_dst = edge_index[1, :]
-    #     if num_nodes is None:
-    #         num_nodes = int(tlx.reduce_max(edge_index)) + 1
-    #     num_edges = tlx.ops.get_tensor_shape(edge_index)[1]
-    #     weight_src = tlx.gather(tlx.reduce_sum(x * self.att_src, -1), node_src)
-    #     weight_dst = tlx.gather(tlx.reduce_sum(x * self.att_dst, -1), node_dst)
-    #     edge_index = sort_edge_index(edge_index)
-    #     row_ptr = ind2ptr(tlx.convert_to_numpy(edge_index[0, :]), num_nodes)
-    #     col_ind = edge_index[1, :]
-    #     permute = tlx.ops.arange(0, num_edges)
-    #     edge_index, permute = sort_edge_index(edge_index, permute, sort_by_row=False)
-    #     row_ind = edge_index[0, :]
-    #     col_ptr = ind2ptr(tlx.convert_to_numpy(edge_index[1, :]), num_nodes)
-
-
-    #     # if self.training:
-    #     #     x = self.train_op(weight_dst, weight_src, row_ptr, col_ind, col_ptr, row_ind, permute, self.negative_slope, x, self.dropout_rate)
-    #     # else:
-    #     #     x = self.eval_op(weight_dst, weight_src, row_ptr, col_ind, self.negetive_slope, self.in_channels)
-            
-    #     row_ptr = tlx.convert_to_tensor(row_ptr, tlx.int32)
-    #     col_ind = tlx.convert_to_tensor(col_ind, tlx.int32)
-    #     col_ptr = tlx.convert_to_tensor(col_ptr, tlx.int32)
-    #     row_ind = tlx.convert_to_tensor(row_ind, tlx.int32)
-    #     permute = tlx.convert_to_tensor(permute, tlx.int32)
-
-    #     x = self.op(weight_dst, weight_src, row_ptr, col_ind, col_ptr, row_ind, permute, self.negative_slope, x, self.dropout_rate)
-    #     print("!!!", type(x), x.shape)
-    #     return x * edge_weight if edge_weight else x
-
 
     def forward(self, x, edge_index, num_nodes=None, **kwargs):
         x = tlx.reshape(self.linear(x), shape=(-1, self.heads, self.out_channels))
@@ -155,27 +116,10 @@ class FusedGATConv(MessagePassing):
             row_ind = tlx.convert_to_tensor(row_ind, tlx.int32)
             permute = tlx.convert_to_tensor(permute, tlx.int32)
 
-        # if self.training:
-        #     x = self.train_op(weight_dst, weight_src, row_ptr, col_ind, col_ptr, row_ind, permute, self.negative_slope, x, self.dropout_rate)
-        # else:
-        #     x = self.eval_op(weight_dst, weight_src, row_ptr, col_ind, self.negetive_slope, self.in_channels)
-            
-        
-        # print("!!!:", type(alpha_dst), type(alpha_src), type(row_ptr), type(col_ind), 
-        #       type(col_ptr), type(row_ind), type(permute), type(self.in_channels), type(self.negative_slope), type(self.in_channels), type(self.dropout_rate))
-        # print("???:", alpha_dst.shape, alpha_src.shape, row_ptr.shape, col_ind.shape, col_ptr.shape, row_ind.shape, permute.shape, x.shape)
-        import torch, time
+        import torch
         torch.cuda.synchronize()
-        # start_time = time.time()
-        print(alpha_dst.shape, alpha_src.shape, row_ptr.shape, col_ind.shape, col_ptr.shape, row_ind.shape, x.shape)
-        print(alpha_dst.dtype, alpha_src.shape, row_ptr.shape, col_ind.shape, col_ptr.shape, row_ind.shape, x.shape)
         x = self.op(alpha_dst, alpha_src, row_ptr, col_ind, col_ptr, row_ind, permute, self.negative_slope, x, self.dropout_rate)
         torch.cuda.synchronize()
-        # end_time = time.time()
-        # print(f"cost: {end_time - start_time : }s")
-        # print("???:", x.shape)
-        
-        # x = self.propagate(x, edge_index, num_nodes=num_nodes)
 
         if self.concat:
             x = tlx.reshape(x, (-1, self.heads * self.out_channels))

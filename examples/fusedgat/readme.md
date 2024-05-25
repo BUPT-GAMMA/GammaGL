@@ -33,11 +33,11 @@ TL_BACKEND="torch" python test_gat.py --dataset citeseer --lr 0.01 --l2_coef 0.0
 TL_BACKEND="torch" python test_gat.py --dataset pubmed --lr 0.01 --l2_coef 0.001 --drop_rate 0.2
 ```
 
-| Dataset  | Paper      | Our(pd)      | Our(torch)   | Our(tf)      |
-| -------- | ---------- | ------------ | ------------ | ------------ |
-| cora     |            |              |    79.68     |              |
-| citeseer |            |              |    66.20     |              |
-| pubmed   |            |              |    76.96     |              |
+| Dataset  | Our(torch)   |
+| -------- | ------------ |
+| cora     |    79.68     |
+| citeseer |    66.20     |
+| pubmed   |    76.96     |
 
 
 | Dataset  | Metric     | GAT          | FusedGAT     |

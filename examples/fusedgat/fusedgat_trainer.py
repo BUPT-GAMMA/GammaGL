@@ -15,7 +15,6 @@ from gammagl.utils import add_self_loops, mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss
 
 
-
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
         super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
@@ -93,7 +92,6 @@ def main(args):
         val_logits = tlx.gather(logits, data['val_idx'])
         val_y = tlx.gather(data['y'], data['val_idx'])
         val_acc = calculate_acc(val_logits, val_y, metrics)
-
 
         print("Epoch [{:0>3d}]  ".format(epoch + 1)
               + "   train loss: {:.4f}".format(train_loss.item())
