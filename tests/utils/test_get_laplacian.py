@@ -5,7 +5,7 @@
 # @Author  : clear
 # @FileName: test_get_laplacian.py
 import tensorlayerx as tlx
-from gammagl.utils.get_laplacian import get_laplacian
+from gammagl.utils import get_laplacian
 
 
 def test_get_laplacian():
