@@ -185,7 +185,7 @@ class Specformer(tlx.nn.Module):
         self.ffn_norm = tlx.nn.LayerNorm(hidden_dim)
         self.mha_dropout = tlx.nn.Dropout(p=tran_dropout)
         self.ffn_dropout = tlx.nn.Dropout(p=tran_dropout)
-        self.mha = MultiHeadAttention(hidden_dim=hidden_dim, n_heads=n_heads, tran_dropout=tran_dropout)
+        self.mha = MultiHeadAttention(hidden_dim=hidden_dim, n_heads=n_heads)
         self.ffn = FeedForwardNetwork(hidden_dim, hidden_dim, hidden_dim)
         self.feat_dp1 = tlx.nn.Dropout(p=feat_dropout)
         self.feat_dp2 = tlx.nn.Dropout(p=feat_dropout)

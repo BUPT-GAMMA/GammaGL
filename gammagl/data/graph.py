@@ -422,6 +422,10 @@ class Graph(BaseGraph):
 
     def __getattr__(self, key: str) -> Any:
         # Called when the default attribute access fails, which means getattr
+        if key == '__name__':
+            return self.__class__.__name__
+        if key == '__code__':
+            return self.__init__.__code__
         return getattr(self._store, key)
 
     def __setattr__(self, key: str, value: Any):

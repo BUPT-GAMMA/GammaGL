@@ -102,9 +102,13 @@ class MERIT(tlx.nn.Module):
         assert self.target_encoder is not None, 'target encoder has not been created yet'
         update_moving_average(self.target_ema_updater, self.target_encoder, self.online_encoder)
 
+    def normalize(self, x):
+        norms = tlx.sqrt(tlx.maximum(tlx.reduce_sum(tlx.square(x), axis=1, keepdims=True), tlx.convert_to_tensor(1e-12)))
+        return x / norms
+    
     def sim(self, h1, h2):
-        z1 = tlx.ops.l2_normalize(h1, axis=1)
-        z2 = tlx.ops.l2_normalize(h2, axis=1)
+        z1 = self.normalize(h1)
+        z2 = self.normalize(h2)
         return tlx.ops.matmul(z1, tlx.transpose(z2))
 
     def contrastive_loss_wo_cross_network(self, h1, h2):
