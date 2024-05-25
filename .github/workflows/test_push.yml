@@ -28,8 +28,6 @@ jobs:
 
       - name: Install Other dependencies Package
         run: |
-          pip install dgNN
-          pip install GPUtil
           pip install ninja
 
       - name: Install TensorLyaerX

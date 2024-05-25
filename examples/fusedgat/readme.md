@@ -24,13 +24,13 @@ TL_BACKEND="torch" python fusedgat_trainer.py --dataset cora --lr 0.01 --l2_coef
 TL_BACKEND="torch" python fusedgat_trainer.py --dataset citeseer --lr 0.01 --l2_coef 0.01 --drop_rate 0.6
 TL_BACKEND="torch" python fusedgat_trainer.py --dataset pubmed --lr 0.01 --l2_coef 0.001 --drop_rate 0.2
 
-TL_BACKEND="torch" python test_fusedgat.py --dataset cora --lr 0.01 --l2_coef 0.005 --drop_rate 0.7
-TL_BACKEND="torch" python test_fusedgat.py --dataset citeseer --lr 0.01 --l2_coef 0.01 --drop_rate 0.6
-TL_BACKEND="torch" python test_fusedgat.py --dataset pubmed --lr 0.01 --l2_coef 0.001 --drop_rate 0.2
+TL_BACKEND="torch" python fusedgat_tester.py --dataset cora --lr 0.01 --l2_coef 0.005 --drop_rate 0.7
+TL_BACKEND="torch" python fusedgat_tester.py --dataset citeseer --lr 0.01 --l2_coef 0.01 --drop_rate 0.6
+TL_BACKEND="torch" python fusedgat_tester.py --dataset pubmed --lr 0.01 --l2_coef 0.001 --drop_rate 0.2
 
-TL_BACKEND="torch" python test_gat.py --dataset cora --lr 0.01 --l2_coef 0.005 --drop_rate 0.7
-TL_BACKEND="torch" python test_gat.py --dataset citeseer --lr 0.01 --l2_coef 0.01 --drop_rate 0.6
-TL_BACKEND="torch" python test_gat.py --dataset pubmed --lr 0.01 --l2_coef 0.001 --drop_rate 0.2
+TL_BACKEND="torch" python gat_tester.py --dataset cora --lr 0.01 --l2_coef 0.005 --drop_rate 0.7
+TL_BACKEND="torch" python gat_tester.py --dataset citeseer --lr 0.01 --l2_coef 0.01 --drop_rate 0.6
+TL_BACKEND="torch" python gat_tester.py --dataset pubmed --lr 0.01 --l2_coef 0.001 --drop_rate 0.2
 ```
 
 | Dataset  | Our(torch)   |
