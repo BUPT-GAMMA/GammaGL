@@ -30,6 +30,7 @@ jobs:
         run: |
           pip install dgNN
           pip install GPUtil
+          pip install ninja
 
       - name: Install TensorLyaerX
         run: |
