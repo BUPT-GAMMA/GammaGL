@@ -12,10 +12,8 @@ import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid, Amazon
 from gammagl.models import MLP
-from gammagl.utils import mask_to_index
+from gammagl.utils import mask_to_index, get_train_val_test_split
 from tensorlayerx.model import TrainOneStep, WithLoss
-from load_data import get_train_val_test_split
-
 
 
 class SemiSpvzLoss(WithLoss):
@@ -151,9 +149,9 @@ def train_student(args):
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_config_path",type=str,default="./train.conf.yaml",help="Path to modelconfigeration")
-    parser.add_argument("--teacher", type=str, default="SAGE", help="Teacher model")
-    parser.add_argument("--lamb", type=float, default=0, help="Parameter balances loss from hard labels and teacher outputs")
+    parser.add_argument("--model_config_path",type=str,default="./train.conf.yaml",help="path to modelconfigeration")
+    parser.add_argument("--teacher", type=str, default="SAGE", help="teacher model")
+    parser.add_argument("--lamb", type=float, default=0, help="parameter balances loss from hard labels and teacher outputs")
     parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
     parser.add_argument('--dataset', type=str, default="cora", help="dataset")
     parser.add_argument("--dataset_path", type=str, default=r'./data', help="path to save dataset")

@@ -12,10 +12,8 @@ import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid, Amazon
 from gammagl.models import GCNModel, GraphSAGE_Full_Model, GATModel, APPNPModel, MLP
-from gammagl.utils import mask_to_index, calc_gcn_norm
+from gammagl.utils import mask_to_index, calc_gcn_norm, get_train_val_test_split
 from tensorlayerx.model import TrainOneStep, WithLoss
-from load_data import get_train_val_test_split
-
 
 
 class SemiSpvzLoss(WithLoss):
@@ -191,19 +189,16 @@ def train_teacher(args):
     print("Test acc:  {:.4f}".format(test_acc))
     
 
-
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_config_path",type=str,default="./train.conf.yaml",help="Path to modelconfigeration")
-    parser.add_argument("--teacher", type=str, default="MLP", help="Teacher model")
+    parser.add_argument("--model_config_path",type=str,default="./train.conf.yaml",help="path to modelconfigeration")
+    parser.add_argument("--teacher", type=str, default="SAGE", help="teacher model")
     parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
-    parser.add_argument("--norm", type=str, default=None, help="how to apply the normalizer.")
-    parser.add_argument('--dataset', type=str, default="citeseer", help="dataset")
+    parser.add_argument('--dataset', type=str, default="cora", help="dataset")
     parser.add_argument("--dataset_path", type=str, default=r'./data', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--gpu", type=int, default=0)
-    parser.add_argument("--split_rate", type=float, default=0.2, help="rate for graph split")
 
     args = parser.parse_args()
 

@@ -16,8 +16,8 @@ Refer to [Planetoid](https://gammagl.readthedocs.io/en/latest/api/gammagl.datase
 
 # Results
 
-- available dataset: "cora", "citeseer", "pubmed", "computers", "photo"
-- avaiable teacher: "SAGE", "GCN", "GAT", "APPNP", "MLP"
+- Available dataset: "cora", "citeseer", "pubmed", "computers", "photo"
+- Available teacher: "SAGE", "GCN", "GAT", "APPNP", "MLP"
 
 ```bash
 TL_BACKEND="tensorflow" python train_teacher.py --dataset cora --teacher SAGE
