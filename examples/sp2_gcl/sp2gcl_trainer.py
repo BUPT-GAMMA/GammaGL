@@ -1,33 +1,45 @@
 import os
-from tensorlayerx.model import WithLoss, TrainOneStep
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-import time
+from gammagl.utils import mask_to_index
+from tensorlayerx.model import WithLoss, TrainOneStep
 import argparse
-from gammagl.utils import split
 from evaluation_test import node_evaluation
 from gammagl.models import EigenMLP, SpaSpeNode, Encoder
 from scipy.sparse import csr_matrix
 import numpy as np
 import scipy.sparse.linalg
 import tensorlayerx as tlx
-from gammagl.utils import to_scipy_sparse_matrix
-import networkx as nx
-from gammagl.datasets import FacebookPagePage
+from gammagl.datasets import FacebookPagePage,WikiCS,Planetoid
 
-def connected_components(sparse_adj):
-    G = nx.from_scipy_sparse_array(sparse_adj)
-    cc = nx.connected_components(G)
 
-    components = []
-    lens = []
 
-    for c in cc:
-        c = list(c)
-        components.append(c)
-        lens.append(len(c))
+def split(node_labels):
 
-    return lens, components
+    y = node_labels
+    train_ratio = 0.1
+    val_ratio = 0.1
+    test_ratio = 0.8
+
+    N = len(y)
+    train_num = int(N * train_ratio)
+    val_num = int(N * (train_ratio + val_ratio))
+
+    idx = np.arange(N)
+    np.random.shuffle(idx)
+
+    train_idx = idx[:train_num]
+    val_idx = idx[train_num:val_num]
+    test_idx = idx[val_num:]
+
+    train_idx = tlx.convert_to_tensor(train_idx)
+    val_idx = tlx.convert_to_tensor(val_idx)
+    test_idx = tlx.convert_to_tensor(test_idx)
+
+    return train_idx, val_idx, test_idx
+
+
 def compute_laplacian(data):
 
     edge_index = data.edge_index
@@ -41,12 +53,10 @@ def compute_laplacian(data):
     D_inv_sqrt = csr_matrix((deg_inv_sqrt, (np.arange(num_nodes), np.arange(num_nodes))))
     L = I - D_inv_sqrt.dot(data_adj).dot(D_inv_sqrt)
     e, u = scipy.sparse.linalg.eigsh(L, k=100, which='SM', tol=1e-3)
-    adj = to_scipy_sparse_matrix(data.edge_index)
-    lens, components = connected_components(adj)
     data.e = tlx.convert_to_tensor(e, dtype=tlx.float32)
     data.u = tlx.convert_to_tensor(u, dtype=tlx.float32)
 
-    return data, lens, components
+    return data
 
 
 class ContrastiveLoss(WithLoss):
@@ -58,28 +68,31 @@ class ContrastiveLoss(WithLoss):
         h_node_spa, h_node_spe = self.backbone_network(data['x'], data['edge_index'], data['e'], data['u'])
         h1 = tlx.l2_normalize(h_node_spa, axis=-1, eps=1e-12)
         h2 = tlx.l2_normalize(h_node_spe, axis=-1, eps=1e-12)
-        logits = tlx.matmul(h1, h2.transpose(-2, -1)) / self.temp
+        logits = tlx.matmul(h1, tlx.transpose(h2, perm=(1, 0))) / self.temp
         labels = tlx.arange(start=0, limit=h1.shape[0], delta=1, dtype=tlx.int64)
         loss = 0.5 * tlx.losses.softmax_cross_entropy_with_logits(logits, labels) + 0.5 * tlx.losses.softmax_cross_entropy_with_logits(logits.transpose(-2, -1), labels)
         return loss
+
 def main(args):
-    global edge, e, u, test_idx
-    print(args.dataset)
-    if args.dataset in ['pubmed-3', 'flickr', 'arxiv', 'wiki', 'facebook']:
-        dataset = FacebookPagePage(root='data/facebook')
+    if args.dataset in ['pubmed', 'flickr', 'arxiv', 'wikics', 'facebook']:
+        if args.dataset == 'facebook':
+            dataset = FacebookPagePage(root='data/facebook')
+        elif args.dataset == 'wikics':
+            dataset = WikiCS(root='data/wikics')
+        elif args.dataset == 'pubmed':
+            dataset = dataset = Planetoid(root='', name='pubmed')
         data = dataset[0]
-        data, lens, components = compute_laplacian(data)
+        data = compute_laplacian(data)
         x = tlx.convert_to_tensor(data.x, dtype=tlx.float32)
         edge = tlx.convert_to_tensor(data.edge_index, dtype=tlx.int64)
         e = tlx.convert_to_tensor(data.e[:args.spe_dim], dtype=tlx.float32)
         u = tlx.convert_to_tensor(data.u[:, :args.spe_dim], dtype=tlx.float32)
         y = tlx.convert_to_tensor(data.y)
-        print(y.min().item(), y.max().item())
         if 'train_mask' in data.keys:
             if len(data.train_mask.size()) > 1:
-                train_idx = tlx.where(data.train_mask[:, args.seed])[0]
-                val_idx = tlx.where(data.val_mask[:, args.seed])[0]
-                test_idx = tlx.where(data.test_mask)[0]
+                train_idx = mask_to_index(data.train_mask)
+                test_idx = mask_to_index(data.test_mask)
+                val_idx = mask_to_index(data.val_mask)
             else:
                 train_idx = tlx.where(data.train_mask)[0]
                 val_idx = tlx.where(data.val_mask)[0]
@@ -90,8 +103,7 @@ def main(args):
     else:
         pass
 
-    print('test_idx:',len(test_idx))
-    spa_encoder = Encoder(x.size(1), args.hidden_dim, args.hidden_dim)
+    spa_encoder = Encoder(x.shape[1], args.hidden_dim, args.hidden_dim)
     spe_encoder = EigenMLP(args.spe_dim, args.hidden_dim, args.hidden_dim, args.period)
     model = SpaSpeNode(spa_encoder, spe_encoder, hidden_dim=args.hidden_dim, t=args.t)
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.weight_decay)
@@ -106,35 +118,28 @@ def main(args):
         'u': data.u,
     }
 
-    t1 = time.time()
-    for i in range(1000):
-        model.set_eval()
-        spe_emb = model.spe_encoder(e, u).detach()
-    t2 = time.time()
-    print("t2-t1:",t2 - t1)
-
-    for idx in range(100):
+    for epoch in range(args.num_epochs):
         model.set_train()
         loss = train_one_step(data=data_all, label=data.y)
-        if (idx+1) % 10 == 0:
+        if (epoch + 1) % 10 == 0:
             model.set_eval()
-            spa_emb = model.spa_encoder(x, edge).detach()
-            spe_emb = model.spe_encoder(e, u).detach()
+            spa_emb = tlx.detach(model.spa_encoder(x, edge))
+            spe_emb = tlx.detach(model.spe_encoder(e, u))
             acc, pred = node_evaluation((spa_emb + spe_emb)/2, y, train_idx, val_idx, test_idx)
-            print(acc)
+            print(f'Epoch {epoch+1}/{args.num_epochs}, Accuracy: {acc}')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--cuda', type=int, default=3)
-    parser.add_argument('--dataset', default='wiki')
+    parser.add_argument('--dataset', default='facebook')
     parser.add_argument('--spe_dim', type=int, default=100)
     parser.add_argument('--period', type=int, default=20)
     parser.add_argument('--hidden_dim', type=int, default=512)
     parser.add_argument('--t', type=float, default=1.0)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--weight_decay', type=float, default=0)
+    parser.add_argument('--num_epochs', type=int, default=100)
     args = parser.parse_args()
-    print(args)
     main(args)

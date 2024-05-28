@@ -49,9 +49,9 @@ class EigenMLP(nn.Module):
 
         e = e * 100
         period_term = tlx.arange(0, self.period)
-        period_term = period_term.to(u.device)
+        # period_term = period_term.to(u.device)
         period_e = e.unsqueeze(1) * tlx.pow(2, period_term)
-        period_e = period_e.to(u.device)
+        # period_e = period_e.to(u.device)
         fourier_e = tlx.concat([tlx.sin(period_e), tlx.cos(period_e)], axis=-1)
         h = u @ fourier_e
         h = self.mlp1(h)

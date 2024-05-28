@@ -25,8 +25,8 @@ class LogReg(nn.Module):
         self.linear = nn.Linear(in_features=hid_dim, out_features=out_dim,W_init=tlx.initializers.xavier_uniform(), b_init=tlx.initializers.zeros())
 
     def forward(self, x):
-        # 前向传递
         return self.linear(x)
+
 
 def node_evaluation(emb, y, train_idx, valid_idx, test_idx, lr=1e-2, weight_decay=1e-4):
 
