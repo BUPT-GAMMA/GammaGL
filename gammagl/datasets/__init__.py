@@ -1,5 +1,6 @@
 from .amazon import Amazon
 from .coauthor import Coauthor
+from .ngsim import NGSIM_US_101
 from .tu_dataset import TUDataset
 from .planetoid import Planetoid
 from .reddit import Reddit
@@ -40,7 +41,8 @@ __all__ = [
     'AMiner',
     'PolBlogs',
     'WikiCS',
-    'MoleculeNet'
+    'MoleculeNet',
+    'NGSIM_US_101'
 ]
 
 classes = __all__
