@@ -32,11 +32,14 @@ class Amazon(InMemoryDataset):
         an :obj:`gammagl.data.Graph` object and returns a
         transformed version. The data object will be transformed before
         being saved to disk. (default: :obj:`None`)
-    force_reload (bool, optional): Whether to re-process the dataset.
+    force_reload : bool, optional
+        Whether to re-process the dataset.
         (default: :obj:`False`)
-    train_per_class (int, optional): Number of training samples per class.
+    train_per_class : int, optional
+        Number of training samples per class.
         (default: :obj:`20`)
-    val_per_class (int, optional): Number of validation samples per class.
+    val_per_class : int, optional
+        Number of validation samples per class.
         (default: :obj:`20`)
 
     Stats:
