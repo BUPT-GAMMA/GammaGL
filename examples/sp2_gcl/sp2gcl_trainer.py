@@ -14,7 +14,6 @@ import tensorlayerx as tlx
 from gammagl.datasets import FacebookPagePage,WikiCS,Planetoid
 
 
-
 def split(node_labels):
 
     y = node_labels
@@ -74,7 +73,7 @@ class ContrastiveLoss(WithLoss):
         return loss
 
 def main(args):
-    if args.dataset in ['pubmed', 'flickr', 'arxiv', 'wikics', 'facebook']:
+    if args.dataset in ['pubmed',  'wikics', 'facebook']:
         if args.dataset == 'facebook':
             dataset = FacebookPagePage(root='data/facebook')
         elif args.dataset == 'wikics':

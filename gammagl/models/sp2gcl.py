@@ -20,20 +20,6 @@ class Encoder(nn.Module):
         return x
 
 
-class MLP(nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim):
-        super(MLP, self).__init__()
-        self.layer1 = nn.Linear(input_dim, hidden_dim)
-        self.layer2 = nn.Linear(hidden_dim, output_dim)
-        self.act_fn = nn.ReLU()
-
-    def forward(self, x):
-        x = self.layer1(x)
-        x = self.act_fn(x)
-        x = self.layer2(x)
-        return x
-
-
 
 class EigenMLP(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, period):
