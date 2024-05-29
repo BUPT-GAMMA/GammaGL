@@ -12,7 +12,7 @@ import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid, Amazon
 from gammagl.models import MLP
-from gammagl.utils import mask_to_index, get_train_val_test_split
+from gammagl.utils import mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss
 
 
@@ -73,7 +73,7 @@ def train_student(args):
     if args.dataset in ['cora', 'pubmed', 'citeseer']:
         dataset = Planetoid(args.dataset_path, args.dataset)
     elif args.dataset in ['computers', 'photo']:
-        dataset = Amazon(args.dataset_path, args.dataset)
+        dataset = Amazon(args.dataset_path, args.dataset, train_per_class=20, val_per_class=30)
     graph = dataset[0]
 
     # load teacher_logits from .npy file
@@ -81,17 +81,10 @@ def train_student(args):
     teacher_logits = tlx.ops.convert_to_tensor(teacher_logits)
 
     # for mindspore, it should be passed into node indices
-    if args.dataset in ['cora', 'pubmed', 'citeseer']:
-        train_idx = mask_to_index(graph.train_mask)
-        test_idx = mask_to_index(graph.test_mask)
-        val_idx = mask_to_index(graph.val_mask)
-        t_idx = tlx.concat([train_idx, test_idx, val_idx], axis=0)
-    elif args.dataset in ['computers', 'photo']:
-        train_mask, val_mask, test_mask = get_train_val_test_split(dataset, train_per_class=20, val_per_class=30)
-        train_idx = mask_to_index(train_mask)
-        val_idx = mask_to_index(val_mask)
-        test_idx = mask_to_index(test_mask)
-        t_idx = tlx.concat([train_idx, test_idx, val_idx], axis=0)
+    train_idx = mask_to_index(graph.train_mask)
+    test_idx = mask_to_index(graph.test_mask)
+    val_idx = mask_to_index(graph.val_mask)
+    t_idx = tlx.concat([train_idx, test_idx, val_idx], axis=0)
 
     net = MLP(in_channels=dataset.num_node_features,
               hidden_channels=conf["hidden_dim"],

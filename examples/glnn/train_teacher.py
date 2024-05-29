@@ -12,7 +12,7 @@ import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid, Amazon
 from gammagl.models import GCNModel, GraphSAGE_Full_Model, GATModel, APPNPModel, MLP
-from gammagl.utils import mask_to_index, calc_gcn_norm, get_train_val_test_split
+from gammagl.utils import mask_to_index, calc_gcn_norm
 from tensorlayerx.model import TrainOneStep, WithLoss
 
 
@@ -66,21 +66,15 @@ def train_teacher(args):
     if args.dataset in ['cora', 'pubmed', 'citeseer']:
         dataset = Planetoid(args.dataset_path, args.dataset)
     elif args.dataset in ['computers', 'photo']:
-        dataset = Amazon(args.dataset_path, args.dataset)
+        dataset = Amazon(args.dataset_path, args.dataset, train_per_class=20, val_per_class=30)
     graph = dataset[0]
     edge_index = graph.edge_index
     edge_weight = tlx.convert_to_tensor(calc_gcn_norm(edge_index, graph.num_nodes))
 
     # for mindspore, it should be passed into node indices
-    if args.dataset in ['cora', 'pubmed', 'citeseer']:
-        train_idx = mask_to_index(graph.train_mask)
-        test_idx = mask_to_index(graph.test_mask)
-        val_idx = mask_to_index(graph.val_mask)
-    elif args.dataset in ['computers', 'photo']:
-        train_mask, val_mask, test_mask = get_train_val_test_split(dataset, train_per_class=20, val_per_class=30)
-        train_idx = mask_to_index(train_mask)
-        val_idx = mask_to_index(val_mask)
-        test_idx = mask_to_index(test_mask)
+    train_idx = mask_to_index(graph.train_mask)
+    test_idx = mask_to_index(graph.test_mask)
+    val_idx = mask_to_index(graph.val_mask)
 
     if args.teacher == "GCN":
         net = GCNModel(feature_dim=dataset.num_node_features, 

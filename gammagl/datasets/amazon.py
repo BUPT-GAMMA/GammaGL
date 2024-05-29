@@ -3,6 +3,7 @@ from typing import Callable, Optional
 import tensorlayerx as tlx
 from gammagl.data import InMemoryDataset, download_url
 from gammagl.io.npz import read_npz
+from gammagl.utils import get_train_val_test_split
 
 
 class Amazon(InMemoryDataset):
@@ -33,6 +34,10 @@ class Amazon(InMemoryDataset):
         being saved to disk. (default: :obj:`None`)
     force_reload (bool, optional): Whether to re-process the dataset.
         (default: :obj:`False`)
+    train_per_class (int, optional): Number of training samples per class.
+        (default: :obj:`20`)
+    val_per_class (int, optional): Number of validation samples per class.
+        (default: :obj:`20`)
 
     Stats:
         .. list-table::
@@ -61,11 +66,17 @@ class Amazon(InMemoryDataset):
     def __init__(self, root: str = None, name: str = 'computers',
                  transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None,
-                 force_reload: bool = False):
+                 force_reload: bool = False,
+                 train_per_class: int = 20,
+                 val_per_class: int = 20):
         self.name = name.lower()
         assert self.name in ['computers', 'photo']
         super().__init__(root, transform, pre_transform, force_reload = force_reload)
         self.data, self.slices = self.load_data(self.processed_paths[0])
+
+        data = self.get(0)
+        data.train_mask, data.val_mask, data.test_mask = get_train_val_test_split(self.data, train_per_class, val_per_class, self.num_classes)
+        self.data, self.slices = self.collate([data])
 
     @property
     def raw_dir(self) -> str:

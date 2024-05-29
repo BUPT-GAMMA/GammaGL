@@ -2,27 +2,28 @@ import tensorlayerx as tlx
 import numpy as np
 
 
-def get_train_val_test_split(dataset, train_per_class, val_per_class):
+def get_train_val_test_split(graph, train_per_class, val_per_class, num_classes):
     """Split the dataset into train, validation, and test sets.
 
     Parameters
     ----------
-    dataset :
-        The dataset to split.
+    graph :
+        The graph to split.
     train_per_class : int
         The number of training examples per class.
     val_per_class : int
         The number of validation examples per class.
+    num_classes : int
+        The number of classes in the dataset.
 
     Returns
     -------
     :class:`tuple` of :class:`tensor`
     
     """
-    graph = dataset[0]
     random_state = np.random.RandomState(0)
-    labels = tlx.nn.OneHot(depth=dataset.num_classes)(graph.y).numpy()
-    num_samples, num_classes = graph.num_nodes, dataset.num_classes
+    labels = tlx.nn.OneHot(depth=num_classes)(graph.y).numpy()
+    num_samples, num_classes = graph.num_nodes, num_classes
     remaining_indices = set(range(num_samples))
     forbidden_indices = set()
 
