@@ -78,31 +78,18 @@ class HEATlayer(MessagePassing):
         self.leaky_relu = LeakyReLU(negative_slope=0.2)
         self.softmax = tlx.nn.Softmax(axis=1)
 
-        # self.bacth_norm = tlx.nn.BatchNorm(act=tlx.ReLU)
-        # self.dropout = Dropout(p=0.1)
-
     def embed_edges(self, edge_attrs, edge_types):
         """embed edge attributes and edge types respectively and combine them as the edge feature. """
         emb_edge_attr = self.leaky_relu(self.edge_attr_emb(edge_attrs))
         emb_edge_types = self.leaky_relu(self.edge_type_emb(edge_types))
-        # emb_edge_attr, emb_edge_types = self.dropout(emb_edge_attr), self.dropout(emb_edge_types)
-
         return emb_edge_attr, emb_edge_types
 
     def forward(self, x, edge_index, edge_attrs, edge_types, v_node_mask, p_node_mask):
         # node feature
         emb_node_feature = self.node_feat_emb(x)
-        # emb_node_feature = self.dropout(emb_node_feature)
-        # print("heat_conv,forward:", emb_node_feature.shape)
         emb_node_feature = emb_node_feature.unsqueeze(axis=0).repeat(x.shape[0], 1, 1)
-        # print("forward_emb_node_f:", emb_node_feature.shape)
 
-        # project edge attribute and type to shared space
-        # print(edge_attrs.shape[0])
         emb_edge_attrs, emb_edge_types = self.embed_edges(edge_attrs, edge_types.float())
-        # print("edge_shape:", emb_edge_attrs.shape, emb_edge_types.shape)
-
-        # concat -> eij [num_node, emb_edge_attr_size + emb_edge_type_size(emb_edge_f_size)]
         emb_edge_features = tlx.concat([emb_edge_attrs, emb_edge_types], axis=-1)
 
         # eij+ [num_node, num_node, emb_edge_f_size + emb_node_size]
@@ -116,10 +103,7 @@ class HEATlayer(MessagePassing):
             dst_idx = edge_index_cpu[1, i]
             update_emb_f[src_idx, dst_idx] = emb_edge_features_cpu[i]
         emb_edge_features = tlx.convert_to_tensor(update_emb_f)
-
         x_edge_f = tlx.concat((emb_node_feature, emb_node_feature, emb_edge_features), axis=-1).float()
-
-        # alpha
         alpha = self.leaky_relu(self.attention_layer(x_edge_f))
 
         adj_np = np.zeros((alpha.shape[0], alpha.shape[1]))
@@ -127,16 +111,12 @@ class HEATlayer(MessagePassing):
             src_idx = edge_index[0, i]
             dst_idx = edge_index[1, i]
             adj_np[src_idx, dst_idx] = 1
-
         adj = tlx.convert_to_tensor(adj_np, device=device)
-
         adj = adj.unsqueeze(axis=2).repeat(1, 1, self.heads)
-        # print(alpha.shape, adj.shape)
         score_nbrs = tlx.where(adj == 0.0, tlx.ones_like(alpha) * -10000, alpha)
 
         alpha = self.softmax(score_nbrs).unsqueeze(axis=3)
         alpha = alpha.repeat(1, 1, 1, self.out_channels)
-        # alpha = self.dropout(alpha)
 
         # update node feature
         emb_edge_attrs_cpu = tlx.convert_to_numpy(emb_edge_attrs)
@@ -152,13 +132,10 @@ class HEATlayer(MessagePassing):
 
         x_attr_f = tlx.concat((emb_edge_attrs, emb_node_feature), axis=2).unsqueeze(axis=2).repeat(1, 1, self.heads, 1)
         out = self.leaky_relu(self.update_node_emb(x_attr_f.float()))
-        # out = self.dropout(out)
         out = tlx.reduce_sum(tlx.multiply(alpha, out), axis=1)
 
         if self.concat:
-            # 将张量展平为二维数组
             out = out.view(out.shape[0], -1)
-            # print("out:", out.shape)
         else:
             out = tlx.reduce_mean(out, axis=1)
 

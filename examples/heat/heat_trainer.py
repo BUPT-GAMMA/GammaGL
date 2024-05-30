@@ -10,50 +10,39 @@ os.environ["OMP_NUM_THREADS"] = "4"
 os.environ['TL_BACKEND'] = 'torch'
 
 
-class MultiStepLR:
-    def __init__(self, optimizer, milestones, gamma=0.1):
-        self.optimizer = optimizer
-        self.milestones = milestones
-        self.gamma = gamma
-        self.last_epoch = 0
-
-    def step(self):
-        if self.last_epoch in self.milestones:
-            self.optimizer.lr = self.optimizer.lr * self.gamma
-
-        self.last_epoch += 1
-
-
-def main(parser_args):
+def main(args):
     # load datasets
-    dataset = NGSIM_US_101(save_to=parser_args.data_path, data_path=parser_args.data_path).download()
+    dataset = NGSIM_US_101(save_to=args.data_path, data_path=args.data_path).download()
 
-    train_set = NGSIM_US_101(data_path=f'{parser_args.data_path}/train')
-    val_set = NGSIM_US_101(data_path=f'{parser_args.data_path}/val')
+    train_set = NGSIM_US_101(data_path=f'{args.data_path}/train')
+    val_set = NGSIM_US_101(data_path=f'{args.data_path}/val')
 
-    trainDataloader = DataLoader(train_set, batch_size=parser_args.batch_size, shuffle=True)
-    valDataloader = DataLoader(val_set, batch_size=parser_args.batch_size, shuffle=True)
+    trainDataloader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
+    valDataloader = DataLoader(val_set, batch_size=args.batch_size, shuffle=True)
 
-    train_net = HEAT(parser_args)
+    train_net = HEAT(args.hist_length, args.in_channels_node, args.out_channels, args.out_length,
+                     args.in_channels_edge_attr,args.in_channels_edge_type, args.edge_attr_emb_size,
+                     args.edge_type_emb_size, args.node_emb_size, args.heads, args.concat)
+
     print('loading HEAT model')
 
-    train_net.to(parser_args.device)
+    train_net.to(args.device)
 
     optimizer = tlx.optimizers.Adam(lr=0.001)
 
     train_weights = train_net.trainable_weights
 
-    scheduler = MultiStepLR(optimizer, milestones=[1, 2, 4, 6, 10, 30, 40, 50, 60], gamma=0.7)
+    scheduler = tlx.optimizers.lr.MultiStepDecay(learning_rate=0.001, milestones=[1, 2, 4, 6, 10, 30, 40, 50, 60], gamma=0.7, verbose=True)
 
     val_loss = []
     train_loss = []
 
-    for epoch in range(parser_args.n_epoch):
+    for epoch in range(args.n_epoch):
         # print(epoch)
         train_loss_epo = 0.0
         train_net.set_train()
         for i, data in enumerate(trainDataloader):
-            data.y = data.y[:, 0:parser_args.out_length, :]
+            data.y = data.y[:, 0:args.out_length, :]
             data.y = data.y.view(data.y.shape[0], -1)
 
             logits = train_net(data)
@@ -76,7 +65,7 @@ def main(parser_args):
         for j, data in enumerate(valDataloader):
             logits = train_net(data)
 
-            data.y = data.y[:, 0:parser_args.out_length, :]
+            data.y = data.y[:, 0:args.out_length, :]
             data.y = data.y.view(data.y.shape[0], -1)
             val_logits = tlx.gather(logits, data.tar_mask)
             val_y = tlx.gather(data.y, data.tar_mask)
@@ -96,9 +85,7 @@ def main(parser_args):
 
 
 if __name__ == '__main__':
-    # device = tlx.set_device(device='cpu')
-    device = tlx.set_device(device='GPU', id=0)
-    # Network arguments
+    # # Network arguments
     parser = argparse.ArgumentParser()
     # parser.add_argument("--lr", type=float, default=0.005, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=20, help="number of epoch")
@@ -120,6 +107,11 @@ if __name__ == '__main__':
     parser.add_argument("--result_path", type=str, default=r'', help="path to save result")
     parser.add_argument("--device", type=int, default=0)
 
-    parser_args = parser.parse_args()
+    args = parser.parse_args()
 
-    main(parser_args)
+    if args.device >= 0:
+        tlx.set_device("GPU", args.device)
+    else:
+        tlx.set_device("CPU")
+
+    main(args)
