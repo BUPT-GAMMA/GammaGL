@@ -1,64 +1,57 @@
 import tensorlayerx as tlx
 import numpy as np
+from sklearn.model_selection import train_test_split
 
 
-def get_train_val_test_split(graph, train_per_class, val_per_class, num_classes):
-    """Split the dataset into train, validation, and test sets.
+def get_train_val_test_split(graph, train_ratio, val_ratio):
+    """
+    Split the dataset into train, validation, and test sets.
 
     Parameters
     ----------
     graph :
         The graph to split.
-    train_per_class : int
-        The number of training examples per class.
-    val_per_class : int
-        The number of validation examples per class.
-    num_classes : int
-        The number of classes in the dataset.
+    train_ratio : float
+        The proportion of the dataset to include in the train split.
+    val_ratio : float
+        The proportion of the dataset to include in the validation split.
 
     Returns
     -------
     :class:`tuple` of :class:`tensor`
-    
     """
+
     random_state = np.random.RandomState(0)
-    labels = tlx.nn.OneHot(depth=num_classes)(graph.y).numpy()
-    num_samples, num_classes = graph.num_nodes, num_classes
-    remaining_indices = set(range(num_samples))
-    forbidden_indices = set()
+    num_samples = graph.num_nodes
+    all_indices = np.arange(num_samples)
 
-    train_indices = sample_per_class(random_state, num_samples, num_classes, labels, train_per_class, forbidden_indices=forbidden_indices)
-    forbidden_indices.update(train_indices)
-    val_indices = sample_per_class(random_state, num_samples, num_classes, labels, val_per_class, forbidden_indices=forbidden_indices)
-    forbidden_indices.update(val_indices)
-    test_indices = np.array(list(remaining_indices - forbidden_indices))
+    # split into train and (val + test)
+    train_indices, val_test_indices = train_test_split(
+        all_indices, train_size=train_ratio, random_state=random_state
+    )
 
-    return generate_masks(graph.num_nodes, train_indices, val_indices, test_indices)
+    # calculate the ratio of validation and test splits in the remaining data
+    test_ratio = 1.0 - train_ratio - val_ratio
+    val_size_ratio = val_ratio / (val_ratio + test_ratio)
 
+    # split val + test into validation and test sets
+    val_indices, test_indices = train_test_split(
+        val_test_indices, train_size=val_size_ratio, random_state=random_state
+    )
 
-def sample_per_class(random_state, num_samples, num_classes, labels, num_examples_per_class, forbidden_indices=None):
-    sample_indices_per_class = {index: [] for index in range(num_classes)}
-    forbidden_set = set(forbidden_indices) if forbidden_indices is not None else set()
-
-    for class_index in range(num_classes):
-        for sample_index in range(num_samples):
-            if labels[sample_index, class_index] > 0.0 and sample_index not in forbidden_set:
-                sample_indices_per_class[class_index].append(sample_index)
-
-    return np.concatenate(
-        [random_state.choice(sample_indices_per_class[class_index], num_examples_per_class, replace=False)
-         for class_index in range(num_classes)
-         ])
+    return generate_masks(num_samples, train_indices, val_indices, test_indices)
 
 
-def generate_masks(num_nodes, train_indices, val_indices, test_indices): 
-    np_train_mask = np.zeros(num_nodes) 
-    np_train_mask[train_indices] = 1 
-    np_val_mask = np.zeros(num_nodes) 
-    np_val_mask[val_indices] = 1 
-    np_test_mask = np.zeros(num_nodes) 
-    np_test_mask[test_indices] = 1 
-    train_mask = tlx.ops.convert_to_tensor(np_train_mask, dtype=tlx.bool) 
+def generate_masks(num_nodes, train_indices, val_indices, test_indices):
+    np_train_mask = np.zeros(num_nodes, dtype=bool)
+    np_train_mask[train_indices] = 1
+    np_val_mask = np.zeros(num_nodes, dtype=bool)
+    np_val_mask[val_indices] = 1
+    np_test_mask = np.zeros(num_nodes, dtype=bool)
+    np_test_mask[test_indices] = 1
+
+    train_mask = tlx.ops.convert_to_tensor(np_train_mask, dtype=tlx.bool)
     val_mask = tlx.ops.convert_to_tensor(np_val_mask, dtype=tlx.bool)
-    test_mask = tlx.ops.convert_to_tensor(np_test_mask, dtype=tlx.bool) 
+    test_mask = tlx.ops.convert_to_tensor(np_test_mask, dtype=tlx.bool)
+
     return train_mask, val_mask, test_mask

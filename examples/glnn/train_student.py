@@ -72,8 +72,10 @@ def train_student(args):
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
     if args.dataset in ['cora', 'pubmed', 'citeseer']:
         dataset = Planetoid(args.dataset_path, args.dataset)
-    elif args.dataset in ['computers', 'photo']:
-        dataset = Amazon(args.dataset_path, args.dataset, train_per_class=20, val_per_class=30)
+    elif args.dataset == 'computers':
+        dataset = Amazon(args.dataset_path, args.dataset, train_ratio=200/13752, val_ratio=(200/13752)*1.5)
+    elif args.dataset == 'photo':
+        dataset = Amazon(args.dataset_path, args.dataset, train_ratio=160/7650, val_ratio=(160/7650)*1.5)
     graph = dataset[0]
 
     # load teacher_logits from .npy file

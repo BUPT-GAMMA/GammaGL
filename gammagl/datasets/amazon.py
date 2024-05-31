@@ -35,12 +35,12 @@ class Amazon(InMemoryDataset):
     force_reload : bool, optional
         Whether to re-process the dataset.
         (default: :obj:`False`)
-    train_per_class : int, optional
-        Number of training samples per class.
-        (default: :obj:`20`)
-    val_per_class : int, optional
-        Number of validation samples per class.
-        (default: :obj:`20`)
+    train_ratio : float, optional
+        Ratio of training samples.
+        (default: :obj:`0.1`)
+    val_ratio : float, optional
+        Ratio of validation samples.
+        (default: :obj:`0.15`)
 
     Stats:
         .. list-table::
@@ -70,15 +70,15 @@ class Amazon(InMemoryDataset):
                  transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None,
                  force_reload: bool = False,
-                 train_per_class: int = 20,
-                 val_per_class: int = 20):
+                 train_ratio: float = 0.1,
+                 val_ratio: float = 0.15):
         self.name = name.lower()
         assert self.name in ['computers', 'photo']
         super().__init__(root, transform, pre_transform, force_reload = force_reload)
         self.data, self.slices = self.load_data(self.processed_paths[0])
 
         data = self.get(0)
-        data.train_mask, data.val_mask, data.test_mask = get_train_val_test_split(self.data, train_per_class, val_per_class, self.num_classes)
+        data.train_mask, data.val_mask, data.test_mask = get_train_val_test_split(self.data, train_ratio, val_ratio)
         self.data, self.slices = self.collate([data])
 
     @property
