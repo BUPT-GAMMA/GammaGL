@@ -3,9 +3,6 @@ import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
 from tensorlayerx.nn import Linear, LeakyReLU, Dropout
 
-# device = tlx.set_device(device='cpu')
-device = tlx.set_device(device='GPU', id=0)
-
 
 class HEATlayer(MessagePassing):
     r"""
@@ -67,11 +64,9 @@ class HEATlayer(MessagePassing):
         # self.edge_type_emb = Embedding(self.in_channels_edge_type, self.edge_type_emb_size)
         self.edge_type_emb = Linear(in_features=self.in_channels_edge_type, out_features=self.edge_type_emb_size, b_init=None, W_init='xavier_uniform')
 
-
         # attention layer
         self.attention_layer = Linear(in_features=2 * self.node_emb_size + self.edge_attr_emb_size + self.edge_type_emb_size,
                                       out_features=self.heads,  b_init=None, W_init='xavier_uniform')
-
         # update node feature
         self.update_node_emb = Linear(in_features=self.edge_attr_emb_size + self.node_emb_size, out_features=self.out_channels,  b_init=None, W_init='xavier_uniform')
 
@@ -84,7 +79,7 @@ class HEATlayer(MessagePassing):
         emb_edge_types = self.leaky_relu(self.edge_type_emb(edge_types))
         return emb_edge_attr, emb_edge_types
 
-    def forward(self, x, edge_index, edge_attrs, edge_types, v_node_mask, p_node_mask):
+    def forward(self, x, edge_index, edge_attrs, edge_types):
         # node feature
         emb_node_feature = self.node_feat_emb(x)
         emb_node_feature = emb_node_feature.unsqueeze(axis=0).repeat(x.shape[0], 1, 1)
@@ -111,7 +106,7 @@ class HEATlayer(MessagePassing):
             src_idx = edge_index[0, i]
             dst_idx = edge_index[1, i]
             adj_np[src_idx, dst_idx] = 1
-        adj = tlx.convert_to_tensor(adj_np, device=device)
+        adj = tlx.convert_to_tensor(adj_np)
         adj = adj.unsqueeze(axis=2).repeat(1, 1, self.heads)
         score_nbrs = tlx.where(adj == 0.0, tlx.ones_like(alpha) * -10000, alpha)
 
@@ -128,7 +123,7 @@ class HEATlayer(MessagePassing):
             dst_idx = edge_index_cpu[1, i]
             update_emb_f[src_idx, dst_idx] = emb_edge_attrs_cpu[i]
 
-        emb_edge_attrs = tlx.convert_to_tensor(update_emb_f, device=device)
+        emb_edge_attrs = tlx.convert_to_tensor(update_emb_f)
 
         x_attr_f = tlx.concat((emb_edge_attrs, emb_node_feature), axis=2).unsqueeze(axis=2).repeat(1, 1, self.heads, 1)
         out = self.leaky_relu(self.update_node_emb(x_attr_f.float()))

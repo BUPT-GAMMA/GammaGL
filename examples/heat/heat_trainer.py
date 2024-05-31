@@ -1,94 +1,131 @@
 import argparse
 import os
+
+import numpy as np
 import tensorlayerx as tlx
 from gammagl.datasets import NGSIM_US_101
 from gammagl.models import HEAT
 from gammagl.loader import DataLoader
-
+from tensorlayerx.model import TrainOneStep, WithLoss
 
 os.environ["OMP_NUM_THREADS"] = "4"
 os.environ['TL_BACKEND'] = 'torch'
 
 
+class SemiSpvzLoss(WithLoss):
+    def __init__(self, net, loss_fun):
+        super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fun)
+
+    def forward(self, data, label):
+        logits = self._backbone(data.x, data.edge_index, data.edge_attr, data.edge_type)
+
+        train_logits = tlx.gather(logits, data.tar_mask)
+        train_y = tlx.gather(data.y, data.tar_mask)
+
+        loss = self._loss_fn(train_logits, train_y, reduction='mean')
+        loss = tlx.sqrt(loss)
+        # loss_each_data = tlx.sqrt(tlx.losses.mean_squared_error(train_logits, train_y, reduction='mean'))
+
+        return loss
+
+
 def main(args):
     # load datasets
-    dataset = NGSIM_US_101(save_to=args.data_path, data_path=args.data_path).download()
-
-    train_set = NGSIM_US_101(data_path=f'{args.data_path}/train')
-    val_set = NGSIM_US_101(data_path=f'{args.data_path}/val')
+    train_set = NGSIM_US_101(data_path=f'{args.data_path}/data/train', root=args.data_path, name='train')
+    val_set = NGSIM_US_101(data_path=f'{args.data_path}/data/val', root=args.data_path, name='val')
+    test_set = NGSIM_US_101(data_path=f'{args.data_path}/data/test', root=args.data_path,name='test')
 
     trainDataloader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
     valDataloader = DataLoader(val_set, batch_size=args.batch_size, shuffle=True)
+    testDataloader = DataLoader(test_set, batch_size=args.batch_size, shuffle=True)
 
-    train_net = HEAT(args.hist_length, args.in_channels_node, args.out_channels, args.out_length,
-                     args.in_channels_edge_attr,args.in_channels_edge_type, args.edge_attr_emb_size,
-                     args.edge_type_emb_size, args.node_emb_size, args.heads, args.concat)
+    net = HEAT(args.hist_length, args.in_channels_node, args.out_channels, args.out_length,
+               args.in_channels_edge_attr,args.in_channels_edge_type, args.edge_attr_emb_size,
+               args.edge_type_emb_size, args.node_emb_size, args.heads, args.concat, args.dropout, args.leaky_rate)
 
     print('loading HEAT model')
 
-    train_net.to(args.device)
+    net.to(args.device)
 
-    optimizer = tlx.optimizers.Adam(lr=0.001)
+    optimizer = tlx.optimizers.Adam(lr=args.lr)
 
-    train_weights = train_net.trainable_weights
+    train_weights = net.trainable_weights
 
-    scheduler = tlx.optimizers.lr.MultiStepDecay(learning_rate=0.001, milestones=[1, 2, 4, 6, 10, 30, 40, 50, 60], gamma=0.7, verbose=True)
+    scheduler = tlx.optimizers.lr.MultiStepDecay(learning_rate=args.lr, milestones=[1, 2, 4, 6, 10, 30, 40, 50, 60], gamma=0.7, verbose=True)
 
-    val_loss = []
-    train_loss = []
+    loss_fn = SemiSpvzLoss(net, tlx.losses.mean_squared_error)
 
+    train_one_step = TrainOneStep(loss_fn, optimizer, train_weights)
+
+    best_val_loss = 1000
     for epoch in range(args.n_epoch):
-        # print(epoch)
         train_loss_epo = 0.0
-        train_net.set_train()
+        net.set_train()
         for i, data in enumerate(trainDataloader):
             data.y = data.y[:, 0:args.out_length, :]
             data.y = data.y.view(data.y.shape[0], -1)
+            loss_each_data = train_one_step(data, data.y)
+            train_loss_epo += loss_each_data
 
-            logits = train_net(data)
-            train_logits = tlx.gather(logits, data.tar_mask)
-            train_y = tlx.gather(data.y, data.tar_mask)
-            # print(train_logits.shape, train_y.shape)
-            loss_each_data = tlx.sqrt(tlx.losses.mean_squared_error(train_logits, train_y, reduction='mean'))
-
-            grads = optimizer.gradient(loss_each_data, train_weights)
-            optimizer.apply_gradients(grads_and_vars=grads)
-
-            train_loss_epo += tlx.convert_to_numpy(loss_each_data)
-
-        train_loss_epo = round(train_loss_epo * 0.3048 / (i + 1), 4)
-        train_loss.append(train_loss_epo)
-        # print('epoch:', train_loss[epoch])
+        train_loss_epoch = round(train_loss_epo * 0.3048 / (i + 1), 4)
 
         val_loss_epoch = 0
-        train_net.set_eval()
+        net.set_eval()
         for j, data in enumerate(valDataloader):
-            logits = train_net(data)
-
+            logits = net(data.x, data.edge_index, data.edge_attr, data.edge_type)
             data.y = data.y[:, 0:args.out_length, :]
             data.y = data.y.view(data.y.shape[0], -1)
             val_logits = tlx.gather(logits, data.tar_mask)
             val_y = tlx.gather(data.y, data.tar_mask)
-
             val_loss_epoch += tlx.convert_to_numpy(
                 tlx.sqrt(tlx.losses.mean_squared_error(val_logits, val_y, reduction='mean')))
 
         val_loss_epoch = round(val_loss_epoch * 0.3048 / (j + 1), 4)
-        val_loss.append(val_loss_epoch)
-        scheduler.step()
-
-        # save model
-        train_net.save_weights(str(val_loss_epoch) + '.npz', format='npz_dict')
 
         print("Epoch [{:0>3d}] ".format(epoch + 1) + "  train loss: {:.4f}".format(
-            train_loss[epoch]) + "  val loss: {:.4f}".format(val_loss[epoch]))
+            train_loss_epoch) + "  val loss: {:.4f}".format(val_loss_epoch))
+
+        # save best model on evaluation set
+        if val_loss_epoch < best_val_loss:
+            best_val_loss = val_loss_epoch
+            net.save_weights(str(args.out_length) + '-' + str(best_val_loss) + '.npz', format='npz_dict')
+
+        scheduler.step()
+
+    # Euclidean distance
+    net.set_eval()
+    net.load_weights(str(args.out_length) + '-' + str(best_val_loss) + '.npz', format='npz_dict')
+    total_distance = 0
+    total_samples = 0
+
+    for i, data in enumerate(testDataloader):
+        logits = net(data.x, data.edge_index, data.edge_attr, data.edge_type)
+        data.y = data.y[:, 0:args.out_length, :]
+        data.y = data.y.view(data.y.shape[0], -1)
+        test_logits = tlx.gather(logits, data.tar_mask)
+        test_y = tlx.gather(data.y, data.tar_mask)
+
+        # Convert predictions to numpy arrays
+        predictions = tlx.convert_to_numpy(test_logits)
+        ground_truth = tlx.convert_to_numpy(test_y)
+
+        # Calculate Euclidean distance
+        distance =np.sqrt(np.sum(np.square(predictions - ground_truth)))
+        total_distance += distance
+        total_samples += len(predictions)
+
+        # print("Euclidean distance for batch {}: {:.4f}".format(i + 1, distance))
+
+    # Calculate average Euclidean distance
+    average_distance = total_distance / total_samples
+    print("Average Euclidean distance: {:.4f}".format(average_distance))
 
 
 if __name__ == '__main__':
     # # Network arguments
     parser = argparse.ArgumentParser()
     # parser.add_argument("--lr", type=float, default=0.005, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=20, help="number of epoch")
+    parser.add_argument("--n_epoch", type=int, default=40, help="number of epoch")
     parser.add_argument("--in_channels_node", type=int, default=64, help="heat_in_channels_node")
     parser.add_argument("--in_channels_edge_attr", type=int, default=5, help="heat_in_channels_edge_attr")
     parser.add_argument("--in_channels_edge_type", type=int, default=6, help="heat_in_channels_edge_type")
@@ -101,7 +138,10 @@ if __name__ == '__main__':
     parser.add_argument('--concat', type=bool, default=True, help='heat_concat')
     parser.add_argument("--hist_length", type=int, default=10, help="length of history trajectory")
     parser.add_argument("--out_length", type=int, default=30, help="length of future trajectory")
+    parser.add_argument("--dropout", type=int, default=0.5, help="dropout rate")
+    parser.add_argument("--leaky_rate", type=int, default=0.1, help="LeakyReLU rate")
 
+    parser.add_argument("--lr", type=int, default=0.001, help="learning rate")
     parser.add_argument("--batch_size", type=int, default=20, help="batch")
     parser.add_argument("--data_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--result_path", type=str, default=r'', help="path to save result")

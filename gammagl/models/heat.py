@@ -1,8 +1,5 @@
-import os
 import tensorlayerx as tlx
 from gammagl.layers.conv import HEATlayer
-
-# os.environ['TL_BACKEND'] = 'torch'
 
 
 class HEAT(tlx.nn.Module):
@@ -37,7 +34,8 @@ class HEAT(tlx.nn.Module):
     """
 
     def __init__(self, hist_length, in_channels_node, out_channels, out_length, in_channels_edge_attr,
-                 in_channels_edge_type, edge_attr_emb_size, edge_type_emb_size, node_emb_size, heads, concat):
+                 in_channels_edge_type, edge_attr_emb_size, edge_type_emb_size, node_emb_size, heads, concat,
+                 dropout_rate, leaky_rate):
         super(HEAT, self).__init__()
 
         self.hist_length = hist_length
@@ -51,9 +49,11 @@ class HEAT(tlx.nn.Module):
         self.node_emb_size = node_emb_size
         self.heads = heads
         self.concat = concat
-        self.op = tlx.nn.Linear(in_features=4 * self.hist_length, out_features=self.in_channels_node, W_init='xavier_uniform')
-        self.op2 = tlx.nn.Linear(in_features=self.out_channels, out_features=self.out_length * 2)
-        self.leaky_relu = tlx.nn.LeakyReLU(0.1)
+        self.leaky_rate = leaky_rate
+        self.dropout_rate = dropout_rate
+        self.lin1 = tlx.nn.Linear(in_features=4 * self.hist_length, out_features=self.in_channels_node, W_init='xavier_uniform')
+        self.lin2 = tlx.nn.Linear(in_features=self.out_channels, out_features=self.out_length * 2)
+        self.leaky_relu = tlx.nn.LeakyReLU(self.leaky_rate)
 
         # HEAT layers
         self.heat_conv1 = HEATlayer(in_channels_node=self.in_channels_node,
@@ -82,18 +82,18 @@ class HEAT(tlx.nn.Module):
         self.fc = tlx.nn.Linear(in_features=int(self.concat) * (self.heads - 1) * self.out_channels + self.out_channels,
                                 out_features=self.out_channels)
 
-        self.dropout = tlx.nn.Dropout(p=0.5)
+        self.dropout = tlx.nn.Dropout(p=self.dropout_rate)
 
-    def forward(self, data):
-        node_f = data.x.view(data.x.shape[0], -1)
-        node_f = self.op(node_f)
+    def forward(self, x, edge_index, edge_attr, edge_type):
+        node_f = x.view(x.shape[0], -1)
+        node_f = self.lin1(node_f)
 
-        new_node_feature = self.heat_conv1(node_f, data.edge_index, data.edge_attr, data.edge_type.float(), data.veh_mask, data.ped_mask)
+        new_node_feature = self.heat_conv1(node_f, edge_index, edge_attr, edge_type.float())
         new_node_feature = self.dropout(new_node_feature)
-        new_node_feature = self.heat_conv2(new_node_feature, data.edge_index, data.edge_attr, data.edge_type.float(), data.veh_mask, data.ped_mask)
+        new_node_feature = self.heat_conv2(new_node_feature, edge_index, edge_attr, edge_type.float())
         new_node_feature = self.dropout(new_node_feature)
         fut_pre = self.leaky_relu(self.fc(new_node_feature))
-        fut_pre = self.op2(fut_pre)
+        fut_pre = self.lin2(fut_pre)
 
         return fut_pre
 
