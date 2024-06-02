@@ -207,7 +207,7 @@ def main(args):
 
     model = HeCo(args.hidden_dim, feats_dim_list, args.feat_drop, args.attn_drop,
                     P, args.sample_rate, args.nei_num)
-    optimizer = tlx.optimizers.Adam(lr=0.008, weight_decay=args.l2_coef)
+    optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     contrast_loss = Contrast(args.hidden_dim, args.tau, args.lam)
     cnt_wait = 0
     best = 1e9
@@ -247,7 +247,7 @@ if __name__ == '__main__':
     
     # The parameters of learning process
     parser.add_argument('--patience', type=int, default=5)
-    parser.add_argument('--lr', type=float, default=0.0001)  # 0.0008
+    parser.add_argument('--lr', type=float, default=0.0075)  # 0.0008
     parser.add_argument('--l2_coef', type=float, default=0.0)
     
     # model-specific parameters
