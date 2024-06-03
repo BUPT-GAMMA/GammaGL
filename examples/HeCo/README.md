@@ -13,9 +13,11 @@ Refer to [ACM](https://github.com/AndyJZhao/NSHE/tree/master/data/acm).
 
 Results For ACM
 -------
+```bash
 TL_BACKEND="torch" python HeCo_trainer.py --dataset acm --hidden_dim 64  --nb_epochs 10000 --eva_lr 0.05 --lr 0.0075 --l2_coef 0 --tau 0.8 --lam 0.5 --feat_drop 0.3 --attn_drop 0.3
 TL_BACKEND="paddle" python HeCo_trainer.py --dataset acm --hidden_dim 64  --nb_epochs 10000 --eva_lr 0.05 --lr 0.0075 --l2_coef 0 --tau 0.8 --lam 0.5 --feat_drop 0.3 --attn_drop 0.3
 TL_BACKEND="tensorflow" python HeCo_trainer.py --dataset acm --hidden_dim 64  --nb_epochs 10000 --eva_lr 0.05 --lr 0.0075 --l2_coef 0 --tau 0.8 --lam 0.5 --feat_drop 0.3 --attn_drop 0.3
+```
 - Ma-F1
 
 | number of train_labels  | Paper    | Our(tf)  | Our(pd)  | Our(torch) |
