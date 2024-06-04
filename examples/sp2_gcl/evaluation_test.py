@@ -1,12 +1,8 @@
-
 import os
 from tensorlayerx.model import TrainOneStep, WithLoss
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
-
-
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -29,9 +25,7 @@ class LogReg(nn.Module):
 
 
 def node_evaluation(emb, y, train_idx, valid_idx, test_idx, lr=1e-2, weight_decay=1e-4):
-
     nclass = y.max().item() + 1
-    train_idx, valid_idx, test_idx, y = train_idx, valid_idx, test_idx, y
     logreg = LogReg(hid_dim=emb.shape[1], out_dim=nclass)
     opt = tlx.optimizers.Adam(lr=lr, weight_decay=weight_decay)
     train_weights = logreg.trainable_weights

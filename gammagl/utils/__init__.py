@@ -44,7 +44,6 @@ __all__ = [
     'from_smiles',
     'shortest_path_distance',
     'batched_shortest_path_distance',
-    'split'
 
 ]
 

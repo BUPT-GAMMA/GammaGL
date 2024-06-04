@@ -26,20 +26,21 @@ class EigenMLP(nn.Module):
         super(EigenMLP, self).__init__()
         self.k = input_dim
         self.period = period
-        self.phi = nn.Sequential(nn.Linear(1, 16), nn.ReLU(), nn.Linear(16, 16))
-        self.psi = nn.Sequential(nn.Linear(16, 16), nn.ReLU(), nn.Linear(16, 1))
+        self.phi = nn.Sequential(nn.Linear(in_features=1, out_features=16), nn.ReLU(), nn.Linear(in_features=16, out_features=16))
+        self.psi = nn.Sequential(nn.Linear(in_features=16, out_features=16), nn.ReLU(), nn.Linear(in_features=16, out_features=1))
         self.mlp1 = nn.Linear(in_features=2*period, out_features=hidden_dim)
         self.mlp2 = nn.Linear(in_features=hidden_dim, out_features=output_dim)
 
     def forward(self, e, u):
-
         e = e * 100
+        u = tlx.expand_dims(u,axis=2)
+        u_transformed = self.psi(self.phi(u) + self.phi(-u))
+        u = tlx.ops.squeeze(u_transformed, axis=2)
         period_term = tlx.arange(0, self.period)
-        # period_term = period_term.to(u.device)
-        period_e = e.unsqueeze(1) * tlx.pow(2, period_term)
-        # period_e = period_e.to(u.device)
+        e_unsqueeze = tlx.expand_dims(e,axis=1)
+        period_e = e_unsqueeze * tlx.pow(2, period_term)
         fourier_e = tlx.concat([tlx.sin(period_e), tlx.cos(period_e)], axis=-1)
-        h = u @ fourier_e
+        h = tlx.matmul(u,fourier_e)
         h = self.mlp1(h)
         h = nn.ReLU()(h)
         h = self.mlp2(h)

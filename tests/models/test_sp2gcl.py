@@ -33,8 +33,3 @@ def test_spaspenode():
     h_node_spa, h_node_spe = model(x, edge_index, e, u)
     assert h_node_spa.shape == (num_nodes, 16)
     assert h_node_spe.shape == (num_nodes, 16)
-
-    print("Test passed!")
-
-if __name__ == "__main__":
-    test_spaspenode()
