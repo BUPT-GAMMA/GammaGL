@@ -163,9 +163,9 @@ def train_teacher(args):
             best_val_acc = val_acc
             net.save_weights(args.best_model_path+args.dataset+'_'+args.teacher+".npz", format='npz_dict')
             if tlx.BACKEND == 'torch':
-                tlx.files.save_any_to_npy(logits.detach().numpy(), args.best_model_path+args.dataset+'_'+args.teacher+'_logits.npy')
+                tlx.files.save_any_to_npy(tlx.convert_to_numpy(logits), args.best_model_path+args.dataset+'_'+args.teacher+'_logits.npy')
             else:
-                tlx.files.save_any_to_npy(logits, args.best_model_path+args.dataset+'_'+args.teacher+'_logits.npy')
+                tlx.files.save_any_to_npy(tlx.convert_to_numpy(logits), args.best_model_path+args.dataset+'_'+args.teacher+'_logits.npy')
 
     net.load_weights(args.best_model_path+args.dataset+'_'+args.teacher+".npz", format='npz_dict')
     net.set_eval()

@@ -436,7 +436,9 @@ Now, GammaGL supports about 60 models, we welcome everyone to use or contribute 
 | [GGD [NeurIPS 2022]](./examples/ggd)               |                    | :heavy_check_mark: |                    | :heavy_check_mark: |
 | [LTD [WSDM 2022]](./examples/ltd)                  |                    | :heavy_check_mark: |                    | :heavy_check_mark: |
 | [Graphormer [NeurIPS 2021]](./examples/graphormer) |                    | :heavy_check_mark: |                    | :heavy_check_mark: |
-| [HiD-Net [AAAI 2023]](./examples/hid_net) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [HiD-Net [AAAI 2023]](./examples/hid_net)          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [FusedGAT [MLSys 2022]](./examples/fusedgat)       |                    | :heavy_check_mark: |                    |                    |
+| [GLNN [ICLR 2022]](./examples/glnn)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 
 
 | Contrastive Learning                               | TensorFlow         | PyTorch            | Paddle             | MindSpore          |
