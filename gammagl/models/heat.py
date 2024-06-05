@@ -24,7 +24,7 @@ class HEAT(tlx.nn.Module):
         The output feature dimension.
     heads: int
         The number of attention heads.
-    concat: bool, optional
+    concat: bool
         If set to `True`, the multi-head attentions are concatenated. Otherwise, they are averaged.
     hist_length: int
         The length of the history trajectory used for node features.
@@ -85,7 +85,7 @@ class HEAT(tlx.nn.Module):
         self.dropout = tlx.nn.Dropout(p=self.dropout_rate)
 
     def forward(self, x, edge_index, edge_attr, edge_type):
-        node_f = x.view(x.shape[0], -1)
+        node_f = tlx.reshape(x, (x.shape[0], -1))
         node_f = self.lin1(node_f)
 
         new_node_feature = self.heat_conv1(node_f, edge_index, edge_attr, edge_type.float())

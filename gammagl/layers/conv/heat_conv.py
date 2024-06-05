@@ -15,21 +15,21 @@ class HEATlayer(MessagePassing):
 
        Parameters
        ----------
-       in_channels_node : int
+       in_channels_node : int=64
            Size of each input node feature.
-       in_channels_edge_attr : int
+       in_channels_edge_attr : int=5
            Size of each input edge attribute.
-       in_channels_edge_type : int
+       in_channels_edge_type : int=4
            Size of each input edge type.
-       node_emb_size : int
+       node_emb_size : int=64
            Size of the node embedding.
-       edge_attr_emb_size : int
+       edge_attr_emb_size : int=64
            Size of the edge attribute embedding.
-       edge_type_emb_size : int
+       edge_type_emb_size : int=64
            Size of the edge type embedding.
-       out_channels : int
+       out_channels : int=128
            Size of each output node feature.
-       heads : int, optional
+       heads : int=3, optional
            Number of attention heads. (default: 3)
        concat : bool, optional
            If set to False, the multi-head attentions are averaged instead of concatenated. (default: True)
@@ -130,7 +130,7 @@ class HEATlayer(MessagePassing):
         out = tlx.reduce_sum(tlx.multiply(alpha, out), axis=1)
 
         if self.concat:
-            out = out.view(out.shape[0], -1)
+            out = tlx.reshape(out, (out.shape[0], -1))
         else:
             out = tlx.reduce_mean(out, axis=1)
 

@@ -1,15 +1,13 @@
 import argparse
 import os
+os.environ["OMP_NUM_THREADS"] = "4"
+os.environ['TL_BACKEND'] = 'torch'
 
-import numpy as np
 import tensorlayerx as tlx
 from gammagl.datasets import NGSIM_US_101
 from gammagl.models import HEAT
 from gammagl.loader import DataLoader
 from tensorlayerx.model import TrainOneStep, WithLoss
-
-os.environ["OMP_NUM_THREADS"] = "4"
-os.environ['TL_BACKEND'] = 'torch'
 
 
 class SemiSpvzLoss(WithLoss):
@@ -31,27 +29,26 @@ class SemiSpvzLoss(WithLoss):
 
 def main(args):
     # load datasets
-    train_set = NGSIM_US_101(data_path=f'{args.data_path}/data/train', root=args.data_path, name='train')
-    val_set = NGSIM_US_101(data_path=f'{args.data_path}/data/val', root=args.data_path, name='val')
-    test_set = NGSIM_US_101(data_path=f'{args.data_path}/data/test', root=args.data_path,name='test')
+    train_set = NGSIM_US_101(root=args.data_path, name='train')
+    val_set = NGSIM_US_101(root=args.data_path, name='val')
+    test_set = NGSIM_US_101(root=args.data_path, name='test')
 
     trainDataloader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
     valDataloader = DataLoader(val_set, batch_size=args.batch_size, shuffle=True)
     testDataloader = DataLoader(test_set, batch_size=args.batch_size, shuffle=True)
 
     net = HEAT(args.hist_length, args.in_channels_node, args.out_channels, args.out_length,
-               args.in_channels_edge_attr,args.in_channels_edge_type, args.edge_attr_emb_size,
+               args.in_channels_edge_attr, args.in_channels_edge_type, args.edge_attr_emb_size,
                args.edge_type_emb_size, args.node_emb_size, args.heads, args.concat, args.dropout, args.leaky_rate)
 
     print('loading HEAT model')
-
-    net.to(args.device)
 
     optimizer = tlx.optimizers.Adam(lr=args.lr)
 
     train_weights = net.trainable_weights
 
-    scheduler = tlx.optimizers.lr.MultiStepDecay(learning_rate=args.lr, milestones=[1, 2, 4, 6, 10, 30, 40, 50, 60], gamma=0.7, verbose=True)
+    scheduler = tlx.optimizers.lr.MultiStepDecay(learning_rate=args.lr, milestones=[1, 2, 4, 6, 10, 30, 40, 50, 60],
+                                                 gamma=0.7, verbose=True)
 
     loss_fn = SemiSpvzLoss(net, tlx.losses.mean_squared_error)
 
@@ -62,8 +59,9 @@ def main(args):
         train_loss_epo = 0.0
         net.set_train()
         for i, data in enumerate(trainDataloader):
-            data.y = data.y[:, 0:args.out_length, :]
-            data.y = data.y.view(data.y.shape[0], -1)
+            indices = tlx.arange(0, args.out_length)
+            data.y = tlx.gather(data.y, indices, axis=1)
+            data.y = tlx.reshape(data.y, (data.y.shape[0], -1))
             loss_each_data = train_one_step(data, data.y)
             train_loss_epo += loss_each_data
 
@@ -73,8 +71,9 @@ def main(args):
         net.set_eval()
         for j, data in enumerate(valDataloader):
             logits = net(data.x, data.edge_index, data.edge_attr, data.edge_type)
-            data.y = data.y[:, 0:args.out_length, :]
-            data.y = data.y.view(data.y.shape[0], -1)
+            indices = tlx.arange(0, args.out_length)
+            data.y = tlx.gather(data.y, indices, axis=1)
+            data.y = tlx.reshape(data.y, (data.y.shape[0], -1))
             val_logits = tlx.gather(logits, data.tar_mask)
             val_y = tlx.gather(data.y, data.tar_mask)
             val_loss_epoch += tlx.convert_to_numpy(
@@ -100,19 +99,16 @@ def main(args):
 
     for i, data in enumerate(testDataloader):
         logits = net(data.x, data.edge_index, data.edge_attr, data.edge_type)
-        data.y = data.y[:, 0:args.out_length, :]
-        data.y = data.y.view(data.y.shape[0], -1)
+        indices = tlx.arange(0, args.out_length)
+        data.y = tlx.gather(data.y, indices, axis=1)
+        data.y = tlx.reshape(data.y, (data.y.shape[0], -1))
         test_logits = tlx.gather(logits, data.tar_mask)
         test_y = tlx.gather(data.y, data.tar_mask)
 
-        # Convert predictions to numpy arrays
-        predictions = tlx.convert_to_numpy(test_logits)
-        ground_truth = tlx.convert_to_numpy(test_y)
-
         # Calculate Euclidean distance
-        distance =np.sqrt(np.sum(np.square(predictions - ground_truth)))
+        distance = tlx.sqrt(tlx.reduce_sum(tlx.square(test_logits - test_y)))
         total_distance += distance
-        total_samples += len(predictions)
+        total_samples += len(test_logits)
 
         # print("Euclidean distance for batch {}: {:.4f}".format(i + 1, distance))
 
@@ -138,10 +134,10 @@ if __name__ == '__main__':
     parser.add_argument('--concat', type=bool, default=True, help='heat_concat')
     parser.add_argument("--hist_length", type=int, default=10, help="length of history trajectory")
     parser.add_argument("--out_length", type=int, default=30, help="length of future trajectory")
-    parser.add_argument("--dropout", type=int, default=0.5, help="dropout rate")
-    parser.add_argument("--leaky_rate", type=int, default=0.1, help="LeakyReLU rate")
+    parser.add_argument("--dropout", type=float, default=0.5, help="dropout rate")
+    parser.add_argument("--leaky_rate", type=float, default=0.1, help="LeakyReLU rate")
 
-    parser.add_argument("--lr", type=int, default=0.001, help="learning rate")
+    parser.add_argument("--lr", type=float, default=0.001, help="learning rate")
     parser.add_argument("--batch_size", type=int, default=20, help="batch")
     parser.add_argument("--data_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--result_path", type=str, default=r'', help="path to save result")
