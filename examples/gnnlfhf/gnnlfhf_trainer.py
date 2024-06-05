@@ -1,6 +1,6 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import sys
 import argparse
@@ -116,8 +116,6 @@ def main(args):
     test_acc = calculate_acc(test_logits, test_y, metrics)
     print("Test acc:  {:.4f}".format(test_acc))
 
-    return test_acc
-
 
 if __name__ == '__main__':
     # parameters setting
@@ -145,18 +143,4 @@ if __name__ == '__main__':
     else:
         tlx.set_device("CPU")
 
-    import numpy as np
-
-    number = []
-    for i in range(5):
-        acc = main(args)
-
-        number.append(acc)
-
-    print("实验结果：")
-    print(np.mean(number))
-    print(np.std(number))
-    print(number)
-
-    # main(args)
-
+    main(args)
