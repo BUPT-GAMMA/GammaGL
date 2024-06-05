@@ -19,6 +19,7 @@ from .polblogs import PolBlogs
 from .wikics import WikiCS
 from .blogcatalog import BlogCatalog
 from .molecule_net import MoleculeNet
+from .yelp import Yelp
 
 __all__ = [
     'Amazon',
@@ -40,7 +41,8 @@ __all__ = [
     'AMiner',
     'PolBlogs',
     'WikiCS',
-    'MoleculeNet'
+    'MoleculeNet',
+    'Yelp'
 ]
 
 classes = __all__

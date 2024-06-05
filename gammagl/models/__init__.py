@@ -54,6 +54,8 @@ from .grace_spco import Grace_Spco_Encoder, Grace_Spco_Model
 from .graphormer import Graphormer
 from .fusedgat import FusedGATModel
 from .hid_net import Hid_net
+from .gnnlfhf import GNNLFHFModel
+
 __all__ = [
     'GCNModel',
     'GATModel',
@@ -110,7 +112,8 @@ __all__ = [
     'SFGCNModel',
     'Graphormer',
     'FusedGATModel',
-    'hid_net'
+    'hid_net',
+    'GNNLFHFModel'
 ]
 
 classes = __all__
