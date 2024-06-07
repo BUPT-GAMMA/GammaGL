@@ -10,6 +10,7 @@ import os
 # os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
+#To run this, you should change line 186, String'YourFileDirectory' to your own file directory
 import numpy
 import random
 import argparse
@@ -182,8 +183,7 @@ def evaluate(embeds, ratio, idx_train, idx_val, idx_test, label, nb_classes, dat
         return np.mean(macro_f1s_val), np.mean(macro_f1s)
 
 def main(args):
-    path = osp.join(osp.dirname(osp.realpath(__file__)), '../../data/acm')
-    dataset = ACM4HeCo(root = path)
+    dataset = ACM4HeCo(root = 'YourFileDirectory')
     graph = dataset[0]
     nei_index =  graph['paper'].nei
     feats =  graph['feat_p/a/s']
