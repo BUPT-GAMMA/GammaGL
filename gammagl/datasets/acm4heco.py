@@ -46,35 +46,34 @@ class ACM4HeCo(InMemoryDataset):
     """
 
     url = 'https://github.com/liun-online/HeCo/raw/main/data/acm'
+    class ACM4HeCo(InMemoryDataset):
     def __init__(self, root: Optional[str] = None, transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None, pre_filter: Optional[Callable] = None,
                  force_reload: bool = False):
+        self.name = 'ACM4HeCo'
         super().__init__(root, transform, pre_transform, pre_filter, force_reload = force_reload)
         self.data, self.slices = self.load_data(self.processed_paths[0])
+
+    @property
+    def raw_dir(self):
+        return osp.join(self.root, self.name, 'raw')
+    
+    @property
+    def processed_dir(self):
+        return osp.join(self.root, self.name, 'processed')
+
     @property
     def raw_file_names(self) -> List[str]:
         return ['pa.txt', 'ps.txt', 'labels.npy', 'p_feat.npz', 'train_20.npy', 
                 'train_40.npy', 'train_60.npy', 'test_20.npy', 'test_40.npy', 'test_60.npy',
                   'val_20.npy', 'val_40.npy', 'val_60.npy']
-
-
     @property
     def processed_file_names(self) -> str:
-        return tlx.BACKEND + '_data.pt'
-    
+        return tlx.BACKEND + '_data.pt'    
     def download(self):
         shutil.rmtree(self.raw_dir)
-        download_url(self.url, self.root)
-        os.rename(osp.join(self.root, 'acm'), self.raw_dir)
-
-    
-
-    ''' def download(self):
-        print("---  download data  ---")
-        for name in self.raw_file_names:
-            download_url(f'{url}/{name}', self.dir)'''
-           
-
+        for i in range(0, len(self.raw_file_names)):
+           download_url(f'{url}/{self.raw_file_names[i]}', self.raw_dir)           
     # onehot encoder
     def encode_onehot(self, labels):
         labels = labels.reshape(-1, 1)
