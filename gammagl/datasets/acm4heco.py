@@ -11,13 +11,15 @@ import numpy as np
 import tensorlayerx as tlx
 import shutil
 import errno
-from gammagl.data import (HeteroGraph, InMemoryDataset, extract_zip)
+from gammagl.data import HeteroGraph, InMemoryDataset, extract_zip
 from sklearn.preprocessing import OneHotEncoder
 import requests
 import io
 import zipfile
 from gammagl.data import download_url
-    r"""The heterogeneous ACM dataset from the `"Self-supervised Heterogeneous Graph Neural Network with
+
+class ACM4HeCo(InMemoryDataset):
+     r"""The heterogeneous ACM dataset from the `"Self-supervised Heterogeneous Graph Neural Network with
     Co-contrastive Learning"
     <https://arxiv.org/abs/2105.09111>`_ paper, consisting of nodes from
     type :obj:`"paper"`, :obj:`"author"` and :obj:`"subject"`.
@@ -43,18 +45,12 @@ from gammagl.data import download_url
 
     """
 
-
-
-url = 'https://github.com/liun-online/HeCo/raw/main/data/acm'
-class ACM4HeCo(InMemoryDataset):
+    url = 'https://github.com/liun-online/HeCo/raw/main/data/acm'
     def __init__(self, root: Optional[str] = None, transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None, pre_filter: Optional[Callable] = None,
                  force_reload: bool = False):
         super().__init__(root, transform, pre_transform, pre_filter, force_reload = force_reload)
         self.data, self.slices = self.load_data(self.processed_paths[0])
-
-
-
     @property
     def raw_file_names(self) -> List[str]:
         return ['pa.txt', 'ps.txt', 'labels.npy', 'p_feat.npz', 'train_20.npy', 
@@ -247,10 +243,7 @@ class ACM4HeCo(InMemoryDataset):
         data['paper'].label = label
         data['train'] = train
         data['val'] = val
-        data['test'] = test
-    
-    
+        data['test'] = test    
         if self.pre_transform is not None:
             data = self.pre_transform(data)
-
         self.save_data(self.collate([data]), self.processed_paths[0])
