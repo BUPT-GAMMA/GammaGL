@@ -182,7 +182,7 @@ def evaluate(embeds, ratio, idx_train, idx_val, idx_test, label, nb_classes, dat
         return np.mean(macro_f1s_val), np.mean(macro_f1s)
 
 def main(args):
-    dataset = ACM4HeCo(args.LocalFilePath)
+    dataset = ACM4HeCo(root = 'yourLocalDirectory')
     graph = dataset[0]
     nei_index =  graph['paper'].nei
     feats =  graph['feat_p/a/s']
@@ -260,7 +260,6 @@ if __name__ == '__main__':
     args, _ = parser.parse_known_args()
     args.type_num = [4019, 7167, 60]  # the number of every node type
     args.nei_num = 2  # the number of neighbors' types
-    args.LocalFilePath = "path" #With your own local directory
     own_str = args.dataset
 
     main(args)
