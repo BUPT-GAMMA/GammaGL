@@ -3,7 +3,7 @@ import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 # os.environ['TL_BACKEND'] = 'paddle'
 import tensorlayerx as tlx
-from gammagl.datasets.ACM_data_process import ACM4HeCo
+from gammagl.datasets.acm4heco import ACM4HeCo
 
 root = './data'
 
