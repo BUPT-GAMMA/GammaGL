@@ -182,7 +182,8 @@ def evaluate(embeds, ratio, idx_train, idx_val, idx_test, label, nb_classes, dat
         return np.mean(macro_f1s_val), np.mean(macro_f1s)
 
 def main(args):
-    dataset = ACM4HeCo(root = 'yourLocalDirectory')
+    path = osp.join(osp.dirname(osp.realpath(__file__)), '../../data/acm')
+    dataset = ACM4HeCo(root = path)
     graph = dataset[0]
     nei_index =  graph['paper'].nei
     feats =  graph['feat_p/a/s']
