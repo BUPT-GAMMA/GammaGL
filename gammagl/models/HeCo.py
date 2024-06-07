@@ -3,15 +3,17 @@ import tensorlayerx as tlx
 import tensorlayerx.nn as nn
 from gammagl.layers.attention.HeCo_encoder import Mp_encoder
 from gammagl.layers.attention.HeCo_encoder import Sc_encoder
-r"""HeCo proposed in `"Self-supervised Heterogeneous Graph Neural Network with Co-contrastive Learning" 
-<https://arxiv.org/abs/2105.09111>`_ paper.
+
+class HeCo(nn.Module):
+    r"""HeCo proposed in `"Self-supervised Heterogeneous Graph Neural Network with Co-contrastive Learning" 
+        <https://arxiv.org/abs/2105.09111>`_ paper.
 
         Parameters
         ----------
         feature
          hidden_dim: int
             The dimensionality of hidden layer.
-        feats_dim_list: [matrix, matrix, matrix]
+        feats_dim_list: list
             a list of shapes of features from paper, author, subject.
         feat_drop: float
             The number of drop rate of features.
@@ -24,9 +26,7 @@ r"""HeCo proposed in `"Self-supervised Heterogeneous Graph Neural Network with C
         nei_num:
             The number of neibor's type
 
-        """
-
-class HeCo(nn.Module):
+     """
     def __init__(self, hidden_dim, feats_dim_list, feat_drop, attn_drop, P, sample_rate,
                  nei_num):
         super(HeCo, self).__init__()
