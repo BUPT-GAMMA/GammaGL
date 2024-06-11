@@ -1,6 +1,6 @@
 import numpy as np
 import tensorlayerx as tlx
-from gammagl.layers.conv import MessagePassing
+from .message_passing import MessagePassing
 from tensorlayerx.nn import Linear, LeakyReLU, Dropout
 
 

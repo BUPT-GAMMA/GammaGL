@@ -1,7 +1,9 @@
 import argparse
 import os
-os.environ["OMP_NUM_THREADS"] = "4"
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
 import tensorlayerx as tlx
 from gammagl.datasets import NGSIM_US_101
@@ -44,14 +46,10 @@ def main(args):
     print('loading HEAT model')
 
     optimizer = tlx.optimizers.Adam(lr=args.lr)
-
     train_weights = net.trainable_weights
-
     scheduler = tlx.optimizers.lr.MultiStepDecay(learning_rate=args.lr, milestones=[1, 2, 4, 6, 10, 30, 40, 50, 60],
                                                  gamma=0.7, verbose=True)
-
     loss_fn = SemiSpvzLoss(net, tlx.losses.mean_squared_error)
-
     train_one_step = TrainOneStep(loss_fn, optimizer, train_weights)
 
     best_val_loss = 1000
@@ -118,9 +116,8 @@ def main(args):
 
 
 if __name__ == '__main__':
-    # # Network arguments
+    # parameters setting
     parser = argparse.ArgumentParser()
-    # parser.add_argument("--lr", type=float, default=0.005, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=40, help="number of epoch")
     parser.add_argument("--in_channels_node", type=int, default=64, help="heat_in_channels_node")
     parser.add_argument("--in_channels_edge_attr", type=int, default=5, help="heat_in_channels_edge_attr")
