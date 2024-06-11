@@ -114,7 +114,7 @@ __all__ = [
     'Graphormer',
     'FusedGATModel',
     'hid_net',
-    'HEAT'
+    'HEAT',
     'GNNLFHFModel'
 ]
 
