@@ -1,5 +1,6 @@
 from .gcn import GCNModel
 from .gat import GATModel
+from .heat import HEAT
 from .sgc import SGCModel
 from .gatv2 import GATV2Model
 from .gaan import GaANModel
@@ -113,6 +114,7 @@ __all__ = [
     'Graphormer',
     'FusedGATModel',
     'hid_net',
+    'HEAT',
     'GNNLFHFModel'
 ]
 
