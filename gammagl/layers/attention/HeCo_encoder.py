@@ -14,13 +14,13 @@ class metapathSpecificGCN(nn.Module):
         else:
             self.register_parameter('bias', None)
 
-
     def forward(self, seq, adj):
         seq_fts = self.fc(seq)
         out = tlx.matmul(adj, seq_fts) 
         if self.bias is not None:
             out += self.bias
         return self.act(out)
+
 
 class inter_att(nn.Module):
     def __init__(self, hidden_dim, attn_drop):
@@ -89,20 +89,15 @@ class intra_att(nn.Module):
         nei_emb = tlx.reduce_sum(att*nei_emb, axis=1)
         return nei_emb 
 
+
 class Attention(nn.Module):
     def __init__(self, hidden_dim, attn_drop):
         super(Attention, self).__init__()
         self.fc = nn.Linear(in_features=hidden_dim, out_features=hidden_dim, W_init='xavier_normal') 
-        # self.fc = nn.Linear(hidden_dim, hidden_dim, bias=True)
-        # nn.init.xavier_normal_(self.fc.weight, gain=1.414)
-
         self.tanh = nn.Tanh()
 
         initor = tlx.initializers.XavierNormal(gain=1.414)
         self.att = self._get_weights("att", shape=(1, hidden_dim), init=initor)
-        # self.att = nn.Parameter(torch.empty(size=(1, hidden_dim)), requires_grad=True)
-        # nn.init.xavier_normal_(self.att.data, gain=1.414)
-
         self.softmax = nn.Softmax()
         if attn_drop:
             self.attn_drop = nn.Dropout(attn_drop)
@@ -161,6 +156,8 @@ class Sc_encoder(nn.Module):
             embeds.append(one_type_emb)
         z_mc = self.inter(embeds)
         return z_mc
+
+
 class Mp_encoder(nn.Module):
     def __init__(self, P, hidden_dim, attn_drop):
         super(Mp_encoder, self).__init__()
