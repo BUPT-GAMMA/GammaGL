@@ -189,6 +189,7 @@ def main(args):
     idx_train = graph['train']
     idx_val = graph['val']
     idx_test = graph['test']
+    nei_num = graph['nei_num']
     datas = {
         "feats": feats,
         "mps": mps,
@@ -201,7 +202,7 @@ def main(args):
     print("The number of meta-paths: ", P)
 
     model = HeCo(args.hidden_dim, feats_dim_list, args.feat_drop, args.attn_drop,
-                    P, args.sample_rate, args.nei_num)
+                    P, args.sample_rate, nei_num)
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     contrast_loss = Contrast(args.hidden_dim, args.tau, args.lam)
     best_t = 0
@@ -247,8 +248,6 @@ if __name__ == '__main__':
     parser.add_argument('--attn_drop', type=float, default=0.5, help="dropping rate for attention layer")
     parser.add_argument('--sample_rate', nargs='+', type=int, default=[7, 1])
     parser.add_argument('--lam', type=float, default=0.5, help="lam parameter for contrast learning")
-    parser.add_argument('--type_num', type=list, default=[4019, 7167, 60],help="the number of every node type")
-    parser.add_argument('--nei_num', type=int, default=2, help="the number of neighbors' types")
     args, _ = parser.parse_known_args()
     own_str = args.dataset
 
