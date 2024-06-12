@@ -246,10 +246,9 @@ if __name__ == '__main__':
     parser.add_argument('--tau', type=float, default=0.8, help="tau parameter for contrast learning")
     parser.add_argument('--feat_drop', type=float, default=0.3, help="dropping rate for feature")
     parser.add_argument('--attn_drop', type=float, default=0.5, help="dropping rate for attention layer")
-    parser.add_argument('--sample_rate', nargs='+', type=int, default=[7, 1])
+    parser.add_argument('--sample_rate', nargs='+', type=int, default=[7, 1]， help="sample number for network schema encoding")
     parser.add_argument('--lam', type=float, default=0.5, help="lam parameter for contrast learning")
-    args, _ = parser.parse_known_args()
-    own_str = args.dataset
+    args, _ = parser.parse_args()
 
     main(args)
     
