@@ -44,12 +44,10 @@ class ACM4HeCo(InMemoryDataset):
         (default: :obj:`False`)
 
     """
-
-    url = 'https://github.com/liun-online/HeCo/raw/main/data/acm'
-    class ACM4HeCo(InMemoryDataset):
     def __init__(self, root: Optional[str] = None, transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None, pre_filter: Optional[Callable] = None,
                  force_reload: bool = False):
+        self.url = 'https://github.com/liun-online/HeCo/raw/main/data/acm'
         self.name = 'ACM4HeCo'
         super().__init__(root, transform, pre_transform, pre_filter, force_reload = force_reload)
         self.data, self.slices = self.load_data(self.processed_paths[0])
@@ -73,7 +71,7 @@ class ACM4HeCo(InMemoryDataset):
     def download(self):
         shutil.rmtree(self.raw_dir)
         for i in range(0, len(self.raw_file_names)):
-           download_url(f'{url}/{self.raw_file_names[i]}', self.raw_dir)           
+           download_url(f'{self.url}/{self.raw_file_names[i]}', self.raw_dir)           
     # onehot encoder
     def encode_onehot(self, labels):
         labels = labels.reshape(-1, 1)
