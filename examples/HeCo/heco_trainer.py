@@ -19,7 +19,7 @@ import tensorlayerx.nn as nn
 from sklearn.metrics import f1_score
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import OneHotEncoder
-from gammagl.models.HeCo import HeCo
+from gammagl.models.heco import HeCo
 from tensorlayerx.model import WithLoss
 from gammagl.datasets.acm4heco import ACM4HeCo
 import scipy.sparse as sp
