@@ -11,10 +11,7 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 #To run this, you should change line 186, String'YourFileDirectory' to your own file directory
-import numpy
-import random
 import argparse
-import warnings
 import numpy as np
 import scipy.sparse as sp
 import tensorlayerx as tlx
@@ -25,7 +22,6 @@ from sklearn.preprocessing import OneHotEncoder
 from gammagl.models.HeCo import HeCo
 from tensorlayerx.model import WithLoss
 from gammagl.datasets.acm4heco import ACM4HeCo
-
 import scipy.sparse as sp
 #Mention: all 'str' in this code should be replaced with your own file directories
 class Contrast(nn.Module):
@@ -82,7 +78,7 @@ class LogReg(nn.Module):
         return ret
 
 
-def evaluate(embeds, ratio, idx_train, idx_val, idx_test, label, nb_classes, dataset, lr, wd, isTest=True):
+def evaluate(embeds, idx_train, idx_val, idx_test, label, nb_classes, lr, wd, isTest=True):
     hid_units = tlx.get_tensor_shape(embeds)[1]
     train_embs_list = []
     val_embs_list = []
@@ -193,16 +189,14 @@ def main(args):
     idx_train = graph['train']
     idx_val = graph['val']
     idx_test = graph['test']
-    isTest=True
     datas = {
         "feats": feats,
         "mps": mps,
         "nei_index": nei_index,
     }
-    nb_classes = tlx.get_tensor_shape(label)[1]
+    n_classes = tlx.get_tensor_shape(label)[1]
     feats_dim_list = [tlx.get_tensor_shape(i)[1] for i in feats]
     P = int(len(mps))
-    print("seed ",args.seed)
     print("Dataset: ", args.dataset)
     print("The number of meta-paths: ", P)
 
@@ -210,57 +204,52 @@ def main(args):
                     P, args.sample_rate, args.nei_num)
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     contrast_loss = Contrast(args.hidden_dim, args.tau, args.lam)
-    cnt_wait = 0
-    best = 1e9
     best_t = 0
-    cnt = 0
+    best = 1e9
     loss_func = Contrast_Loss(model, contrast_loss)
     weights_to_train = model.trainable_weights+contrast_loss.trainable_weights
     train_one_step = tlx.model.TrainOneStep(loss_func, optimizer, weights_to_train)
-    for epoch in range(args.nb_epochs):  #args.nb_epochs
+    for epoch in range(args.n_epochs):
         loss = train_one_step(datas, pos)
-        print("loss ", loss)
-        best = loss
-        best_t = epoch
+        print("Epoch:", epoch)
+        print("train_loss:", loss)
+        if loss < best:
+            best = loss
+            best_t = epoch
         model.save_weights(model.name+".npz", format='npz_dict')
     print('Loading {}th epoch'.format(best_t))
     model.load_weights(model.name+".npz", format='npz_dict')
     model.set_eval()
-    os.remove(model.name+".npz")
     embeds = model.get_embeds(feats, mps)
     # To evaluate the HeCo model with different numbers of training labels, that is 20,40 and 60, which is indicated in the essay of HeCo
     for i in range(len(idx_train)):
-        evaluate(embeds, args.ratio[i], idx_train[i], idx_val[i], idx_test[i], label, nb_classes, args.dataset, args.eva_lr, args.eva_wd)
+        evaluate(embeds, idx_train[i], idx_val[i], idx_test[i], label, n_classes, args.eva_lr, args.eva_wd)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--turn', type=int, default=0)
-    parser.add_argument('--dataset', type=str, default="acm")
-    parser.add_argument('--ratio', type=int, default=[20, 40, 60])
+    parser.add_argument('--dataset', type=str, default="acm", help="your dataset")
+    parser.add_argument('--ratio', type=int, default=[20, 40, 60], help="traing ratio")
     parser.add_argument('--gpu', type=int, default=0)
-    parser.add_argument('--seed', type=int, default=0)
-    parser.add_argument('--hidden_dim', type=int, default=64)
-    parser.add_argument('--nb_epochs', type=int, default=10000)
+    parser.add_argument('--hidden_dim', type=int, default=64, help="hidden dimension")
+    parser.add_argument('--n_epochs', type=int, default=10000, help="training epoches for heco")
     
     # The parameters of evaluation
-    parser.add_argument('--eva_lr', type=float, default=0.05)
-    parser.add_argument('--eva_wd', type=float, default=0)
+    parser.add_argument('--eva_lr', type=float, default=0.05, help="learning rate for evaluate approach")
+    parser.add_argument('--eva_wd', type=float, default=0, help="weight decay for evaluate approach")
     
     # The parameters of learning process
-    parser.add_argument('--patience', type=int, default=5)
-    parser.add_argument('--lr', type=float, default=0.0075)  # 0.0008
-    parser.add_argument('--l2_coef', type=float, default=0.0)
+    parser.add_argument('--lr', type=float, default=0.0075, help="learing rate for training model")  # 0.0008
+    parser.add_argument('--l2_coef', type=float, default=0.0, help="L2 parameter")
     
     # model-specific parameters
-    parser.add_argument('--tau', type=float, default=0.8)
-    parser.add_argument('--feat_drop', type=float, default=0.3)
-    parser.add_argument('--attn_drop', type=float, default=0.5)
+    parser.add_argument('--tau', type=float, default=0.8, help="tau parameter for contrast learning")
+    parser.add_argument('--feat_drop', type=float, default=0.3, help="dropping rate for feature")
+    parser.add_argument('--attn_drop', type=float, default=0.5, help="dropping rate for attention layer")
     parser.add_argument('--sample_rate', nargs='+', type=int, default=[7, 1])
-    parser.add_argument('--lam', type=float, default=0.5)
-    
+    parser.add_argument('--lam', type=float, default=0.5, help="lam parameter for contrast learning")
+    parser.add_argument('--type_num', type=list, default=[4019, 7167, 60],help="the number of every node type")
+    parser.add_argument('--nei_num', type=int, default=2, help="the number of neighbors' types")
     args, _ = parser.parse_known_args()
-    args.type_num = [4019, 7167, 60]  # the number of every node type
-    args.nei_num = 2  # the number of neighbors' types
     own_str = args.dataset
 
     main(args)
