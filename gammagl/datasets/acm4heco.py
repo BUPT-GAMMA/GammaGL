@@ -69,7 +69,6 @@ class ACM4HeCo(InMemoryDataset):
     def processed_file_names(self) -> str:
         return tlx.BACKEND + '_data.pt'    
     def download(self):
-        shutil.rmtree(self.raw_dir)
         for i in range(0, len(self.raw_file_names)):
            download_url(f'{self.url}/{self.raw_file_names[i]}', self.raw_dir)           
     # onehot encoder
