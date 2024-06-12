@@ -113,8 +113,6 @@ class Attention(nn.Module):
             sp = tlx.reduce_mean(self.tanh(self.fc(embed)), axis=0)
             if cnt == 1 :
                 attn_curr_array = tlx.convert_to_numpy(attn_curr)
-            #print(attn_curr_array[0])
-            #print(tlx.matmul(attn_curr, tlx.transpose(sp)))
             sp = tlx.transpose(sp)
             sp = tlx.convert_to_numpy(sp)
             beta_tmp = np.matmul(attn_curr_array[0], sp)
@@ -123,7 +121,6 @@ class Attention(nn.Module):
 
         beta = tlx.reshape(tlx.concat(beta, axis=-1), (-1, ))
         beta = self.softmax(beta)
-        # print("mp ", beta.data.cpu().numpy())
         z_mp = 0
         for i in range(len(embeds)):
             z_mp += embeds[i]*beta[i]
