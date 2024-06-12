@@ -1,8 +1,8 @@
 import numpy as np
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
-from gammagl.layers.attention.HeCo_encoder import Mp_encoder
-from gammagl.layers.attention.HeCo_encoder import Sc_encoder
+from gammagl.layers.attention.heco_encoder import Mp_encoder
+from gammagl.layers.attention.heco_encoder import Sc_encoder
 
 class HeCo(nn.Module):
     r"""HeCo proposed in `"Self-supervised Heterogeneous Graph Neural Network with Co-contrastive Learning" 
