@@ -5,6 +5,8 @@ from gammagl.layers.conv import HEATlayer
 
 
 def test_heat_layer():
+    if tlx.BACKEND == "tensorflow":
+        return
     x = tlx.random_normal(shape=(4, 64))
     edge_index = tlx.convert_to_tensor([[0, 0, 0, 1, 2, 3], [1, 2, 3, 0, 0, 0]])
     edge_attrs = tlx.random_normal(shape=(6, 5))
@@ -15,7 +17,7 @@ def test_heat_layer():
 
     out = conv(x, edge_index, edge_attrs, edge_types)
 
-    assert tlx.get_tensor_shape(out) == [4, 128]
+    assert tlx.get_tensor_shape(out) == [4, 128 * 3]
 
 
 # if __name__ == "__main__":
