@@ -52,7 +52,7 @@ from .grace_pot import Grace_POT_Encoder, Grace_POT_Model
 from .sfgcn import SFGCNModel
 from .grace_spco import Grace_Spco_Encoder, Grace_Spco_Model
 from .graphormer import Graphormer
-from .HeCo import HeCo
+from .heco import HeCo
 __all__ = [
     'HeCo',
     'GCNModel',
