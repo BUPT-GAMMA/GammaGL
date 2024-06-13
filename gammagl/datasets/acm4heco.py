@@ -189,32 +189,22 @@ class ACM4HeCo(InMemoryDataset):
         feat_a = tlx.convert_to_tensor(self.preprocess_features(feat_a), 'float32')
         feat_s = tlx.convert_to_tensor(self.preprocess_features(feat_s), 'float32')
 
+        #data process for edge_index
+        p_list = []
+        a_list = []
+        row_num = np.size(pa, 0)
+        for i in range(0, row_num):
+            p_list.append(pa[i][0])
+            a_list.append(pa[i][1])
+        edge_idx_pa = sp.coo_matrix((np.ones(len(p_list)), (np.array(p_list), np.array(a_list))), shape=(4019, 7167)).toarray()
 
-        #data process for neibor
-        p_n_a = {}
-        p_n_s = {}
-        for nei_pa in pa:
-            if nei_pa[0] not in p_n_a:
-                p_n_a[int(nei_pa[0])] = []
-                p_n_a[int(nei_pa[0])].append(int(nei_pa[1]))
-            else:
-                p_n_a[int(nei_pa[0])].append(int(nei_pa[1]))
-        keys =  sorted(p_n_a.keys())
-        p_n_a = [p_n_a[i] for i in keys]
-        p_n_a = [np.array(i) for i in p_n_a]
-        for nei_ps in ps:
-            if nei_ps[0] not in p_n_s:
-                p_n_s[int(nei_ps[0])] = []
-                p_n_s[int(nei_ps[0])].append(int(nei_ps[1]))
-            else:
-                p_n_s[int(nei_ps[0])].append(int(nei_ps[1]))
-        keys =  sorted(p_n_s.keys())
-        p_n_s = [p_n_s[i] for i in keys]
-        p_n_s = [np.array(i) for i in p_n_s]
-        nei_a = p_n_a
-        nei_s = p_n_s
-        nei_a = [tlx.convert_to_tensor(i, 'int64') for i in nei_a]
-        nei_s = [tlx.convert_to_tensor(i, 'int64') for i in nei_s]
+        p_list = []
+        s_list = []
+        row_num = np.size(ps, 0)
+        for i in range(0, row_num):
+            p_list.append(ps[i][0])
+            s_list.append(ps[i][1])
+        edge_idx_ps = sp.coo_matrix((np.ones(len(p_list)), (np.array(p_list), np.array(s_list))), shape=(4019, 60)).toarray()
 
         #data process for train\test\val
         train = []
@@ -232,15 +222,18 @@ class ACM4HeCo(InMemoryDataset):
         train = [tlx.convert_to_tensor(i, 'int64') for i in train]
         val = [tlx.convert_to_tensor(i, 'int64') for i in val]
         test = [tlx.convert_to_tensor(i, 'int64') for i in test]
-        data['paper'].nei = [nei_a, nei_s] # neibors of paper
-        data['feat_p/a/s'] = [feat_p, feat_a, feat_s] # features for paper, author and subject
-        data['metapath'] = [pap, psp] # metapath of pap and psp
-        data['pos_set_for_contrast'] = pos # positive set for contrast learning
-        data['paper'].label = label # label for paper
-        data['train'] = train # training set
-        data['val'] = val # evaluating set
-        data['test'] = test # testing set
-        data['nei_num'] = 2 # number of neibors
+        data['edge_index_dict'] = {('paper', 'to', 'author'): edge_idx_pa, ('paper', 'to', 'subject'): edge_idx_ps}
+        data['paper'].x = feat_p
+        data['author'].x = feat_a
+        data['subject'].x = feat_s
+        data['metapath'] = [pap, psp]
+        data['pos_set_for_contrast'] = pos
+        data['paper'].y = label
+        data['train'] = train
+        data['val'] = val
+        data['test'] = test
+        data['nei_num'] = 2
         if self.pre_transform is not None:
             data = self.pre_transform(data)
         self.save_data(self.collate([data]), self.processed_paths[0])
+
