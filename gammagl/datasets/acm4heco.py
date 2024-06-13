@@ -240,7 +240,6 @@ class ACM4HeCo(InMemoryDataset):
         data['train'] = train
         data['val'] = val
         data['test'] = test
-        data['type_num'] = [4019, 7167, 60]
         data['nei_num'] = 2
         if self.pre_transform is not None:
             data = self.pre_transform(data)
