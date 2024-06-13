@@ -217,7 +217,7 @@ def main(args):
         if loss < best:
             best = loss
             best_t = epoch
-        model.save_weights(model.name+".npz", format='npz_dict')
+            model.save_weights(model.name+".npz", format='npz_dict')
     print('Loading {}th epoch'.format(best_t))
     model.load_weights(model.name+".npz", format='npz_dict')
     model.set_eval()
