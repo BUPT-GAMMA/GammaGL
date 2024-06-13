@@ -181,15 +181,46 @@ def evaluate(embeds, idx_train, idx_val, idx_test, label, nb_classes, lr, wd, is
 def main(args):
     dataset = ACM4HeCo(root = 'YourFileDirectory')
     graph = dataset[0]
-    nei_index =  graph['paper'].nei
-    feats =  graph['feat_p/a/s']
+    edge_pa = graph['edge_index_dict'][('paper', 'to', 'author')]
+    edge_ps = graph['edge_index_dict'][('paper', 'to', 'subject')]
+    feats = []
+    feats.append(graph['paper'].x)
+    feats.append(graph['author'].x)
+    feats.append(graph['subject'].x)
     mps = graph['metapath']
     pos = graph['pos_set_for_contrast']
-    label = graph['paper'].label
+    label = graph['paper'].y
     idx_train = graph['train']
     idx_val = graph['val']
     idx_test = graph['test']
     nei_num = graph['nei_num']
+    p_n_a = []
+    for i in range(0, 4019):
+        row = edge_pa[i]
+        p_a = []
+        for j in range(0, 7167):
+            if(row[j]) != 0:
+                p_a.append(j)
+        p_n_a.append(p_a)
+
+    p_n_a = [np.array(i) for i in p_n_a]
+    nei_a = p_n_a
+    nei_a = [tlx.convert_to_tensor(i, 'int64') for i in nei_a]
+    p_n_s = []
+    i = 0
+    for i in range(0, 4019):
+        row = edge_ps[i]
+        p_s = []
+        for j in range(0, 60):
+            if(row[j]) != 0:
+                p_s.append(j)
+        p_n_s.append(p_s)
+    p_n_s = [np.array(i) for i in p_n_s]
+    nei_s = p_n_s
+    nei_s = [tlx.convert_to_tensor(i, 'int64') for i in nei_s]
+    nei_index = []
+    nei_index.append(nei_a)
+    nei_index.append(nei_s)
     datas = {
         "feats": feats,
         "mps": mps,
