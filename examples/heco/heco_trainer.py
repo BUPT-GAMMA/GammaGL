@@ -248,6 +248,6 @@ if __name__ == '__main__':
     parser.add_argument('--attn_drop', type=float, default=0.5, help="dropping rate for attention layer")
     parser.add_argument('--sample_rate', nargs='+', type=int, default=[7, 1], help="sample number for network schema encoding")
     parser.add_argument('--lam', type=float, default=0.5, help="lam parameter for contrast learning")
-    args, _ = parser.parse_args()
+    args = parser.parse_args()
 
     main(args)
