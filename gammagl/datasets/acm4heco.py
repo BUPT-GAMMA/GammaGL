@@ -232,15 +232,15 @@ class ACM4HeCo(InMemoryDataset):
         train = [tlx.convert_to_tensor(i, 'int64') for i in train]
         val = [tlx.convert_to_tensor(i, 'int64') for i in val]
         test = [tlx.convert_to_tensor(i, 'int64') for i in test]
-        data['paper'].nei = [nei_a, nei_s]
-        data['feat_p/a/s'] = [feat_p, feat_a, feat_s]
-        data['metapath'] = [pap, psp]
-        data['pos_set_for_contrast'] = pos
-        data['paper'].label = label
-        data['train'] = train
-        data['val'] = val
-        data['test'] = test
-        data['nei_num'] = 2
+        data['paper'].nei = [nei_a, nei_s] # neibors of paper
+        data['feat_p/a/s'] = [feat_p, feat_a, feat_s] # features for paper, author and subject
+        data['metapath'] = [pap, psp] # metapath of pap and psp
+        data['pos_set_for_contrast'] = pos # positive set for contrast learning
+        data['paper'].label = label # label for paper
+        data['train'] = train # training set
+        data['val'] = val # evaluating set
+        data['test'] = test # testing set
+        data['nei_num'] = 2 # number of neibors
         if self.pre_transform is not None:
             data = self.pre_transform(data)
         self.save_data(self.collate([data]), self.processed_paths[0])
