@@ -2,6 +2,7 @@ import numpy as np
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
 
+
 class metapathSpecificGCN(nn.Module):
     def __init__(self, in_ft, out_ft, bias=True):
         super(metapathSpecificGCN, self).__init__()
@@ -16,7 +17,7 @@ class metapathSpecificGCN(nn.Module):
 
     def forward(self, seq, adj):
         seq_fts = self.fc(seq)
-        out = tlx.matmul(adj, seq_fts) 
+        out = tlx.matmul(adj, seq_fts)
         if self.bias is not None:
             out += self.bias
         return self.act(out)
@@ -44,7 +45,7 @@ class inter_att(nn.Module):
         for embed in embeds:
             cnt = cnt + 1
             sp = tlx.reduce_mean(self.tanh(self.fc(embed)), axis=0)
-            if cnt == 1 :
+            if cnt == 1:
                 attn_curr_array = tlx.convert_to_numpy(attn_curr)
             sp = tlx.transpose(sp)
             sp = tlx.convert_to_numpy(sp)
@@ -52,7 +53,7 @@ class inter_att(nn.Module):
             beta_tmp = tlx.expand_dims(tlx.convert_to_tensor(beta_tmp), 0)
             beta.append(beta_tmp)
 
-        beta = tlx.reshape(tlx.concat(beta, axis=-1), (-1, ))  
+        beta = tlx.reshape(tlx.concat(beta, axis=-1), (-1,))
         beta = self.softmax(beta)
         z_mc = 0
         for i in range(len(embeds)):
@@ -64,7 +65,7 @@ class intra_att(nn.Module):
     def __init__(self, hidden_dim, attn_drop):
         super(intra_att, self).__init__()
         initor = tlx.initializers.XavierNormal(gain=1.414)
-        self.att = self._get_weights("att", shape=(1, 2*hidden_dim), init=initor)
+        self.att = self._get_weights("att", shape=(1, 2 * hidden_dim), init=initor)
         if attn_drop:
             self.attn_drop = nn.Dropout(attn_drop)
         else:
@@ -73,27 +74,27 @@ class intra_att(nn.Module):
         self.softmax = nn.Softmax(axis=1)
         self.leakyrelu = nn.LeakyReLU()
 
-    def forward(self, nei, h, h_refer): 
-        nei_emb = []  
+    def forward(self, nei, h, h_refer):
+        nei_emb = []
         length = tlx.get_tensor_shape(nei)[0]
         for i in range(length):
-            temp = tlx.gather(h, nei[i])  
+            temp = tlx.gather(h, nei[i])
             nei_emb.append(tlx.convert_to_numpy(temp))
         nei_emb = tlx.convert_to_tensor(nei_emb)
-        h_refer = tlx.expand_dims(h_refer, 1) 
+        h_refer = tlx.expand_dims(h_refer, 1)
         h_refer = tlx.concat([h_refer] * tlx.get_tensor_shape(nei_emb)[1], axis=1)
         all_emb = tlx.concat([h_refer, nei_emb], axis=-1)
         attn_curr = self.attn_drop(self.att)
         att = self.leakyrelu(tlx.matmul(all_emb, tlx.transpose(attn_curr)))
         att = self.softmax(att)
-        nei_emb = tlx.reduce_sum(att*nei_emb, axis=1)
-        return nei_emb 
+        nei_emb = tlx.reduce_sum(att * nei_emb, axis=1)
+        return nei_emb
 
 
 class Attention(nn.Module):
     def __init__(self, hidden_dim, attn_drop):
         super(Attention, self).__init__()
-        self.fc = nn.Linear(in_features=hidden_dim, out_features=hidden_dim, W_init='xavier_normal') 
+        self.fc = nn.Linear(in_features=hidden_dim, out_features=hidden_dim, W_init='xavier_normal')
         self.tanh = nn.Tanh()
 
         initor = tlx.initializers.XavierNormal(gain=1.414)
@@ -111,7 +112,7 @@ class Attention(nn.Module):
         for embed in embeds:
             cnt = cnt + 1
             sp = tlx.reduce_mean(self.tanh(self.fc(embed)), axis=0)
-            if cnt == 1 :
+            if cnt == 1:
                 attn_curr_array = tlx.convert_to_numpy(attn_curr)
             sp = tlx.transpose(sp)
             sp = tlx.convert_to_numpy(sp)
@@ -119,11 +120,11 @@ class Attention(nn.Module):
             beta_tmp = tlx.expand_dims(tlx.convert_to_tensor(beta_tmp), 0)
             beta.append(beta_tmp)
 
-        beta = tlx.reshape(tlx.concat(beta, axis=-1), (-1, ))
+        beta = tlx.reshape(tlx.concat(beta, axis=-1), (-1,))
         beta = self.softmax(beta)
         z_mp = 0
         for i in range(len(embeds)):
-            z_mp += embeds[i]*beta[i]
+            z_mp += embeds[i] * beta[i]
         return z_mp
 
 
@@ -142,14 +143,14 @@ class Sc_encoder(nn.Module):
             sample_num = self.sample_rate[i]
             for per_node_nei in nei_index[i]:
                 if len(per_node_nei) >= sample_num:
-                        select_one = tlx.convert_to_tensor(np.random.choice(per_node_nei, sample_num,
-                                                               replace=False))[np.newaxis]
+                    select_one = tlx.convert_to_tensor(np.random.choice(per_node_nei, sample_num,
+                                                                        replace=False))[np.newaxis]
                 else:
-                        select_one = tlx.convert_to_tensor(np.random.choice(per_node_nei, sample_num,
-                                                               replace=True))[np.newaxis]
+                    select_one = tlx.convert_to_tensor(np.random.choice(per_node_nei, sample_num,
+                                                                        replace=True))[np.newaxis]
                 sele_nei.append(select_one)
             sele_nei = tlx.concat(sele_nei, axis=0)
-            one_type_emb = tlx.elu(self.intra[i](sele_nei, nei_h[i + 1], nei_h[0])) 
+            one_type_emb = tlx.elu(self.intra[i](sele_nei, nei_h[i + 1], nei_h[0]))
             embeds.append(one_type_emb)
         z_mc = self.inter(embeds)
         return z_mc
@@ -159,7 +160,7 @@ class Mp_encoder(nn.Module):
     def __init__(self, P, hidden_dim, attn_drop):
         super(Mp_encoder, self).__init__()
         self.P = P
-        self.node_level = nn.ModuleList([metapathSpecificGCN(hidden_dim, hidden_dim) for _ in range(P)]) 
+        self.node_level = nn.ModuleList([metapathSpecificGCN(hidden_dim, hidden_dim) for _ in range(P)])
         self.att = Attention(hidden_dim, attn_drop)
 
     def forward(self, h, mps):
