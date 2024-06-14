@@ -226,17 +226,17 @@ class ACM4HeCo(InMemoryDataset):
         train = [tlx.convert_to_tensor(i, 'int64') for i in train]
         val = [tlx.convert_to_tensor(i, 'int64') for i in val]
         test = [tlx.convert_to_tensor(i, 'int64') for i in test]
-        data['edge_index_dict'] = {('paper', 'to', 'author'): edge_idx_pa, ('paper', 'to', 'subject'): edge_idx_ps}
-        data['paper'].x = feat_p
-        data['author'].x = feat_a
-        data['subject'].x = feat_s
-        data['metapath'] = [pap, psp]
-        data['pos_set_for_contrast'] = pos
-        data['paper'].y = label
-        data['train'] = train
-        data['val'] = val
-        data['test'] = test
-        data['nei_num'] = 2
+        data['edge_index_dict'] = {('paper', 'to', 'author'): edge_idx_pa, ('paper', 'to', 'subject'): edge_idx_ps} # edge index for paper-to-author and paper-to-subject
+        data['paper'].x = feat_p # feature for paper
+        data['author'].x = feat_a # feature for author
+        data['subject'].x = feat_s # feature for subject
+        data['metapath'] = [pap, psp] # metapath for paper-author-paper and paper-subject-paper
+        data['pos_set_for_contrast'] = pos # positive set for contrast learning
+        data['paper'].y = label # label for paper
+        data['train'] = train # training set 
+        data['val'] = val # valuation set
+        data['test'] = test # testing set
+        data['nei_num'] = 2 # number of neibors for paper
         if self.pre_transform is not None:
             data = self.pre_transform(data)
         self.save_data(self.collate([data]), self.processed_paths[0])
