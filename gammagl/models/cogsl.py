@@ -301,7 +301,7 @@ class GenView(nn.Module):
         ff = tlx.concat([f1, f2], axis=1)
         temp = tlx.reshape(self.gen_mlp(self.dropout(ff)), (-1,))
 
-        coo = coo_matrix( (tlx.convert_to_numpy(temp.cpu()), (v_indices[0].cpu(), v_indices[1].cpu())), shape= (num_node, num_node))
+        coo = coo_matrix( (tlx.convert_to_numpy(temp), (tlx.convert_to_numpy(v_indices[0]), tlx.convert_to_numpy(v_indices[1]))), shape= (num_node, num_node))
         dense = coo.todense()
         dense[dense == 0] = np.NINF
         pi = tlx.convert_to_tensor(softmax(dense,axis=1))

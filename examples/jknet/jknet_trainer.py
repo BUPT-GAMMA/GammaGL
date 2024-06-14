@@ -66,14 +66,14 @@ def main(args):
         if new:
             useful_index.append(i)
             useful_node += 1
-    useful_mask = tlx.convert_to_tensor(useful_mask)
+    useful_mask = tlx.stack(useful_mask)
     train_num = int(useful_node * 0.6)
     val_num = int(useful_node * 0.2)
     test_num = useful_node - train_num - val_num
 
-    graph.train_mask = graph.train_mask.cpu().numpy()
-    graph.val_mask = graph.val_mask.cpu().numpy()
-    graph.test_mask = graph.test_mask.cpu().numpy()
+    graph.train_mask = tlx.convert_to_numpy(graph.train_mask)
+    graph.val_mask = tlx.convert_to_numpy(graph.val_mask)
+    graph.test_mask = tlx.convert_to_numpy(graph.test_mask)
 
 
     graph.train_mask[:] = False

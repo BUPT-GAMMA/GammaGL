@@ -14,6 +14,7 @@ Contribution is always welcomed. Please feel free to open an issue or email to y
   - Guangyu Zhou
   - Dashuai Yue
   - Xingyuan Ji
+  - Yixin Xiao
   - [Tianyu Zhao](https://github.com/Theheavens) (already graduated)
   - [Hui Han](https://github.com/clearhanhui) (already graduated)
   - [Siyuan Zhang](https://github.com/zsy0828) (already graduated)
@@ -44,6 +45,7 @@ Contribution is always welcomed. Please feel free to open an issue or email to y
   - Zhiwei Li (BUPT)
   - Haoyu Wang (BUPT)
   - Zhijie Yang (BUPT)
+  - Zekai Yu (BUPT)
   
   Advisor
   

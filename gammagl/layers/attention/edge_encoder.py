@@ -22,6 +22,8 @@ class EdgeEncoding(nn.Module):
             for dst in edge_paths[src]:
                 path_ij = edge_paths[src][dst][:self.max_path_distance]
                 weight_inds = [i for i in range(len(path_ij))]
+                if path_ij == []:
+                    continue
                 cij[src][dst] = tlx.reduce_mean(dot_product(self.edge_vector[weight_inds], edge_attr[path_ij]))
 
         cij = tlx.convert_to_numpy(cij)

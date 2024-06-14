@@ -220,7 +220,7 @@ class WithLossD(tlx.nn.Module):
     def forward(self, data, label_sets):
         node_embedding, node_neighbor_embedding, bias, scores = self.d_net(
             data)
-        label_sets = tlx.nn.Reshape(shape=[data['nodes_num'], 1])(label_sets)
+        label_sets = tlx.reshape(label_sets, shape=[data['nodes_num'], 1])
         loss = tlx.reduce_sum(tlx.losses.sigmoid_cross_entropy(target=label_sets, output=scores)) + data[
             'args'].lambda_dis * (
                        tlx.reduce_sum(tlx.ops.square(node_embedding)) / 2 +
@@ -247,9 +247,8 @@ class WithLossG(tlx.nn.Module):
 
 def main(args):
     dataset = CA_GrQc(args.dataset_path, args.n_emb)
-
-    GANModel = GraphGAN(dataset.n_node, dataset.graph, dataset.node_embed_init_d,
-                        dataset.node_embed_init_g, args.cache_folder, args.multi_processing)
+    GANModel = GraphGAN(dataset.n_node, dataset.graph, dataset.node_embed_init_d.astype(np.float32),
+                        dataset.node_embed_init_g.astype(np.float32), args.cache_folder, args.multi_processing)
     optimizer_d = tlx.optimizers.Adam(lr=args.lr_dis)
     optimizer_g = tlx.optimizers.Adam(lr=args.lr_gen)
 

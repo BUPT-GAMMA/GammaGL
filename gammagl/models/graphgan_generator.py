@@ -49,7 +49,7 @@ class Generator(tlx.nn.Module):
             self.all_scores = tlx.matmul(
                 embedding_matrix, embedding_matrix_transpose) + self.bias_vector.detach()
         else:
-            self.all_scores = tlx.matmul(self.embedding_matrix, self.embedding_matrix,
+            self.all_scores = tlx.matmul(self.embedding_matrix, tlx.transpose(self.embedding_matrix),
                                          transpose_b=True) + self.bias_vector
 
     def forward(self, data):
@@ -57,8 +57,7 @@ class Generator(tlx.nn.Module):
         node_neighbor_embedding = tlx.gather(
             self.embedding_matrix, data['node_2'])
         bias = tlx.gather(self.bias_vector, data['node_2'])
-        score = tlx.nn.Reshape(shape=bias.shape)(
-            tlx.reduce_sum(node_embedding * node_neighbor_embedding, axis=1)) + bias
+        score = tlx.reshape(tlx.reduce_sum(node_embedding * node_neighbor_embedding, axis=1), shape=bias.shape) + bias
         prob = tlx.clip_by_value(tlx.sigmoid(score), 1e-5, 1)
         return node_embedding, node_neighbor_embedding, prob
 
@@ -78,6 +77,6 @@ class Generator(tlx.nn.Module):
             self.all_scores = tlx.matmul(
                 embedding_matrix, embedding_matrix_transpose) + self.bias_vector.detach()
         else:
-            self.all_scores = tlx.matmul(self.embedding_matrix, self.embedding_matrix,
+            self.all_scores = tlx.matmul(self.embedding_matrix, tlx.transpose(self.embedding_matrix),
                                          transpose_b=True) + self.bias_vector
         return self.all_scores
