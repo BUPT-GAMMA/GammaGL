@@ -196,7 +196,9 @@ class ACM4HeCo(InMemoryDataset):
         for i in range(0, row_num):
             p_list.append(pa[i][0])
             a_list.append(pa[i][1])
-        edge_idx_pa = sp.coo_matrix((np.ones(len(p_list)), (np.array(p_list), np.array(a_list))), shape=(4019, 7167)).toarray()
+        pa_ar = [p_list, a_list]
+        pa_ar = np.asarray(pa_ar)
+        edge_idx_pa = tlx.convert_to_tensor(pa_ar)
 
         p_list = []
         s_list = []
@@ -204,8 +206,10 @@ class ACM4HeCo(InMemoryDataset):
         for i in range(0, row_num):
             p_list.append(ps[i][0])
             s_list.append(ps[i][1])
-        edge_idx_ps = sp.coo_matrix((np.ones(len(p_list)), (np.array(p_list), np.array(s_list))), shape=(4019, 60)).toarray()
-
+        ps_ar = [p_list, s_list]
+        ps_ar = np.asarray(ps_ar)
+        edge_idx_ps = tlx.convert_to_tensor(ps_ar)
+        
         #data process for train\test\val
         train = []
         test = []
