@@ -3,13 +3,14 @@
 # @created 2023/4/18
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-# os.environ['TL_BACKEND'] = 'torch'
+# os.environ["CUDA_LAUNCH_BLOCKING"] = '1'
+os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 
 from gammagl.utils import mask_to_index
 from tensorlayerx.model import WithLoss, TrainOneStep
 from tqdm import tqdm
-from gammagl.datasets import Reddit
+from gammagl.datasets import Reddit, Planetoid
 import tensorlayerx as tlx
 import argparse
 from gammagl.loader.neighbor_sampler import NeighborSampler
@@ -44,7 +45,10 @@ def calculate_acc(logits, y, metrics):
 
 def main(args):
     # load reddit dataset
-    dataset = Reddit(args.dataset_path)
+    if args.dataset == 'reddit':
+        dataset = Reddit(args.dataset_path)
+    else:
+        dataset = Planetoid(args.dataset_path, args.dataset)
     # dataset.process()  # suggest to execute explicitly so far
     graph = dataset[0]
     # for mindspore, it should be passed into node indices
@@ -54,14 +58,14 @@ def main(args):
 
     train_loader = NeighborSampler(edge_index=graph.edge_index,
                                    node_idx=train_idx,
-                                   sample_lists=[25, 10], batch_size=2048, shuffle=True, num_workers=0)
+                                   sample_lists=[4,4], batch_size=1024, shuffle=True, num_workers=0)
 
     val_loader = NeighborSampler(edge_index=graph.edge_index,
                                  node_idx=val_idx,
-                                 sample_lists=[-1], batch_size=2048 * 2, shuffle=False, num_workers=0)
+                                 sample_lists=[-1], batch_size=1024, shuffle=False, num_workers=0)
     test_loader = NeighborSampler(edge_index=graph.edge_index,
                                   node_idx=test_idx,
-                                  sample_lists=[-1], batch_size=2048 * 2, shuffle=False, num_workers=0)
+                                  sample_lists=[-1], batch_size=1024, shuffle=False, num_workers=0)
 
     x = tlx.convert_to_tensor(graph.x)
     y = tlx.convert_to_tensor(graph.y, dtype=tlx.int64)
@@ -93,19 +97,19 @@ def main(args):
             pbar.update(len(dst_node))
             print("Epoch [{:0>3d}] ".format(epoch + 1) + "  train loss: {:.4f}".format(train_loss.item()))
 
-        logits = net.inference(x, val_loader, data['x'])
-        if tlx.BACKEND == 'torch':
-            val_idx = val_idx.to(data['x'].device)
-        val_logits = tlx.gather(logits, val_idx)
-        val_y = tlx.gather(data['y'], val_idx)
-        val_acc = calculate_acc(val_logits, val_y, metrics)
+            logits = net.inference(x, val_loader, data['x'])
+            if tlx.BACKEND == 'torch':
+                val_idx = val_idx.to(data['x'].device)
+            val_logits = tlx.gather(logits, val_idx)
+            val_y = tlx.gather(data['y'], val_idx)
+            val_acc = calculate_acc(val_logits, val_y, metrics)
 
-        logits = net.inference(x, test_loader, data['x'])
-        test_logits = tlx.gather(logits, test_idx)
-        test_y = tlx.gather(data['y'], test_idx)
-        test_acc = calculate_acc(test_logits, test_y, metrics)
+            logits = net.inference(x, test_loader, data['x'])
+            test_logits = tlx.gather(logits, test_idx)
+            test_y = tlx.gather(data['y'], test_idx)
+            test_acc = calculate_acc(test_logits, test_y, metrics)
 
-        print("val acc: {:.4f} || test acc{:.4f}".format(val_acc, test_acc))
+            print("val acc: {:.4f} || test acc: {:.4f}".format(val_acc, test_acc))
 
 
 if __name__ == '__main__':
@@ -117,10 +121,10 @@ if __name__ == '__main__':
     parser.add_argument("--drop_rate", type=float, default=0.8, help="drop_rate")
     parser.add_argument("--num_layers", type=int, default=2)
     parser.add_argument("--l2_coef", type=float, default=0., help="l2 loss coeficient")
-    parser.add_argument('--dataset', type=str, default='reddit', help='dataset')
+    parser.add_argument('--dataset', type=str, default='cora', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     # parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
-    parser.add_argument("--gpu", type=int, default=0)
+    parser.add_argument("--gpu", type=int, default=2)
 
     args = parser.parse_args()
     if args.gpu >= 0:

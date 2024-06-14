@@ -7,8 +7,8 @@ from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtensio
 from ggl_build_extension import PyCudaExtension, PyCPUExtension
 
 # TODO will depend on different host
-WITH_CUDA = False
-# WITH_CUDA = True
+# WITH_CUDA = False
+WITH_CUDA = True
 
 cuda_macro = ('COMPILE_WITH_CUDA', True)
 omp_macro = ('COMPLIE_WITH_OMP', True)  # Note: OpenMP needs gcc>4.2.0
@@ -75,11 +75,11 @@ def load_ops_extensions():
     for i in range(len(ops_list)):
         ops_prefix = ops_list[i]
 
-        ops_types = ["cpu"]
-        # if WITH_CUDA:
-        #     ops_types = ["cpu", "cuda"]
-        # else:
-        #     ops_types = ["cpu"]
+        # ops_types = ["cpu"]
+        if WITH_CUDA:
+            ops_types = ["cpu", "cuda"]
+        else:
+            ops_types = ["cpu"]
         ops_dir = osp.join(ops_root, ops_prefix)
         for ops_type in ops_types:
             is_cuda_ext = ops_type == "cuda"
@@ -98,7 +98,7 @@ def load_ops_extensions():
                     extra_compile_args=['-std=c++17']
                 ))
             else:
-                extensions.append(PyCudaExtension(
+                extensions.append(CUDAExtension(
                     name=osp.join(ops_dir, f'_{ops_prefix}_cuda').replace(osp.sep, "."),
                     sources=[osp.join(src_dir, f) for f in src_files],
                     include_dirs=[osp.abspath(osp.join('third_party', d)) for d in ops_third_party_deps[i]],

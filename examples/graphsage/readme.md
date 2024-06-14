@@ -28,8 +28,8 @@ CUDA_VISIBLE_DEVICES=5 TL_BACKEND=paddle python reddit_sage.py --lr 0.001 --hidd
 ```
 ```bash
 # use pytorch
-TL_BACKEND=torch python train_full.py --dataset cora --n_epoch 500 --lr 0.005 --hidden_dim 512 --drop_rate 0.8
-TL_BACKEND=torch python reddit_sage.py --lr 0.005 --hidden_dim 128 --drop_rate 0.8
+TL_BACKEND=torch python train_full_trainer.py --dataset cora --n_epoch 500 --lr 0.005 --hidden_dim 512 --drop_rate 0.8
+TL_BACKEND=torch python reddit_sage_trainer.py --dataset cora --n_epoch 500 --lr 0.005 --hidden_dim 128 --drop_rate 0.8
 ```
 
 
