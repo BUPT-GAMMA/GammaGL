@@ -194,6 +194,10 @@ def main(args):
     idx_val = graph['val']
     idx_test = graph['test']
     nei_num = graph['nei_num']
+    pa_ar = tlx.convert_to_numpy(edge_pa)
+    p_list = pa_ar[0]
+    a_list = pa_ar[1]
+    edge_pa = sp.coo_matrix((np.ones(len(p_list)), (np.array(p_list), np.array(a_list))), shape=(4019, 7167)).toarray()
     p_n_a = []
     for i in range(0, 4019):
         row = edge_pa[i]
@@ -206,6 +210,11 @@ def main(args):
     p_n_a = [np.array(i) for i in p_n_a]
     nei_a = p_n_a
     nei_a = [tlx.convert_to_tensor(i, 'int64') for i in nei_a]
+
+    ps_ar = tlx.convert_to_numpy(edge_ps)
+    p_list = ps_ar[0]
+    s_list = ps_ar[1]
+    edge_ps = sp.coo_matrix((np.ones(len(p_list)), (np.array(p_list), np.array(s_list))), shape=(4019, 60)).toarray()
     p_n_s = []
     i = 0
     for i in range(0, 4019):
