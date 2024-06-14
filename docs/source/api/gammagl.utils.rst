@@ -27,3 +27,4 @@ gammagl.utils
     gammagl.utils.to_scipy_sparse_matrix
     gammagl.utils.read_embeddings
     gammagl.utils.homophily
+    gammagl.utils.get_train_val_test_split

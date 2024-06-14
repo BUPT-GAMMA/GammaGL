@@ -1,0 +1,140 @@
+global:
+  num_layers: 2
+  hidden_dim: 128
+  learning_rate: 0.01
+  
+cora: 
+  SAGE:
+    fan_out: 5,5
+    learning_rate: 0.01
+    dropout_ratio: 0
+    weight_decay: 0.0005
+  
+  GCN:
+    hidden_dim: 64
+    dropout_ratio: 0.8
+    weight_decay: 0.001
+  
+  MLP:
+    learning_rate: 0.01
+    weight_decay: 0.005
+    dropout_ratio: 0.6
+    
+  GAT:
+    dropout_ratio: 0.6
+    weight_decay: 0.01
+    num_heads: 8
+    attn_dropout_ratio: 0.3
+
+  APPNP:
+    dropout_ratio: 0.5
+    weight_decay: 0.01
+  
+  
+citeseer: 
+  SAGE:
+    fan_out: 5,5
+    learning_rate: 0.01
+    dropout_ratio: 0
+    weight_decay: 0.0005
+    
+  GCN:
+    hidden_dim: 64
+    dropout_ratio: 0.8
+    weight_decay: 0.001
+  
+  MLP:
+    learning_rate: 0.01
+    weight_decay: 0.001
+    dropout_ratio: 0.1
+
+  GAT:
+    dropout_ratio: 0.6
+    weight_decay: 0.01
+    num_heads: 8
+    attn_dropout_ratio: 0.3
+    
+  APPNP:
+    dropout_ratio: 0.5
+    weight_decay: 0.01
+
+pubmed:   
+  SAGE:
+    fan_out: 5,5
+    learning_rate: 0.01
+    dropout_ratio: 0
+    weight_decay: 0.0005
+    
+  GCN:
+    hidden_dim: 64
+    dropout_ratio: 0.8
+    weight_decay: 0.001
+  
+  MLP:
+    learning_rate: 0.005
+    weight_decay: 0
+    dropout_ratio: 0.4
+
+  GAT:
+    dropout_ratio: 0.6
+    weight_decay: 0.01
+    num_heads: 8
+    attn_dropout_ratio: 0.3
+    
+  APPNP:
+    dropout_ratio: 0.5
+    weight_decay: 0.01
+    
+computers: 
+  SAGE:
+    fan_out: 5,5
+    learning_rate: 0.01
+    dropout_ratio: 0
+    weight_decay: 0.0005
+
+  GCN:
+    hidden_dim: 64
+    dropout_ratio: 0.8
+    weight_decay: 0.001
+  
+  MLP:
+    learning_rate: 0.001
+    weight_decay: 0.002
+    dropout_ratio: 0.3
+
+  GAT:
+    dropout_ratio: 0.6
+    weight_decay: 0.01
+    num_heads: 8
+    attn_dropout_ratio: 0.3
+  
+  APPNP:
+    dropout_ratio: 0.5
+    weight_decay: 0.01
+    
+photo: 
+  SAGE:
+    fan_out: 5,5
+    learning_rate: 0.01
+    dropout_ratio: 0
+    weight_decay: 0.0005
+
+  GCN:
+    hidden_dim: 64
+    dropout_ratio: 0.8
+    weight_decay: 0.001
+  
+  MLP:
+    learning_rate: 0.005
+    weight_decay: 0.002
+    dropout_ratio: 0.3
+
+  GAT:
+    dropout_ratio: 0.6
+    weight_decay: 0.01
+    num_heads: 8
+    attn_dropout_ratio: 0.3
+    
+  APPNP:
+    dropout_ratio: 0.5
+    weight_decay: 0.01

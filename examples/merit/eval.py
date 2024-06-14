@@ -21,4 +21,4 @@ def evaluation(adj,adj_weight, diff,diff_weight, feat, gnn, idx_train, idx_test,
     test_labels = labels[idx_test]
     clf.fit(tlx.convert_to_numpy(train_embs), tlx.convert_to_numpy(train_labels))
     pred_test_labels = clf.predict(tlx.convert_to_numpy(test_embs))
-    return accuracy_score(test_labels, pred_test_labels)
+    return accuracy_score(tlx.convert_to_numpy(test_labels), pred_test_labels)

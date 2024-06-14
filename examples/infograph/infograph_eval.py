@@ -130,8 +130,8 @@ def evaluate_embedding(embeddings, labels, method, search=True):
         accuracy: the accuracy of model
     """
 
-    labels = preprocessing.LabelEncoder().fit_transform(tlx.to_device(labels, "cpu"))
-    x = np.array(tlx.detach(tlx.to_device(embeddings, "cpu")))
+    labels = preprocessing.LabelEncoder().fit_transform(tlx.convert_to_numpy(labels))
+    x = tlx.convert_to_numpy(embeddings)
     y = np.array(labels)
     if method == 'log':
         classify = logistic_classify

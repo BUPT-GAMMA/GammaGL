@@ -90,7 +90,7 @@ def negative_sampling(edge_index, num_nodes = None, num_neg_samples = None, meth
         idx = tlx.to_device(idx, 'cpu')
         for _ in range(3):
             rnd = sample(population, sample_size, True)
-            mask = np.isin(rnd, idx)
+            mask = np.isin(tlx.convert_to_numpy(rnd), tlx.convert_to_numpy(idx))
             if neg_idx is not None:
                 mask |= np.isin(tlx.convert_to_numpy(rnd), tlx.convert_to_numpy(neg_idx))
             mask = tlx.convert_to_tensor(mask, dtype=tlx.bool, device='cpu')

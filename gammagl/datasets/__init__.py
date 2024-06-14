@@ -1,5 +1,6 @@
 from .amazon import Amazon
 from .coauthor import Coauthor
+from .ngsim import NGSIM_US_101
 from .tu_dataset import TUDataset
 from .planetoid import Planetoid
 from .reddit import Reddit
@@ -20,6 +21,8 @@ from .wikics import WikiCS
 from .blogcatalog import BlogCatalog
 from .molecule_net import MoleculeNet
 from .acm4heco import ACM4HeCo
+from .yelp import Yelp
+
 __all__ = [
     'ACM4HeCo',
     'Amazon',
@@ -41,7 +44,9 @@ __all__ = [
     'AMiner',
     'PolBlogs',
     'WikiCS',
-    'MoleculeNet'
+    'MoleculeNet',
+    'NGSIM_US_101',
+    'Yelp'
 ]
 
 classes = __all__

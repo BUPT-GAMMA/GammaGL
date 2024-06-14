@@ -49,6 +49,7 @@ class GINModel(tlx.nn.Module):
 
         self.mlp = MLP([hidden_channels, hidden_channels, out_channels],
                        norm=None, dropout=0.5)
+        self.relu = tlx.ReLU()
 
     def forward(self, x, edge_index, batch):
         if x is None:
@@ -56,7 +57,7 @@ class GINModel(tlx.nn.Module):
             x = tlx.random_normal((batch.shape[0], 1), dtype=tlx.float32)
 
         for conv in self.convs:
-            x = tlx.relu(conv(x, edge_index))
+            x = self.relu(conv(x, edge_index))
 
         x = global_sum_pool(x, batch)
         return self.mlp(x)

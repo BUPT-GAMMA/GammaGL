@@ -61,11 +61,15 @@ class NewGrace(tlx.nn.Module):
         loss = -tlx.log(tlx.diag(between_sim, 0) / x1)
         return loss
 
+    def normalize(self, x):
+        norms = tlx.sqrt(tlx.maximum(tlx.reduce_sum(tlx.square(x), axis=1, keepdims=True), tlx.convert_to_tensor(1e-12)))
+        return x / norms
+
     def sim(self, z1, z2):
         # normalize embeddings across feature dimension
 
-        z1 = tlx.l2_normalize(z1, axis=1)
-        z2 = tlx.l2_normalize(z2, axis=1)
+        z1 = self.normalize(z1)
+        z2 = self.normalize(z2)
 
         return tlx.matmul(z1, tlx.transpose(z2))
 

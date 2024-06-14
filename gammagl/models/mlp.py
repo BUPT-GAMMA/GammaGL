@@ -46,6 +46,9 @@ class MLP(tlx.nn.Module):
             dropout[-1] = 0.
         assert len(dropout) == len(channel_list) - 1
         self.dropout = dropout
+        self.dropouts = tlx.nn.ModuleList()
+        for i in range(len(dropout)):
+            self.dropouts.append(tlx.nn.Dropout(p=dropout[i]))
 
         if isinstance(bias, bool):
             bias = [bias] * (len(channel_list) - 1)
@@ -89,12 +92,14 @@ class MLP(tlx.nn.Module):
             if self.act is not None and not self.act_first:
                 x = self.act(x)
 
-            x = tlx.nn.Dropout(p=self.dropout[i])(x)
+            # x = tlx.nn.Dropout(p=self.dropout[i])(x)
+            x = self.dropouts[i](x)
             emb = x
 
         if self.plain_last:
             x = self.lins[-1](x)
-            x = tlx.nn.Dropout(p=self.dropout[-1])(x)
+            # x = tlx.nn.Dropout(p=self.dropout[-1])(x)
+            x = self.dropouts[-1](x)
 
         return (x, emb) if isinstance(return_emb, bool) else x
 
