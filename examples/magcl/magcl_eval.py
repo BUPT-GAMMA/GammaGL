@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import normalize, OneHotEncoder
 
+import tensorlayerx as tlx
 
 def prob_to_one_hot(y_pred):
     ret = np.zeros(y_pred.shape, np.bool8)
@@ -19,7 +20,7 @@ def prob_to_one_hot(y_pred):
 
 def evaluate(embeddings, y, train_mask, test_mask, split='random', ratio=0.1):
     X = embeddings
-    Y = y.numpy()
+    Y = tlx.convert_to_numpy(y)
     Y = Y.reshape(-1, 1)
     onehot_encoder = OneHotEncoder(categories='auto').fit(Y)
     Y = onehot_encoder.transform(Y).toarray().astype(np.bool8)

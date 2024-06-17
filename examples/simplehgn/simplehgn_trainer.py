@@ -13,8 +13,8 @@ from tensorlayerx.model import TrainOneStep, WithLoss
 from gammagl.utils import add_self_loops, mask_to_index
 
 def calculate_f1_score(val_logits, val_y):
-    val_logits = tlx.ops.argmax(val_logits, axis=-1)
-    return f1_score(val_y, val_logits, average='micro'), f1_score(val_y, val_logits, average='macro')
+    val_logits = tlx.convert_to_numpy(tlx.ops.argmax(val_logits, axis=-1))
+    return f1_score(tlx.convert_to_numpy(val_y), val_logits, average='micro'), f1_score(tlx.convert_to_numpy(val_y), val_logits, average='macro')
 
 
 class SemiSpvzLoss(WithLoss):
@@ -61,7 +61,7 @@ def main(args):
             e_feat.append(num_etypes)
         else:
             e_feat.append(edge2feat[(edge_index_numpy[0,i], edge_index_numpy[1,i])])
-    e_feat = tlx.ops.convert_to_tensor(e_feat)
+    e_feat = tlx.stack(e_feat)
 
     activation = tlx.nn.activation.ELU()
 

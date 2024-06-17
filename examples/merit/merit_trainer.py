@@ -72,7 +72,7 @@ def main(args):
     patience_count = 0
     results = []
     result_over_runs = []
-    features = tlx.convert_to_tensor(np.array(features), dtype='float32')
+    features = tlx.convert_to_tensor(features, dtype='float32')
     for epoch in tqdm(range(args.n_epoch)):
         net.set_train()
         for _ in range(args.batch_size):

@@ -261,7 +261,7 @@ class SparseStorage:
     def coalesce(self, reduce: str = "add"):
         idx = np.full((tlx.numel(self._col) + 1), -1, dtype=np.int64)
 
-        idx[1:] = self._sparse_sizes[1] * self.row() + self._col
+        idx[1:] = self._sparse_sizes[1] * tlx.convert_to_numpy(self.row()) + tlx.convert_to_numpy(self._col)
         mask = idx[1:] > idx[:-1]
 
         if np.all(mask):  # Skip if indices are already coalesced.
