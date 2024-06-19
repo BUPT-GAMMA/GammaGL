@@ -46,6 +46,9 @@ Contribution is always welcomed. Please feel free to open an issue or email to y
   - Haoyu Wang (BUPT)
   - Zhijie Yang (BUPT)
   - Zekai Yu (BUPT)
+  - Jiarui Tan (BUPT)
+  - Zhaojun Sun (BUPT)
+  - Jiayi Guo (BUPT)
   
   Advisor
   

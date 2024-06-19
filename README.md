@@ -439,6 +439,8 @@ Now, GammaGL supports about 60 models, we welcome everyone to use or contribute 
 | [HiD-Net [AAAI 2023]](./examples/hid_net)          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [FusedGAT [MLSys 2022]](./examples/fusedgat)       |                    | :heavy_check_mark: |                    |                    |
 | [GLNN [ICLR 2022]](./examples/glnn)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [HEAT [T-ITS 2022]](./examples/heat)               |                    | :heavy_check_mark: |                    |                    |
+| [GNN-LF-HF [WWW 2021]](./examples/gnnlfhf)         |                    | :heavy_check_mark: |                    |                    |
 
 
 | Contrastive Learning                               | TensorFlow         | PyTorch            | Paddle             | MindSpore          |
@@ -463,6 +465,7 @@ Now, GammaGL supports about 60 models, we welcome everyone to use or contribute 
 | [ieHGCN [TKDE 2021]](./examples/iehgcn)            | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [MetaPath2Vec [KDD 2017]](./examples/metapath2vec) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [HERec [TKDE 2018]](./examples/herec)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [HeCo [KDD 2021]](./examples/heco)                 | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 
 > Note
 > 

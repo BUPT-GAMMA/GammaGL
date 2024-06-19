@@ -42,14 +42,10 @@ __global__ void arg_segment_mean_cuda_forward_kernel(
     int64_t *arg_out_data, scalar_t *count_data, int64_t E, int64_t K,
     int64_t N, int64_t numel) {
   int64_t thread_idx = blockIdx.x * blockDim.x + threadIdx.x;
-  int64_t e = (thread_idx / K) % E;
-  int64_t k = thread_idx % K;
 
   if (thread_idx < numel) {
-    int64_t idx = index_data[e];
-
     if (count_data[thread_idx] > 0) {
-      out_data[idx * K + k] /= count_data[idx * K + k];
+      out_data[thread_idx] /= count_data[thread_idx];
     }
   }
 }
@@ -109,9 +105,9 @@ torch::Tensor segment_mean_cuda_forward(
             x_data, index_data, out_data, count_data, E, K, N, x.numel());
 
     arg_segment_mean_cuda_forward_kernel<scalar_t>
-        <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
-            x_data, index_data, out_data, arg_out_data, count_data, E, K, N,
-            x.numel());
+        <<<BLOCKS(out.numel()), THREADS, 0, stream>>>(
+            x_data, index_data, out_data, arg_out_data, count_data, E, K, out.sizes().vec()[0],
+            out.numel());
     
     out = out.to(type);
   } else if (x.dtype() == torch::kFloat16 || x.dtype() == torch::kFloat32) {
