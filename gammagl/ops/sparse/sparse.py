@@ -134,4 +134,10 @@ def sample_adj(
     else:
         num_neighbors = tlx.convert_to_tensor([num_neighbors], dtype=tlx.int64).to('cpu')
         res = cuda_torch_sample_adj(rowptr, col, idx, num_neighbors, replace, False, 0)
+
+        # import torch
+        # row = ptr2ind(rowptr,col.shape[0])
+        # rw = ptr2ind(res[0],res[1].shape[0])
+        # assert(torch.all(row[res[3]]==res[2][rw]))
+        # assert(torch.all(col[res[3]]==res[2][res[1]]))
     return res

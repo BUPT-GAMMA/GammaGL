@@ -17,6 +17,8 @@
 // #include <thrust/sort.h>
 
 // #include "../ticktock.h"
+#include <ctime>
+
 #include "neighbor_sample.h"
 
 using namespace std;
@@ -142,20 +144,20 @@ __global__ void get_eids_neighbor_sampler(
 }
 
 void output_int64_t(int64_t* arr, int64_t len) {
-  // printf("[%lld] ", len);
-  // if (len > 400) len = 400;
-  // int64_t* ar;
-  // // printf("----");
-  // ar = (int64_t*)malloc(len * sizeof(int64_t));
+  printf("[%lld] ", len);
+  if (len > 400) len = 400;
+  int64_t* ar;
+  // printf("----");
+  ar = (int64_t*)malloc(len * sizeof(int64_t));
 
-  // // printf(">>>>");
-  // checkCudaErrors(
-  //     cudaMemcpy(ar, arr, len * sizeof(int64_t), cudaMemcpyDeviceToHost));
+  // printf(">>>>");
+  checkCudaErrors(
+      cudaMemcpy(ar, arr, len * sizeof(int64_t), cudaMemcpyDeviceToHost));
 
-  // // printf("<<<<");
-  // for (int i = 0; i < len; i++) printf("%lld ", (long long)ar[i]);
-  // free(ar);
-  // printf("\n");
+  // printf("<<<<");
+  for (int i = 0; i < len; i++) printf("%lld ", (long long)ar[i]);
+  free(ar);
+  printf("\n");
 }
 
 struct my_array_int64_t {
@@ -188,8 +190,10 @@ my_array_int64_t cu_neighbor_sample_one_hop(
   if (replace) {
   } else {
     int64_t *degree, *min_degree_fanout;
-    cudaMalloc((int64_t**)&degree, num_input_node * sizeof(int64_t));
-    cudaMalloc((int64_t**)&min_degree_fanout, num_input_node * sizeof(int64_t));
+    checkCudaErrors(
+        cudaMalloc((int64_t**)&degree, num_input_node * sizeof(int64_t)));
+    checkCudaErrors(cudaMalloc(
+        (int64_t**)&min_degree_fanout, num_input_node * sizeof(int64_t)));
 
     dim3 block(BLOCK_SIZE);
     dim3 grid((num_input_node + BLOCK_SIZE - 1) / BLOCK_SIZE);
@@ -197,12 +201,14 @@ my_array_int64_t cu_neighbor_sample_one_hop(
         min_degree_fanout, degree, colptr, fanout, input_nodes, num_input_node);
 
     // output degree and min degree fanout
-    output_int64_t(degree, num_input_node);
-    output_int64_t(min_degree_fanout, num_input_node);
+    // output_int64_t(degree, num_input_node);
+    // output_int64_t(min_degree_fanout, num_input_node);
 
     int64_t *pos_full, *pos_sampler;
-    cudaMalloc((int64_t**)&pos_full, (num_input_node + 1) * sizeof(int64_t));
-    cudaMalloc((int64_t**)&pos_sampler, (num_input_node + 1) * sizeof(int64_t));
+    checkCudaErrors(cudaMalloc(
+        (int64_t**)&pos_full, (num_input_node + 1) * sizeof(int64_t)));
+    checkCudaErrors(cudaMalloc(
+        (int64_t**)&pos_sampler, (num_input_node + 1) * sizeof(int64_t)));
     // cudaMemcpy(
     //     pos_full + 1, degree, num_input_node * sizeof(int64_t),
     //     cudaMemcpyDeviceToDevice);
@@ -215,11 +221,12 @@ my_array_int64_t cu_neighbor_sample_one_hop(
     init_pos<<<block, grid>>>(
         pos_sampler, min_degree_fanout, num_input_node + 1);
 
-    output_int64_t(pos_full, num_input_node + 1);
-    output_int64_t(pos_sampler, num_input_node + 1);
+    // output_int64_t(pos_full, num_input_node + 1);
+    // output_int64_t(pos_sampler, num_input_node + 1);
 
     // dim3 block(BLOCK_SIZE);
     grid = (num_input_node + BLOCK_SIZE) / BLOCK_SIZE;
+    // clock_t get_pos_start = clock();
     for (int64_t step_size = 2; step_size <= 2 * num_input_node;
          step_size <<= 1) {
       // printf("step size = %lld\n", (long long)step_size);
@@ -228,12 +235,14 @@ my_array_int64_t cu_neighbor_sample_one_hop(
       get_pos_one_step<<<grid, block>>>(
           pos_sampler, num_input_node + 1, step_size);
       cudaDeviceSynchronize();
-      output_int64_t(pos_full, num_input_node + 1);
-      output_int64_t(pos_sampler, num_input_node + 1);
+      // output_int64_t(pos_full, num_input_node + 1);
+      // output_int64_t(pos_sampler, num_input_node + 1);
     }
+    cudaDeviceSynchronize();
+    // printf("get pos time:%.4f\n", (float)clock() - get_pos_start);
 
-    output_int64_t(pos_full, num_input_node + 1);
-    output_int64_t(pos_sampler, num_input_node + 1);
+    // output_int64_t(pos_full, num_input_node + 1);
+    // output_int64_t(pos_sampler, num_input_node + 1);
 
     // return;
 
@@ -241,12 +250,12 @@ my_array_int64_t cu_neighbor_sample_one_hop(
     num_edge_ = (int64_t*)malloc(sizeof(int64_t));
     num_edge_sample_ = (int64_t*)malloc(sizeof(int64_t));
 
-    cudaMemcpy(
+    checkCudaErrors(cudaMemcpy(
         num_edge_, pos_full + num_input_node, sizeof(int64_t),
-        cudaMemcpyDeviceToHost);
-    cudaMemcpy(
+        cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaMemcpy(
         num_edge_sample_, pos_sampler + num_input_node, sizeof(int64_t),
-        cudaMemcpyDeviceToHost);
+        cudaMemcpyDeviceToHost));
 
     int64_t num_edge = num_edge_[0], num_edge_sample = num_edge_sample_[0];
     free(num_edge_);
@@ -260,7 +269,7 @@ my_array_int64_t cu_neighbor_sample_one_hop(
     checkCudaErrors(cudaMalloc((int64_t**)&e_to_n, num_edge * sizeof(int64_t)));
     checkCudaErrors(cudaMemset(e_to_n, 0, num_edge * sizeof(int64_t)));
     // printf("uninit e_to_n:");
-    output_int64_t(e_to_n, num_edge);
+    // output_int64_t(e_to_n, num_edge);
     // dim3 block(BLOCK_SIZE);
     grid = (num_edge + BLOCK_SIZE - 1) / BLOCK_SIZE;
     init_edge_to_node<<<grid, block>>>(e_to_n, pos_full, num_input_node);
@@ -270,13 +279,13 @@ my_array_int64_t cu_neighbor_sample_one_hop(
       get_edge_to_node_one_step<<<grid, block>>>(e_to_n, num_edge, step_size);
     }
 
-    output_int64_t(e_to_n, num_edge);
+    // output_int64_t(e_to_n, num_edge);
 
     // int num_edge_sample = pos_sampler[num_input_node];
     int64_t* eids;
     checkCudaErrors(
         cudaMalloc((int64_t**)&eids, num_edge_sample * sizeof(int64_t)));
-    cudaMemset(eids, 0, num_edge_sample * sizeof(int64_t));
+    checkCudaErrors(cudaMemset(eids, 0, num_edge_sample * sizeof(int64_t)));
 
     get_eids_neighbor_sampler<<<grid, block>>>(
         eids, pos_full, pos_sampler, min_degree_fanout, colptr, e_to_n,
@@ -311,17 +320,21 @@ __global__ void kernal_get_new_nodes(
 }
 
 __global__ void kernal_merge_int64_t(
-    int64_t* merge, int64_t* arr1, int64_t* arr2, int64_t num1, int64_t num2) {
+    int64_t* merge, int64_t* arr1, int64_t* arr2, int64_t num1, int64_t num2,
+    int64_t num) {
   int64_t it = blockIdx.x * blockDim.x + threadIdx.x;
   const int64_t stride = gridDim.x * blockDim.x;
   int64_t i = it;
 
-  while (i < num1 + num2) {
+  while (i < num) {
     if (i < num1) {
       merge[i] = arr1[i] << 1;
     }
-    if (i >= num1) {
+    if (i >= num1 && i < num1 + num2) {
       merge[i] = arr2[i - num1] << 1 | 1;
+    }
+    if (i >= num1 + num2) {
+      merge[i] = 0x3f3f3f3f3f3f3f3f;
     }
     i += stride;
   }
@@ -357,21 +370,18 @@ __global__ void prefix_sum_one_step(
   }
 }
 
-__global__ void kernal_sort(int64_t* arr, int64_t num, int64_t _) {
+__global__ void kernal_sort(
+    int64_t* arr, int64_t num, int64_t change_size, int64_t block_size) {
   int64_t it = blockIdx.x * blockDim.x + threadIdx.x;
   const int64_t stride = gridDim.x * blockDim.x;
   int64_t i = it;
+  int64_t half_block_size = block_size >> 1;
   while (i < num) {
-    if (i & 1) {
-      if ((_ & 1) && i + 1 < num && arr[i] > arr[i + 1]) {
-        int64_t __ = arr[i];
-        arr[i] = arr[i + 1];
-        arr[i + 1] = __;
-      }
-      if (((_ & 1) ^ 1) && arr[i] < arr[i - 1]) {
-        int64_t __ = arr[i];
-        arr[i] = arr[i - 1];
-        arr[i - 1] = __;
+    if (i % block_size < half_block_size && i + half_block_size < num) {
+      if (((i / change_size) & 1 == 1) ^ (arr[i] > arr[i + half_block_size])) {
+        int64_t _ = arr[i];
+        arr[i] = arr[i + half_block_size];
+        arr[i + half_block_size] = _;
       }
     }
     i += stride;
@@ -428,29 +438,41 @@ my_array_int64_t get_new_input_nodes(
     int64_t num_new_node) {
   // printf("get new input nodes:\n");
   // printf("  input nodes:");
-  output_int64_t(input_nodes, num_input_node);
+  // output_int64_t(input_nodes, num_input_node);
   // printf("  new nodes:");
-  output_int64_t(new_nodes, num_new_node);
+  // output_int64_t(new_nodes, num_new_node);
 
   int64_t* merge_nodes;
-  cudaMalloc(
-      (int64_t**)&merge_nodes,
-      (num_input_node + num_new_node) * sizeof(int64_t));
+  int64_t merge_size = 1;
+  for (; merge_size < num_input_node + num_new_node; merge_size <<= 1);
+  checkCudaErrors(
+      cudaMalloc((int64_t**)&merge_nodes, merge_size * sizeof(int64_t)));
 
   dim3 block(BLOCK_SIZE);
-  dim3 grid((num_input_node + num_new_node + BLOCK_SIZE - 1) / BLOCK_SIZE);
+  dim3 grid((merge_size + BLOCK_SIZE - 1) / BLOCK_SIZE);
   kernal_merge_int64_t<<<grid, block>>>(
-      merge_nodes, input_nodes, new_nodes, num_input_node, num_new_node);
-  for (int64_t _ = 0; _ <= num_input_node + num_new_node; _++) {
-    kernal_sort<<<grid, block>>>(merge_nodes, num_input_node + num_new_node, _);
+      merge_nodes, input_nodes, new_nodes, num_input_node, num_new_node,
+      merge_size);
+
+  // printf("merge nodes:");
+  // output_int64_t(merge_nodes, num_input_node + num_new_node);
+
+  // clock_t sort_start = clock();
+  for (int64_t cs = 2; cs <= merge_size; cs <<= 1) {
+    for (int64_t bs = cs; bs >= 2; bs >>= 1) {
+      kernal_sort<<<grid, block>>>(merge_nodes, merge_size, cs, bs);
+      cudaDeviceSynchronize();
+    }
   }
+  cudaDeviceSynchronize();
+  // printf("sort time:%.4f\n", (float)clock() - sort_start);
   // printf("merge nodes:");
   // output_int64_t(merge_nodes, num_input_node + num_new_node);
 
   int64_t* has_new_node;
-  cudaMalloc(
+  checkCudaErrors(cudaMalloc(
       (int64_t**)&has_new_node,
-      (num_input_node + num_new_node) * sizeof(int64_t));
+      (num_input_node + num_new_node) * sizeof(int64_t)));
   kernal_push_one<<<grid, block>>>(
       has_new_node, merge_nodes, num_input_node + num_new_node);
   // printf("has new nodes:");
@@ -464,25 +486,26 @@ my_array_int64_t get_new_input_nodes(
 
   int64_t* num_only_new_node_;
   num_only_new_node_ = (int64_t*)(malloc(sizeof(int64_t)));
-  cudaMemcpy(
+  checkCudaErrors(cudaMemcpy(
       num_only_new_node_, has_new_node + num_input_node + num_new_node - 1,
-      sizeof(int64_t), cudaMemcpyDeviceToHost);
+      sizeof(int64_t), cudaMemcpyDeviceToHost));
 
   int64_t num_only_new_node = num_only_new_node_[0];
 
   free(num_only_new_node_);
 
   int64_t* only_new_nodes;
-  cudaMalloc((int64_t**)&only_new_nodes, num_only_new_node * sizeof(int64_t));
+  checkCudaErrors(cudaMalloc(
+      (int64_t**)&only_new_nodes, num_only_new_node * sizeof(int64_t)));
   kernal_push_new_nodes<<<grid, block>>>(
       only_new_nodes, merge_nodes, has_new_node, num_input_node + num_new_node);
   // printf("only new node:");
   // output_int64_t(only_new_nodes, num_only_new_node);
 
   my_array_int64_t new_input_nodes;
-  cudaMalloc(
+  checkCudaErrors(cudaMalloc(
       (int64_t**)&new_input_nodes.arr,
-      (num_input_node + num_only_new_node) * sizeof(int64_t));
+      (num_input_node + num_only_new_node) * sizeof(int64_t)));
 
   grid = (num_input_node + num_only_new_node + BLOCK_SIZE - 1) / BLOCK_SIZE;
   kernal_merge_arr_int64_t<<<grid, block>>>(
@@ -508,32 +531,25 @@ __global__ void init_name_arr(int64_t* name_arr, int64_t num) {
 }
 
 __global__ void kernal_sort2(
-    int64_t* arr, int64_t* name, int64_t num, int64_t _) {
+    int64_t* arr, int64_t* name, int64_t num, int64_t change_size,
+    int64_t block_size) {
   int64_t it = blockIdx.x * blockDim.x + threadIdx.x;
   const int64_t stride = gridDim.x * blockDim.x;
   int64_t i = it;
+  int64_t half_block_size = block_size >> 1;
   while (i < num) {
-    if (i & 1) {
-      if ((_ & 1) && i + 1 < num && arr[i] > arr[i + 1]) {
-        int64_t __ = arr[i];
-        arr[i] = arr[i + 1];
-        arr[i + 1] = __;
-        __ = name[i];
-        name[i] = name[i + 1];
-        name[i + 1] = __;
-      }
-      if (((_ & 1) ^ 1) && arr[i] < arr[i - 1]) {
-        int64_t __ = arr[i];
-        arr[i] = arr[i - 1];
-        arr[i - 1] = __;
-        __ = name[i];
-        name[i] = name[i - 1];
-        name[i - 1] = __;
+    if (i % block_size < half_block_size && i + half_block_size < num) {
+      if (((i / change_size) & 1 == 1) ^ (arr[i] > arr[i + half_block_size])) {
+        int64_t _ = arr[i];
+        arr[i] = arr[i + half_block_size];
+        arr[i + half_block_size] = _;
+        _ = name[i];
+        name[i] = name[i + half_block_size];
+        name[i + half_block_size] = _;
       }
     }
     i += stride;
   }
-  // __syncthreads();
 }
 
 __global__ void kernal_get_col(
@@ -580,30 +596,43 @@ void cu_get_cols_and_rows(
     my_array_int64_t* output, my_array_int64_t nodes, my_array_int64_t edges,
     int64_t* colptr, int64_t* row) {
   int64_t* sort_nodes;
-  cudaMalloc((int64_t**)&sort_nodes, nodes.len * sizeof(int64_t));
-  cudaMemcpy(
+  int64_t sort_size = 1;
+  for (; sort_size < nodes.len; sort_size <<= 1);
+  checkCudaErrors(
+      cudaMalloc((int64_t**)&sort_nodes, sort_size * sizeof(int64_t)));
+  checkCudaErrors(cudaMemset(sort_nodes, 0x3f, sort_size * sizeof(int64_t)));
+  checkCudaErrors(cudaMemcpy(
       sort_nodes, nodes.arr, nodes.len * sizeof(int64_t),
-      cudaMemcpyDeviceToDevice);
+      cudaMemcpyDeviceToDevice));
 
   int64_t* name_arr;
-  cudaMalloc((int64_t**)&name_arr, nodes.len * sizeof(int64_t));
+  checkCudaErrors(
+      cudaMalloc((int64_t**)&name_arr, sort_size * sizeof(int64_t)));
   dim3 block(BLOCK_SIZE);
-  dim3 grid((nodes.len + BLOCK_SIZE - 1) / BLOCK_SIZE);
+  dim3 grid((sort_size + BLOCK_SIZE - 1) / BLOCK_SIZE);
   init_name_arr<<<grid, block>>>(name_arr, nodes.len);
   // printf("init name arr:");
   // output_int64_t(name_arr, nodes.len);
 
-  for (int64_t _ = 0; _ <= nodes.len; _++) {
-    kernal_sort2<<<grid, block>>>(sort_nodes, name_arr, nodes.len, _);
+  // clock_t sort2_start = clock();
+  for (int64_t cs = 2; cs <= sort_size; cs <<= 1) {
+    for (int64_t bs = cs; bs >= 2; bs >>= 1) {
+      kernal_sort2<<<grid, block>>>(sort_nodes, name_arr, sort_size, cs, bs);
+      cudaDeviceSynchronize();
+    }
   }
+  cudaDeviceSynchronize();
+  // printf("sort2 time:%.4f\n", (float)clock() - sort2_start);
   // printf("sort nodes:");
   // output_int64_t(sort_nodes, nodes.len);
   // printf("sort name arr:");
   // output_int64_t(name_arr, nodes.len);
 
   // my_array_int64_t col_row[2];
-  cudaMalloc((int64_t**)&output[0].arr, edges.len * sizeof(int64_t));
-  cudaMalloc((int64_t**)&output[1].arr, edges.len * sizeof(int64_t));
+  checkCudaErrors(
+      cudaMalloc((int64_t**)&output[0].arr, edges.len * sizeof(int64_t)));
+  checkCudaErrors(
+      cudaMalloc((int64_t**)&output[1].arr, edges.len * sizeof(int64_t)));
   grid = ((edges.len + BLOCK_SIZE - 1) / BLOCK_SIZE);
   output[0].len = edges.len;
   output[1].len = edges.len;
@@ -651,7 +680,8 @@ void cu_neighbor_sample(
 
     int num_new_node = eids_array[layer].len;
     int64_t* new_nodes;
-    cudaMalloc((int64_t**)&new_nodes, num_new_node * sizeof(int64_t));
+    checkCudaErrors(
+        cudaMalloc((int64_t**)&new_nodes, num_new_node * sizeof(int64_t)));
     dim3 block(BLOCK_SIZE);
     dim3 grid((num_new_node + BLOCK_SIZE - 1) / BLOCK_SIZE);
     kernal_get_new_nodes<<<grid, block>>>(
@@ -676,19 +706,20 @@ void cu_neighbor_sample(
   sample_nodes.arr = input_nodes, sample_nodes.len = num_input_node;
 
   my_array_int64_t sample_edges;
-  cudaMalloc((int64_t**)&sample_edges.arr, sum_num_e * sizeof(int64_t));
+  checkCudaErrors(
+      cudaMalloc((int64_t**)&sample_edges.arr, sum_num_e * sizeof(int64_t)));
   sample_edges.len = 0;
   for (int layer = 0; layer < num_fanout; layer++) {
-    output_int64_t(eids_array[layer].arr, eids_array[layer].len);
-    cudaMemcpy(
+    // output_int64_t(eids_array[layer].arr, eids_array[layer].len);
+    checkCudaErrors(cudaMemcpy(
         sample_edges.arr + sample_edges.len, eids_array[layer].arr,
-        eids_array[layer].len * sizeof(int64_t), cudaMemcpyDeviceToDevice);
+        eids_array[layer].len * sizeof(int64_t), cudaMemcpyDeviceToDevice));
     sample_edges.len += eids_array[layer].len;
     // printf("%lld\n", (long long)sample_edges.len);
     cudaFree(eids_array[layer].arr);
   }
   // printf("sample edges:");
-  output_int64_t(sample_edges.arr, sample_edges.len);
+  // output_int64_t(sample_edges.arr, sample_edges.len);
 
   my_array_int64_t sample_cols, sample_rows;
   my_array_int64_t s[2];
@@ -736,9 +767,9 @@ py::list torch_cu_neighbor_sample(
     int device = attributes.device;
     at::Tensor out = at::zeros(
         {output[i].len}, at::dtype(torch::kInt64).device(at::kCUDA, device));
-    cudaMemcpy(
+    checkCudaErrors(cudaMemcpy(
         out.data_ptr(), output[i].arr, output[i].len * sizeof(int64_t),
-        cudaMemcpyDeviceToDevice);
+        cudaMemcpyDeviceToDevice));
     res.append(out);
     cudaFree(output[i].arr);
   }
@@ -750,6 +781,7 @@ void cu_sample_adj(
     my_array_int64_t* output, int64_t* colptr, int64_t* row,
     int64_t* input_nodes, int64_t* fanouts, int num_node, int num_input_node,
     int num_fanout, bool replace, bool directed, int random_seed) {
+  // clock_t start = clock();
   my_array_int64_t eids_array[num_fanout];
 
   int64_t last_num_input_node = 0;
@@ -765,7 +797,8 @@ void cu_sample_adj(
 
     int64_t num_new_node = eids_array[layer].len;
     int64_t* new_nodes;
-    cudaMalloc((int64_t**)&new_nodes, num_new_node * sizeof(int64_t));
+    checkCudaErrors(
+        cudaMalloc((int64_t**)&new_nodes, num_new_node * sizeof(int64_t)));
     dim3 block(BLOCK_SIZE);
     dim3 grid((num_new_node + BLOCK_SIZE - 1) / BLOCK_SIZE);
     kernal_get_new_nodes<<<grid, block>>>(
@@ -790,13 +823,14 @@ void cu_sample_adj(
   sample_nodes.arr = input_nodes, sample_nodes.len = num_input_node;
 
   my_array_int64_t sample_edges;
-  cudaMalloc((int64_t**)&sample_edges.arr, sum_num_e * sizeof(int64_t));
+  checkCudaErrors(
+      cudaMalloc((int64_t**)&sample_edges.arr, sum_num_e * sizeof(int64_t)));
   sample_edges.len = 0;
   for (int layer = 0; layer < num_fanout; layer++) {
-    output_int64_t(eids_array[layer].arr, eids_array[layer].len);
-    cudaMemcpy(
+    // output_int64_t(eids_array[layer].arr, eids_array[layer].len);
+    checkCudaErrors(cudaMemcpy(
         sample_edges.arr + sample_edges.len, eids_array[layer].arr,
-        eids_array[layer].len * sizeof(int64_t), cudaMemcpyDeviceToDevice);
+        eids_array[layer].len * sizeof(int64_t), cudaMemcpyDeviceToDevice));
     sample_edges.len += eids_array[layer].len;
     // printf("%lld\n", (long long)sample_edges.len);
     cudaFree(eids_array[layer].arr);
@@ -813,9 +847,9 @@ void cu_sample_adj(
   sample_rows = s[1];
 
   my_array_int64_t sample_colptrs;
-  cudaMalloc(
+  checkCudaErrors(cudaMalloc(
       (int64_t**)&sample_colptrs.arr,
-      (last_num_input_node + 1) * sizeof(int64_t));
+      (last_num_input_node + 1) * sizeof(int64_t)));
   sample_colptrs.len = last_num_input_node + 1;
   dim3 block(BLOCK_SIZE);
   dim3 grid((sample_cols.len + BLOCK_SIZE - 1) / BLOCK_SIZE);
@@ -840,6 +874,9 @@ void cu_sample_adj(
   // output_int64_t(sample_rows.arr, sample_rows.len);
 
   // return rt;
+
+  cudaDeviceSynchronize();
+  // printf("get sample one step time:%.4f\n", (float)clock() - start);
 }
 
 py::list torch_cu_sample_adj(
@@ -875,9 +912,9 @@ py::list torch_cu_sample_adj(
     int device = attributes.device;
     at::Tensor out = at::zeros(
         {output[i].len}, at::dtype(torch::kInt64).device(at::kCUDA, device));
-    cudaMemcpy(
+    checkCudaErrors(cudaMemcpy(
         out.data_ptr(), output[i].arr, output[i].len * sizeof(int64_t),
-        cudaMemcpyDeviceToDevice);
+        cudaMemcpyDeviceToDevice));
     res.append(out);
     cudaFree(output[i].arr);
     // printf("{%d}\n", i);
