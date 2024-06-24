@@ -13,6 +13,9 @@ from gammagl.datasets import FacebookPagePage,WikiCS,Planetoid
 import tensorlayerx as tlx
 import numpy as np
 from sklearn.model_selection import train_test_split
+from gammagl.utils import calc_gcn_norm
+from gammagl.utils import get_laplacian
+# from torch_geometric.utils import get_laplacian
 
 
 def get_train_val_test_split(graph, train_ratio, val_ratio):
@@ -73,16 +76,16 @@ def compute_laplacian(data):
     edge_index = data.edge_index
     num_nodes = data.num_nodes
     row, col = edge_index
-    data_adj = csr_matrix((np.ones(len(row)), (row, col)), shape=(num_nodes, num_nodes))
-    degree = np.array(data_adj.sum(axis=1)).flatten()
-    deg_inv_sqrt = 1.0 / np.sqrt(degree)
-    deg_inv_sqrt[np.isinf(deg_inv_sqrt)] = 0
+
+    edge_weight = calc_gcn_norm(edge_index, num_nodes)
+    norm_adj = csr_matrix((edge_weight, (row, col)), shape=(num_nodes, num_nodes))
     I = csr_matrix(np.eye(num_nodes))
-    D_inv_sqrt = csr_matrix((deg_inv_sqrt, (np.arange(num_nodes), np.arange(num_nodes))))
-    L = I - D_inv_sqrt.dot(data_adj).dot(D_inv_sqrt)
+    L = I - norm_adj
+
     e, u = scipy.sparse.linalg.eigsh(L, k=100, which='SM', tol=1e-3)
     data.e = tlx.convert_to_tensor(e, dtype=tlx.float32)
     data.u = tlx.convert_to_tensor(u, dtype=tlx.float32)
+
     return data
 
 
@@ -125,8 +128,8 @@ def main(args):
     else:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
 
-    spa_encoder = Encoder(data.x.shape[1], args.hidden_dim, args.hidden_dim)
-    spe_encoder = EigenMLP(args.spe_dim, args.hidden_dim, args.hidden_dim, args.period)
+    spa_encoder = Encoder(data.x.shape[1], args.hidden_dim, args.output_dim)
+    spe_encoder = EigenMLP(args.spe_dim, args.hidden_dim, args.output_dim, args.period)
     model = SpaSpeNode(spa_encoder, spe_encoder, hidden_dim=args.hidden_dim, t=args.t)
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.weight_decay)
     train_weights = model.trainable_weights
@@ -158,10 +161,11 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', default='facebook')
-    parser.add_argument('--dataset_path', type=str, default=r'./', help="path to save dataset")
+    parser.add_argument('--dataset_path', type=str, default=r'', help="path to save dataset")
     parser.add_argument('--spe_dim', type=int, default=100)
     parser.add_argument('--period', type=int, default=20)
     parser.add_argument('--hidden_dim', type=int, default=1024)
+    parser.add_argument('--output_dim', type=int, default=1024)
     parser.add_argument('--t', type=float, default=0.5)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--weight_decay', type=float, default=0)
