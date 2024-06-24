@@ -1,3 +1,4 @@
+import math
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # os.environ['TL_BACKEND'] = 'torch'
@@ -34,7 +35,6 @@ class Clf_Loss(WithLoss):
 class Classifier(tlx.nn.Module):
     def __init__(self, hid_feat, num_classes):
         super(Classifier, self).__init__()
-        # import math
         init = tlx.nn.initializers.HeNormal(a=math.sqrt(5))
         self.fc = tlx.nn.Linear(out_features=num_classes, in_features=hid_feat, W_init=init)
 
@@ -125,7 +125,6 @@ def main(args):
     test_embs = tlx.gather(embed, data['test_idx'])
 
     train_embs = tlx.detach(train_embs)
-
     train_lbls = tlx.gather(data['y'], data['train_idx'])
     test_lbls = tlx.gather(data['y'], data['test_idx'])
     accs = 0.

@@ -17,7 +17,6 @@ from teacher_trainer import teacher_trainer
 from gammagl.models import GCNModel, GATModel
 from gammagl.utils import remove_self_loops
 import scipy.sparse as sp
-import torch
 
 
 def get_training_config(config_path, args):
@@ -78,7 +77,7 @@ def get_train_val_test_split(graph, configs):
 
 
 def edge_index_to_csr_matrix(edge_index, num_nodes):
-    coo_matrix = sp.coo_matrix((torch.ones(edge_index.shape[1]), (edge_index[0], edge_index[1])),
+    coo_matrix = sp.coo_matrix((tlx.ones([edge_index.shape[1]]), (edge_index[0], edge_index[1])),
                                shape=(num_nodes, num_nodes), dtype=float)
     csr_matrix = coo_matrix.tocsr()
 
@@ -87,9 +86,9 @@ def edge_index_to_csr_matrix(edge_index, num_nodes):
 
 def csr_matrix_to_edge_index(csr_matrix):
     coo_matrix = csr_matrix.tocoo()
-    row_indices = torch.tensor(coo_matrix.row, dtype=torch.long)
-    col_indices = torch.tensor(coo_matrix.col, dtype=torch.long)
-    edge_index = torch.stack([row_indices, col_indices], dim=0)
+    row_indices = tlx.convert_to_tensor(coo_matrix.row, dtype=tlx.int64)
+    col_indices = tlx.convert_to_tensor(coo_matrix.col, dtype=tlx.int64)
+    edge_index = tlx.stack([row_indices, col_indices], axis=0)
 
     return edge_index
 
@@ -195,6 +194,12 @@ if __name__ == '__main__':
     parser.add_argument("--patience", type=int, default=800, help="early stopping epoch")
     parser.add_argument('--largest_connected_component', type=bool, default=True,
                         help='use largest connected component or not')
+    parser.add_argument("--gpu", type=int, default=0)
+
     args = parser.parse_args()
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
 
     main(args)
