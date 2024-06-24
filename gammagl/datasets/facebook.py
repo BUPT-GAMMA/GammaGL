@@ -30,7 +30,7 @@ class FacebookPagePage(InMemoryDataset):
 
     def __init__(
         self,
-        root: str,
+        root: str = None,
         transform: Optional[Callable] = None,
         pre_transform: Optional[Callable] = None,
         force_reload: bool = False,

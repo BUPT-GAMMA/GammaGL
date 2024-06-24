@@ -41,10 +41,12 @@ class EigenMLP(nn.Module):
         u = tlx.expand_dims(u, axis=2)
         u_transformed = self.psi(self.phi(u) + self.phi(-u))
         u = tlx.ops.squeeze(u_transformed, axis=2)
+
         period_term = tlx.arange(0, self.period)
         e_unsqueeze = tlx.expand_dims(e, axis=1)
         period_e = e_unsqueeze * tlx.pow(2, period_term)
         fourier_e = tlx.concat([tlx.sin(period_e), tlx.cos(period_e)], axis=-1)
+
         h = tlx.matmul(u, fourier_e)
         h = self.mlp1(h)
         h = nn.ReLU()(h)
@@ -53,8 +55,8 @@ class EigenMLP(nn.Module):
 
 
 class SpaSpeNode(nn.Module):
-    def __init__(self, spa_encoder, spe_encoder, hidden_dim, t=1.):
-        super(SpaSpeNode, self).__init__()
+    def __init__(self, spa_encoder, spe_encoder, hidden_dim, t = 1., name = None):
+        super(SpaSpeNode, self).__init__(name=name)
         self.t = t
         self.hidden_dim = hidden_dim
 
