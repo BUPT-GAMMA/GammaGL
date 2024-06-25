@@ -54,7 +54,10 @@ class FacebookPagePage(InMemoryDataset):
         x = tlx.convert_to_tensor(data['features'], dtype=tlx.float32)
         y = tlx.convert_to_tensor(data['target'], dtype=tlx.int64)
         edge_index = tlx.convert_to_tensor(data['edges'], dtype=tlx.int64)
-        edge_index = edge_index.T
+        if tlx.BACKEND == 'mindspore':
+            edge_index = edge_index.T
+        else:
+            edge_index = tlx.ops.transpose(edge_index)
 
         data = Graph(x=x, edge_index=edge_index, y=y)
 

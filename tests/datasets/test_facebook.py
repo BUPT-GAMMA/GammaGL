@@ -1,7 +1,7 @@
 from gammagl.datasets import FacebookPagePage
 
 def test_facebook():
-    dataset = FacebookPagePage(root='data/facebook')
+    dataset = FacebookPagePage()
     g = dataset[0]
     assert len(dataset) == 1
     assert g.num_nodes == 22470

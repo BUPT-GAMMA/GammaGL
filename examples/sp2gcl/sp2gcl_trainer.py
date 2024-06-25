@@ -38,7 +38,7 @@ class ContrastiveLoss(WithLoss):
         logits = tlx.matmul(h1, tlx.transpose(h2, perm=(1, 0))) / data['t']
         labels = tlx.arange(start=0, limit=h1.shape[0], delta=1, dtype=tlx.int64)
 
-        loss = 0.5 * self._loss_fn(logits, labels) + 0.5 * self._loss_fn(logits.transpose(-2, -1), labels)
+        loss = 0.5 * self._loss_fn(logits, labels) + 0.5 * self._loss_fn(tlx.transpose(logits), labels)
         return loss
 
 def main(args):
@@ -89,20 +89,18 @@ def main(args):
     for epoch in range(args.n_epoch):
         model.set_train()
         train_loss = train_one_step(data=data_all, label=data.y)
-        if (epoch + 1) % 10 == 0:
-            model.set_eval()
-            spa_emb = tlx.detach(model.spa_encoder(data.x, data.edge_index))
-            spe_emb = tlx.detach(model.spe_encoder(e, u))
-            # acc, pred = node_evaluation((spa_emb + spe_emb)/2, y, train_idx, val_idx, test_idx)
-            val_acc = node_evaluation(tlx.concat((spa_emb, spe_emb), axis=-1), data.y, train_idx, val_idx)
-            if val_acc > best_val_acc:
-                best_val_acc = val_acc
-                model.save_weights(args.best_model_path+model.name+".npz", format='npz_dict')
-
-            print(f'Epoch {epoch+1}/{args.n_epoch}, Accuracy: {val_acc}')
+        model.set_eval()
+        spa_emb = tlx.detach(model.spa_encoder(data.x, data.edge_index))
+        spe_emb = tlx.detach(model.spe_encoder(e, u))
+        # acc, pred = node_evaluation((spa_emb + spe_emb)/2, y, train_idx, val_idx, test_idx)
+        val_acc = node_evaluation(tlx.concat((spa_emb, spe_emb), axis=-1), data.y, train_idx, val_idx)
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            model.save_weights(args.best_model_path+model.name+".npz", format='npz_dict')
 
         print("Epoch [{:0>3d}] ".format(epoch+1)\
-              + "  train loss: {:.4f}".format(train_loss.item()))
+              + "  train loss: {:.4f}".format(train_loss.item())\
+              + "  val acc: {:.4f}".format(val_acc))
         
     model.load_weights(args.best_model_path+model.name+".npz", format='npz_dict')
     model.set_eval()
@@ -113,20 +111,19 @@ def main(args):
     print("Test acc:  {:.4f}".format(test_acc))
 
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', default='pubmed')
+    parser.add_argument('--dataset', default='pubmed', help='dataset')
     parser.add_argument('--dataset_path', type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument('--spe_dim', type=int, default=100)
     parser.add_argument('--period', type=int, default=20)
-    parser.add_argument('--hidden_dim', type=int, default=512)
+    parser.add_argument('--hidden_dim', type=int, default=512, help="dimention of hidden layers")
     parser.add_argument('--output_dim', type=int, default=512)
     parser.add_argument('--t', type=float, default=0.5)
-    parser.add_argument('--lr', type=float, default=1e-3)
-    parser.add_argument('--weight_decay', type=float, default=5e-4)
-    parser.add_argument('--n_epoch', type=int, default=200)
+    parser.add_argument('--lr', type=float, default=1e-3, help="learnin rate")
+    parser.add_argument('--weight_decay', type=float, default=5e-4, help="l2 loss coeficient")
+    parser.add_argument('--n_epoch', type=int, default=50, help="number of epoch")
     parser.add_argument("--gpu", type=int, default=0)
     args = parser.parse_args()
     if args.gpu >=0:

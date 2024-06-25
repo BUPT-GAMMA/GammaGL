@@ -44,7 +44,7 @@ class EigenMLP(nn.Module):
 
         period_term = tlx.arange(0, self.period)
         e_unsqueeze = tlx.expand_dims(e, axis=1)
-        period_e = e_unsqueeze * tlx.pow(2, period_term)
+        period_e = e_unsqueeze * tlx.convert_to_tensor(tlx.convert_to_numpy(tlx.pow(2, period_term)), dtype=tlx.float32)
         fourier_e = tlx.concat([tlx.sin(period_e), tlx.cos(period_e)], axis=-1)
 
         h = tlx.matmul(u, fourier_e)
