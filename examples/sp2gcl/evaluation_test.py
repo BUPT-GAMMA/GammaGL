@@ -18,7 +18,7 @@ class SemiSpvzLoss(WithLoss):
 class LogReg(nn.Module):
     def __init__(self, hid_dim, out_dim, name=None):
         super(LogReg, self).__init__(name=name)
-        self.linear = nn.Linear(in_features=hid_dim, out_features=out_dim,W_init=tlx.initializers.xavier_uniform(), b_init=tlx.initializers.zeros())
+        self.linear = nn.Linear(in_features=hid_dim, out_features=out_dim, W_init=tlx.initializers.xavier_uniform(), b_init=tlx.initializers.zeros())
 
     def forward(self, x):
         return self.linear(x)

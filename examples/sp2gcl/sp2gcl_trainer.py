@@ -10,6 +10,7 @@ from tensorlayerx.model import WithLoss, TrainOneStep
 from gammagl.models import EigenMLP, SpaSpeNode, Encoder
 from gammagl.datasets import FacebookPagePage, WikiCS, Planetoid
 from gammagl.utils import get_laplacian, to_scipy_sparse_matrix, get_train_val_test_split, mask_to_index
+import numpy as np
 
 
 def compute_laplacian(data):
@@ -36,10 +37,18 @@ class ContrastiveLoss(WithLoss):
         h2 = tlx.l2_normalize(h_node_spe, axis=-1, eps=1e-12)
 
         logits = tlx.matmul(h1, tlx.transpose(h2, perm=(1, 0))) / data['t']
-        labels = tlx.arange(start=0, limit=h1.shape[0], delta=1, dtype=tlx.int64)
 
-        loss = 0.5 * self._loss_fn(logits, labels) + 0.5 * self._loss_fn(tlx.transpose(logits), labels)
-        return loss
+        exp_logits = tlx.exp(logits)
+        sum_exp_logits = tlx.ops.reduce_sum(exp_logits, axis=1, keepdims=True)
+
+        # positive_exp_logits = tlx.ops.diagonal(exp_logits)
+        # positive_exp_logits = torch.diagonal(exp_logits)
+        positive_exp_logits = tlx.convert_to_tensor(np.diagonal(tlx.convert_to_numpy(exp_logits)))
+
+        log_prob = tlx.log(positive_exp_logits / sum_exp_logits)
+        loss = -tlx.ops.reduce_sum(log_prob)
+
+        return loss / 2.0
 
 def main(args):
     if args.dataset in ['pubmed',  'wikics', 'facebook']:
@@ -68,7 +77,7 @@ def main(args):
 
     spa_encoder = Encoder(data.x.shape[1], args.hidden_dim, args.output_dim)
     spe_encoder = EigenMLP(args.spe_dim, args.hidden_dim, args.output_dim, args.period)
-    model = SpaSpeNode(spa_encoder, spe_encoder, hidden_dim=args.hidden_dim, t=args.t, name="sp2gcl")
+    model = SpaSpeNode(spa_encoder, spe_encoder, output_dim=args.output_dim, name="sp2gcl")
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.weight_decay)
     train_weights = model.trainable_weights
     loss_func = ContrastiveLoss(model, tlx.losses.softmax_cross_entropy_with_logits)
@@ -123,7 +132,7 @@ if __name__ == '__main__':
     parser.add_argument('--t', type=float, default=0.5)
     parser.add_argument('--lr', type=float, default=1e-3, help="learnin rate")
     parser.add_argument('--weight_decay', type=float, default=5e-4, help="l2 loss coeficient")
-    parser.add_argument('--n_epoch', type=int, default=50, help="number of epoch")
+    parser.add_argument('--n_epoch', type=int, default=5, help="number of epoch")
     parser.add_argument("--gpu", type=int, default=0)
     args = parser.parse_args()
     if args.gpu >=0:

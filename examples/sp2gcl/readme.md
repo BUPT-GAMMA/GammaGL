@@ -28,7 +28,7 @@ TL_BACKEND="torch" python sp2gcl_trainer.py --dataset pubmed
 # Dataset Statics
 
 | Dataset  | Paper Code | Out(th)      |
-|----------|------|--------------|
-| PubMed     | 82.3±0.3 | OOM          |
-| Wiki-CS | 79.42±0.19 | 78.27 ± 0.05 |
-| Facebook   | 90.43±0.13 | 88.87±0.06   |
+|----------|------------|--------------|
+| PubMed   | 82.3±0.3   | OOM          |
+| Wiki-CS  | 79.42±0.19 | 78.27±0.05   |
+| Facebook | 90.43±0.13 | 88.87±0.06   |

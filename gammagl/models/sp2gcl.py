@@ -55,17 +55,16 @@ class EigenMLP(nn.Module):
 
 
 class SpaSpeNode(nn.Module):
-    def __init__(self, spa_encoder, spe_encoder, hidden_dim, t = 1., name = None):
+    def __init__(self, spa_encoder, spe_encoder, output_dim, name = None):
         super(SpaSpeNode, self).__init__(name=name)
-        self.t = t
-        self.hidden_dim = hidden_dim
+        self.output_dim = output_dim
 
         self.spa_encoder = spa_encoder
         self.spe_encoder = spe_encoder
 
-        self.proj = nn.Sequential(nn.Linear(in_features=hidden_dim, out_features=hidden_dim, W_init='xavier_uniform'),
+        self.proj = nn.Sequential(nn.Linear(in_features=output_dim, out_features=output_dim, W_init='xavier_uniform'),
                                   nn.PRelu(),
-                                  nn.Linear(in_features=hidden_dim, out_features=hidden_dim, W_init='xavier_uniform'))
+                                  nn.Linear(in_features=output_dim, out_features=output_dim, W_init='xavier_uniform'))
 
     def forward(self, x, edge_index, e, u, size=-1):
         x_node_spa = self.spa_encoder(x, edge_index)
