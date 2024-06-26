@@ -81,11 +81,11 @@ class GATConv(MessagePassing):
         
         init_weight = tlx.initializers.TruncatedNormal()
         self.w = tlx.nn.Parameter(
-            init_weight((in_channels, self.out_channels * self.heads)), name='linear_weight')
+            init_weight((in_channels, self.out_channels * self.heads)))
 
         initor = tlx.initializers.TruncatedNormal()
         self.att = tlx.nn.Parameter(
-            initor((1, self.heads, self.out_channels * 2)), name='att')
+            initor((1, self.heads, self.out_channels * 2)))
 
         self.leaky_relu = tlx.layers.LeakyReLU(negative_slope)
         self.dropout = tlx.layers.Dropout(self.dropout_rate)
