@@ -27,7 +27,7 @@ def test_spaspenode():
 
     spa_encoder = Encoder(in_channels=x.shape[1], hidden_channels=16, out_channels=16)
     spe_encoder = EigenMLP(input_dim=e.shape[0], hidden_dim=16, output_dim=16, period=2)
-    model = SpaSpeNode(spa_encoder=spa_encoder, spe_encoder=spe_encoder, hidden_dim=16)
+    model = SpaSpeNode(spa_encoder=spa_encoder, spe_encoder=spe_encoder, output_dim=16)
 
 
     h_node_spa, h_node_spe = model(x, edge_index, e, u)
