@@ -222,3 +222,6 @@ def _scatter(x, index, updates, overwrite=True):
 
 def gspmm(index, weight=None, x=None, reduce='sum'):
     pass
+
+def bspmm(index, weight=None, x=None, reduce='sum'):
+    pass
