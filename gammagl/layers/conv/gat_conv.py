@@ -109,8 +109,8 @@ class GATConv(MessagePassing):
         e = self.leaky_relu(e)
         alpha = self.dropout(segment_softmax(e, node_dst, num_nodes))
 
-        # x = self.propagate(x, edge_index, num_nodes=num_nodes, edge_weight=alpha)
-        x = bspmm(edge_index, weight=alpha, x=x, reduce='sum')
+        x = self.propagate(x, edge_index, num_nodes=num_nodes, edge_weight=alpha)
+        # x = bspmm(edge_index, weight=alpha, x=x, reduce='sum')
 
         if self.concat:
             x = tlx.reshape(x, (-1, self.heads * self.out_channels))
