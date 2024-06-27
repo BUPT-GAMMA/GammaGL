@@ -3,17 +3,15 @@
 # @created 2023/4/18
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ["CUDA_LAUNCH_BLOCKING"] = '1'
-os.environ['TL_BACKEND'] = 'torch'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 
 from gammagl.utils import mask_to_index
 from tensorlayerx.model import WithLoss, TrainOneStep
 from tqdm import tqdm
-from gammagl.datasets import Reddit, Planetoid
+from gammagl.datasets import Reddit
 import tensorlayerx as tlx
 import argparse
-import time
 from gammagl.loader.neighbor_sampler import NeighborSampler
 from gammagl.models import GraphSAGE_Sample_Model
 
@@ -46,10 +44,7 @@ def calculate_acc(logits, y, metrics):
 
 def main(args):
     # load reddit dataset
-    if args.dataset == 'reddit':
-        dataset = Reddit(args.dataset_path)
-    else:
-        dataset = Planetoid(args.dataset_path, args.dataset)
+    dataset = Reddit(args.dataset_path)
     # dataset.process()  # suggest to execute explicitly so far
     graph = dataset[0]
     # for mindspore, it should be passed into node indices
@@ -59,14 +54,14 @@ def main(args):
 
     train_loader = NeighborSampler(edge_index=graph.edge_index,
                                    node_idx=train_idx,
-                                   sample_lists=[8,8], batch_size=1024, shuffle=True, num_workers=0)
+                                   sample_lists=[25, 10], batch_size=2048, shuffle=True, num_workers=0)
 
-    # val_loader = NeighborSampler(edge_index=graph.edge_index,
-    #                              node_idx=val_idx,
-    #                              sample_lists=[-1], batch_size=1024, shuffle=False, num_workers=0)
-    # test_loader = NeighborSampler(edge_index=graph.edge_index,
-    #                               node_idx=test_idx,
-    #                               sample_lists=[-1], batch_size=1024, shuffle=False, num_workers=0)
+    val_loader = NeighborSampler(edge_index=graph.edge_index,
+                                 node_idx=val_idx,
+                                 sample_lists=[-1], batch_size=2048 * 2, shuffle=False, num_workers=0)
+    test_loader = NeighborSampler(edge_index=graph.edge_index,
+                                  node_idx=test_idx,
+                                  sample_lists=[-1], batch_size=2048 * 2, shuffle=False, num_workers=0)
 
     x = tlx.convert_to_tensor(graph.x)
     y = tlx.convert_to_tensor(graph.y, dtype=tlx.int64)
@@ -83,19 +78,10 @@ def main(args):
     loss_func = SemiSpvzLoss(net, tlx.losses.softmax_cross_entropy_with_logits)
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
-    start = time.time()
-
-    sample_time = 0.0
-    sample_start = time.time()
-
     for epoch in range(args.n_epoch):
         pbar = tqdm(total=int(len(train_loader.dataset)))
         pbar.set_description(f'Epoch {epoch:02d}')
-        
-        sample_start = time.time()
-
         for dst_node, n_id, adjs in train_loader:
-            sample_time = sample_time + time.time() - sample_start
             net.set_train()
             # input : sampled subgraphs, sampled node's feat
             data = {"x": tlx.gather(x, n_id),
@@ -107,31 +93,26 @@ def main(args):
             pbar.update(len(dst_node))
             print("Epoch [{:0>3d}] ".format(epoch + 1) + "  train loss: {:.4f}".format(train_loss.item()))
 
-            # logits = net.inference(x, val_loader, data['x'])
-            # if tlx.BACKEND == 'torch':
-            #     val_idx = val_idx.to(data['x'].device)
-            # val_logits = tlx.gather(logits, val_idx)
-            # val_y = tlx.gather(data['y'], val_idx)
-            # val_acc = calculate_acc(val_logits, val_y, metrics)
+        logits = net.inference(x, val_loader, data['x'])
+        if tlx.BACKEND == 'torch':
+            val_idx = val_idx.to(data['x'].device)
+        val_logits = tlx.gather(logits, val_idx)
+        val_y = tlx.gather(data['y'], val_idx)
+        val_acc = calculate_acc(val_logits, val_y, metrics)
 
-            # logits = net.inference(x, test_loader, data['x'])
-            # test_logits = tlx.gather(logits, test_idx)
-            # test_y = tlx.gather(data['y'], test_idx)
-            # test_acc = calculate_acc(test_logits, test_y, metrics)
+        logits = net.inference(x, test_loader, data['x'])
+        test_logits = tlx.gather(logits, test_idx)
+        test_y = tlx.gather(data['y'], test_idx)
+        test_acc = calculate_acc(test_logits, test_y, metrics)
 
-            # print("val acc: {:.4f} || test acc: {:.4f}".format(val_acc, test_acc))
-            sample_start = time.time()
-
-    print("all time:",time.time()-start)
-
-    print("sample time:",sample_time)
+        print("val acc: {:.4f} || test acc{:.4f}".format(val_acc, test_acc))
 
 
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.0005, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=1, help="number of epoch")
+    parser.add_argument("--n_epoch", type=int, default=50, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=256, help="dimention of hidden layers")
     parser.add_argument("--drop_rate", type=float, default=0.8, help="drop_rate")
     parser.add_argument("--num_layers", type=int, default=2)
@@ -139,7 +120,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default='reddit', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     # parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
-    parser.add_argument("--gpu", type=int, default=1)
+    parser.add_argument("--gpu", type=int, default=0)
 
     args = parser.parse_args()
     if args.gpu >= 0:
