@@ -18,14 +18,14 @@ Results
 
 ```bash
 # available dataset: "polblogs", "citeseer", "wikics", "ms"
-TL_BACKEND="paddle" python cogsl_trainer.py polblogs
-TL_BACKEND="paddle" python cogsl_trainer.py citeseer
-TL_BACKEND="paddle" python cogsl_trainer.py wikics
-TL_BACKEND="paddle" python cogsl_trainer.py ms
-TL_BACKEND="torch" python cogsl_trainer.py polblogs
-TL_BACKEND="torch" python cogsl_trainer.py citeseer
-TL_BACKEND="torch" python cogsl_trainer.py wikics
-TL_BACKEND="torch" python cogsl_trainer.py ms
+TL_BACKEND="paddle" python cogsl_trainer.py --dataset polblogs --v1_p 1 --v2_p 300 --cls_hid 16 --gen_hid 64 --mi_hid 128
+TL_BACKEND="paddle" python cogsl_trainer.py --dataset citeseer --v1_p 2 --v2_p 40 --cls_hid 16 --gen_hid 32 --mi_hid 128
+TL_BACKEND="paddle" python cogsl_trainer.py --dataset wikics --v1_p 1 --v2_p 1 --cls_hid 16 --gen_hid 16 --mi_hid 32 -ggl True --big True
+TL_BACKEND="paddle" python cogsl_trainer.py --dataset ms --v1_p 1 --v2_p 1 --cls_hid 16 --gen_hid 32 --mi_hid 256 -ggl True --big True
+TL_BACKEND="torch" python cogsl_trainer.py --dataset polblogs --v1_p 1 --v2_p 300 --cls_hid 16 --gen_hid 64 --mi_hid 128
+TL_BACKEND="torch" python cogsl_trainer.py --dataset citeseer --v1_p 2 --v2_p 40 --cls_hid 16 --gen_hid 32 --mi_hid 128
+TL_BACKEND="torch" python cogsl_trainer.py --dataset wikics --v1_p 1 --v2_p 1 --cls_hid 16 --gen_hid 16 --mi_hid 32 -ggl True --big True
+TL_BACKEND="torch" python cogsl_trainer.py --dataset ms --v1_p 1 --v2_p 1 --cls_hid 16 --gen_hid 32 --mi_hid 256 --ggl True --big True
 
 
 ```

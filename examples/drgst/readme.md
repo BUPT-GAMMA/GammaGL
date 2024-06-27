@@ -22,11 +22,11 @@ Results
 
 ```bash
 # available dataset: "Cora", "Citeseer", "Pubmed", "CS", "Physics", "Computers", "Photo"
-TL_BACKEND="torch" python DR-GST.py --dataset Cora --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
-TL_BACKEND="torch" python DR-GST.py --dataset CiteSeer --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
-TL_BACKEND="torch" python DR-GST.py --dataset PubMed --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
-TL_BACKEND="torch" python DR-GST.py --dataset CoraFull --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
-TL_BACKEND="torch" python DR_GST.py --model GCN --labelrate 5 --drop_method dropout --droprate 0.4 --dataset Flickr--threshold 0.8 --weight_decay 5e-5 --lr 0.005
+TL_BACKEND="torch" python dr_gst_trainer.py --dataset Cora --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
+TL_BACKEND="torch" python dr_gst_trainer.py --dataset CiteSeer --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
+TL_BACKEND="torch" python dr_gst_trainer.py --dataset PubMed --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
+TL_BACKEND="torch" python dr_gst_trainer.py --dataset CoraFull --model GCN --labelrate 20 --drop_method dropout --droprate 0.3
+TL_BACKEND="torch" python dr_gst_trainer.py --model GCN --labelrate 5 --drop_method dropout --droprate 0.4 --dataset Flickr--threshold 0.8 --weight_decay 5e-5 --lr 0.005
 ‘’‘
 
 

@@ -45,8 +45,7 @@ class Discriminator(tlx.nn.Module):
             self.embedding_matrix, data['neighbor_nodes'])
         bias = tlx.gather(self.bias_vector, data['neighbor_nodes'])
 
-        scores = tlx.nn.Reshape(shape=bias.shape)(
-            tlx.reduce_sum(tlx.multiply(node_embedding, node_neighbor_embedding), axis=1)) + bias
+        scores = tlx.reshape(tlx.reduce_sum(tlx.multiply(node_embedding, node_neighbor_embedding), axis=1), shape=bias.shape) + bias
         scores = tlx.clip_by_value(
             scores, clip_value_min=-10, clip_value_max=10)
         return node_embedding, node_neighbor_embedding, bias, scores
@@ -72,8 +71,7 @@ class Discriminator(tlx.nn.Module):
             self.embedding_matrix, data['neighbor_nodes'])
         bias = tlx.gather(self.bias_vector, data['neighbor_nodes'])
 
-        scores = tlx.nn.Reshape(shape=bias.shape)(
-            tlx.reduce_sum(tlx.multiply(node_embedding, node_neighbor_embedding), axis=1)) + bias
+        scores = tlx.reshape(tlx.reduce_sum(tlx.multiply(node_embedding, node_neighbor_embedding), axis=1), shape=bias.shape) + bias
         scores = tlx.clip_by_value(
             scores, clip_value_min=-10, clip_value_max=10)
         reward = tlx.log(1 + tlx.exp(scores))
