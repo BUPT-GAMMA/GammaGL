@@ -1,21 +1,20 @@
+import argparse
 import random
 import numpy as np
 import tensorlayerx as tlx
 from tensorlayerx.model import TrainOneStep
-import tensorflow as tf
+from sklearn.metrics import roc_auc_score
 
 from gammagl.data import HeteroGraph
-from gammagl.models.dhn import DHNModel, NODE_TYPE, K_HOP, NUM_FEA, NUM_NEIGHBOR, type2idx
+from gammagl.layers.conv.dhn_conv import DHNModel, NODE_TYPE, K_HOP, NUM_FEA, NUM_NEIGHBOR, BATCH_SIZE, type2idx
 from gammagl.utils import k_hop_subgraph
 
-# 全局忽略UserWarning
+# The UserWarning is ignored globally
 import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
-random.seed(0)  # 确保各个算法的数据，邻居等信息一致，保证公平
-
-PATH = 'MA.txt'
+random.seed(0)
 
 G = HeteroGraph()
 
@@ -24,13 +23,13 @@ def load_ACM(test_ratio=0.2):
     edge_index_M = []
     edge_index_A = []
 
-    with open(PATH, 'r') as f:
+    with open(args.dataset_path, 'r') as f:
         for line in f.readlines():
-            src, dst = line.strip().split()  # 假设每行包含两个由空格分隔的节点标识符
-            src_type, src_id = src[0], src[1:]  # 解析源节点类型和ID
-            dst_type, dst_id = dst[0], dst[1:]  # 解析目标节点类型和ID
+            src, dst = line.strip().split()
+            src_type, src_id = src[0], src[1:]  # Resolves the source node type and ID
+            dst_type, dst_id = dst[0], dst[1:]  # Resolve the target node type and ID
 
-            # 将节点ID转换为整数索引,并放入列表中
+            # Convert the node ID to an integer index and place it in a list
             if src[0] == 'M':
                 edge_index_M.append(int(src_id))
             elif src[0] == 'A':
@@ -44,7 +43,7 @@ def load_ACM(test_ratio=0.2):
     edge_index = tlx.convert_to_tensor([edge_index_M, edge_index_A])
     G['M', 'MA', 'A'].edge_index = edge_index
 
-    # 计算分割点
+    # Computed split point
     sp = 1 - test_ratio * 2
     num_edge = len(edge_index_M)
     sp1 = int(num_edge * sp)
@@ -54,7 +53,7 @@ def load_ACM(test_ratio=0.2):
     G_val = HeteroGraph()
     G_test = HeteroGraph()
 
-    # 划分训练集，验证集和测试集
+    # Divide the training set, the verification set, and the test set
     G_train['M', 'MA', 'A'].edge_index = tlx.convert_to_tensor([edge_index_M[:sp1], edge_index_A[:sp1]])
     G_val['M', 'MA', 'A'].edge_index = tlx.convert_to_tensor([edge_index_M[sp1:sp1 + sp2], edge_index_A[sp1:sp1 + sp2]])
     G_test['M', 'MA', 'A'].edge_index = tlx.convert_to_tensor([edge_index_M[sp1 + sp2:], edge_index_A[sp1 + sp2:]])
@@ -66,12 +65,12 @@ def load_ACM(test_ratio=0.2):
 
 
 def find_all_simple_paths(edge_index, src, dest, max_length):
-    # 将edge_index转换为邻接列表表示
+    # Converts edge_index to an adjacency list representation
     num_nodes = max(edge_index[0].max().item(),
                     edge_index[1].max().item(),
                     -edge_index[0].min().item(),
                     -edge_index[1].min().item(),
-                    src.item()) + 1
+                    abs(src.item())) + 1
     adj_list = [[] for _ in range(num_nodes)]
     for u, v in zip(edge_index[0].tolist(), edge_index[1].tolist()):
         adj_list[u].append(v)
@@ -99,13 +98,13 @@ def find_all_simple_paths(edge_index, src, dest, max_length):
     return paths
 
 
-def dist_encoder(src, dest, G, K_HOP, one_hot=True):
+def dist_encoder(src, dest, G, K_HOP):
     if (G.size(1) == 0):
         paths = []
     else:
         paths = find_all_simple_paths(G, src, dest, K_HOP + 2)
 
-    cnt = [K_HOP + 1] * NODE_TYPE  # 超过max_spd的默认截断
+    cnt = [K_HOP + 1] * NODE_TYPE  # Default truncation for max_spd exceeded
     for path in paths:
         res = [0] * NODE_TYPE
         for i in path:
@@ -117,8 +116,8 @@ def dist_encoder(src, dest, G, K_HOP, one_hot=True):
         for k in range(NODE_TYPE):
             cnt[k] = min(cnt[k], res[k])
 
-    # 生成one-hot编码
-    if one_hot:
+    # Generate one-hot encoding
+    if args.one_hot:
         one_hot_list = [np.eye(K_HOP + 2, dtype=np.float64)[cnt[i]]
                         for i in range(NODE_TYPE)]
         return np.concatenate(one_hot_list)
@@ -149,7 +148,7 @@ def gen_fea_batch(G, root, fea_dict, hop):
                                 ).reshape(-1, NUM_FEA)
                      )
 
-    # 一阶邻居采样
+    # 1-order neighbor sampling
     ns_1 = []
     src, dst = G
     for node in mini_batch[-1]:
@@ -173,7 +172,7 @@ def gen_fea_batch(G, root, fea_dict, hop):
                                 dtype=np.float32).reshape(1, -1)
                      )
 
-    # 二阶邻居采样
+    # 2-order neighbor sampling
     ns_2 = []
     for node in mini_batch[-1]:
         if node.item() >= 0:
@@ -207,11 +206,11 @@ def subgraph_sampling_with_DE_node_pair(G, node_pair, K_HOP=2):
 
     edge_index = tlx.concat([G['M', 'MA', 'A'].edge_index, reversed(G['M', 'MA', 'A'].edge_index)], axis=1)
 
-    # 求A和B的K跳子图
+    # Find k-hop subgraphs of A and B
     sub_G_for_AB = k_hop_subgraph([A, B], K_HOP, edge_index)
 
-    # 使用布尔索引删除边
-    # 注意：只是删除边，点仍然保留
+    # Remove edges using Boolean indexes
+    # Note: Just remove the edges, the points remain
     edge_index_np = sub_G_for_AB[1].numpy()
     remove_indices = tlx.convert_to_tensor([
         ((edge_index_np[0, i] == A) & (edge_index_np[1, i] == B)) | (
@@ -222,10 +221,10 @@ def subgraph_sampling_with_DE_node_pair(G, node_pair, K_HOP=2):
     sub_G_index = sub_G_for_AB[1][:, ~remove_indices]
 
     sub_G_nodes = set(np.unique(sub_G_for_AB[0].numpy())) | set(
-        np.unique(sub_G_for_AB[1].numpy()))  # 获取图中的点
+        np.unique(sub_G_for_AB[1].numpy()))  # Gets the points in the graph
     sub_G_nodes = tlx.convert_to_tensor(list(sub_G_nodes))
 
-    # 子图中所有点到node pair的距离
+    # Distance from all points in the subgraph to the node pair
     SPD_based_on_node_pair = {}
     for node in sub_G_nodes:
         tmpA = dist_encoder(A, node, sub_G_index, K_HOP)
@@ -253,14 +252,14 @@ def batch_data(G,
 
     num_batch = int(len(edge_index[0]) / batch_size)
 
-    # 打乱边的顺序
+    # Shuffle the order of the edges
     edge_index_np = np.array(edge_index)
-    permutation = np.random.permutation(edge_index_np.shape[1])  # 生成一个随机排列的索引
-    edge_index_np = edge_index_np[:, permutation]  # 使用这个排列索引来打乱 edge_index
+    permutation = np.random.permutation(edge_index_np.shape[1])  # Generate a randomly arranged index
+    edge_index_np = edge_index_np[:, permutation]  # Use this permutation index to scramble edge_index
     edge_index = tlx.convert_to_tensor(edge_index_np)
 
     for idx in range(num_batch):
-        batch_edge = edge_index[:, idx * batch_size:(idx + 1) * batch_size]  # 取出batch_size条边
+        batch_edge = edge_index[:, idx * batch_size:(idx + 1) * batch_size]  # Take out batch_size edges
         batch_label = [1.0] * batch_size
 
         batch_A_fea = []
@@ -272,13 +271,13 @@ def batch_data(G,
         for by in batch_label:
             bx = batch_edge[:, i:i + 1]
 
-            # 正样本
+            # Positive sample
             posA, posB = subgraph_sampling_with_DE_node_pair(G, bx, K_HOP=K_HOP)
             batch_A_fea.append(posA)
             batch_B_fea.append(posB)
             batch_y.append(np.asarray(by, dtype=np.float32))
 
-            # 负样本
+            # Negative sample
             neg_tmpB_id = random.choice(nodes_list)
             node_pair = tlx.convert_to_tensor([[bx[0].item()], [neg_tmpB_id]])
 
@@ -289,16 +288,6 @@ def batch_data(G,
 
         yield np.asarray(np.squeeze(batch_A_fea)), np.asarray(np.squeeze(batch_B_fea)), np.asarray(
             batch_y).reshape(batch_size * 2, 1)
-
-
-G_train, G_val, G_test = load_ACM(test_ratio=0.3)
-
-m = DHNModel()
-
-lr = 0.0002
-optim = tlx.optimizers.Adam(lr=lr, weight_decay=0.01)
-
-train_weights = m.trainable_weights
 
 
 class Loss(tlx.model.WithLoss):
@@ -312,50 +301,87 @@ class Loss(tlx.model.WithLoss):
         return loss
 
 
-net_with_loss = Loss(m, loss_fn=tlx.losses.sigmoid_cross_entropy)
-net_with_train = TrainOneStep(net_with_loss, optim, train_weights)
+class AUCMetric:
+    def __init__(self):
+        self.true_labels = []
+        self.predicted_scores = []
 
-EPOCH = 100
-BATCH_SIZE = 32
+    def update_state(self, y_true, y_pred):
+        self.true_labels.extend(y_true)
+        self.predicted_scores.extend(y_pred)
 
-tra_auc_cul = tf.keras.metrics.AUC()
-val_auc_cul = tf.keras.metrics.AUC()
-test_auc_cul = tf.keras.metrics.AUC()
+    def result(self):
+        auc = roc_auc_score(self.true_labels, self.predicted_scores)
+        return auc
 
-for epoch in range(EPOCH):
-    print("-----Epoch {}/{}-----".format(epoch + 1, EPOCH))
 
-    # train
-    m.set_train()
-    tra_batch_A_fea, tra_batch_B_fea, tra_batch_y = batch_data(G_train, BATCH_SIZE).__next__()
-    tra_out = m(tra_batch_A_fea, tra_batch_B_fea, tra_batch_y)
+def main(args):
+    if str.lower(args.dataset) not in ['acm']:
+        raise ValueError('Unknown dataset: {}'.format(args.dataset))
+    if str.lower(args.dataset) == 'acm':
+        G_train, G_val, G_test = load_ACM(test_ratio=args.test_ratio)
 
-    data = {
-        "n1": tra_batch_A_fea,
-        "n2": tra_batch_B_fea,
-        "label": tra_batch_y
-    }
+    m = DHNModel()
 
-    tra_loss = net_with_train(data, tra_batch_y)
-    tra_auc_cul.update_state(y_true=tra_batch_y, y_pred=tlx.sigmoid(tra_out).detach().numpy())
-    tra_auc = tra_auc_cul.result().numpy()
-    print('train: ', tra_loss, tra_auc)
+    optim = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.drop_rate)
+    train_weights = m.trainable_weights
 
-    # val
-    m.set_eval()
-    val_batch_A_fea, val_batch_B_fea, val_batch_y = batch_data(G_val, BATCH_SIZE).__next__()
-    val_out = m(val_batch_A_fea, val_batch_B_fea, val_batch_y)
+    net_with_loss = Loss(m, loss_fn=tlx.losses.sigmoid_cross_entropy)
+    net_with_train = TrainOneStep(net_with_loss, optim, train_weights)
 
-    val_loss = tlx.losses.sigmoid_cross_entropy(output=val_out, target=tlx.convert_to_tensor(val_batch_y))
-    val_auc_cul.update_state(y_true=val_batch_y, y_pred=tlx.sigmoid(val_out).detach().numpy())
-    val_auc = val_auc_cul.result().numpy()
-    print("val: ", val_loss.item(), val_auc)
+    tra_auc_metric = AUCMetric()
+    val_auc_metric = AUCMetric()
+    test_auc_metric = AUCMetric()
 
-    # test
-    test_batch_A_fea, test_batch_B_fea, test_batch_y = batch_data(G_test, BATCH_SIZE).__next__()
-    test_out = m(test_batch_A_fea, test_batch_B_fea, test_batch_y)
+    for epoch in range(args.n_epoch):
+        print("-----Epoch {}/{}-----".format(epoch + 1, args.n_epoch))
 
-    test_loss = tlx.losses.sigmoid_cross_entropy(output=test_out, target=tlx.convert_to_tensor(test_batch_y))
-    test_auc_cul.update_state(y_true=test_batch_y, y_pred=tlx.sigmoid(test_out).detach().numpy())
-    test_auc = test_auc_cul.result().numpy()
-    print("test: ", test_loss.item(), test_auc)
+        # train
+        m.set_train()
+        tra_batch_A_fea, tra_batch_B_fea, tra_batch_y = batch_data(G_train, BATCH_SIZE).__next__()
+        tra_out = m(tra_batch_A_fea, tra_batch_B_fea, tra_batch_y)
+
+        data = {
+            "n1": tra_batch_A_fea,
+            "n2": tra_batch_B_fea,
+            "label": tra_batch_y
+        }
+
+        tra_loss = net_with_train(data, tra_batch_y)
+        tra_auc_metric.update_state(y_true=tra_batch_y, y_pred=tlx.sigmoid(tra_out).detach().numpy())
+        tra_auc = tra_auc_metric.result()
+        print('train: ', tra_loss, tra_auc)
+
+        # val
+        m.set_eval()
+        val_batch_A_fea, val_batch_B_fea, val_batch_y = batch_data(G_val, BATCH_SIZE).__next__()
+        val_out = m(val_batch_A_fea, val_batch_B_fea, val_batch_y)
+
+        val_loss = tlx.losses.sigmoid_cross_entropy(output=val_out, target=tlx.convert_to_tensor(val_batch_y))
+        val_auc_metric.update_state(y_true=val_batch_y, y_pred=tlx.sigmoid(val_out).detach().numpy())
+        val_auc = val_auc_metric.result()
+        print("val: ", val_loss.item(), val_auc)
+
+        # test
+        test_batch_A_fea, test_batch_B_fea, test_batch_y = batch_data(G_test, BATCH_SIZE).__next__()
+        test_out = m(test_batch_A_fea, test_batch_B_fea, test_batch_y)
+
+        test_loss = tlx.losses.sigmoid_cross_entropy(output=test_out, target=tlx.convert_to_tensor(test_batch_y))
+        test_auc_metric.update_state(y_true=test_batch_y, y_pred=tlx.sigmoid(test_out).detach().numpy())
+        test_auc = test_auc_metric.result()
+        print("test: ", test_loss.item(), test_auc)
+
+
+if __name__ == '__main__':
+    # parameters setting
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--test_ratio", type=float, default=0.3, help="ratio of dividing the data set")
+    parser.add_argument("--one_hot", type=bool, default=True, help="use one-hot encoding")
+    parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
+    parser.add_argument("--n_epoch", type=int, default=100, help="number of epoch")
+    parser.add_argument("--drop_rate", type=float, default=0.01, help="drop_rate")
+    parser.add_argument('--dataset', type=str, default='acm', help='dataset')
+    parser.add_argument("--dataset_path", type=str, default=r"MA.txt")
+
+    args = parser.parse_args()
+    main(args)
