@@ -57,6 +57,7 @@ from .heco import HeCo
 from .fusedgat import FusedGATModel
 from .hid_net import Hid_net
 from .gnnlfhf import GNNLFHFModel
+from .dfad import DFADModel, DFADGenerator
 
 __all__ = [
     'HeCo',
@@ -117,7 +118,9 @@ __all__ = [
     'FusedGATModel',
     'hid_net',
     'HEAT',
-    'GNNLFHFModel'
+    'GNNLFHFModel',
+    'DFADModel',
+    'DFADGenerator',
 ]
 
 classes = __all__
