@@ -5,98 +5,30 @@ import tensorlayerx as tlx
 from tensorlayerx.model import TrainOneStep
 from sklearn.metrics import roc_auc_score
 
-from gammagl.data import HeteroGraph
-from gammagl.layers.conv.dhn_conv import DHNModel, NODE_TYPE, K_HOP, NUM_FEA, NUM_NEIGHBOR, BATCH_SIZE, type2idx
-from gammagl.utils import k_hop_subgraph
+from gammagl.models import DHNModel
+from gammagl.datasets import ACM4DHN
+from gammagl.utils import k_hop_subgraph,find_all_simple_paths
 
 # The UserWarning is ignored globally
 import warnings
 
+type2idx = {
+    'M': 0,
+    'A': 1,
+    # 'C': 2,
+    # 'T': 3
+}
+
+NODE_TYPE = len(type2idx)
+K_HOP = 2
+
+NUM_FEA = (K_HOP + 2) * 4 + NODE_TYPE
+NUM_NEIGHBOR = 5
+BATCH_SIZE=32
+
 warnings.filterwarnings("ignore", category=UserWarning)
 
-random.seed(0)
-
-G = HeteroGraph()
-
-
-def load_ACM(test_ratio=0.2):
-    edge_index_M = []
-    edge_index_A = []
-
-    with open(args.dataset_path, 'r') as f:
-        for line in f.readlines():
-            src, dst = line.strip().split()
-            src_type, src_id = src[0], src[1:]  # Resolves the source node type and ID
-            dst_type, dst_id = dst[0], dst[1:]  # Resolve the target node type and ID
-
-            # Convert the node ID to an integer index and place it in a list
-            if src[0] == 'M':
-                edge_index_M.append(int(src_id))
-            elif src[0] == 'A':
-                edge_index_A.append(-int(src_id) - 1)
-
-            if dst[0] == 'M':
-                edge_index_M.append(int(dst_id))
-            elif dst[0] == 'A':
-                edge_index_A.append(-int(dst_id) - 1)
-
-    edge_index = tlx.convert_to_tensor([edge_index_M, edge_index_A])
-    G['M', 'MA', 'A'].edge_index = edge_index
-
-    # Computed split point
-    sp = 1 - test_ratio * 2
-    num_edge = len(edge_index_M)
-    sp1 = int(num_edge * sp)
-    sp2 = int(num_edge * test_ratio)
-
-    G_train = HeteroGraph()
-    G_val = HeteroGraph()
-    G_test = HeteroGraph()
-
-    # Divide the training set, the verification set, and the test set
-    G_train['M', 'MA', 'A'].edge_index = tlx.convert_to_tensor([edge_index_M[:sp1], edge_index_A[:sp1]])
-    G_val['M', 'MA', 'A'].edge_index = tlx.convert_to_tensor([edge_index_M[sp1:sp1 + sp2], edge_index_A[sp1:sp1 + sp2]])
-    G_test['M', 'MA', 'A'].edge_index = tlx.convert_to_tensor([edge_index_M[sp1 + sp2:], edge_index_A[sp1 + sp2:]])
-
-    print(
-        f"all edge: {len(G['M', 'MA', 'A'].edge_index[0])}, train edge: {len(G_train['M', 'MA', 'A'].edge_index[0])}, val edge: {len(G_val['M', 'MA', 'A'].edge_index[0])}, test edge: {len(G_test['M', 'MA', 'A'].edge_index[0])}")
-
-    return G_train, G_val, G_test
-
-
-def find_all_simple_paths(edge_index, src, dest, max_length):
-    # Converts edge_index to an adjacency list representation
-    num_nodes = max(edge_index[0].max().item(),
-                    edge_index[1].max().item(),
-                    -edge_index[0].min().item(),
-                    -edge_index[1].min().item(),
-                    abs(src.item())) + 1
-    adj_list = [[] for _ in range(num_nodes)]
-    for u, v in zip(edge_index[0].tolist(), edge_index[1].tolist()):
-        adj_list[u].append(v)
-
-    src = src.item()
-
-    paths = []
-    visited = set()
-    stack = [(src, [src])]
-
-    while stack:
-        (node, path) = stack.pop()
-
-        if node == dest:
-            paths.append(path)
-        elif len(path) < max_length:
-            for neighbor in adj_list[node]:
-                if neighbor not in path:
-                    visited.add((node, neighbor))
-                    stack.append((neighbor, path + [neighbor]))
-            for neighbor in adj_list[node]:
-                if (node, neighbor) in visited:
-                    visited.remove((node, neighbor))
-
-    return paths
-
+tlx.set_seed(10)
 
 def dist_encoder(src, dest, G, K_HOP):
     if (G.size(1) == 0):
@@ -318,10 +250,16 @@ class AUCMetric:
 def main(args):
     if str.lower(args.dataset) not in ['acm']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
-    if str.lower(args.dataset) == 'acm':
-        G_train, G_val, G_test = load_ACM(test_ratio=args.test_ratio)
+    if str.lower(args.dataset)=='acm':
+        data = ACM4DHN(args.dataset_path)
 
-    m = DHNModel()
+    graph=data[0]
+
+    G_train=graph['train']
+    G_val=graph['val']
+    G_test=graph['test']
+
+    m = DHNModel(NUM_FEA,BATCH_SIZE,NUM_NEIGHBOR)
 
     optim = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.drop_rate)
     train_weights = m.trainable_weights
@@ -375,13 +313,12 @@ def main(args):
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument("--test_ratio", type=float, default=0.3, help="ratio of dividing the data set")
-    parser.add_argument("--one_hot", type=bool, default=True, help="use one-hot encoding")
+    parser.add_argument("--one_hot",type=bool,default=True,help="use one-hot encoding")
     parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=100, help="number of epoch")
     parser.add_argument("--drop_rate", type=float, default=0.01, help="drop_rate")
     parser.add_argument('--dataset', type=str, default='acm', help='dataset')
-    parser.add_argument("--dataset_path", type=str, default=r"MA.txt")
+    parser.add_argument("--dataset_path", type = str, default = r"",help='dataset_path')
 
     args = parser.parse_args()
     main(args)

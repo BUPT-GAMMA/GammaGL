@@ -22,6 +22,7 @@ from .blogcatalog import BlogCatalog
 from .molecule_net import MoleculeNet
 from .acm4heco import ACM4HeCo
 from .yelp import Yelp
+from .acm4dhn import ACM4DHN
 
 __all__ = [
     'ACM4HeCo',
@@ -46,7 +47,8 @@ __all__ = [
     'WikiCS',
     'MoleculeNet',
     'NGSIM_US_101',
-    'Yelp'
+    'Yelp',
+    'ACM4DHN'
 ]
 
 classes = __all__
