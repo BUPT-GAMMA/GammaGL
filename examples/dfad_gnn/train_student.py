@@ -15,22 +15,11 @@ import numpy
 import scipy.sparse as sp
 
 class GeneratorLoss(WithLoss):
-    def __init__(self, net, loss_fn, student, teacher):
+    def __init__(self, net, loss_fn):
         super(GeneratorLoss, self).__init__(backbone=net, loss_fn=loss_fn)
-        self.student = student
-        self.teacher = teacher
 
-    def forward(self, z, label_no_use):
-        generated_graph = self.backbone_network(z)
-        adj, nodes_logits = generated_graph
-        loader = Data_construct(z.shape[0], adj, nodes_logits)
-        for data in loader:
-            x, edge_index, num_nodes, batch = data.x, data.edge_index, data.num_nodes, data.batch
-            student_logits = self.student(x, edge_index, num_nodes, batch)
-            teacher_logits = self.teacher(x, edge_index, batch)
-            student_logits = tlx.nn.Softmax()(student_logits)
-            teacher_logits = tlx.nn.Softmax()(teacher_logits)
-        loss = -self._loss_fn(student_logits, teacher_logits)
+    def forward(self, student_logits, teacher_logits):
+        loss = self._loss_fn(student_logits, teacher_logits)
         return loss
 
 class StudentLoss(WithLoss):
@@ -56,14 +45,10 @@ def Data_construct(batch_size, edges_logits, nodes_logits):
     nodes_logits = tlx.softmax(nodes_logits, -1)
     max_indices = tlx.argmax(nodes_logits, axis=2, keepdim=True)
     feature = tlx.zeros_like(nodes_logits)
-    slices = len(feature)
-    for i in range(len(max_indices)):  
-        for j in range(len(max_indices[0])):  
+    for i in range(len(feature)):  
+        for j in range(len(feature[0])):  
             index = max_indices[i, j]
-            if index < 0 or index >= slices:
-                raise IndexError("Index out of bounds")
-            feature[index, i, j] = 1
-    # feature.scatter_(2, max_indices, 1)
+            feature[i, j, index] = 1
     edges_logits = tlx.sigmoid(tlx.cast(edges_logits, dtype=tlx.float32))
     edges_logits = (edges_logits>0.3).long()
     data_list = []
@@ -89,15 +74,6 @@ def train_student(args):
     dataset = TUDataset(args.dataset_path,args.dataset)
     dataloader = DataLoader(dataset, batch_size=args.batch_size)
     
-    # dataset_unit = len(dataset) // 10
-    # train_set = dataset[4 * dataset_unit:]
-    # val_set = dataset[:2 * dataset_unit]
-    # test_set = dataset[2 * dataset_unit: 4 * dataset_unit]
-    
-    # train_loader = DataLoader(train_set, batch_size=args.batch_size)
-    # val_loader = DataLoader(val_set, batch_size=args.batch_size)
-    # test_loader = DataLoader(test_set, batch_size=args.batch_size)
-    
     teacher = GINModel(
         in_channels=max(dataset.num_features, 1),
         hidden_channels=128,
@@ -119,7 +95,6 @@ def train_student(args):
     #initialize generator
     x_example = dataset[0].x
     generator = DFADGenerator([64, 128, 256], args.nz, x_example.shape[0], x_example.shape[1], args.generator_dropout)
-    generator(tlx.random_normal((args.batch_size, args.nz)))
 
     optimizer_s = tlx.optimizers.Adam(lr=args.student_lr, weight_decay=args.student_l2_coef)
     optimizer_g = tlx.optimizers.Adam(lr=args.generator_lr, weight_decay=args.generator_l2_coef)
@@ -131,11 +106,11 @@ def train_student(args):
     # print("length of student trainable weights:", len(student_trainable_weight))
     generator_trainable_weights = generator.trainable_weights
     s_loss_fun = tlx.losses.absolute_difference_error
-    g_loss_fun = tlx.losses.softmax_cross_entropy_with_logits
+    g_loss_fun = tlx.losses.L1Loss
 
     s_with_loss = StudentLoss(student, s_loss_fun, args.batch_size)
 
-    g_with_loss = GeneratorLoss(generator, g_loss_fun, student, teacher) # generator的损失函数
+    g_with_loss = GeneratorLoss(generator, g_loss_fun) 
     s_train_one_step = TrainOneStep(s_with_loss, optimizer_s, student_trainable_weight)
     g_train_one_step = TrainOneStep(g_with_loss, optimizer_g, generator_trainable_weights)
 
@@ -145,19 +120,31 @@ def train_student(args):
     best_acc = 0
     for epoch in range(epochs):
         student.set_train()
+        s_loss = 0
         for _ in range(student_epochs):
             # train student model
             loader = generate_graph(args, generator)
             teacher.set_eval()
             for data in loader:
                 t_logits = teacher(data.x, data.edge_index, data.batch)
-                s_loss = s_train_one_step(data, t_logits)
+                s_loss += s_train_one_step(data, t_logits)
+        print('s_loss:', s_loss)
         student.set_eval()
 
         # train generator
         generator.set_train()
-        z = tlx.random_normal((args.batch_size, args.nz))  # 随机噪声
-        g_loss = g_train_one_step(z, None)
+        z = tlx.random_normal((args.batch_size, args.nz)) 
+        adj, nodes_logits = generator(z)
+        loader = Data_construct(z.shape[0], adj, nodes_logits)
+        g_loss = 0
+        for data in loader:
+            x, edge_index, num_nodes, batch = data.x, data.edge_index, data.num_nodes, data.batch
+            student_logits = student(x, edge_index, num_nodes, batch)
+            teacher_logits = teacher(x, edge_index, batch)
+            student_logits = tlx.nn.Softmax()(student_logits)
+            teacher_logits = tlx.nn.Softmax()(teacher_logits) 
+            g_loss += g_train_one_step(student_logits, teacher_logits)
+        print('g_loss:', g_loss)
         generator.set_eval()
 
         total_correct = 0
@@ -170,10 +157,11 @@ def train_student(args):
 
         if test_acc > best_acc:
             best_acc = test_acc
-            student.save_weights("./{0}.npz".format(args.dataset), format="npz_dict")
+            student.save_weights(args.student + "_" + args.dataset + ".npz", format='npz_dict')
         print("Epoch [{:0>3d}]  ".format(epoch + 1)
               + "   acc: {:.4f}".format(test_acc))
     
+    total_correct = 0
     for data in dataloader:
         teacher_logits = teacher(data.x, data.edge_index, data.batch)
         pred = tlx.argmax(teacher_logits, axis=-1)
@@ -186,9 +174,9 @@ def train_student(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--student", type=str, default='gin', help="student model")
-    parser.add_argument("--student_lr", type=float, default=0.0005, help="learning rate of student model")
-    parser.add_argument("--generator_lr", type=float, default=0.0005, help="learning rate of generator")
-    parser.add_argument("--n_epoch", type=int, default=3000, help="number of epoch")
+    parser.add_argument("--student_lr", type=float, default=0.005, help="learning rate of student model")
+    parser.add_argument("--generator_lr", type=float, default=0.005, help="learning rate of generator")
+    parser.add_argument("--n_epoch", type=int, default=1000, help="number of epoch")
     parser.add_argument("--student_epochs", type=int, default=5)
     parser.add_argument("--num_layers", type=int, default=5)
     parser.add_argument("--hidden_units", type=int, default=128, help="dimention of hidden layers")
