@@ -6,17 +6,16 @@
 # @FileName: hgat_trainer.py
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'tensorflow'
+# os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
-import numpy as np
+
 import argparse
 import tensorlayerx as tlx
 import gammagl.transforms as T
-from agnews import AGNewsDataset
-from ohsumed import OHSUMED
+from gammagl.datasets import IMDB
 
-from hgat import HGAT
+from gammagl.models import HGAT;
 from gammagl.utils import mask_to_index, set_device
 from tensorlayerx.model import TrainOneStep, WithLoss
 
@@ -24,9 +23,9 @@ class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
         super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
 
-    def forward(self, data, y, node_tpye):
+    def forward(self, data, y):
         logits = self.backbone_network(data['x_dict'], data['edge_index_dict'], data['num_nodes_dict'])
-        train_logits = tlx.gather(logits[node_tpye], data['train_idx'])
+        train_logits = tlx.gather(logits['movie'], data['train_idx'])
         train_y = tlx.gather(data['y'], data['train_idx'])
         loss = self._loss_fn(train_logits, train_y)
         return loss
@@ -55,59 +54,27 @@ def main(args):
     # you will be needed to init `metepaths`
     # and set `movie` string with proper values.
     # path = osp.join(osp.dirname(osp.realpath(__file__)), '../IMDB')
-    if(args.dataset=="IMDB"):
-        dataset = AGNewsDataset(args.dataset_path)
+    metapaths = [[('movie', 'actor'), ('actor', 'movie')],
+                 [('movie', 'director'), ('director', 'movie')]]
+    transform = T.AddMetaPaths(metapaths=metapaths, drop_orig_edges=True,
+                               drop_unconnected_nodes=True)
+    dataset = IMDB(args.dataset_path, transform=transform)
+    graph = dataset[0]
+    y = graph['movie'].y
 
-        
-    if(args.dataset=="agnews"):
-        dataset = AGNewsDataset(args.dataset_path)
-        graph = dataset[0]
-        print(graph)
-        y = graph['text'].y
-        node_type = 'text'
+    # for mindspore, it should be passed into node indices
+    train_idx = mask_to_index(graph['movie'].train_mask, )
+    test_idx = mask_to_index(graph['movie'].test_mask)
+    val_idx = mask_to_index(graph['movie'].val_mask)
 
-        # for mindspore, it should be passed into node indices
-        train_idx = mask_to_index(graph['text'].train_mask,)
-        test_idx = mask_to_index(graph['text'].test_mask)
-        val_idx = mask_to_index(graph['text'].val_mask)
-
-        in_channel = {'text':5126, 'topic':4962, 'entity': 4378}
-        num_nodes_dict = {'text': 3200, 'topic': 15, 'entity': 5677}
-
-        net = HGAT(
-            in_channels=in_channel,
-            out_channels=len(np.unique(graph['text'].y)), # graph.num_classes,
-            metadata=graph.metadata(),
-            drop_rate=args.drop_rate,
-            hidden_channels=args.hidden_dim,
-            name='hgat',
-        )
-
-    if(args.dataset=="ohsumed"):
-        dataset = OHSUMED(args.dataset_path)
-        graph = dataset[0]
-        print(graph)
-        y = graph['documents'].y
-        node_type = 'documents'
-
-        # for mindspore, it should be passed into node indices
-        train_idx = mask_to_index(graph['documents'].train_mask,)
-        test_idx = mask_to_index(graph['documents'].test_mask)
-        val_idx = mask_to_index(graph['documents'].val_mask)
-
-
-        num_nodes_dict = {'documents': 7400, 'topics': 15, 'words': 5420}
-        in_channel = {'documents':2471, 'topics':2472, 'words': 3197}
-
-
-        net = HGAT(
-            in_channels=in_channel,
-            out_channels=len(np.unique(graph['documents'].y)), # graph.num_classes,
-            metadata=graph.metadata(),
-            drop_rate=args.drop_rate,
-            hidden_channels=args.hidden_dim,
-            name='hgat',
-        )
+    net = HGAT(
+        in_channels=graph.x_dict['movie'].shape[1],
+        out_channels=3,  # graph.num_classes,
+        metadata=graph.metadata(),
+        drop_rate=args.drop_rate,
+        hidden_channels=args.hidden_dim,
+        name='hgat',
+    )
 
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
     metrics = tlx.metrics.Accuracy()
@@ -117,34 +84,33 @@ def main(args):
     semi_spvz_loss = SemiSpvzLoss(net, loss_func)
     train_one_step = TrainOneStep(semi_spvz_loss, optimizer, train_weights)
 
-
     edge_index_dict = {}
     if tlx.BACKEND == 'tensorflow':
         edge_index_dict = graph.edge_index_dict
     else:
-        edge_index_dict[('text', 'metapath_0', 'text')] = tlx.convert_to_tensor(
-            graph.edge_index_dict[('text', 'metapath_0', 'text')], dtype=tlx.int64)
-        edge_index_dict[('text', 'metapath_1', 'text')] = tlx.convert_to_tensor(
-            graph.edge_index_dict[('text', 'metapath_1', 'text')], dtype=tlx.int64)
+        edge_index_dict[('movie', 'metapath_0', 'movie')] = tlx.convert_to_tensor(
+            graph.edge_index_dict[('movie', 'metapath_0', 'movie')], dtype=tlx.int64)
+        edge_index_dict[('movie', 'metapath_1', 'movie')] = tlx.convert_to_tensor(
+            graph.edge_index_dict[('movie', 'metapath_1', 'movie')], dtype=tlx.int64)
 
+    # train test val = 400, 3478, 400
     data = {
         "x_dict": graph.x_dict,
         "y": y,
-        "edge_index_dict": graph.edge_index_dict,
+        "edge_index_dict": edge_index_dict,
         "train_idx": train_idx,
         "test_idx": test_idx,
         "val_idx": val_idx,
-        "num_nodes_dict": num_nodes_dict,
+        "num_nodes_dict": {'movie': graph['movie'].num_nodes},
     }
 
     best_val_acc = 0
     for epoch in range(args.n_epoch):
         net.set_train()
-        train_loss = train_one_step(data, y, node_type)
+        train_loss = train_one_step(data, y)
         net.set_eval()
-
         logits = net(data['x_dict'], data['edge_index_dict'], data['num_nodes_dict'])
-        val_logits = tlx.gather(logits[node_type], data['val_idx'])
+        val_logits = tlx.gather(logits['movie'], data['val_idx'])
         val_y = tlx.gather(data['y'], data['val_idx'])
         val_acc = calculate_acc(val_logits, val_y, metrics)
 
@@ -161,7 +127,7 @@ def main(args):
     net.load_weights(args.best_model_path + net.name + ".npz", format='npz_dict')
     net.set_eval()
     logits = net(data['x_dict'], data['edge_index_dict'], data['num_nodes_dict'])
-    test_logits = tlx.gather(logits[node_type], data['test_idx'])
+    test_logits = tlx.gather(logits['movie'], data['test_idx'])
     test_y = tlx.gather(data['y'], data['test_idx'])
     test_acc = calculate_acc(test_logits, test_y, metrics)
     print("Test acc:  {:.4f}".format(test_acc))
@@ -172,13 +138,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.005, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=50, help="number of epoch")
-    parser.add_argument("--hidden_dim", type=int, default=3, help="dimention of hidden layers")
+    parser.add_argument("--hidden_dim", type=int, default=16, help="dimention of hidden layers")
     parser.add_argument("--l2_coef", type=float, default=1e-3, help="l2 loss coeficient")
     parser.add_argument("--heads", type=int, default=8, help="number of heads for stablization")
     parser.add_argument("--drop_rate", type=float, default=0.6, help="drop_rate")
     parser.add_argument("--gpu", type=int, default=0, help="gpu id")
     parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
-    parser.add_argument('--dataset', type=str, default='agnews', help='dataset')
+    # parser.add_argument('--dataset', type=str, default='IMDB', help='dataset')
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
 
     args = parser.parse_args()

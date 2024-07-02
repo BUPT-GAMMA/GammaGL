@@ -47,7 +47,7 @@ class IMDB(InMemoryDataset):
                  pre_transform: Optional[Callable] = None, force_reload: bool = False):
         super().__init__(root, transform, pre_transform, force_reload = force_reload)
         self.data, self.slices = self.load_data(self.processed_paths[0])
-
+        
     @property
     def raw_file_names(self) -> List[str]:
         return [

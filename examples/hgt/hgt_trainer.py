@@ -8,7 +8,7 @@
 
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-# os.environ['TL_BACKEND'] = 'torch'
+os.environ['TL_BACKEND'] = 'tensorflow'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
@@ -53,6 +53,7 @@ class SemiSpvzLoss(WithLoss):
         logits = self.backbone_network(data['x_dict'], data['edge_index_dict'])
         train_logits = tlx.gather(logits, data['train_idx'])
         train_y = tlx.gather(data['y'], data['train_idx'])
+        print(train_y)
         loss = self._loss_fn(train_logits, train_y)
         return loss
 
@@ -147,8 +148,8 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=0.0001, help="learnin rate")
-    parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
-    parser.add_argument("--hidden_dim", type=int, default=1024, help="dimention of hidden layers")
+    parser.add_argument("--n_epoch", type=int, default=1, help="number of epoch")
+    parser.add_argument("--hidden_dim", type=int, default=24, help="dimention of hidden layers")
     parser.add_argument("--l2_coef", type=float, default=1e-6, help="l2 loss coeficient")
     parser.add_argument("--heads", type=int, default=4, help="number of heads for stablization")
     parser.add_argument("--num_layers", type=int, default=2, help="number of hgt layers")
