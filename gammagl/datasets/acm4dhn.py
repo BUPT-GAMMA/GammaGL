@@ -6,13 +6,13 @@ from typing import Callable, List, Optional
 
 class ACM4DHN(InMemoryDataset):
     url = 'https://raw.githubusercontent.com/BUPT-GAMMA/HDE/main/ds/imdb'
-    test_ratio = 0.3
 
     def __init__(self, root: Optional[str] = None, transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None, pre_filter: Optional[Callable] = None,
-                 force_reload: bool = False):
+                 force_reload: bool = False, test_ratio: float = 0.3):
         super().__init__(root, transform, pre_transform, force_reload=force_reload)
         self.data, self.slices = self.load_data(self.processed_paths[0])
+        self.test_ratio = test_ratio
 
     @property
     def raw_file_names(self) -> List[str]:

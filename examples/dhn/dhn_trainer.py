@@ -7,7 +7,7 @@ from sklearn.metrics import roc_auc_score
 
 from gammagl.models import DHNModel
 from gammagl.datasets import ACM4DHN
-from gammagl.utils import k_hop_subgraph,find_all_simple_paths
+from gammagl.utils import k_hop_subgraph, find_all_simple_paths
 
 # The UserWarning is ignored globally
 import warnings
@@ -19,45 +19,41 @@ type2idx = {
     # 'T': 3
 }
 
-NODE_TYPE = len(type2idx)
-K_HOP = 2
-
-NUM_FEA = (K_HOP + 2) * 4 + NODE_TYPE
-NUM_NEIGHBOR = 5
-BATCH_SIZE=32
-
 warnings.filterwarnings("ignore", category=UserWarning)
 
 tlx.set_seed(10)
 
-def dist_encoder(src, dest, G, K_HOP):
+
+def dist_encoder(src, dest, G, k_hop):
     if (G.size(1) == 0):
         paths = []
     else:
-        paths = find_all_simple_paths(G, src, dest, K_HOP + 2)
+        paths = find_all_simple_paths(G, src, dest, k_hop + 2)
 
-    cnt = [K_HOP + 1] * NODE_TYPE  # Default truncation for max_spd exceeded
+    node_type = len(type2idx)
+    cnt = [k_hop + 1] * node_type  # Default truncation for max_spd exceeded
     for path in paths:
-        res = [0] * NODE_TYPE
+        res = [0] * node_type
         for i in path:
             if i >= 0:
                 res[type2idx['M']] += 1
             else:
                 res[type2idx['A']] += 1
 
-        for k in range(NODE_TYPE):
+        for k in range(node_type):
             cnt[k] = min(cnt[k], res[k])
 
     # Generate one-hot encoding
     if args.one_hot:
-        one_hot_list = [np.eye(K_HOP + 2, dtype=np.float64)[cnt[i]]
-                        for i in range(NODE_TYPE)]
+        one_hot_list = [np.eye(k_hop + 2, dtype=np.float64)[cnt[i]]
+                        for i in range(node_type)]
         return np.concatenate(one_hot_list)
     return cnt
 
 
 def type_encoder(node):
-    res = [0] * NODE_TYPE
+    node_type = len(type2idx)
+    res = [0] * node_type
     if node.item() >= 0:
         res[type2idx['M']] = 1.0
     else:
@@ -69,15 +65,17 @@ mini_batch = []
 fea_batch = []
 
 
-def gen_fea_batch(G, root, fea_dict, hop):
+def gen_fea_batch(G, root, fea_dict, k_hop):
     fea_batch = []
     mini_batch.append(root)
 
-    a = [0] * (K_HOP + 2) * 4 + type_encoder(root)
+    a = [0] * (k_hop + 2) * 4 + type_encoder(root)
 
+    node_type = len(type2idx)
+    num_fea = (k_hop + 2) * 4 + node_type
     fea_batch.append(np.asarray(a,
                                 dtype=np.float32
-                                ).reshape(-1, NUM_FEA)
+                                ).reshape(-1, num_fea)
                      )
 
     # 1-order neighbor sampling
@@ -90,7 +88,7 @@ def gen_fea_batch(G, root, fea_dict, hop):
             neighbors_mask = dst == node
         neighbors = list(dst[neighbors_mask].numpy())
         neighbors.append(node.item())
-        random_choice_list = np.random.choice(neighbors, NUM_NEIGHBOR, replace=True)
+        random_choice_list = np.random.choice(neighbors, args.num_neighbor, replace=True)
         ns_1.append(random_choice_list.tolist())
     ns_1 = tlx.convert_to_tensor(ns_1)
     mini_batch.append(ns_1[0])
@@ -113,7 +111,7 @@ def gen_fea_batch(G, root, fea_dict, hop):
             neighbors_mask = dst == node
         neighbors = list(dst[neighbors_mask].numpy())
         neighbors.append(node.item())
-        random_choice_list = np.random.choice(neighbors, NUM_NEIGHBOR, replace=True)
+        random_choice_list = np.random.choice(neighbors, args.num_neighbor, replace=True)
         ns_2.append(random_choice_list.tolist())
     ns_2 = tlx.convert_to_tensor(ns_2)
 
@@ -133,13 +131,13 @@ def gen_fea_batch(G, root, fea_dict, hop):
     return np.concatenate(fea_batch, axis=1)
 
 
-def subgraph_sampling_with_DE_node_pair(G, node_pair, K_HOP=2):
+def subgraph_sampling_with_DE_node_pair(G, node_pair, k_hop=2):
     [A, B] = node_pair
 
     edge_index = tlx.concat([G['M', 'MA', 'A'].edge_index, reversed(G['M', 'MA', 'A'].edge_index)], axis=1)
 
     # Find k-hop subgraphs of A and B
-    sub_G_for_AB = k_hop_subgraph([A, B], K_HOP, edge_index)
+    sub_G_for_AB = k_hop_subgraph([A, B], k_hop, edge_index)
 
     # Remove edges using Boolean indexes
     # Note: Just remove the edges, the points remain
@@ -159,21 +157,20 @@ def subgraph_sampling_with_DE_node_pair(G, node_pair, K_HOP=2):
     # Distance from all points in the subgraph to the node pair
     SPD_based_on_node_pair = {}
     for node in sub_G_nodes:
-        tmpA = dist_encoder(A, node, sub_G_index, K_HOP)
-        tmpB = dist_encoder(B, node, sub_G_index, K_HOP)
+        tmpA = dist_encoder(A, node, sub_G_index, k_hop)
+        tmpB = dist_encoder(B, node, sub_G_index, k_hop)
 
         SPD_based_on_node_pair[node.item()] = np.concatenate([tmpA, tmpB], axis=0)
 
     A_fea_batch = gen_fea_batch(sub_G_index, A,
-                                SPD_based_on_node_pair, K_HOP)
+                                SPD_based_on_node_pair, k_hop)
     B_fea_batch = gen_fea_batch(sub_G_index, B,
-                                SPD_based_on_node_pair, K_HOP)
+                                SPD_based_on_node_pair, k_hop)
 
     return A_fea_batch, B_fea_batch
 
 
-def batch_data(G,
-               batch_size=3):
+def batch_data(G, batch_size):
     edge_index = G['M', 'MA', 'A'].edge_index
     nodes = set(tlx.convert_to_tensor(np.unique(edge_index[0].numpy()))) | set(
         tlx.convert_to_tensor(np.unique(edge_index[1].numpy())))
@@ -204,7 +201,7 @@ def batch_data(G,
             bx = batch_edge[:, i:i + 1]
 
             # Positive sample
-            posA, posB = subgraph_sampling_with_DE_node_pair(G, bx, K_HOP=K_HOP)
+            posA, posB = subgraph_sampling_with_DE_node_pair(G, bx, k_hop=args.k_hop)
             batch_A_fea.append(posA)
             batch_B_fea.append(posB)
             batch_y.append(np.asarray(by, dtype=np.float32))
@@ -213,7 +210,7 @@ def batch_data(G,
             neg_tmpB_id = random.choice(nodes_list)
             node_pair = tlx.convert_to_tensor([[bx[0].item()], [neg_tmpB_id]])
 
-            negA, negB = subgraph_sampling_with_DE_node_pair(G, node_pair, K_HOP=K_HOP)
+            negA, negB = subgraph_sampling_with_DE_node_pair(G, node_pair, k_hop=args.k_hop)
             batch_A_fea.append(negA)
             batch_B_fea.append(negB)
             batch_y.append(np.asarray(0.0, dtype=np.float32))
@@ -250,16 +247,19 @@ class AUCMetric:
 def main(args):
     if str.lower(args.dataset) not in ['acm']:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
-    if str.lower(args.dataset)=='acm':
-        data = ACM4DHN(args.dataset_path)
+    if str.lower(args.dataset) == 'acm':
+        data = ACM4DHN(root=args.dataset_path, test_ratio=args.test_ratio)
 
-    graph=data[0]
+    graph = data[0]
 
-    G_train=graph['train']
-    G_val=graph['val']
-    G_test=graph['test']
+    G_train = graph['train']
+    G_val = graph['val']
+    G_test = graph['test']
 
-    m = DHNModel(NUM_FEA,BATCH_SIZE,NUM_NEIGHBOR)
+    node_type = len(type2idx)
+    num_fea = (args.k_hop + 2) * 4 + node_type
+
+    m = DHNModel(num_fea, args.batch_size, args.num_neighbor)
 
     optim = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.drop_rate)
     train_weights = m.trainable_weights
@@ -276,7 +276,7 @@ def main(args):
 
         # train
         m.set_train()
-        tra_batch_A_fea, tra_batch_B_fea, tra_batch_y = batch_data(G_train, BATCH_SIZE).__next__()
+        tra_batch_A_fea, tra_batch_B_fea, tra_batch_y = batch_data(G_train, args.batch_size).__next__()
         tra_out = m(tra_batch_A_fea, tra_batch_B_fea, tra_batch_y)
 
         data = {
@@ -292,7 +292,7 @@ def main(args):
 
         # val
         m.set_eval()
-        val_batch_A_fea, val_batch_B_fea, val_batch_y = batch_data(G_val, BATCH_SIZE).__next__()
+        val_batch_A_fea, val_batch_B_fea, val_batch_y = batch_data(G_val, args.batch_size).__next__()
         val_out = m(val_batch_A_fea, val_batch_B_fea, val_batch_y)
 
         val_loss = tlx.losses.sigmoid_cross_entropy(output=val_out, target=tlx.convert_to_tensor(val_batch_y))
@@ -301,7 +301,7 @@ def main(args):
         print("val: ", val_loss.item(), val_auc)
 
         # test
-        test_batch_A_fea, test_batch_B_fea, test_batch_y = batch_data(G_test, BATCH_SIZE).__next__()
+        test_batch_A_fea, test_batch_B_fea, test_batch_y = batch_data(G_test, args.batch_size).__next__()
         test_out = m(test_batch_A_fea, test_batch_B_fea, test_batch_y)
 
         test_loss = tlx.losses.sigmoid_cross_entropy(output=test_out, target=tlx.convert_to_tensor(test_batch_y))
@@ -313,12 +313,16 @@ def main(args):
 if __name__ == '__main__':
     # parameters setting
     parser = argparse.ArgumentParser()
-    parser.add_argument("--one_hot",type=bool,default=True,help="use one-hot encoding")
-    parser.add_argument("--lr", type=float, default=0.001, help="learnin rate")
+    parser.add_argument("--test_ratio", type=float, default=0.3, help="ratio of dividing the data set")
+    parser.add_argument("--one_hot", type=bool, default=True, help="use one-hot encoding")
+    parser.add_argument("--k_hop", type=int, default=2, help="hops of the generated subgraph")
+    parser.add_argument("--num_neighbor", type=int, default=5, help="neighbor sample number")
+    parser.add_argument("--batch_size", type=int, default=32, help="batch size")
+    parser.add_argument("--lr", type=float, default=0.001, help="learning rate")
     parser.add_argument("--n_epoch", type=int, default=100, help="number of epoch")
     parser.add_argument("--drop_rate", type=float, default=0.01, help="drop_rate")
     parser.add_argument('--dataset', type=str, default='acm', help='dataset')
-    parser.add_argument("--dataset_path", type = str, default = r"",help='dataset_path')
+    parser.add_argument("--dataset_path", type=str, default=r"", help='dataset_path')
 
     args = parser.parse_args()
     main(args)
