@@ -56,11 +56,18 @@ def Data_construct(batch_size, edges_logits, nodes_logits):
     nodes_logits = tlx.softmax(nodes_logits, -1)
     max_indices = tlx.argmax(nodes_logits, axis=2, keepdim=True)
     feature = tlx.zeros_like(nodes_logits)
-    feature.scatter_(2, max_indices, 1)
-    edges_logits = tlx.sigmoid(edges_logits)
+    slices = len(feature)
+    for i in range(len(max_indices)):  
+        for j in range(len(max_indices[0])):  
+            index = max_indices[i, j]
+            if index < 0 or index >= slices:
+                raise IndexError("Index out of bounds")
+            feature[index, i, j] = 1
+    # feature.scatter_(2, max_indices, 1)
+    edges_logits = tlx.sigmoid(tlx.cast(edges_logits, dtype=tlx.float32))
     edges_logits = (edges_logits>0.3).long()
     data_list = []
-    s=feature.size()[0]
+    s=len(feature)
     for i in range(s):
         edge = dense_to_sparse(edges_logits[i])
         x = feature[i]
@@ -158,10 +165,8 @@ def train_student(args):
             test_logits = student(data.x, data.edge_index, data.x.shape[0], data.batch)
             teacher_logits = teacher(data.x, data.edge_index, data.batch)
             pred = tlx.argmax(test_logits, axis=-1)
-            print(pred)
             total_correct += int((numpy.sum(tlx.convert_to_numpy(pred == data['y']).astype(int))))
         test_acc = total_correct / len(dataset)
-        print(total_correct, len(dataset))
 
         if test_acc > best_acc:
             best_acc = test_acc

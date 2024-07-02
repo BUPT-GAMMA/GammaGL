@@ -28,9 +28,6 @@ def train_teacher(args):
     train_set = dataset[4 * dataset_unit:]
     val_set = dataset[:2 * dataset_unit]
     test_set = dataset[2 * dataset_unit: 4 * dataset_unit]
-    # train_set = dataset[2 * dataset_unit:]
-    # val_set = dataset[:dataset_unit]
-    # test_set = dataset[dataset_unit: 2 * dataset_unit]
     
     train_loader = DataLoader(train_set, batch_size=args.batch_size)
     val_loader = DataLoader(val_set, batch_size=args.batch_size)
@@ -54,7 +51,6 @@ def train_teacher(args):
         teacher.set_train()
 
         for data in train_loader:
-            print(data.x.shape)
             train_loss = train_one_step(data, data.y)
 
         teacher.set_eval()
