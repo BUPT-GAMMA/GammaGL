@@ -18,6 +18,11 @@ class HGATConv(MessagePassing):
         self.negetive_slop = negative_slope
         self.dropout = tlx.layers.Dropout(drop_rate)
 
+        for node_type in self.metadata[0]:
+            self.heterlinear[node_type] = tlx.layers.Linear(out_features=out_channels,
+                                                 in_features=in_channels[node_type],
+                                                 W_init='xavier_uniform')
+
 
         self.Linear_dict_l = ModuleDict({})
         self.Linear_dict_r = ModuleDict({})
@@ -53,6 +58,10 @@ class HGATConv(MessagePassing):
 
 
     def forward(self, x_dict, edge_index_dict, num_nodes_dict):
+
+        for node_type, x_node in x_dict.items():
+            x_dict[node_type]= self.dropout(self.heterlinear[node_type](x_node))
+
         edge_pattern_dict={}
         for node_type, value in x_dict.items():
             edge_pattern_dict[node_type]={}
@@ -109,3 +118,4 @@ class HGATConv(MessagePassing):
             out_dict[node_type]=tlx.reduce_sum(tlx.stack(message_list,axis=0),axis=0)
 
         return out_dict
+    

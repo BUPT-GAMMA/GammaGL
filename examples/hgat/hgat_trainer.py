@@ -105,7 +105,7 @@ def main(args):
         in_channels=in_channel,
         out_channels=len(np.unique(graph.y.cpu())), # graph.num_classes,
         metadata=graph.metadata(),
-        drop_rate=0.5,
+        drop_rate=args.drop_rate,
         hidden_channels=args.hidden_dim,
         name = 'hgat',
     )
