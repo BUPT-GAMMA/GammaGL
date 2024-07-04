@@ -22,6 +22,9 @@ from .blogcatalog import BlogCatalog
 from .molecule_net import MoleculeNet
 from .acm4heco import ACM4HeCo
 from .yelp import Yelp
+from .agnews import AGNews
+from .ohsumed import OHSUMED
+from .twitter import Twitter
 
 __all__ = [
     'ACM4HeCo',
@@ -46,7 +49,10 @@ __all__ = [
     'WikiCS',
     'MoleculeNet',
     'NGSIM_US_101',
-    'Yelp'
+    'Yelp',
+    'AGNews',
+    'OHSUMED',
+    'Twitter'
 ]
 
 classes = __all__
