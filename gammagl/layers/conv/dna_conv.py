@@ -4,7 +4,6 @@ from gammagl.utils import calc_gcn_norm, add_self_loops
 from gammagl.utils.num_nodes import maybe_num_nodes
 import math
 import numpy as np
-from torch_geometric.nn.conv.gcn_conv import gcn_norm
 
 
 class Linear(tlx.nn.Module):
@@ -18,20 +17,15 @@ class Linear(tlx.nn.Module):
 
         shape = (groups, in_channels // groups, out_channels // groups)[::-1]
         self.weight = self._get_weights('weights', shape=shape, init=tlx.initializers.he_uniform(a=math.sqrt(5)))
-        # self.weight = self._get_weights('weights', shape=shape)
-        # self.weight = tlx.nn.Parameter(tlx.random_uniform(shape = shape))
 
         if bias:
-            # initor = tlx.initializers.Ones()
             initor = tlx.initializers.RandomUniform(0, 1)
-            # self.bias = self._get_weights("bias", shape=(self.out_channels,), init=initor)
             self.bias = tlx.nn.Parameter(tlx.random_uniform(shape = (self.out_channels,)))
         else:
             self.bias = None
 
     def forward(self, src):
         if self.groups > 1:
-            # src_shape = src.size()[:-1] # tlx.get_tensor_shape(src)[:-1]
             src_shape = tlx.get_tensor_shape(src)[:-1]
             src = tlx.reshape(src, (-1, self.groups, self.in_channels // self.groups))
             src = tlx.transpose(src, (1, 0, 2))
@@ -106,7 +100,6 @@ class MultiHead(Attention):
         key = self.lin_k(key)
         value = self.lin_v(value)
 
-        # batch_size = query.shape[:-2] # tlx.get_tensor_shape(query)[:-2]
         batch_size = tlx.get_tensor_shape(query)[:-2]
 
         out_channels_per_head = self.out_channels // self.heads
@@ -132,6 +125,65 @@ class MultiHead(Attention):
     
 
 class DNAConv(MessagePassing):
+    r"""The dynamic neighborhood aggregation operator from the `"Just Jump:
+    Towards Dynamic Neighborhood Aggregation in Graph Neural Networks"
+    <https://arxiv.org/abs/1904.04849>`_ paper.
+
+    .. math::
+        \mathbf{x}_v^{(t)} = h_{\mathbf{\Theta}}^{(t)} \left( \mathbf{x}_{v
+        \leftarrow v}^{(t)}, \left\{ \mathbf{x}_{v \leftarrow w}^{(t)} : w \in
+        \mathcal{N}(v) \right\} \right)
+
+    based on (multi-head) dot-product attention
+
+    .. math::
+        \mathbf{x}_{v \leftarrow w}^{(t)} = \textrm{Attention} \left(
+        \mathbf{x}^{(t-1)}_v \, \mathbf{\Theta}_Q^{(t)}, [\mathbf{x}_w^{(1)},
+        \ldots, \mathbf{x}_w^{(t-1)}] \, \mathbf{\Theta}_K^{(t)}, \,
+        [\mathbf{x}_w^{(1)}, \ldots, \mathbf{x}_w^{(t-1)}] \,
+        \mathbf{\Theta}_V^{(t)} \right)
+
+    with :math:`\mathbf{\Theta}_Q^{(t)}, \mathbf{\Theta}_K^{(t)},
+    \mathbf{\Theta}_V^{(t)}` denoting (grouped) projection matrices for query,
+    key and value information, respectively.
+    :math:`h^{(t)}_{\mathbf{\Theta}}` is implemented as a non-trainable
+    version of :class:`torch_geometric.nn.conv.GCNConv`.
+
+    .. note::
+        In contrast to other layers, this operator expects node features as
+        shape :obj:`[num_nodes, num_layers, channels]`.
+
+    Parameters
+    ----------
+    channels: int
+        Size of each input/output sample.
+    heads: int, optional
+        Number of multi-head-attentions.
+        (default: :obj:`1`)
+    groups: int, optional
+        Number of groups to use for all linear projections.
+        (default: :obj:`1`)
+    dropout: float, optional
+        Dropout probability of attention coefficients.
+        (default: :obj:`0.`)
+    normalize: bool, optional
+        Whether to add self-loops and apply symmetric normalization.
+        (default: :obj:`True`)
+    add_self_loops: bool, optional
+        If set to :obj:`False`, will not add self-loops to the input graph.
+        (default: :obj:`True`)
+    bias: bool, optional
+        If set to :obj:`False`, the layer will not learn an additive bias.
+        (default: :obj:`True`)
+
+    Shapes:
+        - **input:**
+          node features :math:`(|\mathcal{V}|, L, F)` where :math:`L` is the
+          number of layers,
+          edge indices :math:`(2, |\mathcal{E}|)`
+        - **output:** node features :math:`(|\mathcal{V}|, F)`
+    """
+
     def __init__(self, channels: int, heads: int = 1, groups: int = 1,
                  dropout: float = 0., normalize: bool = True, add_self_loops: bool = True,
                  bias: bool = True):

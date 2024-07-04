@@ -7,13 +7,12 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import argparse
 import tensorlayerx as tlx
 from gammagl.datasets import Planetoid
-# from gammagl.models import GCNModel
 from gammagl.utils import add_self_loops, mask_to_index
 from tensorlayerx.model import TrainOneStep, WithLoss
-from dna import DNAModel
+from gammagl.models import DNAModel
 from sklearn.model_selection import StratifiedKFold
+import numpy as np
 
-tlx.set_seed(12345)
 
 class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -66,6 +65,8 @@ def main(args):
                    hidden_channels=args.hidden_dim,
                    out_channels=dataset.num_classes,
                    num_layers=args.num_layers,
+                   drop_rate_conv=args.drop_rate_conv,
+                   drop_rate_model=args.drop_rate_model,
                    heads=args.heads,
                    groups=args.groups,
                    name="DNA")
@@ -114,6 +115,7 @@ def main(args):
     test_y = tlx.gather(data['y'], data['test_idx'])
     test_acc = calculate_acc(test_logits, test_y, metrics)
     print("Test acc:  {:.4f}".format(test_acc))
+    return test_acc
 
 
 if __name__ == '__main__':
@@ -122,7 +124,8 @@ if __name__ == '__main__':
     parser.add_argument("--lr", type=float, default=0.005, help="learnin rate")
     parser.add_argument("--n_epoch", type=int, default=200, help="number of epoch")
     parser.add_argument("--hidden_dim", type=int, default=128, help="dimention of hidden layers")
-    parser.add_argument("--drop_rate", type=float, default=0.8, help="drop_rate")
+    parser.add_argument("--drop_rate_conv", type=float, default=0.8, help="drop_rate_conv")
+    parser.add_argument("--drop_rate_model", type=float, default=0.8, help="drop_rate_model")
     parser.add_argument("--num_layers", type=int, default=4, help="number of layers")
     parser.add_argument("--heads", type=int, default=8, help="number of heads for stablization")
     parser.add_argument("--groups", type=int, default=16, help="number of groups")
@@ -131,7 +134,7 @@ if __name__ == '__main__':
     parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
     parser.add_argument("--self_loops", type=int, default=1, help="number of graph self-loop")
-    parser.add_argument("--gpu", type=int, default=2)
+    parser.add_argument("--gpu", type=int, default=6)
     
     args = parser.parse_args()
     if args.gpu >= 0:
@@ -139,4 +142,15 @@ if __name__ == '__main__':
     else:
         tlx.set_device("CPU")
 
-    main(args)
+    # main(args)
+
+    test_accs = []
+    for i in range(5):
+        print(f"Run {i+1}:")
+        test_acc = main(args)
+        test_accs.append(test_acc)
+
+    mean_test_acc = np.mean(test_accs)
+    std_test_acc = np.std(test_accs)
+    print(f"Mean Test Accuracy: {mean_test_acc:.4f}")
+    print(f"Standard Deviation of Test Accuracy: {std_test_acc:.4f}")
