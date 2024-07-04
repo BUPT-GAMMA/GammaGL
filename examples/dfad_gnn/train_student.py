@@ -13,6 +13,7 @@ from gammagl.datasets import TUDataset
 from tensorlayerx.model import TrainOneStep, WithLoss
 import numpy 
 import scipy.sparse as sp
+from train_teacher import SemiSpvzLoss
 
 class GeneratorLoss(WithLoss):
     def __init__(self, net, loss_fn):
@@ -103,7 +104,6 @@ def train_student(args):
     
     #initialize generator
     x_example = dataset[0].x
-    print(x_example.shape[0], x_example.shape[1])
     generator = DFADGenerator([64, 128, 256], args.nz, args.vertexes, dataset.num_features, args.generator_dropout)
 
     optimizer_s = tlx.optimizers.Adam(lr=args.student_lr, weight_decay=args.student_l2_coef)
@@ -167,12 +167,12 @@ def train_student(args):
         generator.set_eval()
 
         total_correct = 0
-        for data in test_loader:
+        for data in val_loader:
             test_logits = student(data.x, data.edge_index, data.x.shape[0], data.batch)
             teacher_logits = teacher(data.x, data.edge_index, data.batch)
             pred = tlx.argmax(test_logits, axis=-1)
             total_correct += int((numpy.sum(tlx.convert_to_numpy(pred == data['y']).astype(int))))
-        test_acc = total_correct / len(test_set)
+        test_acc = total_correct / len(val_set)
 
         if test_acc > best_acc:
             best_acc = test_acc
@@ -187,8 +187,16 @@ def train_student(args):
         total_correct += int((numpy.sum(tlx.convert_to_numpy(pred == data['y']).astype(int))))
     teacher_acc = total_correct / len(test_set)
     
+    student.load_weights(args.student + "_" + args.dataset + ".npz", format='npz_dict')
+    total_correct = 0
+    for data in test_loader:
+        student_logits = student(data.x, data.edge_index, data.x.shape[0], data.batch)
+        pred = tlx.argmax(student_logits, axis=-1)
+        total_correct += int((numpy.sum(tlx.convert_to_numpy(pred == data['y']).astype(int))))
+    student_acc = total_correct / len(test_set)
+    
     print('teacher_acc:', teacher_acc)
-    print('student_acc:', best_acc)
+    print('student_acc:', student_acc)
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
