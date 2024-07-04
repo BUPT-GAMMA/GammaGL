@@ -25,9 +25,9 @@ def train_teacher(args):
     dataset = TUDataset(args.dataset_path,args.dataset)
     
     dataset_unit = len(dataset) // 10
-    train_set = dataset[4 * dataset_unit:]
-    val_set = dataset[:2 * dataset_unit]
-    test_set = dataset[2 * dataset_unit: 4 * dataset_unit]
+    train_set = dataset[2 * dataset_unit:]
+    val_set = dataset[:dataset_unit]
+    test_set = dataset[dataset_unit: 2 * dataset_unit]
     
     train_loader = DataLoader(train_set, batch_size=args.batch_size)
     val_loader = DataLoader(val_set, batch_size=args.batch_size)
