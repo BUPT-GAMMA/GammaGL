@@ -34,7 +34,6 @@ from .magcl_conv import MAGCLConv
 from .fusedgat_conv import FusedGATConv
 from .hid_conv import Hid_conv
 from .hgat_conv import HGATConv
-from .hin_conv import HINConv
 __all__ = [
     'MessagePassing',
     'GCNConv',
@@ -71,7 +70,6 @@ __all__ = [
     'FusedGATConv',
     'Hid_conv',
     'HEATlayer',
-    'HIN_conv',
     'HGAT_conv'
 ]
 

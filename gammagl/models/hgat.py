@@ -1,6 +1,6 @@
 import tensorlayerx as tlx
 from tensorlayerx.nn import ModuleDict
-from gammagl.layers.conv import MessagePassing, GCNConv, HINConv, HGATConv,GATConv
+from gammagl.layers.conv import MessagePassing, GCNConv, HGATConv,GATConv
 from gammagl.utils import segment_softmax, to_homograph, to_heterograph
 from gammagl.mpops import unsorted_segment_sum
 
@@ -46,17 +46,34 @@ class HGATModel(tlx.nn.Module):
         for node_type, _ in x_dict.items():
             out_dict[node_type] = self.softmax(self.linear(out_dict[node_type]))
         
-
         return out_dict
-        #     out_dict={}
-        # for node_type, _ in x_dict.items():
-        #     out_dict[node_type]=[]
-        # for edge_type, edge_index in edge_index_dict.items():
-        #     src_type, _, dst_type = edge_type
-        #     src = edge_index[0,:]
-        #     dst = edge_index[1,:]
-        #     message = unsorted_segment_sum(tlx.gather(x_dict[src_type],src),dst,num_nodes_dict[dst_type])
-        #     out_dict[dst_type].append(message)
-        # for node_type, outs in out_dict.items():
-        #     aggr_out = tlx.reduce_sum(outs,axis=0)
-        #     out_dict[node_type]=tlx.relu(aggr_out)
+    
+class HINConv(MessagePassing):
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 metadata,
+                 negative_slope=0.2,
+                 drop_rate=0.5):
+        super().__init__()
+        if not isinstance(in_channels, dict):
+            in_channels = {node_type: in_channels for node_type in metadata[0]}
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.metadata = metadata
+        self.negetive_slop = negative_slope
+        self.drop_rate = drop_rate
+        self.dropout = tlx.layers.Dropout(drop_rate)
+
+        self.heterlinear = ModuleDict({})
+        for node_type in self.metadata[0]:
+            self.heterlinear[node_type] = tlx.layers.Linear(out_features=out_channels,
+                                                 in_features=in_channels[node_type],
+                                                 W_init='xavier_uniform')
+        
+
+    def forward(self, x_dict, edge_index_dict, num_nodes_dict):
+        out_dict = {}
+        for node_type, x_node in x_dict.items():
+            out_dict[node_type]= self.dropout(self.heterlinear[node_type](x_node))
+        return out_dict

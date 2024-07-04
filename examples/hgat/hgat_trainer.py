@@ -60,23 +60,7 @@ def main(args):
         print(graph)
         y = graph['movie'].y
         node_type = 'movie'
-        print(len(np.unique(graph['movie'].y.cpu())))
-        # for mindspore, it should be passed into node indices
-        train_idx = mask_to_index(graph['movie'].train_mask)
-        test_idx = mask_to_index(graph['movie'].test_mask)
-        val_idx = mask_to_index(graph['movie'].val_mask)
 
-        in_channel = {'movie':3066, 'director':3066, 'actor': 3066}
-        num_nodes_dict = {'movie':4278,'actor':5257,'director':2081}
-        print(len(np.unique(graph['movie'].y.cpu())))
-        net = HGATModel(
-            in_channels=in_channel,
-            out_channels=len(np.unique(graph['movie'].y.cpu())), # graph.num_classes,
-            metadata=graph.metadata(),
-            drop_rate=0.5,
-            hidden_channels=512,
-            name = 'hgat',
-        )
 
         
     if(args.dataset=="agnews"):
@@ -85,23 +69,7 @@ def main(args):
         print(graph)
         y = graph['text'].y
         node_type = 'text'
-        print(len(np.unique(graph['text'].y.cpu())))
-        # for mindspore, it should be passed into node indices
-        train_idx = mask_to_index(graph['text'].train_mask,)
-        test_idx = mask_to_index(graph['text'].test_mask)
-        val_idx = mask_to_index(graph['text'].val_mask)
 
-        in_channel = {'text':5126, 'topic':4962, 'entity': 4378}
-        num_nodes_dict = {'text': 3200, 'topic': 15, 'entity': 5680}
-
-        net = HGATModel(
-            in_channels=in_channel,
-            out_channels=len(np.unique(graph['text'].y.cpu())), # graph.num_classes,
-            metadata=graph.metadata(),
-            drop_rate=args.drop_rate,
-            hidden_channels=args.hidden_dim,
-            name='hgat',
-        )
 
     if(args.dataset=="ohsumed"):
         dataset = OHSUMED(args.dataset_path)
@@ -110,24 +78,8 @@ def main(args):
         y = graph['documents'].y
         node_type = 'documents'
 
-        # for mindspore, it should be passed into node indices
-        train_idx = mask_to_index(graph['documents'].train_mask,)
-        test_idx = mask_to_index(graph['documents'].test_mask)
-        val_idx = mask_to_index(graph['documents'].val_mask)
 
 
-        num_nodes_dict = {'documents': 7400, 'topics': 15, 'words': 5420}
-        in_channel = {'documents':2471, 'topics':2472, 'words': 3197}
-
-
-        net = HGATModel(
-            in_channels=in_channel,
-            out_channels=len(np.unique(graph['documents'].y.cpu())), # graph.num_classes,
-            metadata=graph.metadata(),
-            drop_rate=args.drop_rate,
-            hidden_channels=256,
-            name='hgat',
-        )
     if(args.dataset=="twitter"):
         dataset = Twitter(args.dataset_path)
         graph = dataset[0]
@@ -135,24 +87,28 @@ def main(args):
         y = graph['twitter'].y
         node_type = 'twitter'
 
-        # for mindspore, it should be passed into node indices
-        train_idx = mask_to_index(graph['twitter'].train_mask,)
-        test_idx = mask_to_index(graph['twitter'].test_mask)
-        val_idx = mask_to_index(graph['twitter'].val_mask)
 
 
-        num_nodes_dict = {'twitter': 10000, 'topics': 15, 'entity': 4698}
-        in_channel = {'twitter':1515, 'topics':1543, 'entity': 2787}
+    # for mindspore, it should be passed into node indices
+    train_idx = mask_to_index(graph[node_type].train_mask)
+    test_idx = mask_to_index(graph[node_type].test_mask)
+    val_idx = mask_to_index(graph[node_type].val_mask)
+    node_type_list = graph.metadata()[0]
+    in_channel = {}
+    num_nodes_dict = {}
+    for node_type in node_type_list:
+        in_channel[node_type]=graph.x_dict[node_type].shape[1]
+        num_nodes_dict[node_type]=graph.x_dict[node_type].shape[0]
 
 
-        net = HGATModel(
-            in_channels=in_channel,
-            out_channels=len(np.unique(graph['twitter'].y.cpu())), # graph.num_classes,
-            metadata=graph.metadata(),
-            drop_rate=args.drop_rate,
-            hidden_channels=64,
-            name='hgat',
-        )
+    net = HGATModel(
+        in_channels=in_channel,
+        out_channels=len(np.unique(graph.y.cpu())), # graph.num_classes,
+        metadata=graph.metadata(),
+        drop_rate=0.5,
+        hidden_channels=args.hidden_dim,
+        name = 'hgat',
+    )
         
 
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
@@ -174,42 +130,6 @@ def main(args):
     }
     print(np.unique(y.cpu()))
     best_val_acc = 0
-
-
-
-    # dataset1 = AGNews(args.dataset_path)
-    # graph1 = dataset1[0]
-    # print(graph1)
-    # y1 = graph1['text'].y
-    # print(len(np.unique(graph1['text'].y.cpu())))
-    # # for mindspore, it should be passed into node indices
-    # train_idx = mask_to_index(graph1['text'].train_mask,)
-    # test_idx = mask_to_index(graph1['text'].test_mask)
-    # val_idx = mask_to_index(graph1['text'].val_mask)
-
-    # in_channel1 = {'text':5126, 'topic':4962, 'entity': 4378}
-    # num_nodes_dict1 = {'text': 3200, 'topic': 15, 'entity': 5680}
-
-
-    # dataset2 = OHSUMED(args.dataset_path)
-    # graph2 = dataset2[0]
-    # print(graph2)
-    # y = graph2['documents'].y
-    # node_type2 = 'documents'
-
-    # # for mindspore, it should be passed into node indices
-    # train_idx2 = mask_to_index(graph2['documents'].train_mask,)
-    # test_idx2 = mask_to_index(graph2['documents'].test_mask)
-    # val_idx2 = mask_to_index(graph2['documents'].val_mask)
-
-
-    # num_nodes_dict = {'documents': 10000, 'topics': 15, 'words': 4698}
-    # in_channel = {'documents':1515, 'topics':1543, 'words': 2787}
-
-
-
-
-
 
     for epoch in range(args.n_epoch):
         net.set_train()

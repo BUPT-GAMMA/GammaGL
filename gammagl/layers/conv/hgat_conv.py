@@ -1,7 +1,7 @@
 import tensorlayerx as tlx
 from tensorlayerx.nn import ModuleDict
 from gammagl.layers.conv import MessagePassing
-from gammagl.utils import segment_softmax, to_homograph, to_heterograph
+from gammagl.utils import segment_softmax
 from gammagl.mpops import unsorted_segment_sum
 class HGATConv(MessagePassing):
     def __init__(self,
@@ -63,7 +63,7 @@ class HGATConv(MessagePassing):
 
 
 
-        # 每一个pattern 中有若干edge_type，它们的scr_type 是一样的
+        # There are several edge_type in each pattern, and their scr_type are the same
         alpha_pattern_dict={}
         beta_pattern_dict = {}
         for node_type, pattern_dict in edge_pattern_dict.items():
@@ -79,7 +79,7 @@ class HGATConv(MessagePassing):
 
                 h_l = self.Linear_dict_l[dst_type](x_dict[dst_type])
                 h_r = self.Linear_dict_r[dst_type](message)
-                Type_Attention_Value = h_l + h_r # N 个值， N等于边的数量
+                Type_Attention_Value = h_l + h_r # N values, N equals the number of edges
                 Type_Attention_Value = self.leakyReLu(Type_Attention_Value)
 
                 Type_Attention_Value = tlx.exp(Type_Attention_Value)
@@ -90,7 +90,7 @@ class HGATConv(MessagePassing):
 
 
             for edge_type, edge_index in pattern_dict.items():
-                alpha_pattern_dict[node_type][edge_type] = Attention_value_dict[edge_type]/Summation # N个值， N等于边的数量
+                alpha_pattern_dict[node_type][edge_type] = Attention_value_dict[edge_type]/Summation # N values, N equals the number of edges
 
         out_dict={}
         for node_type, pattern_dict in edge_pattern_dict.items():
@@ -100,21 +100,12 @@ class HGATConv(MessagePassing):
                 src_type, _, dst_type = edge_type
                 src = edge_index[0,:]
                 dst = edge_index[1,:]
-                # 运用广播机制 alpha（N，1）， 后面是（N，hidden_dim*2），N表示边的数量。
-                # print("asdfasdfasdfasdfaefwa")
-                # print(alpha)
-                # print(tlx.gather(x_dict[dst_type],dst))
-                # print(tlx.gather(x_dict[src_type],src))
+                # Use the broadcast mechanism alpha(N,1), followed by (N,hidden_dim*2), where N denotes the number of edges.
                 value = self.nodeAttention(tlx.gather(alpha,dst)*tlx.concat([tlx.gather(x_dict[dst_type],dst),tlx.gather(x_dict[src_type],src)],axis=1))
                 value = self.leakyReLu(value)
                 value = segment_softmax(value,dst,num_segments=None)
                 beta_pattern_dict[node_type][edge_type] = value
-                # print(dst_type)
-                # print(dst)
-                # print(tlx.gather(x_dict[dst_type],dst))
-                # print(x_dict[dst_type].shape[0])
                 message_list.append(unsorted_segment_sum(value*tlx.gather(x_dict[dst_type],dst),dst,x_dict[dst_type].shape[0]))
-                # print(message_list[-1])
             out_dict[node_type]=tlx.reduce_sum(tlx.stack(message_list,axis=0),axis=0)
 
         return out_dict
