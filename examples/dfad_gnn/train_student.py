@@ -86,9 +86,9 @@ def train_student(args):
     
     teacher = GINModel(
         in_channels=max(dataset.num_features, 1),
-        hidden_channels=128,
+        hidden_channels=args.t_hidden,
         out_channels=dataset.num_classes,
-        num_layers=5,
+        num_layers=args.t_layers,
         name="GIN"
     )
     
@@ -207,6 +207,8 @@ if __name__ == '__main__':
     parser.add_argument("--student_epoch", type=int, default=5)
     parser.add_argument("--g_epoch", type=int, default=5)
     parser.add_argument("--num_layers", type=int, default=5)
+    parser.add_argument("--t_hidden", type=int, default=128, help="dimention of hidden layers of teacher model")
+    parser.add_argument("--t_layers", type=int, default=5)
     parser.add_argument("--hidden_units", type=int, default=128, help="dimention of hidden layers")
     parser.add_argument("--student_l2_coef", type=float, default=5e-4, help="l2 loss coeficient for student")
     parser.add_argument("--generator_l2_coef", type=float, default=5e-4, help="l2 loss coeficient for generator")
