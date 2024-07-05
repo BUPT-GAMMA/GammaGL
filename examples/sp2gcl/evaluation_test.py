@@ -62,4 +62,4 @@ def node_evaluation(emb, y, train_idx, test_idx, lr=1e-2, weight_decay=1e-4):
     test_preds = tlx.argmax(test_logits, axis=1)
     test_acc = tlx.reduce_sum(test_preds == y[test_idx]).float() / test_idx.size(0)
 
-    return test_acc
+    return test_acc.item()
