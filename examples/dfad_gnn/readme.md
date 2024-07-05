@@ -20,5 +20,7 @@ TL_BACKEND="torch" python train_student.py --dataset MUTAG --student gin
 
 | Dataset    | Student Model | Paper      | Our(th)    |
 | ---------  | ------------- | ---------- | ---------- |
-| MUTAG      | gcn           | 90.8%      | 88.2%      |
+| MUTAG      | gcn           | 76.2%      | 88.2%      |
 | MUTAG      | gin           | 90.8%      | 88.2%      |
+| MUTAG      | gat           | 79.5%      | 88.2%      |
+| MUTAG      | graphsage     | 79.1%      | 88.2%      |
