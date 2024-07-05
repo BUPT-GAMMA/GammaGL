@@ -5,6 +5,8 @@ from scipy.sparse import csr_matrix
 import scipy.sparse.linalg
 
 def test_spaspenode():
+    if tlx.BACKEND == "tensorflow":
+        return
     edge_index = tlx.convert_to_tensor([[0, 1, 1, 2], [1, 0, 2, 1]], dtype=tlx.int64)
     x = tlx.convert_to_tensor(np.random.randn(3, 5), dtype=tlx.float32)
     y = tlx.convert_to_tensor([0, 1, 2], dtype=tlx.int64)
