@@ -24,10 +24,7 @@ def test_spaspenode():
     e = tlx.convert_to_tensor(e, dtype=tlx.float32)
     u = tlx.convert_to_tensor(u, dtype=tlx.float32)
 
-
-    spa_encoder = Encoder(in_channels=x.shape[1], hidden_channels=16, out_channels=16)
-    spe_encoder = EigenMLP(input_dim=e.shape[0], hidden_dim=16, output_dim=16, period=2)
-    model = SpaSpeNode(spa_encoder=spa_encoder, spe_encoder=spe_encoder, output_dim=16)
+    model = SpaSpeNode(input_dim=x.shape[1], spe_dim=20, hidden_dim=32, output_dim=16, period=20)
 
 
     h_node_spa, h_node_spe = model(x, edge_index, e, u)
