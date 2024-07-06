@@ -1,15 +1,6 @@
-import os
-from typing import Optional, Callable
-
-import os.path as osp
-
-import tensorlayerx as tlx
-import numpy as np
-
-from gammagl.utils import coalesce
-from gammagl.data import InMemoryDataset, download_url, Graph
-from gammagl.utils.loop import remove_self_loops
 from gammagl.datasets.wikipedia_network import  WikipediaNetwork
+
+
 def test_wikipedia_network():
     root = './temp'
     dataset = WikipediaNetwork(root=root, name='chameleon', geom_gcn_preprocess=True)
@@ -22,4 +13,3 @@ def test_wikipedia_network():
     assert data.val_mask.shape[0] == data.x.shape[0], "Validation mask shape mismatch"
     assert data.test_mask.shape[0] == data.x.shape[0], "Test mask shape mismatch"
     print("All tests passed!")
-

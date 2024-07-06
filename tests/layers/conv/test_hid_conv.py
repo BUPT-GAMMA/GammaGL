@@ -1,10 +1,8 @@
 import tensorlayerx as tlx
-from gammagl.layers.conv import MessagePassing
-import tensorlayerx as tlx
-from gammagl.mpops import *
-from gammagl.utils.num_nodes import maybe_num_nodes
 from gammagl.layers.conv import Hid_conv
 import numpy as np
+
+
 def test_hid_conv():
     num_nodes = 10
     in_channels = 8

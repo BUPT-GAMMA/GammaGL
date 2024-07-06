@@ -1,10 +1,7 @@
 import numpy as np
 import tensorlayerx as tlx
-import tensorlayerx.nn as nn
-from gammagl.utils import degree
-from gammagl.layers.conv import MessagePassing
 from gammagl.layers.conv import MGNNI_m_iter
-import numpy as np
+
 
 def test_mgnni_m_iter():
     m = 10
@@ -25,5 +22,3 @@ def test_mgnni_m_iter():
         assert out.shape == (num_nodes, m)
     except Exception as e:
         assert False, f"运行时出错: {e}"
-
-

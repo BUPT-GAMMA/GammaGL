@@ -1,11 +1,9 @@
 import tensorlayerx as tlx
-from gammagl.layers.conv import MessagePassing
 from gammagl.mpops import *
-from gammagl.utils import segment_softmax
 from gammagl.layers.conv import GaANConv
-import tensorlayerx as tlx
 import numpy as np
 from gammagl.utils import to_undirected
+
 
 def test_gaan_conv():
     num_nodes = 10
@@ -22,5 +20,3 @@ def test_gaan_conv():
     out = conv(x, edge_index)
     assert out.shape == (num_nodes, out_channels * heads)
     
-
-

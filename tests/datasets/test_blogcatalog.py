@@ -2,6 +2,7 @@ from gammagl.data import InMemoryDataset, download_url, Graph
 import unittest
 from gammagl.datasets.blogcatalog import BlogCatalog
 
+
 def test_blogcatalog():
     dataset = BlogCatalog(root='./temp')
     graph = dataset[0]

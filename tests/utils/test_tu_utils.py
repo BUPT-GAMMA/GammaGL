@@ -7,6 +7,7 @@ from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from gammagl.utils.tu_utils import linearsvc,get_negative_expectation,get_positive_expectation,local_global_loss_
 import numpy as np
 
+
 def test_tu_utils():
     l_enc = tlx.convert_to_tensor(np.array([[1, 2], [3, 4], [5, 6]]).astype(np.float32))
     g_enc = tlx.convert_to_tensor(np.array([[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]]).astype(np.float32))

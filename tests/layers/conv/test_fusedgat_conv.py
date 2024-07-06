@@ -4,6 +4,8 @@ from gammagl.utils import sort_edge_index
 from gammagl.ops.sparse import ind2ptr
 from gammagl.layers.conv import FusedGATConv
 import numpy as np
+
+
 def test_fusedgat_conv():
     conv = FusedGATConv(in_channels=64, out_channels=128, heads=4, concat=True, dropout_rate=0.5)
     x = tlx.convert_to_tensor(np.random.randn(32, 64), dtype=tlx.float32) 
