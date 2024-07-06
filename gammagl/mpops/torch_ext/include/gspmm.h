@@ -24,3 +24,11 @@ class SpMMMax : public torch::autograd::Function<SpMMMax> {
   static std::vector<torch::Tensor> backward(torch::autograd::AutogradContext *ctx, 
                                              std::vector<torch::Tensor> grad_outs);
 };
+
+class BSpMMSum : public torch::autograd::Function<BSpMMSum> {
+    public:
+        static torch::Tensor forward(torch::autograd::AutogradContext *ctx, torch::Tensor index,
+                                     torch::Tensor weight, torch::Tensor x);
+        static std::vector<torch::Tensor> backward(torch::autograd::AutogradContext *ctx, 
+                                     std::vector<torch::Tensor> grad_outs);
+};

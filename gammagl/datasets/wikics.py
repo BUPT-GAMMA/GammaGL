@@ -81,14 +81,14 @@ class WikiCS(InMemoryDataset):
 
         edges = [[(i, j) for j in js] for i, js in enumerate(data['links'])]
         edges = list(chain(*edges))
-        edge_index = np.ascontiguousarray(np.array(edges, dtype=np.int64).T)
+        edge_index = tlx.transpose(tlx.convert_to_tensor(edges, dtype=tlx.int64))
         if self.is_undirected:
-            edge_index = to_undirected(tlx.convert_to_tensor(edge_index), num_nodes=tlx.get_tensor_shape(x[0]))
+            edge_index = to_undirected(tlx.convert_to_tensor(edge_index), num_nodes=tlx.get_tensor_shape(x)[0])
 
-        train_mask = np.ascontiguousarray(np.array(data['train_masks'], dtype=np.bool).T)
-        val_mask = np.ascontiguousarray(np.array(data['val_masks'], dtype=np.bool).T)
-        test_mask = np.ascontiguousarray(np.array(data['test_mask'], dtype=np.bool).T)
-        stopping_mask = np.ascontiguousarray(np.array(data['stopping_masks'], dtype=np.bool).T)
+        train_mask = tlx.transpose(tlx.convert_to_tensor(data['train_masks'], dtype=tlx.bool))
+        val_mask = tlx.transpose(tlx.convert_to_tensor(data['val_masks'], dtype=tlx.bool))
+        test_mask = tlx.transpose(tlx.convert_to_tensor(data['test_mask'], dtype=tlx.bool))
+        stopping_mask = tlx.transpose(tlx.convert_to_tensor(data['stopping_masks'], dtype=tlx.bool))
 
         data = Graph(x=x, y=y, edge_index=edge_index, train_mask=train_mask,
                     val_mask=val_mask, test_mask=test_mask,

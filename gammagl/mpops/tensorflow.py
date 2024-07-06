@@ -60,3 +60,6 @@ def segment_min(x, segment_ids, num_segments=None):
 
 def gspmm(index, weight=None, x=None, reduce='sum'):
     pass
+
+def bspmm(index, weight=None, x=None, reduce='sum'):
+    pass
