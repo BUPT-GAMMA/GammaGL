@@ -1,11 +1,9 @@
 import numpy as np
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
-
 from gammagl.utils import degree
 from gammagl.layers.conv import MessagePassing
 from gammagl.layers.conv import MGNNI_m_iter
-
 import numpy as np
 
 def test_mgnni_m_iter():
@@ -14,7 +12,6 @@ def test_mgnni_m_iter():
     threshold = 1e-5
     max_iter = 50
     gamma = 0.5
-
     num_nodes = 20
     edge_index = tlx.convert_to_tensor(np.array([
         [0, 1, 2, 3, 4, 5],
@@ -22,9 +19,7 @@ def test_mgnni_m_iter():
     ]), dtype=tlx.int64)
     X = tlx.convert_to_tensor(np.random.randn(num_nodes, m), dtype=tlx.float32)
     edge_weight = tlx.convert_to_tensor(np.random.rand(edge_index.shape[1], 1), dtype=tlx.float32)
-
     conv = MGNNI_m_iter(m=m, k=k, threshold=threshold, max_iter=max_iter, gamma=gamma)
-
     try:
         out = conv(X, edge_index=edge_index, edge_weight=edge_weight, num_nodes=num_nodes)
         assert out.shape == (num_nodes, m)

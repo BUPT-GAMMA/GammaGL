@@ -25,5 +25,4 @@ def test_read_embeddings():
     # Clean up the temporary file
     import os
     os.remove(tmpfile_name)
-
     print("Test passed!")

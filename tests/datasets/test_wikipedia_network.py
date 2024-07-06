@@ -1,15 +1,20 @@
-import os.path as osp
 import os
-import numpy as np
+from typing import Optional, Callable
+
+import os.path as osp
+
 import tensorlayerx as tlx
+import numpy as np
+
 from gammagl.utils import coalesce
 from gammagl.data import InMemoryDataset, download_url, Graph
-from gammagl.datasets.webkb import WebKB
-def test_webkb():
+from gammagl.utils.loop import remove_self_loops
+from gammagl.datasets.wikipedia_network import  WikipediaNetwork
+def test_wikipedia_network():
     root = './temp'
-    dataset = WebKB(root=root, name='Cornell')
+    dataset = WikipediaNetwork(root=root, name='chameleon', geom_gcn_preprocess=True)
+    assert len(dataset) > 0, "Dataset should not be empty"
     data = dataset[0]
-    print(data)
     assert data.x.shape[0] > 0, "Node features should not be empty"
     assert data.edge_index.shape[0] == 2, "Edge index shape mismatch"
     assert data.y.shape[0] == data.x.shape[0], "Labels shape mismatch"
@@ -17,3 +22,4 @@ def test_webkb():
     assert data.val_mask.shape[0] == data.x.shape[0], "Validation mask shape mismatch"
     assert data.test_mask.shape[0] == data.x.shape[0], "Test mask shape mismatch"
     print("All tests passed!")
+
