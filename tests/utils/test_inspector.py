@@ -3,7 +3,7 @@ from gammagl.utils.inspector import Inspector
 
 
 class Example:
-    def method1(self, a: int, b: str = "default") -> None:
+    def method1(self, a: int, b: str) -> None:
         pass
     
     def method2(self, x: float) -> None:
@@ -14,8 +14,8 @@ def test_inspector():
     inspector = Inspector(example)
     
     # Inspect the methods
-    inspector.inspect(example.method1, pop_first=True)
-    inspector.inspect(example.method2, pop_first=True)
+    inspector.inspect(example.method1, pop_first=False)
+    inspector.inspect(example.method2, pop_first=False)
     
     # Debugging information
     print("Inspector params after inspecting method1 and method2:")
@@ -24,7 +24,7 @@ def test_inspector():
     # Test keys method
     keys = inspector.keys()
     expected_keys = {"a", "b", "x"}
-    assert keys == expected_keys, f"Unexpected keys: {keys}"   #通不过，为什么？没找到原因
+    assert keys == expected_keys, f"Unexpected keys: {keys}"
     
     # Test implements method
     assert inspector.implements("method1") is True, "method1 should be implemented"
@@ -47,6 +47,3 @@ def test_inspector():
     params = inspector.distribute("method2", {"x": 2.5})
     expected_params = {"x": 2.5}
     assert params == expected_params, f"Unexpected distributed params: {params}"
-
-if __name__ == "__main__":
-    pytest.main()

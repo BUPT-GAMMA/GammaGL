@@ -1,4 +1,3 @@
-
 import tensorlayerx as tlx
 from gammagl.mpops import unsorted_segment_sum
 from gammagl.utils.to_dense_adj import to_dense_adj  

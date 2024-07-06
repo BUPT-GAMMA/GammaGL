@@ -1,7 +1,7 @@
-# test_set_device.py
 import tensorlayerx as tlx
 import pytest
 from gammagl.utils.device import set_device
+
 
 def test_set_device_gpu():
     if tlx.is_gpu_available():
@@ -17,6 +17,3 @@ def test_set_device_cpu():
         assert tlx.get_device() == "CPU:0", "Failed to set CPU device"
     except Exception as e:
         pytest.fail(f"Setting CPU device raised an exception: {e}")
-
-if __name__ == "__main__":
-    pytest.main()

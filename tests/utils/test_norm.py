@@ -24,5 +24,3 @@ def test_calc_gcn_norm():
     ])
     weights_np = tlx.convert_to_numpy(weights)
     assert np.allclose(weights_np, expected_weights)
-
-

@@ -13,4 +13,3 @@ def test_check():
     assert check_is_numpy([1, 2, 3], np.array([4, 5, 6]), {'key': 'value'}, 42) == True
     assert check_is_numpy(None) == False
     assert check_is_numpy(np.array([[1, 2, 3], [4, 5, 6]])) == True
-

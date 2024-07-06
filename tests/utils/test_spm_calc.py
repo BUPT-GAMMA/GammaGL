@@ -1,6 +1,8 @@
 import numpy as np
 import scipy.sparse as sp
 from gammagl.utils.spm_calc import calc_A_norm_hat
+
+
 def test_calc_A_norm_hat():
     edge_index = np.array([
         [0, 1, 1, 2],
@@ -17,4 +19,3 @@ def test_calc_A_norm_hat():
     expected_output = D_invsqrt_corr @ A @ D_invsqrt_corr
     result = calc_A_norm_hat(edge_index).toarray()
     assert np.allclose(result, expected_output)
-   

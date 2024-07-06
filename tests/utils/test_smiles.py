@@ -4,6 +4,7 @@ from rdkit import Chem, RDLogger
 from gammagl.data import Graph
 from gammagl.utils.smiles import from_smiles
 
+
 def test_from_smiles():
     smiles = 'CCO'  
     graph = from_smiles(smiles)
@@ -17,7 +18,7 @@ def test_from_smiles():
         [0, 1], [1, 0], 
         [1, 2], [2, 1], 
     ]
-    expected_edge_indices = tlx.convert_to_tensor(expected_edge_indices).T
+    expected_edge_indices = tlx.transpose(tlx.convert_to_tensor(expected_edge_indices))
     expected_edge_features = [
         [1, 0, 0], [1, 0, 0],  
         [1, 0, 0], [1, 0, 0], 
@@ -26,4 +27,3 @@ def test_from_smiles():
     assert tlx.convert_to_numpy(graph.x).tolist() == tlx.convert_to_numpy(expected_node_features).tolist()  
     assert tlx.convert_to_numpy(graph.edge_index).tolist() == tlx.convert_to_numpy(expected_edge_indices).tolist()  
     assert tlx.convert_to_numpy(graph.edge_attr).tolist() == tlx.convert_to_numpy(expected_edge_features).tolist()
-    

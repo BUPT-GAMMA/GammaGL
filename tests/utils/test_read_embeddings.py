@@ -1,6 +1,8 @@
 import numpy as np
 import tempfile
 from gammagl.utils.read_embeddings import read_embeddings
+
+
 def test_read_embeddings():
     # Create a temporary file with example embeddings
     with tempfile.NamedTemporaryFile(mode='w+', delete=False) as tmpfile:
