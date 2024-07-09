@@ -60,6 +60,7 @@ from .hid_net import Hid_net
 from .gnnlfhf import GNNLFHFModel
 from .dhn import DHNModel
 from .dna import DNAModel
+from .dfad import DFADModel, DFADGenerator
 
 __all__ = [
     'HeCo',
@@ -125,7 +126,9 @@ __all__ = [
     'HEAT',
     'GNNLFHFModel',
     'DHNModel',
-    'DNAModel'
+    'DNAModel',
+    'DFADModel',
+    'DFADGenerator'
 ]
 
 classes = __all__
