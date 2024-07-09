@@ -20,6 +20,7 @@ from .polblogs import PolBlogs
 from .wikics import WikiCS
 from .blogcatalog import BlogCatalog
 from .molecule_net import MoleculeNet
+from .facebook import FacebookPagePage
 from .acm4heco import ACM4HeCo
 from .yelp import Yelp
 from .acm4dhn import ACM4DHN
@@ -46,6 +47,7 @@ __all__ = [
     'PolBlogs',
     'WikiCS',
     'MoleculeNet',
+    'FacebookPagePage',
     'NGSIM_US_101',
     'Yelp',
     'ACM4DHN'

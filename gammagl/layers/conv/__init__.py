@@ -34,6 +34,7 @@ from .magcl_conv import MAGCLConv
 from .fusedgat_conv import FusedGATConv
 from .hid_conv import Hid_conv
 from .dhn_conv import DHNConv
+from .dna_conv import DNAConv
 
 __all__ = [
     'MessagePassing',
@@ -71,7 +72,8 @@ __all__ = [
     'FusedGATConv',
     'Hid_conv',
     'HEATlayer',
-    'DHNConv'
+    'DHNConv',
+    'DNAConv'
 ]
 
 classes = __all__

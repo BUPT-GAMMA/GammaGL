@@ -53,11 +53,13 @@ from .grace_pot import Grace_POT_Encoder, Grace_POT_Model
 from .sfgcn import SFGCNModel
 from .grace_spco import Grace_Spco_Encoder, Grace_Spco_Model
 from .graphormer import Graphormer
+from .sp2gcl import SpaSpeNode, Encoder, EigenMLP
 from .heco import HeCo
 from .fusedgat import FusedGATModel
 from .hid_net import Hid_net
 from .gnnlfhf import GNNLFHFModel
 from .dhn import DHNModel
+from .dna import DNAModel
 
 __all__ = [
     'HeCo',
@@ -115,11 +117,15 @@ __all__ = [
     'Specformer',
     'SFGCNModel',
     'Graphormer',
+    'Encoder',
+    'EigenMLP',
+    'SpaSpeNode',
     'FusedGATModel',
     'hid_net',
     'HEAT',
     'GNNLFHFModel',
-    'DHNModel'
+    'DHNModel',
+    'DNAModel'
 ]
 
 classes = __all__

@@ -9,6 +9,8 @@
 #include "../cpu/spmm_sum_cpu.h"
 #include "../cpu/spmm_mean_cpu.h"
 #include "../cpu/spmm_max_cpu.h"
+#include "../cpu/bspmm_sum_cpu.h"
+
 #ifdef COMPILE_WITH_CUDA
 #include "../cuda/spmm_sum_cuda.h"
 #endif
@@ -170,4 +172,54 @@ std::vector<torch::Tensor> SpMMMax::backward(torch::autograd::AutogradContext *c
     }
 
     return {torch::Tensor(), torch::Tensor(), grad_x};
+}
+
+
+torch::Tensor BSpMMSum::forward(torch::autograd::AutogradContext *ctx, torch::Tensor index,
+                                torch::Tensor weight, torch::Tensor x) {
+    ctx->save_for_backward({index, weight, x});
+    ctx->mark_non_differentiable({index, weight});
+    torch::Tensor out;
+    // CUDA
+    if (x.is_cuda() && index.is_cuda() && weight.is_cuda()) {
+    // #ifdef COMPILE_WITH_CUDA
+    //     out = bspmm_sum_cuda_forward(index, weight, x);
+    // #else
+        AT_ERROR("The program is not compiled with CUDA support, but tensors are located on GPU. Please recompile with CUDA support or move tensors to CPU.");
+    // #endif
+    }
+    // CPU
+    else if (x.is_cpu() && index.is_cpu() && weight.is_cpu()) {
+        out = bspmm_sum_cpu_forward(index, weight, x);
+    } else {
+        AT_ERROR("Tensor device inconsistent error.");
+    }
+
+    return out;
+}
+
+std::vector<torch::Tensor> BSpMMSum::backward(torch::autograd::AutogradContext *ctx, std::vector<torch::Tensor> grad_outs) {
+    auto saved = ctx->get_saved_variables();
+    auto index = saved[0], weight = saved[1], x = saved[2];
+    auto grad = grad_outs[0];
+    torch::Tensor grad_x, grad_weight;
+
+    // CUDA
+    if (grad.is_cuda() && index.is_cuda() && weight.is_cuda()) {
+  // #ifdef COMPILE_WITH_CUDA
+  //     grad_x = bspmm_sum_cuda_backward(index, weight, grad);
+  // #else
+      AT_ERROR("The program is not compiled with CUDA support, but tensors are located on GPU. Please recompile with CUDA support or move tensors to CPU.");
+  // #endif
+    }
+    // CPU
+    else if (grad.is_cpu() && index.is_cpu() && weight.is_cpu()) {
+      auto result = bspmm_sum_cpu_backward(index, weight, x, grad);
+      grad_x = std::get<0>(result);
+      grad_weight = std::get<1>(result);
+    } else {
+      AT_ERROR("Tensor device inconsistent error.");
+    }
+
+    return {torch::Tensor(), grad_weight, grad_x};
 }
