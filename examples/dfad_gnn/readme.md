@@ -1,4 +1,4 @@
-# Graph-less Neural Networks (GLNN)
+# Data-Free Adversarial Knowledge Distillation for Graph Neural Networks
 
 - Paper link: [https://arxiv.org/pdf/2205.03811](https://arxiv.org/pdf/2205.03811)
 - Author's code repo: [https://anonymous.4open.science/r/DF-GNNs-EC75](https://anonymous.4open.science/r/DF-GNNs-EC75)
