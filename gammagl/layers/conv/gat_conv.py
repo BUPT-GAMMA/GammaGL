@@ -1,8 +1,7 @@
 import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
 from gammagl.utils import segment_softmax
-
-
+from gammagl.mpops import bspmm
 
 
 class GATConv(MessagePassing):
@@ -79,10 +78,14 @@ class GATConv(MessagePassing):
         self.linear = tlx.layers.Linear(out_features=self.out_channels * self.heads,
                                         in_features=self.in_channels,
                                         b_init=None)
+        
+        init_weight = tlx.initializers.TruncatedNormal()
+        self.w = tlx.nn.Parameter(
+            init_weight((in_channels, self.out_channels * self.heads)))
 
         initor = tlx.initializers.TruncatedNormal()
-        self.att_src = self._get_weights("att_src", shape=(1, self.heads, self.out_channels), init=initor, order=True)
-        self.att_dst = self._get_weights("att_dst", shape=(1, self.heads, self.out_channels), init=initor, order=True)
+        self.att = tlx.nn.Parameter(
+            initor((1, self.heads, self.out_channels * 2)))
 
         self.leaky_relu = tlx.layers.LeakyReLU(negative_slope)
         self.dropout = tlx.layers.Dropout(self.dropout_rate)
@@ -91,22 +94,23 @@ class GATConv(MessagePassing):
             self.bias = self._get_weights("bias", shape=(self.heads * self.out_channels,), init=initor)
         elif self.add_bias and not concat:
             self.bias = self._get_weights("bias", shape=(self.out_channels,), init=initor)
-        
-    def message(self, x, edge_index, edge_weight=None, num_nodes=None):
-        node_src = edge_index[0, :]
-        node_dst = edge_index[1, :]
-        weight_src = tlx.gather(tlx.reduce_sum(x * self.att_src, -1), node_src)
-        weight_dst = tlx.gather(tlx.reduce_sum(x * self.att_dst, -1), node_dst)
-        weight = self.leaky_relu(weight_src + weight_dst)
-
-        alpha = self.dropout(segment_softmax(weight, node_dst, num_nodes))
-        x = tlx.gather(x, node_src) * tlx.expand_dims(alpha, -1)
-        return x * edge_weight if edge_weight else x
-
 
     def forward(self, x, edge_index, num_nodes=None):
-        x = tlx.reshape(self.linear(x), shape=(-1, self.heads, self.out_channels))
-        x = self.propagate(x, edge_index, num_nodes=num_nodes)
+        x = tlx.matmul(x, self.w)
+        x = tlx.reshape(x, shape=(-1, self.heads, self.out_channels))
+        node_src = edge_index[0, :]
+        node_dst = edge_index[1, :]
+        feat_src = tlx.gather(x, node_src)
+        feat_dst = tlx.gather(x, node_dst)
+        feat = tlx.concat((feat_src, feat_dst), axis=-1)
+        feat = tlx.reshape(feat, shape=(-1, self.heads, self.out_channels * 2))
+        e = tlx.reduce_sum(feat * self.att, axis = -1)
+
+        e = self.leaky_relu(e)
+        alpha = self.dropout(segment_softmax(e, node_dst, num_nodes))
+
+        x = self.propagate(x, edge_index, num_nodes=num_nodes, edge_weight=alpha)
+        # x = bspmm(edge_index, weight=alpha, x=x, reduce='sum')
 
         if self.concat:
             x = tlx.reshape(x, (-1, self.heads * self.out_channels))
