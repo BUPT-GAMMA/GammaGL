@@ -1,16 +1,19 @@
+import os
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
+
 import argparse
 import random
 import numpy as np
 import tensorlayerx as tlx
 from tensorlayerx.model import TrainOneStep
 from sklearn.metrics import roc_auc_score
-
 from gammagl.models import DHNModel
 from gammagl.datasets import ACM4DHN
 from gammagl.utils import k_hop_subgraph, find_all_simple_paths
 
-# The UserWarning is ignored globally
-import warnings
 
 type2idx = {
     'M': 0,
@@ -18,10 +21,6 @@ type2idx = {
     # 'C': 2,
     # 'T': 3
 }
-
-warnings.filterwarnings("ignore", category=UserWarning)
-
-tlx.set_seed(10)
 
 
 def dist_encoder(src, dest, G, k_hop):
@@ -86,7 +85,7 @@ def gen_fea_batch(G, root, fea_dict, k_hop):
             neighbors_mask = src == node
         else:
             neighbors_mask = dst == node
-        neighbors = list(dst[neighbors_mask].numpy())
+        neighbors = list(tlx.convert_to_numpy(dst[neighbors_mask]))
         neighbors.append(node.item())
         random_choice_list = np.random.choice(neighbors, args.num_neighbor, replace=True)
         ns_1.append(random_choice_list.tolist())
@@ -109,7 +108,7 @@ def gen_fea_batch(G, root, fea_dict, k_hop):
             neighbors_mask = src == node
         else:
             neighbors_mask = dst == node
-        neighbors = list(dst[neighbors_mask].numpy())
+        neighbors = list(tlx.convert_to_numpy(dst[neighbors_mask]))
         neighbors.append(node.item())
         random_choice_list = np.random.choice(neighbors, args.num_neighbor, replace=True)
         ns_2.append(random_choice_list.tolist())
@@ -141,17 +140,17 @@ def subgraph_sampling_with_DE_node_pair(G, node_pair, k_hop=2):
 
     # Remove edges using Boolean indexes
     # Note: Just remove the edges, the points remain
-    edge_index_np = sub_G_for_AB[1].numpy()
+    edge_index_np = tlx.convert_to_numpy(sub_G_for_AB[1])
     remove_indices = tlx.convert_to_tensor([
         ((edge_index_np[0, i] == A) & (edge_index_np[1, i] == B)) | (
                 (edge_index_np[0, i] == B) & (edge_index_np[1, i] == A))
         for i in range(sub_G_for_AB[1].shape[1])
     ])
-    remove_indices = remove_indices.numpy()
+    remove_indices = tlx.convert_to_numpy(remove_indices)
     sub_G_index = sub_G_for_AB[1][:, ~remove_indices]
 
-    sub_G_nodes = set(np.unique(sub_G_for_AB[0].numpy())) | set(
-        np.unique(sub_G_for_AB[1].numpy()))  # Gets the points in the graph
+    sub_G_nodes = set(np.unique(tlx.convert_to_numpy(sub_G_for_AB[0]))) | set(
+        np.unique(tlx.convert_to_numpy(sub_G_for_AB[1])))  # Gets the points in the graph
     sub_G_nodes = tlx.convert_to_tensor(list(sub_G_nodes))
 
     # Distance from all points in the subgraph to the node pair
@@ -172,8 +171,8 @@ def subgraph_sampling_with_DE_node_pair(G, node_pair, k_hop=2):
 
 def batch_data(G, batch_size):
     edge_index = G['M', 'MA', 'A'].edge_index
-    nodes = set(tlx.convert_to_tensor(np.unique(edge_index[0].numpy()))) | set(
-        tlx.convert_to_tensor(np.unique(edge_index[1].numpy())))
+    nodes = set(tlx.convert_to_tensor(np.unique(tlx.convert_to_numpy(edge_index[0])))) | set(
+        tlx.convert_to_tensor(np.unique(tlx.convert_to_numpy(edge_index[1]))))
 
     nodes_list = []
     for node in nodes:
@@ -182,7 +181,7 @@ def batch_data(G, batch_size):
     num_batch = int(len(edge_index[0]) / batch_size)
 
     # Shuffle the order of the edges
-    edge_index_np = np.array(edge_index)
+    edge_index_np = tlx.convert_to_numpy(edge_index)
     permutation = np.random.permutation(edge_index_np.shape[1])  # Generate a randomly arranged index
     edge_index_np = edge_index_np[:, permutation]  # Use this permutation index to scramble edge_index
     edge_index = tlx.convert_to_tensor(edge_index_np)
@@ -259,25 +258,25 @@ def main(args):
     node_type = len(type2idx)
     num_fea = (args.k_hop + 2) * 4 + node_type
 
-    m = DHNModel(num_fea, args.batch_size, args.num_neighbor)
+    model = DHNModel(num_fea, args.batch_size, args.num_neighbor, name="DHN")
 
     optim = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.drop_rate)
-    train_weights = m.trainable_weights
+    train_weights = model.trainable_weights
 
-    net_with_loss = Loss(m, loss_fn=tlx.losses.sigmoid_cross_entropy)
+    net_with_loss = Loss(model, loss_fn=tlx.losses.sigmoid_cross_entropy)
     net_with_train = TrainOneStep(net_with_loss, optim, train_weights)
 
     tra_auc_metric = AUCMetric()
     val_auc_metric = AUCMetric()
     test_auc_metric = AUCMetric()
 
+    best_val_auc = 0
     for epoch in range(args.n_epoch):
-        print("-----Epoch {}/{}-----".format(epoch + 1, args.n_epoch))
 
         # train
-        m.set_train()
+        model.set_train()
         tra_batch_A_fea, tra_batch_B_fea, tra_batch_y = batch_data(G_train, args.batch_size).__next__()
-        tra_out = m(tra_batch_A_fea, tra_batch_B_fea, tra_batch_y)
+        tra_out = model(tra_batch_A_fea, tra_batch_B_fea, tra_batch_y)
 
         data = {
             "n1": tra_batch_A_fea,
@@ -286,28 +285,33 @@ def main(args):
         }
 
         tra_loss = net_with_train(data, tra_batch_y)
-        tra_auc_metric.update_state(y_true=tra_batch_y, y_pred=tlx.sigmoid(tra_out).detach().numpy())
+        tra_auc_metric.update_state(y_true=tra_batch_y, y_pred=tlx.convert_to_numpy(tlx.sigmoid(tra_out)))
         tra_auc = tra_auc_metric.result()
-        print('train: ', tra_loss, tra_auc)
 
         # val
-        m.set_eval()
+        model.set_eval()
         val_batch_A_fea, val_batch_B_fea, val_batch_y = batch_data(G_val, args.batch_size).__next__()
-        val_out = m(val_batch_A_fea, val_batch_B_fea, val_batch_y)
+        val_out = model(val_batch_A_fea, val_batch_B_fea, val_batch_y)
 
-        val_loss = tlx.losses.sigmoid_cross_entropy(output=val_out, target=tlx.convert_to_tensor(val_batch_y))
-        val_auc_metric.update_state(y_true=val_batch_y, y_pred=tlx.sigmoid(val_out).detach().numpy())
+        val_auc_metric.update_state(y_true=val_batch_y, y_pred=tlx.convert_to_numpy(tlx.sigmoid(val_out)))
         val_auc = val_auc_metric.result()
-        print("val: ", val_loss.item(), val_auc)
 
-        # test
-        test_batch_A_fea, test_batch_B_fea, test_batch_y = batch_data(G_test, args.batch_size).__next__()
-        test_out = m(test_batch_A_fea, test_batch_B_fea, test_batch_y)
+        print("Epoch [{:0>3d}] ".format(epoch+1)\
+              + "  train loss: {:.4f}".format(tra_loss.item())\
+              + "  val auc: {:.4f}".format(val_auc))
 
-        test_loss = tlx.losses.sigmoid_cross_entropy(output=test_out, target=tlx.convert_to_tensor(test_batch_y))
-        test_auc_metric.update_state(y_true=test_batch_y, y_pred=tlx.sigmoid(test_out).detach().numpy())
-        test_auc = test_auc_metric.result()
-        print("test: ", test_loss.item(), test_auc)
+        if val_auc > best_val_auc:
+            best_val_auc = val_auc
+            model.save_weights(args.best_model_path+model.name+".npz", format='npz_dict')
+
+    model.load_weights(args.best_model_path+model.name+".npz", format='npz_dict')
+    # test
+    test_batch_A_fea, test_batch_B_fea, test_batch_y = batch_data(G_test, args.batch_size).__next__()
+    test_out = model(test_batch_A_fea, test_batch_B_fea, test_batch_y)
+
+    test_auc_metric.update_state(y_true=test_batch_y, y_pred=tlx.convert_to_numpy(tlx.sigmoid(test_out)))
+    test_auc = test_auc_metric.result()
+    print("Test auc:  {:.4f}".format(test_auc))
 
 
 if __name__ == '__main__':
@@ -323,6 +327,13 @@ if __name__ == '__main__':
     parser.add_argument("--drop_rate", type=float, default=0.01, help="drop_rate")
     parser.add_argument('--dataset', type=str, default='acm', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r"", help='dataset_path')
+    parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
+    parser.add_argument("--gpu", type=int, default=-1)
 
     args = parser.parse_args()
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
+
     main(args)

@@ -3,9 +3,9 @@
 - Author's code repo: [https://github.com/BUPT-GAMMA/HDE](https://github.com/BUPT-GAMMA/HDE)
 
 ## Dataset Statics
-| Dataset  | # Nodes | # Edges | # Classes |
-|----------|---------|---------|-----------|
-| Cora     | 4435    | 7071    | 2         |
+| Dataset  | # Nodes | # Edges |
+|----------|---------|---------|
+| acm      | 3908    | 4500    |
 
 ## Results
 ```bash

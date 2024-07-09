@@ -10,9 +10,9 @@ class ACM4DHN(InMemoryDataset):
     def __init__(self, root: Optional[str] = None, transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None, pre_filter: Optional[Callable] = None,
                  force_reload: bool = False, test_ratio: float = 0.3):
+        self.test_ratio = test_ratio
         super().__init__(root, transform, pre_transform, force_reload=force_reload)
         self.data, self.slices = self.load_data(self.processed_paths[0])
-        self.test_ratio = test_ratio
 
     @property
     def raw_file_names(self) -> List[str]:
@@ -71,8 +71,8 @@ class ACM4DHN(InMemoryDataset):
             [edge_index_M[sp1:sp1 + sp2], edge_index_A[sp1:sp1 + sp2]])
         G_test['M', 'MA', 'A'].edge_index = tlx.convert_to_tensor([edge_index_M[sp1 + sp2:], edge_index_A[sp1 + sp2:]])
 
-        print(
-            f"all edge: {len(G['M', 'MA', 'A'].edge_index[0])}, train edge: {len(G_train['M', 'MA', 'A'].edge_index[0])}, val edge: {len(G_val['M', 'MA', 'A'].edge_index[0])}, test edge: {len(G_test['M', 'MA', 'A'].edge_index[0])}")
+        # print(
+        #     f"all edge: {len(G['M', 'MA', 'A'].edge_index[0])}, train edge: {len(G_train['M', 'MA', 'A'].edge_index[0])}, val edge: {len(G_val['M', 'MA', 'A'].edge_index[0])}, test edge: {len(G_test['M', 'MA', 'A'].edge_index[0])}")
 
         G['train'] = G_train  # training set
         G['val'] = G_val  # valuation set

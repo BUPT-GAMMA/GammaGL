@@ -6,8 +6,9 @@ class DHNModel(tlx.nn.Module):
     def __init__(self,
                  num_fea,
                  batch_size,
-                 num_neighbor):
-        super().__init__()
+                 num_neighbor,
+                 name=None):
+        super().__init__(name=name)
         self.num_fea = num_fea
         self.batch_size = batch_size
         self.num_neighbor = num_neighbor
