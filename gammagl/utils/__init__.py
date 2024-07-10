@@ -18,6 +18,8 @@ from .homophily import homophily
 from .to_dense_adj import to_dense_adj
 from .smiles import from_smiles
 from .shortest_path import shortest_path_distance, batched_shortest_path_distance
+from .get_split import get_train_val_test_split
+from .get_laplacian import get_laplacian
 
 __all__ = [
     'calc_A_norm_hat',
@@ -42,7 +44,9 @@ __all__ = [
     'to_dense_adj',
     'from_smiles',
     'shortest_path_distance',
-    'batched_shortest_path_distance'
+    'batched_shortest_path_distance',
+    'get_train_val_test_split',
+    'get_laplacian'
 
 ]
 

@@ -50,7 +50,10 @@ def get_laplacian(edge_index, num_nodes, edge_weight=None, normalization=None):
         # Compute A_norm = -D^{-1/2} A D^{-1/2}.
         deg_inv_sqrt = tlx.pow(deg, -0.5)
         # deg_inv_sqrt.masked_fill_(deg_inv_sqrt == float('inf'), 0)
-        edge_weight = tlx.gather(deg_inv_sqrt, row) * edge_weight * tlx.gather(deg_inv_sqrt, col)
+        if len(tlx.get_tensor_shape(tlx.gather(deg_inv_sqrt, row))) + 1 == len(tlx.get_tensor_shape(edge_weight)):
+            edge_weight = tlx.expand_dims(tlx.gather(deg_inv_sqrt, row), axis=-1) * edge_weight * tlx.expand_dims(tlx.gather(deg_inv_sqrt, row), axis=-1)
+        else:
+            edge_weight = tlx.gather(deg_inv_sqrt, row) * edge_weight * tlx.gather(deg_inv_sqrt, col)
 
         # L = I - A_norm.
         edge_weight = tlx.reshape(edge_weight, (-1, 1))

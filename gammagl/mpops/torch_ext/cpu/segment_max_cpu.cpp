@@ -34,7 +34,7 @@ std::tuple<torch::Tensor, torch::Tensor> segment_max_cpu_forward(
   auto index_data = index.data_ptr<int64_t>();
   auto arg_out_data = arg_out.data_ptr<int64_t>();
 
-  AT_DISPATCH_ALL_TYPES_AND2(at::ScalarType::Half, at::ScalarType::BFloat16, x.scalar_type(), "segment_mean_cpu_forward", [&]() {
+  AT_DISPATCH_ALL_TYPES_AND2(at::ScalarType::Half, at::ScalarType::BFloat16, x.scalar_type(), "segment_max_cpu_forward", [&]() {
       out.fill_(std::numeric_limits<scalar_t>::lowest());
       auto x_data = x.data_ptr<scalar_t>();
       auto out_data = out.data_ptr<scalar_t>();

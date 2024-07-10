@@ -1,3 +1,4 @@
+from .heat_conv import HEATlayer
 from .message_passing import MessagePassing
 from .gcn_conv import GCNConv
 from .gat_conv import GATConv
@@ -30,7 +31,9 @@ from .gmm_conv import GMMConv
 from .iehgcn_conv import ieHGCNConv
 from .mgnni_m_iter import MGNNI_m_iter
 from .magcl_conv import MAGCLConv
+from .fusedgat_conv import FusedGATConv
 from .hid_conv import Hid_conv
+from .dna_conv import DNAConv
 __all__ = [
     'MessagePassing',
     'GCNConv',
@@ -64,7 +67,10 @@ __all__ = [
     'ieHGCNConv',
     'MGNNI_m_iter',
     'MAGCLConv',
-    'Hid_conv'
+    'FusedGATConv',
+    'Hid_conv',
+    'HEATlayer',
+    'DNAConv'
 ]
 
 classes = __all__
