@@ -141,7 +141,7 @@ class MessagePassing(tlx.nn.Module):
         if 'num_nodes' not in kwargs.keys() or kwargs['num_nodes'] is None:
             kwargs['num_nodes'] = x.shape[0]
 
-        if 'message_aggregate' in self.__class__.__dict__:
+        if tlx.BACKEND == "torch" and 'message_aggregate' in self.__class__.__dict__:
             coll_dict = self.__collect__(x, edge_index, aggr, kwargs)
             msg_agg_kwargs = self.inspector.distribute('message_aggregate', coll_dict)
             x = self.message_aggregate(**msg_agg_kwargs)
