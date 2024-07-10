@@ -28,6 +28,8 @@ from ._sparse_cuda import cuda_torch_ind2ptr, cuda_torch_ptr2ind, cuda_torch_nei
 
 from gammagl.utils.platform_utils import out_tensor_list, Tensor, out_tensor
 
+import numpy
+
 
 
 @out_tensor
@@ -35,7 +37,9 @@ def ind2ptr(
         ind: Tensor,
         M: int,
         num_worker: int = 0) -> Tensor:
-    if(str(ind.device)=='cpu'):
+    if isinstance(ind, numpy.ndarray):
+        return c_ind2ptr(ind, M, num_worker)
+    elif(str(ind.device)=='cpu'):
         return c_ind2ptr(ind, M, num_worker)
     else:
         return cuda_torch_ind2ptr(ind, M)
@@ -53,7 +57,9 @@ def ptr2ind(
         ptr: Tensor,
         E: int,
         num_worker: int = 1):
-    if(str(ptr.device)=='cpu'):
+    if isinstance(ptr, numpy.ndarray):
+        return c_ptr2ind(ptr, E, num_worker)
+    elif(str(ptr.device)=='cpu'):
         return c_ptr2ind(ptr, E, num_worker)
     else:
         return cuda_torch_ptr2ind(ptr, E)
@@ -130,6 +136,14 @@ def sample_adj(
         num_neighbors: int,
         replace: bool = False):
     if(str(rowptr.device)=='cpu'):
+        # num_neighbors = tlx.convert_to_tensor([num_neighbors], dtype=tlx.int64).to('cpu')
+        # rowptr = rowptr.to('cuda:2')
+        # col = col.to('cuda:2')
+        # idx = idx.to('cuda:2')
+        # res = cuda_torch_sample_adj(rowptr, col, idx, num_neighbors, replace, False, 0)
+        # for i in range(4):
+        #     res[i] = res[i].to('cpu')
+
         res = c_sample_adj(rowptr, col, idx, num_neighbors, replace)
     else:
         num_neighbors = tlx.convert_to_tensor([num_neighbors], dtype=tlx.int64).to('cpu')
