@@ -27,8 +27,9 @@ class MessagePassing(tlx.nn.Module):
 
         self.inspector = Inspector(self)
         self.inspector.inspect(self.message)
+        self.inspector.inspect(self.message_aggregate)
         self.__user_args__ = self.inspector.keys(
-            ['message',]).difference(self.special_args)
+            ['message','message_aggregate']).difference(self.special_args)
 
 
     def message(self, x, edge_index, edge_weight=None):
@@ -118,7 +119,7 @@ class MessagePassing(tlx.nn.Module):
         """
         return x
 
-    def propagate(self, x, edge_index, aggr='sum', fuse_kernel=False,  **kwargs):
+    def propagate(self, x, edge_index, aggr='sum',  **kwargs):
         """
         Function that perform message passing.
 
@@ -140,14 +141,18 @@ class MessagePassing(tlx.nn.Module):
         if 'num_nodes' not in kwargs.keys() or kwargs['num_nodes'] is None:
             kwargs['num_nodes'] = x.shape[0]
 
-        coll_dict = self.__collect__(x, edge_index, aggr, kwargs)
-        msg_kwargs = self.inspector.distribute('message', coll_dict)
-        if fuse_kernel:
-            x = self.message_aggregate(**msg_kwargs)
+        if 'message_aggregate' in self.__class__.__dict__:
+            coll_dict = self.__collect__(x, edge_index, aggr, kwargs)
+            msg_agg_kwargs = self.inspector.distribute('message_aggregate', coll_dict)
+            x = self.message_aggregate(**msg_agg_kwargs)
         else:
+            coll_dict = self.__collect__(x, edge_index, aggr, kwargs)
+            msg_kwargs = self.inspector.distribute('message', coll_dict)
+
             msg = self.message(**msg_kwargs)
             x = self.aggregate(msg, edge_index, num_nodes=kwargs['num_nodes'], aggr=aggr)
         x = self.update(x)
+
         return x
 
     def __collect__(self, x, edge_index, aggr, kwargs):
