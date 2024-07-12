@@ -41,8 +41,12 @@ def calculate_acc(logits, y, metrics):
 
 
 def main(args):
-    feature_store = Neo4jFeatureStore(uri='bolt://10.129.91.49:7687', user_name='neo4j', password='root123456')
-    graph_store = Neo4jGraphStore(uri='bolt://10.129.91.49:7687', user_name='neo4j', password='root123456')
+    uri = 'bolt://localhost:7687'
+    user_name= 'neo4j'
+    password= 'neo4j'
+
+    feature_store = Neo4jFeatureStore(uri=uri, user_name=user_name, password=password)
+    graph_store = Neo4jGraphStore(uri=uri, user_name=user_name, password=password)
     
     edge_index = graph_store['reddit_edge', 'coo']
     
@@ -119,7 +123,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default='reddit', help='dataset')
     parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     # parser.add_argument("--best_model_path", type=str, default=r'./', help="path to save best model")
-    parser.add_argument("--gpu", type=int, default=0)
+    parser.add_argument("--gpu", type=int, default=-1)
 
     args = parser.parse_args()
     if args.gpu >= 0:

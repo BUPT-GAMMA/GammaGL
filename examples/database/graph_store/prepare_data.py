@@ -13,8 +13,12 @@ test_idx = tlx.convert_to_numpy(mask_to_index(graph.test_mask))
 
 np.savez('idx.npz', train_idx=train_idx, val_idx=val_idx, test_idx=test_idx)
 
-feature_store = Neo4jFeatureStore(uri='bolt://10.129.91.49:7687', user_name='neo4j', password='root123456')
-graph_store = Neo4jGraphStore(uri='bolt://10.129.91.49:7687', user_name='neo4j', password='root123456')
+uri = 'bolt://localhost:7687'
+user_name= 'neo4j'
+password= 'neo4j'
+
+feature_store = Neo4jFeatureStore(uri=uri, user_name=user_name, password=password)
+graph_store = Neo4jGraphStore(uri=uri, user_name=user_name, password=password)
 
 feature_store['reddit_node', 'x', tlx.arange(start=0, limit=graph.x.shape[0])] = graph.x
 feature_store['reddit_node', 'y', tlx.arange(start=0, limit=graph.x.shape[0])] = graph.y
