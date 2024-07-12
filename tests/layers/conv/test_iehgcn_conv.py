@@ -8,7 +8,7 @@ import numpy as np
 
 def test_iehgcn_conv():
     num_nodes_dict = {
-        'user': 5,
+        'user': 4,
         'item': 4
     }
     in_channels_dict = {

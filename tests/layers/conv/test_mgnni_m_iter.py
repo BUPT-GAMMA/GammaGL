@@ -9,7 +9,7 @@ def test_mgnni_m_iter():
     threshold = 1e-5
     max_iter = 50
     gamma = 0.5
-    num_nodes = 20
+    num_nodes = 10
     edge_index = tlx.convert_to_tensor(np.array([
         [0, 1, 2, 3, 4, 5],
         [1, 2, 3, 4, 5, 6]

@@ -4,12 +4,12 @@ from gammagl.transforms.vgae_pre import sparse_to_tuple, mask_test_edges
 
 
 def test_vgae_pre():
-    adj = sp.csr_matrix([
-        [0, 1, 0, 1],
-        [1, 0, 1, 0],
-        [0, 1, 0, 1],
-        [1, 0, 1, 0]
-    ], dtype=np.float32)
+    np.random.seed(43)
+    adj = sp.random(2708, 2708, density=0.001, format='csr', dtype=np.float32)
+    adj = adj + adj.T
+    adj.data[:] = 1
+    adj.setdiag(0)
+    adj.eliminate_zeros()
 
     adj_train, train_edges, val_edges, val_edges_false, test_edges, test_edges_false = mask_test_edges(adj)
 
@@ -22,3 +22,5 @@ def test_vgae_pre():
     assert len(test_edges_false) == len(test_edges), "Incorrect number of test false edges"
 
     print("All tests passed!")
+
+test_vgae_pre()

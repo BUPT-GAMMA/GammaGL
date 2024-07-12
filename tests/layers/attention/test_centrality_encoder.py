@@ -5,8 +5,8 @@ from gammagl.layers.attention.centrality_encoder import CentralityEncoding
 def test_centrality_encoder():
     edge_index = tlx.convert_to_tensor([[0, 1, 2, 0, 3, 4, 4], [1, 0, 0, 2, 0, 3, 2]], dtype=tlx.int64)
     x = tlx.convert_to_tensor([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0], [0.0, 0.0], [0.5, 0.5]], dtype=tlx.float32)
-    max_in_degree = 3
-    max_out_degree = 3
+    max_in_degree = 5
+    max_out_degree = 5
     node_dim = 2
     ce = CentralityEncoding(max_in_degree=max_in_degree, max_out_degree=max_out_degree, node_dim=node_dim)
     x_encoded = ce(x, edge_index)

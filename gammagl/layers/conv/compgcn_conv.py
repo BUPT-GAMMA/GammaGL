@@ -65,7 +65,7 @@ class CompConv(MessagePassing):
             self.bias = self._get_weights(var_name="bias", shape=(out_channels,),  init=self.initor)
 
         return
-    def forward(self, x, edge_index, edge_type=None,ref_emb=None):
+    def forward(self, x, edge_index, edge_type=None, ref_emb=None):
 
         edge_half_num = int(edge_index.shape[1]/2)
         edge_in_index = edge_index[:,:edge_half_num]
@@ -78,9 +78,9 @@ class CompConv(MessagePassing):
         loop_index = tlx.ops.stack([loop_index,loop_index])
         loop_type = [self.num_relations for n in range(0, x.shape[0])]
         loop_type = tlx.ops.convert_to_tensor(loop_type)
-        in_res = self.propagate(x,edge_in_index,edge_in_type,linear=self.w_in,rel_emb=ref_emb)
-        out_res = self.propagate(x,edge_out_index,edge_out_type,linear=self.w_out,rel_emb=ref_emb)
-        loop_res = self.propagate(x,loop_index,loop_type,linear=self.w_loop,rel_emb=ref_emb)
+        in_res = self.propagate(x,edge_in_index,edge_type=edge_in_type,linear=self.w_in,rel_emb=ref_emb)
+        out_res = self.propagate(x,edge_out_index,edge_type=edge_out_type,linear=self.w_out,rel_emb=ref_emb)
+        loop_res = self.propagate(x,loop_index,edge_type=loop_type,linear=self.w_loop,rel_emb=ref_emb)
         ref_emb = self.w_rel(ref_emb)
         res = in_res*(1/3) + out_res*(1/3) + loop_res*(1/3)
 
@@ -89,48 +89,48 @@ class CompConv(MessagePassing):
         return res,ref_emb
 
 
-    def propagate(self, x, edge_index,edge_type, aggr='sum', **kwargs):
-        """
-        Function that perform message passing.
+    # def propagate(self, x, edge_index,edge_type, aggr='sum', **kwargs):
+    #     """
+    #     Function that perform message passing.
 
-        Parameters
-        ----------
-        x: 
-            input node feature.
-        edge_index: 
-            edges from src to dst.
-        aggr: 
-            aggregation type, default='sum', optional=['sum', 'mean', 'max'].
-        kwargs: 
-            other parameters dict.
+    #     Parameters
+    #     ----------
+    #     x: 
+    #         input node feature.
+    #     edge_index: 
+    #         edges from src to dst.
+    #     aggr: 
+    #         aggregation type, default='sum', optional=['sum', 'mean', 'max'].
+    #     kwargs: 
+    #         other parameters dict.
 
-        """
+    #     """
 
-        if 'num_nodes' not in kwargs.keys() or kwargs['num_nodes'] is None:
-            kwargs['num_nodes'] = x.shape[0]
+    #     if 'num_nodes' not in kwargs.keys() or kwargs['num_nodes'] is None:
+    #         kwargs['num_nodes'] = x.shape[0]
 
-        coll_dict = self.__collect__(x, edge_index,edge_type, aggr, kwargs)
-        msg_kwargs = self.inspector.distribute('message', coll_dict)
-        msg_kwargs['linear'] = kwargs['linear']
-        msg_kwargs['rel_emb'] = kwargs['rel_emb']
-        msg_kwargs['edge_type'] = edge_type
-        msg = self.message(**msg_kwargs)
-        x = self.aggregate(msg, edge_index, num_nodes=kwargs['num_nodes'], aggr=aggr,dim_size=x.shape[0])
-        x = self.update(x)
-        return x
+    #     coll_dict = self.__collect__(x, edge_index,edge_type, aggr, kwargs)
+    #     msg_kwargs = self.inspector.distribute('message', coll_dict)
+    #     msg_kwargs['linear'] = kwargs['linear']
+    #     msg_kwargs['rel_emb'] = kwargs['rel_emb']
+    #     msg_kwargs['edge_type'] = edge_type
+    #     msg = self.message(**msg_kwargs)
+    #     x = self.aggregate(msg, edge_index, num_nodes=kwargs['num_nodes'], aggr=aggr,dim_size=x.shape[0])
+    #     x = self.update(x)
+    #     return x
 
-    def __collect__(self, x, edge_index,edge_type, aggr, kwargs):
-        out = {}
+    # def __collect__(self, x, edge_index,edge_type, aggr, kwargs):
+    #     out = {}
 
-        for k, v in kwargs.items():
-            out[k] = v
-        out['x'] = x
-        out['edge_index'] = edge_index
-        out['aggr'] = aggr
-        out['edge_type'] = edge_type
-        return out
+    #     for k, v in kwargs.items():
+    #         out[k] = v
+    #     out['x'] = x
+    #     out['edge_index'] = edge_index
+    #     out['aggr'] = aggr
+    #     out['edge_type'] = edge_type
+    #     return out
 
-    def message(self, x, edge_index,edge_type, edge_weight=None,rel_emb=None,linear=None):
+    def message(self, x, edge_index, edge_type, edge_weight=None, rel_emb=None, linear=None):
         """
         Function that construct message from source nodes to destination nodes.
         
@@ -160,35 +160,35 @@ class CompConv(MessagePassing):
         else:
             return msg
 
-    def aggregate(self, msg, edge_index, num_nodes=None, aggr='sum',dim_size=None):
-        """
-        Function that aggregates message from edges to destination nodes.
+    # def aggregate(self, msg, edge_index, num_nodes=None, aggr='sum',dim_size=None):
+    #     """
+    #     Function that aggregates message from edges to destination nodes.
 
-        Parameters
-        ----------
-        msg: tensor
-            message construct by message function.
-        edge_index: tensor
-            edges from src to dst.
-        num_nodes: int
-            number of nodes of the graph.
-        aggr: str
-            aggregation type, default = 'sum', optional=['sum', 'mean', 'max'].
+    #     Parameters
+    #     ----------
+    #     msg: tensor
+    #         message construct by message function.
+    #     edge_index: tensor
+    #         edges from src to dst.
+    #     num_nodes: int
+    #         number of nodes of the graph.
+    #     aggr: str
+    #         aggregation type, default = 'sum', optional=['sum', 'mean', 'max'].
 
-        Returns
-        -------
-        tensor
-            output representation.
+    #     Returns
+    #     -------
+    #     tensor
+    #         output representation.
 
-        """
-        dst_index = edge_index[0, :]
-        if aggr == 'sum':
-            return unsorted_segment_sum(msg, dst_index, num_nodes)
-            #return unsorted_segment_sum(msg, dst_index, num_nodes)
-        elif aggr == 'mean':
-            return unsorted_segment_mean(msg, dst_index, num_nodes)
-        elif aggr == 'max':
-            return unsorted_segment_max(msg, dst_index, num_nodes)
-        else:
-            raise NotImplementedError('Not support for this opearator')
+    #     """
+    #     dst_index = edge_index[0, :]
+    #     if aggr == 'sum':
+    #         return unsorted_segment_sum(msg, dst_index, num_nodes)
+    #         #return unsorted_segment_sum(msg, dst_index, num_nodes)
+    #     elif aggr == 'mean':
+    #         return unsorted_segment_mean(msg, dst_index, num_nodes)
+    #     elif aggr == 'max':
+    #         return unsorted_segment_max(msg, dst_index, num_nodes)
+    #     else:
+    #         raise NotImplementedError('Not support for this opearator')
 
