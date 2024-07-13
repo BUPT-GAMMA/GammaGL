@@ -1,12 +1,3 @@
-from itertools import product
-import scipy.sparse as sp
-import os.path as osp
-from typing import Callable, List, Optional
-from gammagl.data.download import download_url
-from gammagl.data import (HeteroGraph, InMemoryDataset, extract_zip)
-import os
-import numpy as np
-import tensorlayerx as tlx
 from gammagl.datasets.dblp import DBLP
 
 

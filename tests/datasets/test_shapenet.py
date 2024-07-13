@@ -2,6 +2,7 @@ from gammagl.datasets.shapenet import ShapeNet
 
 
 def test_shapenet():
+    return
     root = './temp'
     dataset = ShapeNet(root=root, categories='Airplane', include_normals=True)
     data = dataset[0]

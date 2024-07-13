@@ -79,7 +79,7 @@ class BlogCatalog(InMemoryDataset):
         zip_file.close()
 
         f_adj = np.load(file=osp.join(osp.join(self.raw_dir, self.name), 'adj.npz'))
-        f_feat = sp.load_npz(file=osp.join(osp.join(self.raw_dir, self.name), 'feat.npz')).A
+        f_feat = sp.load_npz(file=osp.join(osp.join(self.raw_dir, self.name), 'feat.npz')).toarray()
         f_label = np.load(file=osp.join(osp.join(self.raw_dir, self.name), 'label.npy'))
 
         adj = sp.csr_matrix((f_adj['data'], f_adj['indices'], f_adj['indptr']), f_adj['shape'])
@@ -99,16 +99,19 @@ class BlogCatalog(InMemoryDataset):
         val_idx = node_index[train_size:train_size + val_size]
         test_idx = node_index[train_size + val_size:]
 
-        train_mask = tlx.zeros((data.num_nodes, 1)).squeeze(-1)
-        val_mask = tlx.zeros((data.num_nodes, 1)).squeeze(-1)
-        test_mask = tlx.zeros((data.num_nodes, 1)).squeeze(-1)
+        train_mask = tlx.squeeze(tlx.zeros((data.num_nodes, 1)), axis=-1)
+        val_mask = tlx.squeeze(tlx.zeros((data.num_nodes, 1)), axis=-1)
+        test_mask = tlx.squeeze(tlx.zeros((data.num_nodes, 1)), axis=-1)
 
+        train_mask = tlx.convert_to_numpy(train_mask)
+        val_mask = tlx.convert_to_numpy(val_mask)
+        test_mask = tlx.convert_to_numpy(test_mask)
         train_mask[train_idx] = 1
         val_mask[val_idx] = 1
         test_mask[test_idx] = 1
-        data.train_mask = train_mask.bool()
-        data.val_mask = val_mask.bool()
-        data.test_mask = test_mask.bool()
+        data.train_mask = tlx.convert_to_tensor(train_mask, dtype=tlx.bool)
+        data.val_mask = tlx.convert_to_tensor(val_mask, dtype=tlx.bool)
+        data.test_mask = tlx.convert_to_tensor(test_mask, dtype=tlx.bool)
 
         data = data if self.pre_transform is None else self.pre_transform(data)
 

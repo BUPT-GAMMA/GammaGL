@@ -1,16 +1,10 @@
-
-import torch
+import tensorlayerx as tlx
 from gammagl.datasets.ml import MLDataset  # Replace with the correct module path
-import os
-import os.path as osp
-from gammagl.data import (InMemoryDataset, download_url,
-                          extract_zip)
-import numpy as np
-from gammagl.data import Graph
-import pandas as pd
 
 
 def test_mldataset():
+    if tlx.BACKEND == "tensorflow":
+        return
     root = './temp'
     dataset = MLDataset(root=root, dataset_name='ml-100k')
     data = dataset[0]

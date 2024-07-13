@@ -66,7 +66,7 @@ class ShapeNet(InMemoryDataset):
         (default: :obj:`False`)
 
     """
-
+    # TODO: this url is not work
     url = ('https://shapenet.cs.stanford.edu/media/'
            'shapenetcore_partanno_segmentation_benchmark_v0_normal.zip')
 
