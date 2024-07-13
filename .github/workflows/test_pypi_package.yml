@@ -32,7 +32,7 @@ jobs:
 
       - name: Install llvmlite and dgNN
         run: |
-          pip install llvmlite, dgNN
+          pip install llvmlite dgNN
 
       - name: Install package
         run: |
