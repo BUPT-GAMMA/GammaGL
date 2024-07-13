@@ -1,6 +1,8 @@
 import tensorlayerx as tlx
 from gammagl.mpops import unsorted_segment_sum
 
+
+# TODO: this function is not work in pytest
 def to_dense_adj(
     edge_index,
     batch = None,
