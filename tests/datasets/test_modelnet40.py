@@ -1,3 +1,5 @@
+from gammagl.datasets import ModelNet40
+
 root = './data'
 def test_modelnet40(get_dataset):
     train_dataset = get_dataset(name = 'ModelNet40')
