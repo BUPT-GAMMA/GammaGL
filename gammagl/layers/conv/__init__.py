@@ -33,7 +33,9 @@ from .mgnni_m_iter import MGNNI_m_iter
 from .magcl_conv import MAGCLConv
 from .fusedgat_conv import FusedGATConv
 from .hid_conv import Hid_conv
+from .dhn_conv import DHNConv
 from .dna_conv import DNAConv
+
 __all__ = [
     'MessagePassing',
     'GCNConv',
@@ -70,6 +72,7 @@ __all__ = [
     'FusedGATConv',
     'Hid_conv',
     'HEATlayer',
+    'DHNConv',
     'DNAConv'
 ]
 
