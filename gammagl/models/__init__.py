@@ -1,5 +1,6 @@
 from .gcn import GCNModel
 from .gat import GATModel
+from .heat import HEAT
 from .sgc import SGCModel
 from .gatv2 import GATV2Model
 from .gaan import GaANModel
@@ -52,8 +53,16 @@ from .grace_pot import Grace_POT_Encoder, Grace_POT_Model
 from .sfgcn import SFGCNModel
 from .grace_spco import Grace_Spco_Encoder, Grace_Spco_Model
 from .graphormer import Graphormer
-from .fatragnn import FatraGNNModel, Graph_Editer
+from .sp2gcl import SpaSpeNode, Encoder, EigenMLP
+from .heco import HeCo
+from .fusedgat import FusedGATModel
+from .hid_net import Hid_net
+from .gnnlfhf import GNNLFHFModel
+from .dna import DNAModel
+from .dfad import DFADModel, DFADGenerator
+
 __all__ = [
+    'HeCo',
     'GCNModel',
     'GATModel',
     'GaANModel',
@@ -107,7 +116,17 @@ __all__ = [
     'GGDModel',
     'Specformer',
     'SFGCNModel',
-    'Graphormer'
+    'Graphormer',
+    'Encoder',
+    'EigenMLP',
+    'SpaSpeNode',
+    'FusedGATModel',
+    'hid_net',
+    'HEAT',
+    'GNNLFHFModel',
+    'DNAModel',
+    'DFADModel',
+    'DFADGenerator'
 ]
 
 classes = __all__
