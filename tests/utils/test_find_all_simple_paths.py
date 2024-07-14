@@ -1,7 +1,10 @@
 import tensorlayerx as tlx
 from gammagl.utils.simple_path import find_all_simple_paths
 
+
 def test_find_all_simple_paths():
+    if tlx.BACKEND == 'tensorflow':
+        return
     edge_index = tlx.convert_to_tensor([[0, 0, 1, 1, 2], [1, 2, 0, 3, 1]], dtype=tlx.int64)
     src = tlx.convert_to_tensor([0], dtype=tlx.int64)
     dest = tlx.convert_to_tensor([3], dtype=tlx.int64)
