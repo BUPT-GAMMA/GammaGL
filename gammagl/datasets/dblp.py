@@ -61,7 +61,7 @@ class DBLP(InMemoryDataset):
 
     @property
     def processed_file_names(self) -> str:
-        return 'data.pt'
+        return tlx.BACKEND + '_data.pt'
 
     def download(self):
         path = download_url(self.url, self.raw_dir)
@@ -81,7 +81,7 @@ class DBLP(InMemoryDataset):
 
         node_type_idx = np.load(osp.join(self.raw_dir, 'node_types.npy'))
         node_type_idx = tlx.convert_to_tensor(node_type_idx, dtype=tlx.int64)
-        data['conference'].num_nodes = int((node_type_idx == 3).sum())
+        data['conference'].num_nodes = int(tlx.reduce_sum(tlx.cast(node_type_idx == 3, dtype=tlx.int64)))
 
         y = np.load(osp.join(self.raw_dir, 'labels.npy'))
         data['author'].y = tlx.convert_to_tensor(y, dtype=tlx.int64)
@@ -90,7 +90,8 @@ class DBLP(InMemoryDataset):
         for name in ['train', 'val', 'test']:
             idx = split[f'{name}_idx']
             idx = tlx.convert_to_tensor(idx, dtype=tlx.int64)
-            mask = np.zeros(data['author'].num_nodes, dtype=np.bool)
+            mask = tlx.zeros((data['author'].num_nodes,), dtype=tlx.bool)
+            mask = tlx.convert_to_numpy(mask)
             mask[idx] = True
             data['author'][f'{name}_mask'] = tlx.convert_to_tensor(mask, dtype=tlx.bool)
 
