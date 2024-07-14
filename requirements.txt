@@ -1,4 +1,4 @@
-numpy<2.0.0
+numpy
 scipy
 pybind11
 torch
@@ -8,4 +8,4 @@ tqdm
 pandas
 numba
 pyparsing
-tensorflow==2.10.0
+tensorflow==2.11.0
