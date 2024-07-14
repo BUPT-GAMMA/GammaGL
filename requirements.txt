@@ -8,4 +8,4 @@ tqdm
 pandas
 numba
 pyparsing
-tensorflow=2.10.0
+tensorflow==2.10.0
