@@ -144,7 +144,6 @@ def main(args):
     args.num_features, args.num_classes = data['x'].shape[1], len(np.unique(tlx.convert_to_numpy(data['y']))) - 1
     args.test_set_num = len(data_test)
 
-    #print(tlx.BACKEND)
     t_idx_s0 = data['sens'][data['train_mask']] == 0
     t_idx_s1 = data['sens'][data['train_mask']] == 1
     t_idx_s0_y1 = tlx.logical_and(t_idx_s0, data['y'][data['train_mask']] == 1)
@@ -168,11 +167,9 @@ def main(args):
     adj = sp.coo_matrix((np.ones(data['edge_index']['edge_index'].shape[1]), (edge_index_np[0, :], edge_index_np[1, :])),
                         shape=(data['x'].shape[0], data['x'].shape[0]),
                         dtype=np.float32)
-    #print(adj.row.shape)
     A2 = adj.dot(adj)
     A2 = A2.toarray()
     A2_edge = tlx.convert_to_tensor(np.vstack((A2.nonzero()[0], A2.nonzero()[1])))
-    #print(A2_edge.shape)
 
     net = FatraGNNModel(args)
 
@@ -204,8 +201,6 @@ def main(args):
         # train discriminator to recognize the sensitive group
         data['flag'] = 1
         for epoch_d in range(0, args.dic_epochs):
-            #print(f"Current backend: {os.environ['TL_BACKEND']}")
-            #print(f"Current backend: {tlx.BACKEND}")
             dic_loss = dic_train_one_step(data=data, label=data['y'])
 
         # train classifier and encoder
@@ -237,15 +232,15 @@ def main(args):
             for epoch_a in range(0, args.a_epochs):
                 aliloss = ali_train_one_step(data=data, label=data['y'])
 
-        acc = np.zeros([args.test_set_num])
-        auc_roc = np.zeros([args.test_set_num])
-        parity = np.zeros([args.test_set_num])
-        equality = np.zeros([args.test_set_num])
-        net.set_eval()
-        for i in range(args.test_set_num):
-            data_tem = data_test[i]
-            acc[i],auc_roc[i], parity[i], equality[i] = evaluate_ged3(net, data_tem['x'], data_tem['edge_index'], data_tem['y'], data_tem['test_mask'], data_tem['sens'])
-        print(acc, auc_roc, parity, equality)
+    acc = np.zeros([args.test_set_num])
+    auc_roc = np.zeros([args.test_set_num])
+    parity = np.zeros([args.test_set_num])
+    equality = np.zeros([args.test_set_num])
+    net.set_eval()
+    for i in range(args.test_set_num):
+        data_tem = data_test[i]
+        acc[i],auc_roc[i], parity[i], equality[i] = evaluate_ged3(net, data_tem['x'], data_tem['edge_index'], data_tem['y'], data_tem['test_mask'], data_tem['sens'])
+
     return acc, auc_roc, parity, equality
 
 if __name__ == '__main__':
