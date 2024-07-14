@@ -43,6 +43,8 @@ def k_hop_subgraph(node_idx, num_hops, edge_index, relabel_nodes=False, num_node
 
     if isinstance(node_idx, (int, list, tuple)):
         node_idx = tlx.convert_to_tensor(np.array([node_idx]).flatten(), dtype=edge_index.dtype)
+        # node_idx = np.array([i.item() for i in node_idx]).flatten()
+        # node_idx = tlx.convert_to_tensor(node_idx, dtype=tlx.int64)
     
     subsets = [node_idx]
     node_mask = tlx.zeros((num_nodes,), dtype=tlx.bool)
