@@ -25,8 +25,7 @@ from .acm4heco import ACM4HeCo
 from .yelp import Yelp
 from .bail import Bail
 from .credit import Credit
-
-
+from .acm4dhn import ACM4DHN
 
 __all__ = [
     'ACM4HeCo',
@@ -54,7 +53,8 @@ __all__ = [
     'NGSIM_US_101',
     'Yelp',
     'Bail',
-    'Credit'
+    'Credit',
+    'ACM4DHN'
 ]
 
 classes = __all__
