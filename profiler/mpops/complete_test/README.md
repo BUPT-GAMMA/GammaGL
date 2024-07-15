@@ -4,7 +4,7 @@ In order for users to clearly understand the details of operator testing, we hav
 
 ## Dataset
 
-The location of the dataset is `GammaGL/profiler/mpops/edge_index`, `cora.npy` corresponds to the `Cora` dataset, `pubmed.npy` corresponds to the `PubMed` dataset, `ogbn-arxiv.npy` corresponds to the `Ogbn-Arxiv` dataset. 
+You need to run the `test.py` in the `edge_index/` path to download the dataset. The location of the dataset is `GammaGL/profiler/mpops/edge_index`, `cora.npy` corresponds to the `Cora` dataset, `pubmed.npy` corresponds to the `PubMed` dataset, `ogbn-arxiv.npy` corresponds to the `Ogbn-Arxiv` dataset. 
 
 You can use `np.load(path_to_the_dataset)` to load the corresponding dataset.
 
@@ -22,47 +22,32 @@ The location of the test code is `GammaGL/profiler/mpops/complete_test`. The fol
 
 ```
 complete_test
-├── mp_cpu: code folder to test the efficiency of message passing process under CPU
-│   ├── dgl_mp_cpu.py
-│   ├── ms_mp_cpu.py
-│   ├── pd_ext_sum_cpu.py
-│   ├── pd_mp_cpu.py
-│   ├── pyg_mp_cpu.py
-│   ├── spmm_sum_cpu.py
-│   ├── tf_mp_cpu.py
-│   ├── th_ext_max_cpu.py
-│   └── th_mp_cpu.py
-├── mp_gpu: code folder to test the efficiency of message passing process under GPU
-│   ├── dgl_mp_gpu.py
-│   ├── ms_mp_gpu.py
-│   ├── pd_ext_sum_gpu.py
-│   ├── pd_mp_gpu.py
-│   ├── pyg_mp_gpu.py
-│   ├── spmm_sum_gpu.py
-│   ├── tf_mp_gpu.py
-│   ├── th_ext_max_gpu.py
-│   └── th_mp_gpu.py
-├── ops_cpu: code folder for testing the efficiency of operators under CPU
-│   ├── ms_segment_ops_cpu.py
-│   ├── pd_ext_segment_sum_cpu.py
-│   ├── pd_segment_ops_cpu.py
-│   ├── pyg_scatter_ops_cpu.py
-│   ├── tf_segment_ops_cpu.py
-│   ├── th_ext_segment_max_cpu.py
-│   └── th_segment_ops_cpu.py
-└── ops_gpu: code folder for testing the efficiency of operators under GPU
-	├── ms_segment_ops_gpu.py
-    ├── pd_ext_segment_sum_gpu.py
-    ├── pd_segment_ops_gpu.py
-    ├── pyg_scatter_ops_gpu.py
-    ├── tf_segment_ops_gpu.py
-    ├── th_ext_segment_max_gpu.py
-    └── th_segment_ops_gpu.py
+|-- README.md
+|-- mp_cpu
+|   |-- dgl_mp_cpu.py
+|   |-- ggl_mp_cpu.py
+|   |-- pd_ext_sum_cpu.py
+|   |-- pyg_mp_cpu.py
+|   `-- spmm_sum_cpu.py
+|-- mp_gpu
+|   |-- dgl_mp_gpu.py
+|   |-- ggl_mp_gpu.py
+|   |-- pd_ext_sum_gpu.py
+|   |-- pyg_mp_gpu.py
+|   `-- spmm_sum_gpu.py
+|-- ops_cpu
+|   |-- ggl_segment_cpu.py
+|   |-- pd_ext_segment_sum_cpu.py
+|   `-- pyg_scatter_ops_cpu.py
+`-- ops_gpu
+    |-- ggl_segment_gpu.py
+    |-- pd_ext_segment_sum_gpu.py
+    `-- pyg_scatter_ops_gpu.py
 ```
 
 ## How to run test code
 
-Let's take `th_segment_ops_gpu.py` as an example. 
+Let's take `ggl_segment_gpu.py` as an example. 
 
 You can switch the program running position through `os.environ["CUDA_VISIBLE_DEVICES"] = "4"` , the `4` represents the fourth GPU in your server, and if you set it to `-1` , it will run on the CPU. 
 
@@ -81,9 +66,9 @@ You can set the dataset to run by changing the list of `file_name` .
 
 In order to accurately calculate the running time, we increase the running times of each operator. After getting the running time, we divide it by the running times to get the single running time of the operator. `iter` represents the number of times each operator runs.
 
-For `th_segment_ops_gpu.py` , you can run it using:
+For `ggl_segment_gpu.py` , you can run it using:
 
 ```bash
-python th_segment_ops_gpu.py
+python ggl_segment_gpu.py
 ```
 
