@@ -60,7 +60,7 @@ Install from pip
 
 .. code:: bash
 
-    pip install gammgl
+    pip install gammagl
 
 Install from source
 -------------------
@@ -114,7 +114,7 @@ Install from source
 
 .. code:: bash
 
-   python setup.py bulid_ext --inplace
+   python setup.py build_ext --inplace
 
 How to Run
 ----------
