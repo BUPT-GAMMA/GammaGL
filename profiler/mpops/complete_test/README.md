@@ -14,7 +14,7 @@ The information of the dataset is as follows:
 | :--------: | :-------------: | :-------------: |
 |    Cora    |      2708       |      13264      |
 |   PubMed   |      19717      |     108368      |
-| Ogbn-Arxiv |     169344      |     2315598     |
+| Ogbn-Arxiv |     169343      |     2315598     |
 
 ## Directory of the test code folder
 
