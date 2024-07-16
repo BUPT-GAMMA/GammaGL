@@ -439,20 +439,22 @@ Now, GammaGL supports about 60 models, we welcome everyone to use or contribute 
 | [HiD-Net [AAAI 2023]](./examples/hid_net)          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [FusedGAT [MLSys 2022]](./examples/fusedgat)       |                    | :heavy_check_mark: |                    |                    |
 | [GLNN [ICLR 2022]](./examples/glnn)                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [HEAT [T-ITS 2022]](./examples/heat)               |                    | :heavy_check_mark: |                    |                    |
+| [DFAD-GNN [IJCAI 2022]](./examples/dfad_gnn)       |                    | :heavy_check_mark: |                    |                    |
 | [GNN-LF-HF [WWW 2021]](./examples/gnnlfhf)         |                    | :heavy_check_mark: |                    |                    |
+| [DNA [ICLR 2019]](./examples/dna)                  |                    | :heavy_check_mark: |                    |                    |
 
 
-| Contrastive Learning                               | TensorFlow         | PyTorch            | Paddle             | MindSpore          |
-| -------------------------------------------------- | ------------------ | ------------------ | ------------------ | ------------------ |
-| [DGI [ICLR 2019]](./examples/dgi)                  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [GRACE [ICML 2020 Workshop]](./examples/grace)     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [GRADE [NeurIPS 2022]](./examples/grade)           | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [MVGRL [ICML 2020]](./examples/mvgrl)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [InfoGraph [ICLR 2020]](./examples/infograph)      | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [MERIT [IJCAI 2021]](./examples/merit)             | :heavy_check_mark: |                    | :heavy_check_mark: | :heavy_check_mark: |
-| [GNN-POT [NeurIPS 2023]](./examples/grace_pot)     |                    | :heavy_check_mark: |                    |                    |
-| [MAGCL [AAAI 2023]](./examples/magcl)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| Contrastive Learning                           | TensorFlow         | PyTorch            | Paddle             | MindSpore          |
+| ---------------------------------------------- | ------------------ | ------------------ | ------------------ | ------------------ |
+| [DGI [ICLR 2019]](./examples/dgi)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [GRACE [ICML 2020 Workshop]](./examples/grace) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [GRADE [NeurIPS 2022]](./examples/grade)       | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [MVGRL [ICML 2020]](./examples/mvgrl)          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [InfoGraph [ICLR 2020]](./examples/infograph)  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [MERIT [IJCAI 2021]](./examples/merit)         | :heavy_check_mark: |                    | :heavy_check_mark: | :heavy_check_mark: |
+| [GNN-POT [NeurIPS 2023]](./examples/grace_pot) |                    | :heavy_check_mark: |                    |                    |
+| [MAGCL [AAAI 2023]](./examples/magcl)          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [Sp2GCL [NeurIPS 2023]](./examples/sp2gcl)     |                    | :heavy_check_mark: |                    |                    |
 
 | Heterogeneous Graph Learning                       | TensorFlow         | PyTorch            | Paddle             | MindSpore          |
 | -------------------------------------------------- | ------------------ | ------------------ | ------------------ | ------------------ |
@@ -466,6 +468,8 @@ Now, GammaGL supports about 60 models, we welcome everyone to use or contribute 
 | [MetaPath2Vec [KDD 2017]](./examples/metapath2vec) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [HERec [TKDE 2018]](./examples/herec)              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [HeCo [KDD 2021]](./examples/heco)                 | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| [DHN [TKDE 2023]](./examples/dhn)                  |                    | :heavy_check_mark: |                    |                    |
+| [HEAT [T-ITS 2023]](./examples/heat)               |                    | :heavy_check_mark: |                    |                    |
 
 > Note
 > 

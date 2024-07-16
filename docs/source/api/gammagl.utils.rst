@@ -28,3 +28,4 @@ gammagl.utils
     gammagl.utils.read_embeddings
     gammagl.utils.homophily
     gammagl.utils.get_train_val_test_split
+    gammagl.utils.find_all_simple_paths

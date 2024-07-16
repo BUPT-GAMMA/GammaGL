@@ -33,6 +33,7 @@ Contribution is always welcomed. Please feel free to open an issue or email to y
   - Zihao Zhao (Gamma Lab)
   - Feng Guo (Gamma Lab)
   - Shujie Li (Gamma Lab)
+  - Jiayi Gao (Gamma Lab)
   - Yuxuan Shan (BUPT)
   - Zeyao Ma (BUPT)
   - Yiming Jia (BUPT)
@@ -49,6 +50,7 @@ Contribution is always welcomed. Please feel free to open an issue or email to y
   - Jiarui Tan (BUPT)
   - Zhaojun Sun (BUPT)
   - Jiayi Guo (BUPT)
+  - Xinyan Zhu (BUPT)
   
   Advisor
   

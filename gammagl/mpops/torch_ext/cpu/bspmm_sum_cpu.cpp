@@ -13,11 +13,15 @@ torch::Tensor bspmm_sum_cpu_forward(torch::Tensor &index, torch::Tensor &weight,
         index = index.contiguous();
     }
 
-    int num_nodes = x.size(0);
+    // int num_nodes = x.size(0);
     int heads = x.size(1);
     int out_channels = x.size(2);
 
-    torch::Tensor out = torch::zeros_like(x, x.options());
+    auto sizes = x.sizes().vec();
+    // if(sizes[0] == 0)
+    //     sizes[0] = index.max().item<int64_t>();
+        
+    torch::Tensor out = torch::zeros(sizes, x.options());
     auto E = index.size(1);
     // auto K = x.numel() / x.size(0);
 
@@ -58,7 +62,7 @@ std::tuple<torch::Tensor, torch::Tensor> bspmm_sum_cpu_backward(torch::Tensor &i
         index = index.contiguous();
     }
 
-    int num_nodes = grad.size(0);
+    // int num_nodes = grad.size(0);
     int heads = grad.size(1);
     int out_channels = grad.size(2);
 
