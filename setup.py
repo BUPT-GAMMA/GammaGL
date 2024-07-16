@@ -12,7 +12,7 @@ WITH_CUDA = False
 # WITH_CUDA = True
 
 cuda_macro = ('COMPILE_WITH_CUDA', True)
-omp_macro = ('COMPILE_WITH_OMP', True)  # Note: OpenMP needs gcc>4.2.0
+omp_macro = ('COMPLIE_WITH_OMP', True)  # Note: OpenMP needs gcc>4.2.0
 compile_args = {
     'cxx': ['-fopenmp', '-std=c++17']
 }
