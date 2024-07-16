@@ -105,7 +105,7 @@ py::list segment_csr_cpu(
 
   //    auto indptr_info = getTensorInfo<int64_t>(indptr);
   //    auto stride = indptr_info.strides[indptr_info.dims - 1];
-  auto stride = 1;
+  // auto stride = 1;
   std::vector<int64_t> args(K);
 
   auto src_data = src.unchecked();

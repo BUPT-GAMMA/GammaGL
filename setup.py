@@ -3,8 +3,9 @@
 import os
 import os.path as osp
 from setuptools import setup, find_packages
-from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtension
-from ggl_build_extension import PyCudaExtension, PyCPUExtension
+# from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtension
+# from ggl_build_extension import PyCudaExtension, PyCPUExtension
+from tensorlayerx.utils import PyCppExtension, PyCUDAExtension, PyBuildExtension
 
 # TODO will depend on different host
 WITH_CUDA = False
@@ -45,20 +46,22 @@ def load_mpops_extensions():
             file_list.extend([osp.join(src_dir, f) for f in src_files])
 
         if not WITH_CUDA:
-            extensions.append(CppExtension(
+            extensions.append(PyCppExtension(
                 name=osp.join(mpops_dir, f'_{mpops_prefix}').replace(osp.sep, "."),
                 sources=[f for f in file_list],
-                extra_compile_args=compile_args
+                extra_compile_args=compile_args,
+                use_torch=True
             ))
         else:
-            extensions.append(CUDAExtension(
+            extensions.append(PyCUDAExtension(
                 name=osp.join(mpops_dir, f'_{mpops_prefix}').replace(osp.sep, "."),
                 sources=[f for f in file_list],
                 define_macros=[
                     cuda_macro,
                     omp_macro
                 ],
-                extra_compile_args=compile_args
+                extra_compile_args=compile_args,
+                use_torch=True
             ))
 
     return extensions
@@ -91,14 +94,14 @@ def load_ops_extensions():
             if not src_files:
                 continue
             if not is_cuda_ext:
-                extensions.append(PyCPUExtension(
+                extensions.append(PyCppExtension(
                     name=osp.join(ops_dir, f'_{ops_prefix}').replace(osp.sep, "."),
                     sources=[osp.join(src_dir, f) for f in src_files],
                     include_dirs=[osp.abspath(osp.join('third_party', d)) for d in ops_third_party_deps[i]],
                     extra_compile_args=['-std=c++17']
                 ))
             else:
-                extensions.append(PyCudaExtension(
+                extensions.append(PyCUDAExtension(
                     name=osp.join(ops_dir, f'_{ops_prefix}_cuda').replace(osp.sep, "."),
                     sources=[osp.join(src_dir, f) for f in src_files],
                     include_dirs=[osp.abspath(osp.join('third_party', d)) for d in ops_third_party_deps[i]],
@@ -136,7 +139,7 @@ setup(
     author_email="tyzhao@bupt.edu.cn",
     maintainer="Tianyu Zhao",
     license="Apache-2.0 License",
-    cmdclass={'build_ext': BuildExtension},
+    cmdclass={'build_ext': PyBuildExtension},
     ext_modules=load_extensions(),
     description=" ",
     long_description=readme(),
