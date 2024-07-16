@@ -135,7 +135,7 @@ def readme():
 
 setup(
     name="gammagl",
-    version="0.4.0",
+    version="0.5.0",
     author="BUPT-GAMMA LAB",
     author_email="tyzhao@bupt.edu.cn",
     maintainer="Tianyu Zhao",
