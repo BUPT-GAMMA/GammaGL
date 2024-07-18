@@ -1,7 +1,3 @@
-#include "../include/segment_max.h"
-#include "../include/segment_sum.h"
-#include "../include/segment_mean.h"
-#include "../include/gspmm.h"
 #include <assert.h>
 #include <torch/extension.h>
 #include <torch/script.h>
@@ -9,6 +5,11 @@
 
 #include <iostream>
 #include <vector>
+
+#include "../include/gspmm.h"
+#include "../include/segment_max.h"
+#include "../include/segment_mean.h"
+#include "../include/segment_sum.h"
 
 torch::Tensor segment_max(torch::Tensor x, torch::Tensor index, int64_t N) {
   auto result = SegmentMax::apply(x, index, N);
@@ -25,24 +26,26 @@ torch::Tensor segment_mean(torch::Tensor x, torch::Tensor index, int64_t N) {
   return result;
 }
 
-torch::Tensor spmm_sum(torch::Tensor index, torch::Tensor weight,
-                       torch::Tensor x) {
+torch::Tensor spmm_sum(
+    torch::Tensor index, torch::Tensor weight, torch::Tensor x) {
   auto result = SpMMSum::apply(index, weight, x);
   return result;
 }
 
-torch::Tensor spmm_mean(torch::Tensor index, torch::Tensor weight, torch::Tensor x) {
-    return SpMMMean::apply(index, weight, x);
+torch::Tensor spmm_mean(
+    torch::Tensor index, torch::Tensor weight, torch::Tensor x) {
+  return SpMMMean::apply(index, weight, x);
 }
 
-torch::Tensor spmm_max(torch::Tensor index, torch::Tensor weight, torch::Tensor x) {
-    return SpMMMax::apply(index, weight, x);
+torch::Tensor spmm_max(
+    torch::Tensor index, torch::Tensor weight, torch::Tensor x) {
+  return SpMMMax::apply(index, weight, x);
 }
 
-torch::Tensor bspmm_sum(torch::Tensor index, torch::Tensor weight,
-                        torch::Tensor x) {
-    auto result = BSpMMSum::apply(index, weight, x);
-    return result;
+torch::Tensor bspmm_sum(
+    torch::Tensor index, torch::Tensor weight, torch::Tensor x) {
+  auto result = BSpMMSum::apply(index, weight, x);
+  return result;
 }
 
 PYBIND11_MODULE(_torch_ext, m) {
