@@ -4,13 +4,13 @@ sphinx-markdown-tables
 sphinx-intl
 recommonmark
 sphinx_copybutton==0.4.0
-numpy
+numpy==1.24
 scipy
-tensorflow<=2.11.0
+tensorflow==2.11.0
 torch
 tqdm
 hyperdash
-tensorlayerx==0.5.8
+git+https://github.com/dddg617/TensorLayerX.git@nightly
 pytest
 pyparsing
 pybind11
