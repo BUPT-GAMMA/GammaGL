@@ -6,15 +6,14 @@ System requrements
 GammaGL works with the following operating systems:
 
 * Linux
-* Windows (Currently, we only support python 3.9, pytorch 2.1 and CPU on Windows)
 
-GammaGL requires Python version 3.9, 3.10, 3.11.
+GammaGL requires Python version 3.9, 3.10, 3.11, 3.12.
 
 Backend
 -------
 
 - `tensorflow <https://www.tensorflow.org/api_docs/>`_ : We recommend tensorflow version under 2.12.0
-- `pytorch <https://pytorch.org/get-started/locally/>`_ : Support version from 1.9 to 2.1, the defalut backend
+- `pytorch <https://pytorch.org/get-started/locally/>`_ : Support version from 2.1 to 2.3, the defalut backend
 - `paddlepaddle <https://www.paddlepaddle.org.cn/>`_ : We recommend paddlepaddle version under 2.3.2
 - `mindspore <https://www.mindspore.cn/install>`_ : Support version to 2.2.10
 
@@ -33,7 +32,7 @@ Install from pip
 
 .. code:: bash
 
-   conda create -n gammagl python=3.9
+   conda create -n gammagl python=3.10
    source activate gammagl
 
 **2. Backend:** Select and Install your favorite deep learning backend. For example:
@@ -60,7 +59,7 @@ Install from pip
 
 .. code:: bash
 
-    pip install gammagl
+    pip install gammagl-pt23==0.5.0
 
 Install from source
 -------------------
@@ -69,7 +68,7 @@ Install from source
 
 .. code:: bash
 
-   conda create -n gammagl python=3.8
+   conda create -n gammagl python=3.10
    source activate gammagl
 
 **2. Backend:** Select and Install your favorite deep learning backend. For example:
@@ -88,7 +87,7 @@ Install from source
 
 .. note::
    * For tensorflow, we recommend you to use version under 2.11.0 (For Windows users, please install version 2.10.1 as 2.11 is not supported on Windows).
-   * For pytorch, we support the latest version, e.g. pytorch 2.1.0+cu118.
+   * For pytorch, we support the latest version, e.g. pytorch 2.3.0+cu118.
    * For paddlepaddle, we recommend you to use version under 2.3.2.
    * For mindspore, we support the latest version, e.g. mindspore 2.2.0+cu116.
 
@@ -105,7 +104,7 @@ Install from source
    pip install pybind11 pyparsing
    git clone --recursive https://github.com/BUPT-GAMMA/GammaGL.git
    cd GammaGL
-   python setup.py install
+   python setup.py install build_ext --inplace
 
 .. note::
    * ``pybind11`` and ``pyparsing`` is required, otherwise, you cannot install ``GammaGL`` properly.
