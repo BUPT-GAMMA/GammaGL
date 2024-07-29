@@ -25,6 +25,19 @@ Following [PyTorch Geometric(PyG)](https://github.com/pyg-team/pytorch_geometric
 
 ## News
 <details>
+<summary>2024-07-29 release v0.5
+</summary>
+</br>
+We release the latest version v0.5
+
+- 70 GNN models
+- More fused operators
+- Support GPU sample
+- Support GraphStore and FeatureStore
+
+</details>
+
+<details>
 <summary>2024-01-24 release v0.4
 </summary>
 </br>
@@ -110,7 +123,7 @@ We release the latest version v0.1.
 
 ## Get Started
 
-Currently, GammaGL requires **Python Version >= 3.9**.
+Currently, GammaGL requires **Python Version >= 3.9** and is only supported on **Linux** operating systems.
 
 
 1. **Python environment** (Optional): We recommend using Conda package manager
@@ -387,7 +400,7 @@ CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
 
 ## Supported Models
 
-Now, GammaGL supports about 60 models, we welcome everyone to use or contribute models.
+Now, GammaGL supports about 70 models, we welcome everyone to use or contribute models.
 
 |                                                    | TensorFlow         | PyTorch            | Paddle             | MindSpore          |
 | -------------------------------------------------- | ------------------ | ------------------ | ------------------ | ------------------ |
