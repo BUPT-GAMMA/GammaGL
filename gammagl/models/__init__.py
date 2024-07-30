@@ -58,6 +58,7 @@ from .heco import HeCo
 from .fusedgat import FusedGATModel
 from .hid_net import Hid_net
 from .gnnlfhf import GNNLFHFModel
+from .dhn import DHNModel
 from .dna import DNAModel
 from .dfad import DFADModel, DFADGenerator
 from .fatragnn import FatraGNNModel, Graph_Editer
@@ -109,8 +110,8 @@ __all__ = [
     'MetaPath2Vec'
     'ieHGCNModel',
     'TADWModel',
-    'MGNNI_m_MLP', 
-    'MGNNI_m_att', 
+    'MGNNI_m_MLP',
+    'MGNNI_m_att',
     'NewGrace',
     'CAGCNModel',
     'CoGSLModel',
@@ -125,6 +126,7 @@ __all__ = [
     'hid_net',
     'HEAT',
     'GNNLFHFModel',
+    'DHNModel',
     'DNAModel',
     'DFADModel',
     'DFADGenerator',
