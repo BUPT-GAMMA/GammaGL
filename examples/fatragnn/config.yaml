@@ -1,0 +1,24 @@
+bail:
+  epochs: 400
+  g_epochs: 5
+  a_epochs: 4
+  cla_epochs: 10
+  dic_epochs: 8
+  dtb_epochs: 5
+  d_lr: 0.001
+  c_lr: 0.005  
+  e_lr: 0.005
+  g_lr: 0.05
+  drope_rate: 0.1
+credit:
+  epochs: 600
+  g_epochs: 5
+  a_epochs: 2
+  cla_epochs: 12
+  dic_epochs: 5
+  dtb_epochs: 5
+  d_lr: 0.001
+  c_lr: 0.01
+  e_lr: 0.01
+  g_lr: 0.05
+  drope_rate: 0.1
