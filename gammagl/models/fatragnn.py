@@ -43,6 +43,20 @@ class MLP_classifier(tlx.nn.Module):
 
 
 class FatraGNNModel(tlx.nn.Module):
+    r"""FatraGNN from `"Graph Fairness Learning under Distribution Shifts"
+        <https://arxiv.org/abs/2401.16784>`_ paper.
+        
+        Parameters
+        ----------
+        in_features: int
+            input feature dimension.
+        hidden: int
+            hidden dimension.
+        out_features: int
+            number of output feature dimension.
+        drop_rate: float
+            dropout rate.
+    """
     def __init__(self, args):
         super(FatraGNNModel, self).__init__()
         self.classifier = MLP_classifier(args)
@@ -100,7 +114,7 @@ class Graph_Editer(tlx.nn.Module):
         random.seed(self.seed)
         src_node, targ_node = edge_index[0], edge_index[1]
         matching = tlx.gather(sens, src_node) == tlx.gather(sens, targ_node)
-        # 去掉异配边
+        
         yipei = mask_to_index(matching == False)
         drop_index = tlx.convert_to_tensor(random.sample(range(yipei.shape[0]), int(yipei.shape[0] * drop)))
         yipei_drop = tlx.gather(yipei, drop_index)
@@ -108,7 +122,7 @@ class Graph_Editer(tlx.nn.Module):
         keep_indices = tlx.scatter_update(keep_indices0, yipei_drop, tlx.zeros((yipei_drop.shape), dtype=tlx.bool))
         n_src_node = src_node[keep_indices]
         n_targ_node = targ_node[keep_indices]
-        # 加同配
+        
         src_node2, targ_node2 = A2_edge[0], A2_edge[1]
         matching2 = tlx.gather(sens, src_node2) == tlx.gather(sens, targ_node2)
         matching3 = src_node2 == targ_node2
@@ -131,7 +145,7 @@ class Graph_Editer(tlx.nn.Module):
         random.seed(self.seed)
         src_node, targ_node = edge_index[0], edge_index[1] 
         matching = tlx.gather(sens, src_node) == tlx.gather(sens, targ_node)
-        # 去掉异配边
+        
 
         yipei = mask_to_index(matching == False)
         yipei_np = tlx.convert_to_numpy(yipei)
@@ -144,7 +158,7 @@ class Graph_Editer(tlx.nn.Module):
         keep_indices = tlx.scatter_update(keep_indices0, yipei_drop, tlx.zeros((yipei_drop.shape), dtype=tlx.bool))
         n_src_node = src_node[keep_indices]
         n_targ_node = targ_node[keep_indices]
-        # 加同配
+        
         src_node2, targ_node2 = A2_edge[0], A2_edge[1]
         matching2 = tlx.gather(sens, src_node2) != tlx.gather(sens, targ_node2)
         matching3 = src_node2 == targ_node2

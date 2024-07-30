@@ -1,14 +1,14 @@
 bail:
   epochs: 400
   g_epochs: 5
-  a_epochs: 5
-  cla_epochs: 2
-  dic_epochs: 2
+  a_epochs: 4
+  cla_epochs: 10
+  dic_epochs: 8
   dtb_epochs: 5
   d_lr: 0.001
-  c_lr: 0.001
-  e_lr: 0.001
-  g_lr: 0.01
+  c_lr: 0.005  
+  e_lr: 0.005
+  g_lr: 0.05
   drope_rate: 0.1
 credit:
   epochs: 600
@@ -21,16 +21,4 @@ credit:
   c_lr: 0.01
   e_lr: 0.01
   g_lr: 0.05
-  drope_rate: 0.1
-pokec:
-  epochs: 400
-  g_epochs: 5
-  a_epochs: 5
-  cla_epochs: 5
-  dic_epochs: 2
-  dtb_epochs: 1
-  d_lr: 0.001
-  c_lr: 0.001
-  e_lr: 0.001
-  g_lr: 0.01
   drope_rate: 0.1

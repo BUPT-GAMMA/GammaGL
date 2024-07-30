@@ -1,6 +1,6 @@
 import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'tensorflow'
+os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 # 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 import tensorlayerx as tlx
@@ -13,7 +13,7 @@ import scipy.sparse as sp
 import yaml
 from gammagl.datasets import Bail
 from gammagl.datasets import Credit
-from gammagl.datasets import Pokec
+
 
 def fair_metric(pred, labels, sens):
     idx_s0 = sens == 0
@@ -117,9 +117,6 @@ def main(args):
     
     elif args.dataset == 'credit':
         dataset = Credit(args.dataset_path, args.dataset)
-    
-    elif args.dataset == 'pokec':
-        dataset = Pokec(args.dataset_path, args.dataset)
     
     graphs = dataset.data
     data = {
@@ -226,6 +223,7 @@ def main(args):
                 
             for epoch_g in range(0, args.dtb_epochs):
                 edt_loss = edt_train_one_step(data=data, label=data['y'])
+
         # shift align
         data['flag'] = 5
         if epoch > args.start:
@@ -240,12 +238,11 @@ def main(args):
     for i in range(args.test_set_num):
         data_tem = data_test[i]
         acc[i],auc_roc[i], parity[i], equality[i] = evaluate_ged3(net, data_tem['x'], data_tem['edge_index'], data_tem['y'], data_tem['test_mask'], data_tem['sens'])
-
     return acc, auc_roc, parity, equality
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='pokec')
+    parser.add_argument('--dataset', type=str, default='bail')
     parser.add_argument('--start', type=int, default=50)
     parser.add_argument('--epochs', type=int, default=400)
     parser.add_argument('--dic_epochs', type=int, default=5)
@@ -262,9 +259,9 @@ if __name__ == '__main__':
     parser.add_argument('--e_lr', type=float, default=0.005)
     parser.add_argument('--e_wd', type=float, default=0)
     parser.add_argument('--hidden', type=int, default=128)
-    parser.add_argument('--seed', type=int, default=1)
+    parser.add_argument('--seed', type=int, default=3)
     parser.add_argument('--top_k', type=int, default=10)
-    parser.add_argument('--gpu', type=int, default=0)
+    parser.add_argument('--gpu', type=int, default=1)
     parser.add_argument('--drope_rate', type=float, default=0.1)
     parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     
