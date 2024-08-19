@@ -38,6 +38,10 @@ jobs:
         run: |
           pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu121
 
+      - name: Install Tensorflow
+        run: |
+          pip install tensorflow==2.11.0
+
       - name: Install llvmlite
         run: |
           pip install llvmlite
