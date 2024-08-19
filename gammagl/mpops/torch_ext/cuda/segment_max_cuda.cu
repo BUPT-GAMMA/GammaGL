@@ -31,33 +31,37 @@ using torch::autograd::variable_list;
 // }
 
 template <typename scalar_t>
-__device__ void atomic_max(scalar_t* const address, const scalar_t value);
+__device__ void atomic_max(scalar_t *const address, const scalar_t value);
 
 template <>
-__device__ void atomic_max<int32_t>(int32_t* const address, const int32_t value) {
-    atomicMax(address, value);
+__device__ void atomic_max<int32_t>(
+    int32_t *const address, const int32_t value) {
+  atomicMax(address, value);
 }
 
 template <>
-__device__ void atomic_max<float>(float* const address, const float value) {
-    int* const address_as_i = (int*)address;
-    int old = *address_as_i, assumed;
-    do {
-        assumed = old;
-        old = atomicCAS(address_as_i, assumed,
-                        __float_as_int(fmaxf(value, __int_as_float(assumed))));
-    } while (assumed != old);
+__device__ void atomic_max<float>(float *const address, const float value) {
+  int *const address_as_i = (int *)address;
+  int old = *address_as_i, assumed;
+  do {
+    assumed = old;
+    old = atomicCAS(
+        address_as_i, assumed,
+        __float_as_int(fmaxf(value, __int_as_float(assumed))));
+  } while (assumed != old);
 }
 
 template <>
-__device__ void atomic_max<double>(double* const address, const double value) {
-    unsigned long long int* const address_as_ull = (unsigned long long int*)address;
-    unsigned long long int old = *address_as_ull, assumed;
-    do {
-        assumed = old;
-        old = atomicCAS(address_as_ull, assumed,
-                        __double_as_longlong(fmax(value, __longlong_as_double(assumed))));
-    } while (assumed != old);
+__device__ void atomic_max<double>(double *const address, const double value) {
+  unsigned long long int *const address_as_ull =
+      (unsigned long long int *)address;
+  unsigned long long int old = *address_as_ull, assumed;
+  do {
+    assumed = old;
+    old = atomicCAS(
+        address_as_ull, assumed,
+        __double_as_longlong(fmax(value, __longlong_as_double(assumed))));
+  } while (assumed != old);
 }
 
 template <typename scalar_t>
@@ -133,19 +137,21 @@ std::tuple<torch::Tensor, torch::Tensor> segment_max_cuda_forward(
   auto K = x.numel() / x.size(0);
   auto stream = at::cuda::getCurrentCUDAStream();
 
-  if (x.dtype() == torch::kInt8 || x.dtype() == torch::kInt16 || x.dtype() == torch::kInt32 || x.dtype() == torch::kInt64) {
-    if (x.dtype() == torch::kInt8){
+  if (x.dtype() == torch::kInt8 || x.dtype() == torch::kInt16 ||
+      x.dtype() == torch::kInt32 || x.dtype() == torch::kInt64) {
+    if (x.dtype() == torch::kInt8) {
       out.fill_(std::numeric_limits<int8_t>::lowest());
-    } else if (x.dtype() == torch::kInt16){
+    } else if (x.dtype() == torch::kInt16) {
       out.fill_(std::numeric_limits<int16_t>::lowest());
-    } else if (x.dtype() == torch::kInt32){
+    } else if (x.dtype() == torch::kInt32) {
       out.fill_(std::numeric_limits<int32_t>::lowest());
-    } else if (x.dtype() == torch::kInt64){
+    } else if (x.dtype() == torch::kInt64) {
       out.fill_(std::numeric_limits<int64_t>::lowest());
     }
     auto type = x.dtype();
     using scalar_t = int;
-    if (x.dtype() == torch::kInt8 || x.dtype() == torch::kInt16 || x.dtype() == torch::kInt64) {
+    if (x.dtype() == torch::kInt8 || x.dtype() == torch::kInt16 ||
+        x.dtype() == torch::kInt64) {
       x = x.to(torch::kInt32);
       out = out.to(torch::kInt32);
     }
@@ -162,9 +168,9 @@ std::tuple<torch::Tensor, torch::Tensor> segment_max_cuda_forward(
         <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
             x_data, index_data, out_data, arg_out_data, E, K, N, x.numel(),
             out.size(0));
-    
+
     out = out.to(type);
-    
+
   } else if (x.dtype() == torch::kFloat16 || x.dtype() == torch::kFloat32) {
     auto type = x.dtype();
     using scalar_t = float;
@@ -187,7 +193,7 @@ std::tuple<torch::Tensor, torch::Tensor> segment_max_cuda_forward(
         <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
             x_data, index_data, out_data, arg_out_data, E, K, N, x.numel(),
             out.size(0));
-    
+
     out = out.to(type);
   } else if (x.dtype() == torch::kFloat64) {
     using scalar_t = double;

@@ -34,35 +34,36 @@ std::tuple<torch::Tensor, torch::Tensor> segment_max_cpu_forward(
   auto index_data = index.data_ptr<int64_t>();
   auto arg_out_data = arg_out.data_ptr<int64_t>();
 
-  AT_DISPATCH_ALL_TYPES_AND2(at::ScalarType::Half, at::ScalarType::BFloat16, x.scalar_type(), "segment_max_cpu_forward", [&]() {
-      out.fill_(std::numeric_limits<scalar_t>::lowest());
-      auto x_data = x.data_ptr<scalar_t>();
-      auto out_data = out.data_ptr<scalar_t>();
+  AT_DISPATCH_ALL_TYPES_AND2(
+      at::ScalarType::Half, at::ScalarType::BFloat16, x.scalar_type(),
+      "segment_max_cpu_forward", [&]() {
+        out.fill_(std::numeric_limits<scalar_t>::lowest());
+        auto x_data = x.data_ptr<scalar_t>();
+        auto out_data = out.data_ptr<scalar_t>();
 
-      int64_t idx;
-    #ifdef COMPILE_WITH_OMP
-    #pragma omp parallel for private(idx)
-    #endif
-      for (auto e = 0; e < E; ++e) {
-        idx = index_data[e];
-        TORCH_CHECK_INDEX(idx < N, "Index out of bounds: ", idx, " >= ", N);
-        for (auto k = 0; k < K; ++k) {
-          scalar_t current_val = x_data[e * K + k];
-          scalar_t& max_val = out_data[idx * K + k];
-          int64_t& max_idx = arg_out_data[idx * K + k];
-    #ifdef COMPILE_WITH_OMP
-    #pragma omp critical
-    #endif
-          {
-            if (max_val < current_val) {
-              max_val = current_val;
-              max_idx = e;
+        int64_t idx;
+#ifdef COMPILE_WITH_OMP
+#pragma omp parallel for private(idx)
+#endif
+        for (auto e = 0; e < E; ++e) {
+          idx = index_data[e];
+          TORCH_CHECK_INDEX(idx < N, "Index out of bounds: ", idx, " >= ", N);
+          for (auto k = 0; k < K; ++k) {
+            scalar_t current_val = x_data[e * K + k];
+            scalar_t& max_val = out_data[idx * K + k];
+            int64_t& max_idx = arg_out_data[idx * K + k];
+#ifdef COMPILE_WITH_OMP
+#pragma omp critical
+#endif
+            {
+              if (max_val < current_val) {
+                max_val = current_val;
+                max_idx = e;
+              }
             }
           }
         }
-      }
-
-  });
+      });
 
   return std::make_tuple(out, arg_out);
 }

@@ -66,10 +66,12 @@ torch::Tensor segment_sum_cuda_forward(
   auto K = x.numel() / x.size(0);
   auto stream = at::cuda::getCurrentCUDAStream();
 
-  if (x.dtype() == torch::kInt8 || x.dtype() == torch::kInt16 || x.dtype() == torch::kInt32 || x.dtype() == torch::kInt64) {
+  if (x.dtype() == torch::kInt8 || x.dtype() == torch::kInt16 ||
+      x.dtype() == torch::kInt32 || x.dtype() == torch::kInt64) {
     auto type = x.dtype();
     using scalar_t = int;
-    if (x.dtype() == torch::kInt8 || x.dtype() == torch::kInt16 || x.dtype() == torch::kInt64) {
+    if (x.dtype() == torch::kInt8 || x.dtype() == torch::kInt16 ||
+        x.dtype() == torch::kInt64) {
       x = x.to(torch::kInt32);
       out = out.to(torch::kInt32);
     }
@@ -80,7 +82,7 @@ torch::Tensor segment_sum_cuda_forward(
     segment_sum_cuda_forward_kernel<scalar_t>
         <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
             x_data, index_data, out_data, E, K, N, x.numel());
-    
+
     out = out.to(type);
   } else if (x.dtype() == torch::kFloat16 || x.dtype() == torch::kFloat32) {
     auto type = x.dtype();
@@ -97,7 +99,7 @@ torch::Tensor segment_sum_cuda_forward(
     segment_sum_cuda_forward_kernel<scalar_t>
         <<<BLOCKS(x.numel()), THREADS, 0, stream>>>(
             x_data, index_data, out_data, E, K, N, x.numel());
-    
+
     out = out.to(type);
   } else if (x.dtype() == torch::kFloat64) {
     using scalar_t = double;

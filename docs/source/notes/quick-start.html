@@ -75,18 +75,17 @@
    <script>
       var torchList = [
          ['pt21', 'PyTorch 2.1.*'],
-         ['pt20', 'PyTorch 2.0.*'],
-         ['pt113', 'PyTorch 1.13.*'],
+         ['pt22', 'PyTorch 2.2.*'],
+         ['pt23', 'PyTorch 2.3.*'],
       ];
    
       var osList = [
          ['linux', 'Linux'],
-         ['windows', 'Windows'],
       ];
    
       var cudaList = [
-         ['post116', '11.6'],
          ['post118', '11.8'],
+         ['post121', '12.1'],
          ['cpu', 'CPU'],
       ];
    
@@ -98,29 +97,13 @@
          var torch = $("#command").attr("torch");
          var os = $("#command").attr("os");
          var cuda = $("#command").attr("cuda");
-   
-         if (os == "windows" && torch != "pt21" && cuda != "cpu") {
-         $("#command pre").text('# Currently, we only support PyTorch 2.1.* and CPU on Windows');
-         }
-   
-         else if (torch == "pt20" && cuda == "post116") {
-         $("#command pre").text('# PyTorch 2.0.* binaries do not support CUDA 11.6');
-         }
 
-         else if (torch == "pt21" && cuda == "post116") {
-         $("#command pre").text('# PyTorch 2.1.* binaries do not support CUDA 11.6');
-         }
-   
-         else if (torch == "pt113" && cuda == "post118") {
-         $("#command pre").text('# PyTorch 1.13.* binaries do not support CUDA 11.8');
-         }
-
-         else if (cuda == "cpu") {
-            $("#command pre").text(`pip install gammagl-${$("#command").attr("torch")}==0.4.0`);
+         if (cuda == "cpu") {
+            $("#command pre").text(`pip install gammagl-${$("#command").attr("torch")}==0.5.0`);
          }
  
          else {
-         $("#command pre").text(`pip install gammagl-${$("#command").attr("torch")}==0.4.0.${$("#command").attr("cuda")}`);
+         $("#command pre").text(`pip install gammagl-${$("#command").attr("torch")}==0.5.0.${$("#command").attr("cuda")}`);
          }
       }
    
