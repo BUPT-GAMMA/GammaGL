@@ -22,6 +22,8 @@ Reference performance numbers for the ACM dataset:
 | ------- | ----------------- | ---------------------- | ----------------------- | ----------------------- |
 | ACM     | 0.930             | 0.915                  | 0.905                   | 0.895                   |
 
+ACM dataset link: [https://github.com/Jhy1993/HAN/raw/master/data/acm/ACM.mat](https://github.com/Jhy1993/HAN/raw/master/data/acm/ACM.mat)
+
 ### Example Commands
 
 You can adjust training settings, such as the number of epochs, learning rate, and dropout rate, with the following commands:
@@ -37,4 +39,4 @@ TL_BACKEND="torch" python rohehan_trainer.py --num_epochs 200 --lr 0.005 --dropo
 - Early stopping is used to prevent overfitting during training.
 - The `settings` in the RoHeGAT layer control the attention purifier mechanism, which ensures robustness against adversarial attacks by pruning unreliable neighbors.
 
-This implementation builds on the idea of using metapath-based transiting probability and attention purification to improve the robustness of heterogeneous graph neural networks (HGNNs)【5†source】.
+This implementation builds on the idea of using metapath-based transiting probability and attention purification to improve the robustness of heterogeneous graph neural networks (HGNNs).
