@@ -31,7 +31,6 @@ class RoheGATConv(MessagePassing):
     def forward(self, x, edge_index, num_nodes):
         edge_trans_values = self.settings['TransM']  # 这是与 edge_index 对应的 (num_edges,) 的张量
         T = self.settings['T']  # 每个节点保留的边数量
-        print(edge_trans_values)
         # 对节点特征应用线性变换
         x = self.fc(x)  # (N, num_heads * out_channels)
         x = tlx.reshape(x, (-1, self.num_heads, self.out_channels))  # (N, num_heads, out_channels)

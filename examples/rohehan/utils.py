@@ -280,7 +280,7 @@ def no_grad():
 class EarlyStopping(object):
     def __init__(self, patience=10):
         dt = datetime.datetime.now()
-        self.filename = f'early_stop/early_stop_{dt.date()}_{dt.hour:02d}-{dt.minute:02d}-{dt.second:02d}.npz'
+        self.filename = f'early_stop_{dt.date()}_{dt.hour:02d}-{dt.minute:02d}-{dt.second:02d}.npz'
         self.patience = patience
         self.counter = 0
         self.best_acc = None

@@ -11,7 +11,7 @@ This is an implementation of `RoHeHAN`, a robust heterogeneous graph neural netw
 To reproduce the RoHeHAN results on the ACM dataset, run the following command:
 
 ```bash
-python rohehan_trainer.py
+TL_BACKEND="torch" python rohehan_trainer.py --num_epochs 100 --gpu 0
 ```
 
 ## Performance
