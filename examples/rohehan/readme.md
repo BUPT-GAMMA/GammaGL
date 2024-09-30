@@ -18,7 +18,7 @@ TL_BACKEND="torch" python rohehan_trainer.py --num_epochs 100 --gpu 0
 
 Reference performance numbers for the ACM dataset:
 
-| Dataset | Clean (no attack) | Attack(1 perturbation) | Attack(2 perturbations) | Attack(3 perturbations) |
+| Dataset | Clean (no attack) | Attack(1 perturbation) | Attack(3 perturbations) | Attack(5 perturbations) |
 | ------- | ----------------- | ---------------------- | ----------------------- | ----------------------- |
 | ACM     | 0.930             | 0.915                  | 0.905                   | 0.895                   |
 
