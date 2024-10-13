@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 import tensorlayerx as tlx
-from rohehan_conv import RoheHANConv
+from gammagl.layers.conv import RoheHANConv
 
 class RoheHAN(tlx.nn.Module):
     """

@@ -1,9 +1,13 @@
 # -*- coding: UTF-8 -*-
 import os
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 import argparse
 import numpy as np
 import tensorlayerx as tlx
-from rohehan import RoheHAN
+from gammagl.models import RoheHAN
 from utils import *
 import pickle as pkl
 
