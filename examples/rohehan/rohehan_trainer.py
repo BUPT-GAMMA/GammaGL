@@ -1,10 +1,9 @@
 # -*- coding: UTF-8 -*-
 import os
-# os.environ['TL_BACKEND'] = 'torch'
 import argparse
 import numpy as np
 import tensorlayerx as tlx
-from gammagl.models import RoheHAN
+from rohehan import RoheHAN
 from utils import *
 import pickle as pkl
 
@@ -21,10 +20,8 @@ class SemiSpvzLoss(tlx.nn.Module):
         loss = self.loss_fn(train_logits, train_y)
         return loss
 
-
 def main(args):
-   
-    # 加载数据
+    # Load ACM raw dataset
     dataname = 'acm'
     g, meta_g, features_dict, labels, num_classes, train_idx, val_idx, test_idx, \
     train_mask, val_mask, test_mask = load_acm_raw()
@@ -33,24 +30,17 @@ def main(args):
     y = labels
     features = features_dict['paper']
 
-    # 定义元路径
+    # Define meta-paths (PAP, PFP)
     meta_paths = [[('paper', 'pa', 'author'), ('author', 'ap', 'paper')],
                   [('paper', 'pf', 'field'), ('field', 'fp', 'paper')]]
 
-    # 定义 settings
+    # Define initial settings for each edge type
     settings = {
         ('paper', 'author', 'paper'): {'T': 3, 'TransM': None},
         ('paper', 'field', 'paper'): {'T': 5, 'TransM': None},
     }
 
-    # 准备 hete_adjs
-    def edge_index_to_adj_matrix(edge_index, num_src_nodes, num_dst_nodes):
-        """将 edge_index 转换为 SciPy 的稀疏邻接矩阵"""
-        src, dst = edge_index
-        data = np.ones(src.shape[0])
-        adj_matrix = sp.csc_matrix((data, (src, dst)), shape=(num_src_nodes, num_dst_nodes))
-        return adj_matrix
-
+    # Prepare adjacency matrices
     hete_adjs = {
         'pa': edge_index_to_adj_matrix(g['paper', 'pa', 'author'].edge_index, g['paper'].num_nodes, g['author'].num_nodes),
         'ap': edge_index_to_adj_matrix(g['author', 'ap', 'paper'].edge_index, g['author'].num_nodes, g['paper'].num_nodes),
@@ -58,18 +48,18 @@ def main(args):
         'fp': edge_index_to_adj_matrix(g['field', 'fp', 'paper'].edge_index, g['field'].num_nodes, g['paper'].num_nodes)
     }
 
-    # 准备 edge_index_dict 和 num_nodes_dict
+    # Prepare edge index and node count dictionaries
     edge_index_dict = {etype: meta_g[etype].edge_index for etype in meta_g.edge_types}
     num_nodes_dict = {ntype: meta_g[ntype].num_nodes for ntype in meta_g.node_types}
 
-    # 生成 edge_trans_values_list
+    # Compute edge transformation matrices
     trans_edge_weights_list = get_transition(hete_adjs, meta_paths, edge_index_dict, meta_g.metadata()[1])
     for i, edge_type in enumerate(meta_g.metadata()[1]):
         settings[edge_type]['TransM'] = trans_edge_weights_list[i]
 
     layer_settings = [settings, settings]
 
-    # 定义模型
+    # Initialize the RoheHAN model
     model = RoheHAN(
         metadata=meta_g.metadata(),
         in_channels=features.shape[1],
@@ -80,16 +70,16 @@ def main(args):
         settings=layer_settings
     )
 
-    # 定义优化器和损失函数
+    # Define optimizer and loss function
     optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.weight_decay)
     loss_func = tlx.losses.softmax_cross_entropy_with_logits
     semi_spvz_loss = SemiSpvzLoss(model, loss_func)
 
-    # 准备训练组件
+    # Prepare training components
     train_weights = model.trainable_weights
     train_one_step = tlx.model.TrainOneStep(semi_spvz_loss, optimizer, train_weights)
 
-    # 准备数据字典
+    # Prepare data dictionary
     data = {
         "x_dict": x_dict,
         "edge_index_dict": edge_index_dict,
@@ -100,39 +90,36 @@ def main(args):
         "y": y
     }
 
-    # 训练循环
-    stopper = EarlyStopping(patience=args.patience)
+    # Training loop
+    best_model_saver = BestModelSaver()
 
     for epoch in range(args.num_epochs):
         model.set_train()
-        # 前向和反向传播
+        # Forward and backward pass
         loss = train_one_step(data, y)
-        print(f"Epoch {epoch} | Train Loss: {loss.item()}")
 
-        # 在验证集上评估
+        # Evaluate on validation set
         model.set_eval()
         val_loss, val_acc, val_micro_f1, val_macro_f1 = evaluate(model, data, y, val_idx, loss_func)
-        early_stop = stopper.step(val_loss.item(), val_acc, model)
-        print(f"Epoch {epoch} | Val Micro-F1: {val_micro_f1:.4f} | Val Macro-F1: {val_macro_f1:.4f}")
-        if early_stop:
-            print("Early stopping")
-            break
+        best_model_saver.step(to_item(val_loss), val_acc, model)
+        print(f"Epoch {epoch} | Train Loss: {loss.item():.4f} | Val Micro-F1: {val_micro_f1:.4f} | Val Macro-F1: {val_macro_f1:.4f}")
 
-    # 加载最佳模型
-    stopper.load_checkpoint(model)
+    # Load the best model
+    best_model_saver.load_checkpoint(model)
 
-    # 测试模型
+    # Test the model
     test_loss, test_acc, test_micro_f1, test_macro_f1 = evaluate(model, data, y, test_idx, loss_func)
     print(f"Test Micro-F1: {test_micro_f1:.4f} | Test Macro-F1: {test_macro_f1:.4f}")
-    print("开始加载目标节点")
-    # 加载目标节点 ID
+
+    # Load target node IDs
+    print("Loading target nodes")
     tar_idx = []
     for i in range(1):
         with open(f'data/preprocess/target_nodes/{dataname}_r_target{i}.pkl', 'rb') as f:
             tar_tmp = np.sort(pkl.load(f))
         tar_idx.extend(tar_tmp)
 
-    # 在目标节点上评估
+    # Evaluate on target nodes
     model.set_eval()
     logits_dict = model(data['x_dict'], data['edge_index_dict'], data['num_nodes_dict'])
     logits_clean = tlx.gather(logits_dict['paper'], tlx.convert_to_tensor(tar_idx, dtype=tlx.int64))
@@ -140,13 +127,13 @@ def main(args):
     _, tar_micro_f1_clean, tar_macro_f1_clean = score(logits_clean, labels_clean)
     print(f"Clean data: Micro-F1: {tar_micro_f1_clean:.4f} | Macro-F1: {tar_macro_f1_clean:.4f}")
 
-    # 加载对抗攻击
+    # Load adversarial attacks
     n_perturbation = 1
     adv_filename = f'data/generated_attacks/adv_acm_pap_pa_{n_perturbation}.pkl'
     with open(adv_filename, 'rb') as f:
         modified_opt = pkl.load(f)
 
-    # 应用对抗攻击
+    # Apply adversarial attack
     logits_adv_list = []
     labels_adv_list = []
     for items in modified_opt:
@@ -155,11 +142,13 @@ def main(args):
         add_list = items[3]
         if target_node not in tar_idx:
             continue
-        # 修改邻接矩阵
+        
+        # Modify adjacency matrices for the attack
         mod_hete_adj_dict = {}
         for key in hete_adjs.keys():
             mod_hete_adj_dict[key] = hete_adjs[key].tolil()
 
+        # Delete and add edges
         for edge in del_list:
             mod_hete_adj_dict['pa'][edge[0], edge[1]] = 0
             mod_hete_adj_dict['ap'][edge[1], edge[0]] = 0
@@ -170,12 +159,11 @@ def main(args):
         for key in mod_hete_adj_dict.keys():
             mod_hete_adj_dict[key] = mod_hete_adj_dict[key].tocsc()
 
-        # **更新 edge_index_dict**
-        # 将修改后的邻接矩阵转换为边索引
+        # Update edge index dictionary for the attack
         edge_index_dict_atk = {}
         meta_path_atk = [('paper', 'author', 'paper'), ('paper', 'field', 'paper')]
         for idx, edge_type in enumerate(meta_path_atk):
-            # 使用修改后的邻接矩阵生成新的 edge_index
+            # Recompute adjacency matrices for the attack
             if edge_type == ('paper', 'author', 'paper'):
                 adj_matrix = mod_hete_adj_dict['pa'].dot(mod_hete_adj_dict['ap'])
             elif edge_type == ('paper', 'field', 'paper'):
@@ -187,25 +175,26 @@ def main(args):
             edge_index = np.vstack((src, dst))
             edge_index_dict_atk[edge_type] = edge_index
 
-        # 更新转换矩阵
+        # Update transformation matrices for the attack
         trans_edge_weights_list = get_transition(mod_hete_adj_dict, meta_paths, edge_index_dict_atk, meta_path_atk)
 
         for i, edge_type in enumerate(meta_path_atk):
-            key = '__'.join(edge_type)  # 生成 ModuleDict 的键，如 'paper__author__paper'
-            if key in model.layers[0].gat_layers:
-                model.layers[0].gat_layers[key].settings['TransM'] = trans_edge_weights_list[i]
+            key = '__'.join(edge_type)
+            if key in model.layer_list[0].gat_layers:
+                model.layer_list[0].gat_layers[key].settings['TransM'] = trans_edge_weights_list[i]
             else:
                 raise KeyError(f"Edge type key '{key}' not found in gat_layers.")
-        # 重构图
+        
+        # Prepare modified graph and data
         mod_features_dict = {'paper': features}
         g_atk = get_hg(dataname, mod_hete_adj_dict, mod_features_dict, y, train_mask, val_mask, test_mask)
-        # 更新 edge_index_dict 和 num_nodes_dict
         data_atk = {
             "x_dict": g_atk.x_dict,
             "edge_index_dict": {etype: g_atk[etype].edge_index for etype in g_atk.edge_types},
             "num_nodes_dict": {ntype: g_atk[ntype].num_nodes for ntype in g_atk.node_types},
         }
-        # 在被攻击的图上运行模型
+
+        # Run the model on the attacked graph
         model.set_eval()
         with no_grad():
             logits_dict_atk = model(data_atk['x_dict'], data_atk['edge_index_dict'], data_atk['num_nodes_dict'])
@@ -216,19 +205,12 @@ def main(args):
         logits_adv_list.append(logits_adv)
         labels_adv_list.append(label_adv)
 
-        del mod_hete_adj_dict
-        del edge_index_dict_atk
-        del data_atk
-        del logits_dict_atk
-        del logits_atk
-
     logits_adv = tlx.concat(logits_adv_list, axis=0)
     labels_adv = tlx.concat(labels_adv_list, axis=0)
 
-    # 评估对抗攻击
+    # Evaluate adversarial attack
     _, tar_micro_f1_atk, tar_macro_f1_atk = score(logits_adv, labels_adv)
     print(f"Attacked data: Micro-F1: {tar_micro_f1_atk:.4f} | Macro-F1: {tar_macro_f1_atk:.4f}")
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -240,12 +222,11 @@ if __name__ == '__main__':
     parser.add_argument("--hidden_units", type=int, default=8, help="Hidden units.")
     parser.add_argument("--dropout", type=float, default=0.6, help="Dropout rate.")
     parser.add_argument("--weight_decay", type=float, default=0.001, help="Weight decay.")
-    parser.add_argument("--num_epochs", type=int, default=200, help="Number of training epochs.")
-    parser.add_argument("--patience", type=int, default=100, help="Patience for early stopping.")
-    parser.add_argument("--gpu", type=int, default=-1, help="GPU index. Use -1 for CPU.")
+    parser.add_argument("--num_epochs", type=int, default=100, help="Number of training epochs.")
+    parser.add_argument("--gpu", type=int, default=3, help="GPU index. Use -1 for CPU.")
     args = parser.parse_args()
 
-    # 设置配置
+    # Setup configuration
     args = setup(args)
 
     main(args)

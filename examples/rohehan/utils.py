@@ -10,8 +10,9 @@ from scipy import sparse, io as sio
 from gammagl.utils import mask_to_index
 from gammagl.data import HeteroGraph
 import scipy.sparse as sp
+from contextlib import nullcontext
 
-
+# Evaluation functions for accuracy and F1-score
 def score(logits, labels):
     predictions = tlx.argmax(logits, axis=1)
     predictions = tlx.convert_to_numpy(predictions)
@@ -22,7 +23,7 @@ def score(logits, labels):
     macro_f1 = f1_score(labels, predictions, average='macro')
     return accuracy, micro_f1, macro_f1
 
-
+# Detailed evaluation, returning per-node accuracy in addition to global metrics
 def score_detail(logits, labels):
     predictions = tlx.argmax(logits, axis=1)
     predictions = tlx.convert_to_numpy(predictions)
@@ -34,11 +35,11 @@ def score_detail(logits, labels):
     macro_f1 = f1_score(labels, predictions, average='macro')
     return accuracy, micro_f1, macro_f1, acc_detail
 
-
+# Evaluate the model, returning loss and accuracy scores
 def evaluate(model, data, labels, mask, loss_func, detail=False):
     model.set_eval()
     logits = model(data['x_dict'], data['edge_index_dict'], data['num_nodes_dict'])
-    logits = logits['paper']  # Adjust based on the node type
+    logits = logits['paper']  # Focus evaluation on 'paper' nodes
     mask_indices = mask  # Assuming mask is an array of indices
     logits_masked = tlx.gather(logits, tlx.convert_to_tensor(mask_indices, dtype=tlx.int64))
     labels_masked = tlx.gather(labels, tlx.convert_to_tensor(mask_indices, dtype=tlx.int64))
@@ -51,17 +52,17 @@ def evaluate(model, data, labels, mask, loss_func, detail=False):
         accuracy, micro_f1, macro_f1 = score(logits_masked, labels_masked)
         return loss, accuracy, micro_f1, macro_f1
 
+# Construct a heterogeneous graph with the given data
 def get_hg(dataname, given_adj_dict, features_dict, labels=None, train_mask=None, val_mask=None, test_mask=None):
-    # 构建元路径图（PAP 和 PFP）
     meta_graph = HeteroGraph()
     meta_graph['paper'].x = features_dict['paper']
     meta_graph['paper'].num_nodes = features_dict['paper'].shape[0]
 
-    # 添加基于元路径的边
+    # Add meta-path-based edges
     meta_graph['paper', 'author', 'paper'].edge_index = np.array(given_adj_dict['pa'].dot(given_adj_dict['ap']).nonzero())
     meta_graph['paper', 'field', 'paper'].edge_index = np.array(given_adj_dict['pf'].dot(given_adj_dict['fp']).nonzero())
 
-    # 为 meta_graph 添加标签和掩码
+    # Add labels and masks
     meta_graph['paper'].y = labels
     meta_graph['paper'].train_mask = train_mask
     meta_graph['paper'].val_mask = val_mask
@@ -69,12 +70,7 @@ def get_hg(dataname, given_adj_dict, features_dict, labels=None, train_mask=None
 
     return meta_graph
 
-def set_random_seed(seed=0):
-    random.seed(seed)
-    np.random.seed(seed)
-    tlx.set_seed(seed)
-
-
+# Create a directory if it doesn't exist
 def mkdir_p(path, log=True):
     try:
         os.makedirs(path)
@@ -86,19 +82,16 @@ def mkdir_p(path, log=True):
         else:
             raise
 
-
+# Get the current date and time in a formatted string
 def get_date_postfix():
     dt = datetime.datetime.now()
     post_fix = f'{dt.date()}_{dt.hour:02d}-{dt.minute:02d}-{dt.second:02d}'
     return post_fix
 
-
+# Setup logging directory based on arguments
 def setup_log_dir(args, sampling=False):
     date_postfix = get_date_postfix()
-    log_dir = os.path.join(
-        args.log_dir,
-        f'{args.dataset}_{date_postfix}'
-    )
+    log_dir = os.path.join(args.log_dir, f'{args.dataset}_{date_postfix}')
 
     if sampling:
         log_dir += '_sampling'
@@ -106,10 +99,9 @@ def setup_log_dir(args, sampling=False):
     mkdir_p(log_dir)
     return log_dir
 
-
-
+# Set random seed and device settings based on input arguments
 def setup(args):
-    set_random_seed(args.seed)
+    tlx.set_seed(args.seed)
     args.dataset = 'ACMRaw'
     args.log_dir = setup_log_dir(args)
     if args.gpu >= 0:
@@ -118,47 +110,44 @@ def setup(args):
         tlx.set_device("CPU")
     return args
 
-
+# Create a binary mask from a list of indices
 def get_binary_mask(total_size, indices):
     mask = np.zeros(total_size, dtype=bool)
     mask[indices] = True
     return mask
 
-
+# Load and preprocess the ACM dataset
 def load_acm_raw():
-    data_path = 'acm/ACM.mat'  # 更新此路径
+    data_path = 'acm/ACM.mat'  # Path to the dataset
     data = sio.loadmat(data_path)
-    p_vs_f = data['PvsL']  # paper-field adjacency
-    p_vs_a = data['PvsA']  # paper-author adjacency
-    p_vs_t = data['PvsT']  # paper-term feature matrix
-    p_vs_c = data['PvsC']  # paper-conference labels
+    p_vs_f = data['PvsL']  # Paper-field adjacency
+    p_vs_a = data['PvsA']  # Paper-author adjacency
+    p_vs_t = data['PvsT']  # Paper-term feature matrix
+    p_vs_c = data['PvsC']  # Paper-conference labels
 
-    # 我们将分配以下类别
-    # (1) KDD papers -> class 0 (data mining)
-    # (2) SIGMOD and VLDB papers -> class 1 (database)
-    # (3) SIGCOMM and MOBICOMM papers -> class 2 (communication)
+    # Assigning classes to specific conferences
     conf_ids = [0, 1, 9, 10, 13]
     label_ids = [0, 1, 2, 2, 1]
 
-    # 筛选我们关注的会议论文
+    # Filter papers with conference labels
     p_vs_c_filter = p_vs_c[:, conf_ids]
-    p_selected = np.nonzero(p_vs_c_filter.sum(1))[0]  # 筛选有标签的论文
+    p_selected = np.nonzero(p_vs_c_filter.sum(1))[0]
     p_vs_f = p_vs_f[p_selected]
     p_vs_a = p_vs_a[p_selected]
     p_vs_t = p_vs_t[p_selected]
     p_vs_c = p_vs_c[p_selected]
 
-    # 构建边索引
-    edge_index_pa = np.vstack(p_vs_a.nonzero())  # (2, num_edges) -> (source, target)
-    edge_index_ap = edge_index_pa[[1, 0]]  # 反转 -> (target, source)
+    # Construct edge indices
+    edge_index_pa = np.vstack(p_vs_a.nonzero())
+    edge_index_ap = edge_index_pa[[1, 0]]
     edge_index_pf = np.vstack(p_vs_f.nonzero())
     edge_index_fp = edge_index_pf[[1, 0]]
 
-    # 构建节点特征字典
+    # Create node features dictionary
     features = tlx.convert_to_tensor(p_vs_t.toarray(), dtype=tlx.float32)
     features_dict = {'paper': features}
 
-    # 处理标签
+    # Process labels
     pc_p, pc_c = p_vs_c.nonzero()
     labels = np.zeros(len(p_selected), dtype=np.int64)
     for conf_id, label_id in zip(conf_ids, label_ids):
@@ -167,7 +156,7 @@ def load_acm_raw():
 
     num_classes = 3
 
-    # 创建 train, val, test 索引
+    # Create train, val, and test indices
     float_mask = np.zeros(len(pc_p))
     for conf_id in conf_ids:
         pc_c_mask = (pc_c == conf_id)
@@ -184,44 +173,39 @@ def load_acm_raw():
     test_mask = np.zeros(num_nodes, dtype=bool)
     test_mask[test_idx] = True
 
-    # 构建原始 HeteroGraph
+    # Create the raw heterogeneous graph
     graph = HeteroGraph()
     graph['paper'].x = features_dict['paper']
     graph['paper'].num_nodes = num_nodes
     graph['author'].num_nodes = p_vs_a.shape[1]
     graph['field'].num_nodes = p_vs_f.shape[1]
 
-    # 添加边
+    # Add edges to the graph
     graph['paper', 'pa', 'author'].edge_index = edge_index_pa
     graph['author', 'ap', 'paper'].edge_index = edge_index_ap
     graph['paper', 'pf', 'field'].edge_index = edge_index_pf
     graph['field', 'fp', 'paper'].edge_index = edge_index_fp
 
-    # 为 paper 节点添加标签和掩码
+    # Assign labels and masks to paper nodes
     graph['paper'].y = labels
     graph['paper'].train_mask = train_mask
     graph['paper'].val_mask = val_mask
     graph['paper'].test_mask = test_mask
 
-    # 创建基于元路径的图
-    # 元路径 PAP: 从 paper 到 author 再回到 paper
+    # Create meta-path graphs (PAP and PFP)
     pap_adj = p_vs_a.dot(p_vs_a.T)
-    pap_edge_index = np.vstack(pap_adj.nonzero())  # 从 paper 到 paper
-
-    # 元路径 PFP: 从 paper 到 field 再回到 paper
+    pap_edge_index = np.vstack(pap_adj.nonzero())
     pfp_adj = p_vs_f.dot(p_vs_f.T)
-    pfp_edge_index = np.vstack(pfp_adj.nonzero())  # 从 paper 到 paper
+    pfp_edge_index = np.vstack(pfp_adj.nonzero())
 
-    # 构建元路径图（PAP 和 PFP）
+    # Build the meta-path graph
     meta_graph = HeteroGraph()
     meta_graph['paper'].x = features_dict['paper']
     meta_graph['paper'].num_nodes = num_nodes
-
-    # 添加基于元路径的边
     meta_graph['paper', 'author', 'paper'].edge_index = pap_edge_index
     meta_graph['paper', 'field', 'paper'].edge_index = pfp_edge_index
 
-    # 为 meta_graph 添加标签和掩码
+    # Add labels and masks to the meta-path graph
     meta_graph['paper'].y = labels
     meta_graph['paper'].train_mask = train_mask
     meta_graph['paper'].val_mask = val_mask
@@ -230,15 +214,14 @@ def load_acm_raw():
     return graph, meta_graph, features_dict, labels, num_classes, train_idx, val_idx, test_idx, \
            train_mask, val_mask, test_mask
 
-
-
+# Load a specific dataset
 def load_data(dataset):
     if dataset == 'ACMRaw':
         return load_acm_raw()
     else:
         raise NotImplementedError(f'Unsupported dataset {dataset}')
-    
 
+# Compute the transition matrix for edge types based on meta-paths
 def get_transition(given_hete_adjs, metapath_info, edge_index_dict, edge_types):
     hete_adj_dict_tmp = {}
     for key in given_hete_adjs.keys():
@@ -252,21 +235,37 @@ def get_transition(given_hete_adjs, metapath_info, edge_index_dict, edge_types):
         adj = hete_adj_dict_tmp[metapath[0][1]]
         for etype in metapath[1:]:
             adj = adj.dot(hete_adj_dict_tmp[etype[1]])
-        
+
         edge_type = edge_types[i]
         edge_index = edge_index_dict[edge_type]
-       
-        edge_trans_values = adj[edge_index[0], edge_index[1]].A1  # Convert to 1D array
+
+        edge_trans_values = adj[edge_index[0], edge_index[1]].A1
         trans_edge_weights_list.append(edge_trans_values)
     return trans_edge_weights_list
 
+# Convert edge indices to a sparse adjacency matrix
+def edge_index_to_adj_matrix(edge_index, num_src_nodes, num_dst_nodes):
+    src, dst = edge_index
+    data = np.ones(src.shape[0])
+    adj_matrix = sp.csc_matrix((data, (src, dst)), shape=(num_src_nodes, num_dst_nodes))
+    return adj_matrix
+
+# Extract value from a tensor depending on the backend used
+def to_item(tensor):
+    if tlx.BACKEND == 'torch':
+        return tensor.item()
+    elif tlx.BACKEND == 'tensorflow':
+        return tensor.numpy().item()
+    else:
+        raise NotImplementedError(f"Unsupported backend: {tlx.BACKEND}")
+
+# Disable gradient computation
 def no_grad():
     if tlx.BACKEND == 'torch':
         import torch
         return torch.no_grad()
     elif tlx.BACKEND == 'tensorflow':
-        import tensorflow as tf
-        return tf.GradientTape(persistent=True).stop_recording()  # 或者 tf.no_gradient()
+        return nullcontext()
     elif tlx.BACKEND == 'paddle':
         import paddle
         return paddle.no_grad()
@@ -276,41 +275,27 @@ def no_grad():
     else:
         raise NotImplementedError(f"Unsupported backend: {tlx.BACKEND}")
 
-
-class EarlyStopping(object):
-    def __init__(self, patience=10):
+# Helper class to save the best-performing model based on accuracy and loss
+class BestModelSaver(object):
+    def __init__(self):
         dt = datetime.datetime.now()
-        self.filename = f'early_stop_{dt.date()}_{dt.hour:02d}-{dt.minute:02d}-{dt.second:02d}.npz'
-        self.patience = patience
-        self.counter = 0
+        self.filename = f'best_model_{dt.date()}_{dt.hour:02d}-{dt.minute:02d}-{dt.second:02d}.npz'
         self.best_acc = None
         self.best_loss = None
-        self.early_stop = False
 
     def step(self, loss, acc, model):
-        
         if self.best_loss is None:
             self.best_acc = acc
             self.best_loss = loss
             self.save_checkpoint(model)
-        elif (loss > self.best_loss) and (acc < self.best_acc):
-            self.counter += 1
-            print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
-            if self.counter >= self.patience:
-                self.early_stop = True
-        else:
-            if (loss <= self.best_loss) and (acc >= self.best_acc):
-                self.save_checkpoint(model)
+        elif (loss <= self.best_loss) and (acc >= self.best_acc):
+            self.save_checkpoint(model)
             self.best_loss = min(loss, self.best_loss)
             self.best_acc = max(acc, self.best_acc)
-            self.counter = 0
-        return self.early_stop
 
     def save_checkpoint(self, model):
-
         print(self.filename)
         model.save_weights(self.filename, format='npz_dict')
 
     def load_checkpoint(self, model):
-        
         model.load_weights(self.filename, format='npz_dict')
