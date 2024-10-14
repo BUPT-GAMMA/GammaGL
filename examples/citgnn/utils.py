@@ -61,6 +61,26 @@ def F1score(output, lables):
     preds = output.max(1)[1].type_as(lables)
     f1 = f1_score(preds, lables, average='macro')
     return f1
+    
+
+def reassign_masks(graph, train_ratio=0.2, val_ratio=0.1, test_ratio=0.7):
+    num_nodes = graph.num_nodes
+    indices = list(range(num_nodes))
+    random.shuffle(indices)
+
+    train_size = int(train_ratio * num_nodes)
+    val_size = int(val_ratio * num_nodes)
+    test_size = num_nodes - train_size - val_size
+
+    train_mask = torch.zeros(num_nodes, dtype=torch.bool)
+    val_mask = torch.zeros(num_nodes, dtype=torch.bool)
+    test_mask = torch.zeros(num_nodes, dtype=torch.bool)
+
+    train_mask[indices[:train_size]] = True
+    val_mask[indices[train_size:train_size + val_size]] = True
+    test_mask[indices[train_size + val_size:]] = True
+
+    return train_mask, val_mask, test_mask
 
 class AssignmentMatricsMLP(nn.Module):
     def __init__(self, input_dim, num_clusters, activation='relu'):
