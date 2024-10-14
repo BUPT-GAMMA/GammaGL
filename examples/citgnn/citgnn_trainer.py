@@ -1,6 +1,7 @@
 import os
 os.environ['TL_BACKEND'] = 'torch'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
 import argparse
 import tensorlayerx as tlx
@@ -11,9 +12,9 @@ import time
 import torch.nn.functional as F
 import torch.optim as optim
 import scipy.sparse as sp
-from gammagl.models import GCNModel, GCNIIModel, GATModel, APPNPModel
+from gammagl.models import GCNModel, GCNIIModel, GATModel
 import torch.nn as nn
-from utils import CITModule, dense_mincut_pool, edge_index_to_csr_matrix, AssignmentMatricsMLP, reassign_masks, F1score, dense_to_sparse, accuracy, get_model
+from utils import CITModule, dense_mincut_pool, edge_index_to_csr_matrix, AssignmentMatricsMLP, F1score, dense_to_sparse, accuracy, get_model
 
 
 def test(net, data, args):
