@@ -54,11 +54,9 @@ def main(args):
     graph = dataset[0]
     edge_index, _ = add_self_loops(graph.edge_index)
     
-    train_mask, val_mask, test_mask = reassign_masks(graph, train_ratio=0.25, val_ratio=0.35, test_ratio=0.4)
-    
-    train_idx = mask_to_index(train_mask)
-    test_idx = mask_to_index(test_mask)
-    val_idx = mask_to_index(val_mask)
+    train_idx = mask_to_index(graph.train_mask)
+    test_idx = mask_to_index(graph.test_mask)
+    val_idx = mask_to_index(graph.val_mask)
     
     print("Train index size:", len(train_idx))
     print("Val index size:", len(test_idx))
