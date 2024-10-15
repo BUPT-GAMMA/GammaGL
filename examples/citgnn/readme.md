@@ -20,17 +20,17 @@ Refer to [Planetoid](https://gammagl.readthedocs.io/en/latest/api/gammagl.datase
 
 ```bash
 # available dataset: "cora", "citeseer", "pubmed"
-python citgnn_trainer.py --gnn gcn --dataset cora --ss 0.5
-python citgnn_trainer.py --gnn gcn --dataset citeseer --ss 0.5
-python citgnn_trainer.py --gnn gcn --dataset pubmed --ss 0.5
+python citgnn_trainer.py --gnn gcn --dataset cora --lr 0.005 --l2_coef 0.01 --droprate 0.8 
+python citgnn_trainer.py --gnn gcn --dataset citeseer --lr 0.01 --l2_coef 0.01 --droprate 0.7 
+python citgnn_trainer.py --gnn gcn --dataset pubmed --lr 0.01 --l2_coef 0.002 --droprate 0.5
 
-python citgnn_trainer.py --gnn gat --dataset cora --ss 0.5
-python citgnn_trainer.py --gnn gat --dataset citeseer --ss 0.5
-python citgnn_trainer.py --gnn gat --dataset pubmed --ss 0.5
+python citgnn_trainer.py --gnn gat --dataset cora --lr 0.005 --l2_coef 0.005 --droprate 0.7
+python citgnn_trainer.py --gnn gat --dataset citeseer --lr 0.01 --l2_coef 0.01 --droprate 0.6
+python citgnn_trainer.py --gnn gat --dataset pubmed --lr 0.01 --l2_coef 0.001 --droprate 0.2
 
-python citgnn_trainer.py --gnn gcnii --dataset cora --ss 0.5
-python citgnn_trainer.py --gnn gcnii --dataset citeseer --ss 0.5
-python citgnn_trainer.py --gnn gcnii --dataset pubmed --ss 0.5
+python citgnn_trainer.py --gnn gcnii --dataset cora --lr 0.01 --l2_coef 0.001 --droprate 0.3
+python citgnn_trainer.py --gnn gcnii --dataset citeseer --lr 0.01 --l2_coef 0.001 --droprate 0.4
+python citgnn_trainer.py --gnn gcnii --dataset pubmed ---lr 0.01 --l2_coef 0.001 --droprate 0.6
 ```
 
 ADD-0.5
@@ -47,6 +47,7 @@ ADD-0.5
 | ---        | ---        | ---        | ---        | ---        | ---        | ---        |
 | Method     | Cora       |            | Citeseer   |            | Pubmed     |            |
 |            | Acc        | Macro-f1   | Acc        | Macro-f1   | Acc        | Macro-f1   |
-| CIT-GCN    | 78.43±1.15 | 76.95±1.26 | 65.78±0.91 | 61.12±1.29 | 77.96±0.72 | 75.98±1.01 |
-| CIT-GAT    | 75.67±0.91 | 74.23±1.21 | 60.68±0.73 | 56.19±0.97 | 74.77±0.78 | 72.91±1.15 |
+| CIT-GCN    | 76.66±0.51 | 75.58±0.58 | 65.78±0.91 | 61.12±1.29 | 72.42±0.25 | 71.65±0.44 |
+| CIT-GAT    | 75.84±0.56 | 74.81±0.66 | 62.28±0.37 | 59.07±0.61 | 74.77±0.78 | 72.91±1.15 |
 | CIT-GCNII  | 77.49±1.06 | 76.32±1.19 | 65.94±1.04 | 61.97±1.30 | 76.27±0.49 | 74.56±0.77 |
+

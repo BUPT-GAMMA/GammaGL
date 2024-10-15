@@ -1,13 +1,11 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
 
-import torch
-from torch import Tensor
 import tensorlayerx as tlx
 import random
 import scipy.sparse as sp
-import torch.nn as nn
+import tensorlayerx.nn as nn
 from sklearn.metrics import f1_score
-from gammagl.models import GCNModel, GCNIIModel, GATModel, APPNPModel
+from gammagl.models import GCNModel, GCNIIModel, GATModel
 
 def get_model(args, dataset):
     if args.gnn.lower() == "gcn":
@@ -33,49 +31,58 @@ def get_model(args, dataset):
                           drop_rate=args.droprate,
                           num_layers=1,
                           alpha=0.1,
-                          beta=0.5,
-                          lambd=0.5,
+                          beta=0.3,
+                          lambd=0.3,
                           variant=True,
                           name="GCNII")
     else: 
         raise ValueError(f"Model {args.gnn} is not supported")
-    
 
-def accuracy(output, labels):
-    preds = output.max(1)[1].type_as(labels)
-    correct = preds.eq(labels).double()
-    correct = correct.sum()
-    return correct / len(labels)
+def calculate_acc(logits, y, metrics):
+    """
+    Args:
+        logits: node logits
+        y: node labels
+        metrics: tensorlayerx.metrics
+
+    Returns:
+        rst
+    """
+
+    metrics.update(logits, y)
+    rst = metrics.result()
+    metrics.reset()
+    return rst
 
 def dense_to_sparse(dense_adj):
     sparse_adj = sp.coo_matrix(dense_adj)
 
-    row = torch.tensor(sparse_adj.row, dtype=torch.long)
-    col = torch.tensor(sparse_adj.col, dtype=torch.long)
-    
-    edge_index = torch.stack([row, col], dim=0)
-    
+    row = tlx.ops.convert_to_tensor(sparse_adj.row, dtype=tlx.int64)
+    col = tlx.ops.convert_to_tensor(sparse_adj.col, dtype=tlx.int64)
+
+    edge_index = tlx.stack([row, col], axis=0)
+
     return edge_index
 
 def F1score(output, lables):
     preds = output.max(1)[1].type_as(lables)
     f1 = f1_score(preds, lables, average='macro')
     return f1
-    
+
 class AssignmentMatricsMLP(nn.Module):
     def __init__(self, input_dim, num_clusters, activation='relu'):
         super(AssignmentMatricsMLP, self).__init__()
-        self.mlp = nn.Linear(input_dim, num_clusters)
+        self.mlp = nn.Linear(out_features=num_clusters, in_features=input_dim, act=None)
         if activation == 'relu':
             self.act = nn.ReLU()
         elif activation == 'sigmoid':
             self.act = nn.Sigmoid()
         else:
             self.act = None
-    
+
     def forward(self, x):
         assignment_matrics = self.mlp(x)
-        assignment_matrics = torch.softmax(assignment_matrics, dim=-1)
+        assignment_matrics = tlx.softmax(assignment_matrics, axis=-1)
         if self.act is not None:
             assignment_matrics = self.act(assignment_matrics)
         return assignment_matrics
@@ -90,63 +97,56 @@ def edge_index_to_csr_matrix(edge_index, num_nodes):
 
 
 def dense_mincut_pool(
-    x: Tensor,
-    adj: Tensor,
-    s: Tensor,
-    mask: Optional[Tensor] = None,
+    x: Any,
+    adj: Any,
+    s: Any,
+    mask: Optional[Any] = None,
     temp: float = 1.0,
-) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+) -> Tuple[Any, Any, Any, Any]:
     EPS = 1e-10
-    
+
     x = x.unsqueeze(0) if x.dim() == 2 else x
     adj = adj.unsqueeze(0) if adj.dim() == 2 else adj
     s = s.unsqueeze(0) if s.dim() == 2 else s
 
     (batch_size, num_nodes, _), k = x.size(), s.size(-1)
 
-    s = torch.softmax(s / temp if temp != 1.0 else s, dim=-1)
+    s = tlx.softmax(s / temp if temp != 1.0 else s, axis=-1)
 
     if mask is not None:
         mask = mask.view(batch_size, num_nodes, 1).to(x.dtype)
         x, s = x * mask, s * mask
 
-    out = torch.matmul(s.transpose(1, 2), x)
-    out_adj = torch.matmul(torch.matmul(s.transpose(1, 2), adj), s)
+    out = tlx.matmul(s.transpose(1, 2), x)
+    out_adj = tlx.matmul(tlx.matmul(s.transpose(1, 2), adj), s)
 
     # MinCut regularization.
     mincut_num = _rank3_trace(out_adj)
-    d_flat = torch.einsum('ijk->ij', adj)
+    d_flat = tlx.einsum('ijk->ij', adj)
     d = _rank3_diag(d_flat)
     mincut_den = _rank3_trace(
-        torch.matmul(torch.matmul(s.transpose(1, 2), d), s))
+        tlx.matmul(tlx.matmul(s.transpose(1, 2), d), s))
     mincut_loss = -(mincut_num / (mincut_den + EPS))
-    mincut_loss = torch.mean(mincut_loss)
+    mincut_loss = tlx.reduce_mean(mincut_loss)
 
     # Orthogonality regularization.
-    ss = torch.matmul(s.transpose(1, 2), s)
-    i_s = torch.eye(k).type_as(ss)
-    ortho_loss = torch.norm(
-        ss / (torch.norm(ss, dim=(-1, -2), keepdim=True) + EPS) -
-        i_s / torch.norm(i_s), dim=(-1, -2))
-    ortho_loss = torch.mean(ortho_loss)
+    ss = tlx.matmul(s.transpose(1, 2), s)
+    i_s = tlx.eye(k).type_as(ss)
+    ss_norm = ss / (tlx.sqrt(tlx.reduce_sum(ss ** 2, axis=(-1, -2), keepdims=True)) + EPS)
+    i_s_norm = i_s / (tlx.sqrt(tlx.reduce_sum(i_s ** 2, axis=(-1, -2), keepdims=True)) + EPS)
+    ortho_loss = ss_norm - i_s_norm
+    ortho_loss = tlx.reduce_mean(tlx.sqrt(tlx.reduce_sum(ortho_loss ** 2, axis=(-1, -2))))
 
     EPS = 1e-15
 
-    # Fix and normalize coarsened adjacency matrix.
-    ind = torch.arange(k, device=out_adj.device)
-    out_adj[:, ind, ind] = 0
-    d = torch.einsum('ijk->ij', out_adj)
-    d = torch.sqrt(d)[:, None] + EPS
-    out_adj = (out_adj / d) / d.transpose(1, 2)
-
     return out, out_adj, mincut_loss, ortho_loss
 
-def _rank3_trace(x: Tensor) -> Tensor:
-    return torch.einsum('ijj->i', x)
+def _rank3_trace(x: Any) -> Any:
+    return tlx.einsum('ijj->i', x)
 
 
-def _rank3_diag(x: Tensor) -> Tensor:
-    eye = torch.eye(x.size(1)).type_as(x)
+def _rank3_diag(x: Any) -> Any:
+    eye = tlx.eye(x.size(1)).type_as(x)
     out = eye * x.unsqueeze(2).expand(x.size(0), x.size(1), x.size(1))
 
     return out
@@ -157,41 +157,42 @@ class CITModule:
     def __init__(self, clusters, p=0.):
         self.p=p
         self.clusters = clusters
-        
+
     def DSU(self, h_embedding, h_clu, assignment_matrics):
         index = random.sample(range(0,h_embedding.shape[0]), int(self.p * h_embedding.shape[0]))
         tensor_mask = tlx.ones((h_embedding.shape[0],1))
         tensor_mask[index]=0
-        
-        
-        tensor_selectclu = torch.randint(low=0, high=h_clu.shape[0]-1, size=(h_embedding.shape[0],), dtype=torch.int64)
+
+
+        random_floats = tlx.random_uniform(minval=0, maxval=h_clu.shape[0], shape=(h_embedding.shape[0],), dtype=tlx.float32)
+        tensor_selectclu = tlx.cast(tlx.floor(random_floats), dtype=tlx.int64)
         Select = tlx.argmax(assignment_matrics, axis=1)
         tensor_selectclu[tensor_selectclu == Select] = h_clu.shape[0] - 1
-        
+
         a1 = tlx.expand_dims(h_embedding, axis=0)
         a1 = tlx.tile(a1, [h_clu.shape[0], 1, 1])
         b1 = tlx.expand_dims(h_clu, axis=1)
         c = a1 - b1
         d = tlx.pow(c, 2)
-        
+
         s = tlx.transpose(assignment_matrics)
         s = tlx.expand_dims(s, axis=1)
         tensor_var_clu = tlx.matmul(s, d).squeeze()
         tensor_std_clu = tlx.sqrt(tensor_var_clu + 1e-10)
-        
+
         tensor_mean_emb = tlx.reduce_mean(h_embedding, axis=1, keepdims=True)
         tensor_std_emb = tlx.sqrt(tlx.reduce_variance(h_embedding, axis=1, keepdims=True))
-        
+
         sigma_mean = tlx.sqrt(tlx.reduce_variance(tlx.reduce_mean(h_clu, axis=1, keepdims=True), axis=0))
         sigma_std = tlx.sqrt(tlx.reduce_variance(tensor_std_clu, axis=0) + 1e-10)
-        
+
         tensor_beta = tensor_std_clu[tensor_selectclu] + tlx.random_normal(tensor_std_emb.shape)*sigma_std
         tensor_gama = h_clu[tensor_selectclu] + tlx.random_normal(tensor_std_emb.shape)*sigma_mean
-        
+
         h_new = tensor_mask * h_embedding + (1-tensor_mask) * (((h_embedding - h_clu[Select]) / (tensor_std_clu[Select] + 1e-10)) * tensor_beta + tensor_gama)
-        
+
         return h_new
-    
+
     def forward(self, h_embedding, mlp):
         assignment_matrics = mlp(h_embedding)
         h_pool = tlx.matmul(tlx.transpose(assignment_matrics), h_embedding)
