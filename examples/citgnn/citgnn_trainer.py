@@ -29,10 +29,10 @@ class SemiSpvzLoss(WithLoss):
             intermediate_features = self.backbone_network.relu(intermediate_features)
             logits= log_softmax(self.backbone_network(data['x'], data['edge_index'], None, data["num_nodes"]))
         elif isinstance(self.backbone_network, GATModel):
-            intermediate_features = self.backbone_network(data['x'], data['edge_index'], data["num_nodes"])
+            intermediate_features = log_softmax(self.backbone_network(data['x'], data['edge_index'], data["num_nodes"]))
             logits= log_softmax(self.backbone_network(data['x'], data['edge_index'], data["num_nodes"]))
         elif isinstance(self.backbone_network, GCNIIModel):
-            intermediate_features = self.backbone_network(data['x'], data['edge_index'], None, data["num_nodes"])
+            intermediate_features = self.backbone_network(data['x'], data['edge_index'], data["edge_weight"], data["num_nodes"])
             logits= log_softmax(self.backbone_network(data['x'], data['edge_index'], data['edge_weight'], data["num_nodes"]))
 
         if not isinstance(self.backbone_network, GCNModel):
@@ -52,13 +52,17 @@ def test(net, data, args, metrics):
     net.load_weights(args.best_model_path+net.name+".npz", format='npz_dict')
     net.set_eval()
 
-    adj_add = sp.load_npz(f"/home/twr/.ggl/datasets/{args.dataset}_add_{args.ss}.npz")
+    adj_add = sp.load_npz(f"./datasets/{args.dataset}_add_{args.ss}.npz")
     adj_add = dense_to_sparse(adj_add)
+    
+    edge_weight = tlx.convert_to_tensor(calc_gcn_norm(adj_add, data["num_nodes"]))
     
     if isinstance(net, GATModel):
         logits= log_softmax(net(data['x'], adj_add, data["num_nodes"]))
-    elif isinstance(net, GCNModel) or isinstance(net, GCNIIModel):
+    elif isinstance(net, GCNModel):
         logits= log_softmax(net(data['x'], adj_add, None, data["num_nodes"]))
+    elif isinstance(net, GCNIIModel):
+        logits = log_softmax(net(data['x'], adj_add, edge_weight, data['num_nodes']))
     
     test_logits = tlx.gather(logits, data['test_idx'])
     test_y = tlx.gather(data['y'], data['test_idx'])
@@ -119,7 +123,7 @@ def main(args):
         if isinstance(net, GATModel):
             logits= log_softmax(net(data['x'], data['edge_index'], data["num_nodes"]))
         elif isinstance(net, GCNIIModel):
-            logits= log_softmax(net(data['x'], data['edge_index'], None, data["num_nodes"]))
+            logits= log_softmax(net(data['x'], data['edge_index'], data["edge_weight"], data["num_nodes"]))
         elif isinstance(net, GCNModel):
             logits= log_softmax(net(data['x'], data['edge_index'], None, data["num_nodes"]))
         

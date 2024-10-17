@@ -29,7 +29,7 @@ def get_model(args, dataset):
                           hidden_dim=64,
                           num_class=dataset.num_classes,
                           drop_rate=args.droprate,
-                          num_layers=1,
+                          num_layers=64,
                           alpha=0.1,
                           beta=0.3,
                           lambd=0.3,
