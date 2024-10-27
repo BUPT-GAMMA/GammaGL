@@ -24,6 +24,7 @@ from .facebook import FacebookPagePage
 from .acm4heco import ACM4HeCo
 from .yelp import Yelp
 from .acm4dhn import ACM4DHN
+from .acm4rohe import ACM4Rohe
 
 __all__ = [
     'ACM4HeCo',
@@ -50,7 +51,8 @@ __all__ = [
     'FacebookPagePage',
     'NGSIM_US_101',
     'Yelp',
-    'ACM4DHN'
+    'ACM4DHN',
+    'ACM4Rohe'
 ]
 
 classes = __all__
