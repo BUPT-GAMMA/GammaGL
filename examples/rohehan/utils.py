@@ -208,9 +208,9 @@ def download_attack_data_files():
         "generated_attacks/adv_acm_pap_pa_3.pkl",
         "generated_attacks/adv_acm_pap_pa_5.pkl",
         "preprocess/target_nodes/acm_r_target0.pkl",
-        "preprocess/target_nodes/acm_r_target1.pkl"
-        "preprocess/target_nodes/acm_r_target2.pkl"
-        "preprocess/target_nodes/acm_r_target3.pkl"
+        "preprocess/target_nodes/acm_r_target1.pkl",
+        "preprocess/target_nodes/acm_r_target2.pkl",
+        "preprocess/target_nodes/acm_r_target3.pkl",
         "preprocess/target_nodes/acm_r_target4.pkl"
     ]
 
