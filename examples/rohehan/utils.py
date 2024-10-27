@@ -1,13 +1,9 @@
 # -*- coding: UTF-8 -*-
 import os
-import errno
-import datetime
-import random
 import numpy as np
 import tensorlayerx as tlx
 from sklearn.metrics import f1_score
 from scipy import sparse, io as sio
-from gammagl.utils import mask_to_index
 from gammagl.data import HeteroGraph
 import scipy.sparse as sp
 from contextlib import nullcontext
@@ -64,84 +60,6 @@ def setup(args):
         tlx.set_device("CPU")
     return args
 
-# Load and preprocess the ACM dataset
-def load_acm_raw():
-    data_path = 'acm/ACM.mat'  # Path to the dataset
-    data = sio.loadmat(data_path)
-    p_vs_f = data['PvsL']  # Paper-field adjacency
-    p_vs_a = data['PvsA']  # Paper-author adjacency
-    p_vs_t = data['PvsT']  # Paper-term feature matrix
-    p_vs_c = data['PvsC']  # Paper-conference labels
-
-    # Assigning classes to specific conferences
-    conf_ids = [0, 1, 9, 10, 13]
-    label_ids = [0, 1, 2, 2, 1]
-
-    # Filter papers with conference labels
-    p_vs_c_filter = p_vs_c[:, conf_ids]
-    p_selected = np.nonzero(p_vs_c_filter.sum(1))[0]
-    p_vs_f = p_vs_f[p_selected]
-    p_vs_a = p_vs_a[p_selected]
-    p_vs_t = p_vs_t[p_selected]
-    p_vs_c = p_vs_c[p_selected]
-
-    # Construct edge indices
-    edge_index_pa = np.vstack(p_vs_a.nonzero())
-    edge_index_ap = edge_index_pa[[1, 0]]
-    edge_index_pf = np.vstack(p_vs_f.nonzero())
-    edge_index_fp = edge_index_pf[[1, 0]]
-
-    # Create node features dictionary
-    features = tlx.convert_to_tensor(p_vs_t.toarray(), dtype=tlx.float32)
-    features_dict = {'paper': features}
-
-    # Process labels
-    pc_p, pc_c = p_vs_c.nonzero()
-    labels = np.zeros(len(p_selected), dtype=np.int64)
-    for conf_id, label_id in zip(conf_ids, label_ids):
-        labels[pc_p[pc_c == conf_id]] = label_id
-    labels = tlx.convert_to_tensor(labels, dtype=tlx.int64)
-
-    num_classes = 3
-
-    # Create train, val, and test indices
-    float_mask = np.zeros(len(pc_p))
-    for conf_id in conf_ids:
-        pc_c_mask = (pc_c == conf_id)
-        float_mask[pc_p[pc_c_mask]] = np.random.permutation(np.linspace(0, 1, pc_c_mask.sum()))
-    train_idx = np.where(float_mask <= 0.2)[0]
-    val_idx = np.where((float_mask > 0.2) & (float_mask <= 0.3))[0]
-    test_idx = np.where(float_mask > 0.3)[0]
-
-    num_nodes = features.shape[0]
-    train_mask = np.zeros(num_nodes, dtype=bool)
-    train_mask[train_idx] = True
-    val_mask = np.zeros(num_nodes, dtype=bool)
-    val_mask[val_idx] = True
-    test_mask = np.zeros(num_nodes, dtype=bool)
-    test_mask[test_idx] = True
-
-    # Create the raw heterogeneous graph
-    graph = HeteroGraph()
-    graph['paper'].x = features_dict['paper']
-    graph['paper'].num_nodes = num_nodes
-    graph['author'].num_nodes = p_vs_a.shape[1]
-    graph['field'].num_nodes = p_vs_f.shape[1]
-
-    # Add edges to the graph
-    graph['paper', 'pa', 'author'].edge_index = edge_index_pa
-    graph['author', 'ap', 'paper'].edge_index = edge_index_ap
-    graph['paper', 'pf', 'field'].edge_index = edge_index_pf
-    graph['field', 'fp', 'paper'].edge_index = edge_index_fp
-
-    # Assign labels and masks to paper nodes
-    graph['paper'].y = labels
-    graph['paper'].train_mask = train_mask
-    graph['paper'].val_mask = val_mask
-    graph['paper'].test_mask = test_mask
-
-    return graph, features_dict, labels, num_classes, train_idx, val_idx, test_idx, \
-           train_mask, val_mask, test_mask
 
 # Compute the transition matrix for edge types based on meta-paths
 def get_transition(given_hete_adjs, metapath_info, edge_index_dict, edge_types):
@@ -196,7 +114,7 @@ def no_grad():
         return mindspore.context.set_context(mode=mindspore.context.PYNATIVE_MODE)
     else:
         raise NotImplementedError(f"Unsupported backend: {tlx.BACKEND}")
-    
+
 def download_attack_data_files():
     """Download necessary ACM data files from GitHub if they are missing."""
     # Define the base URL for raw files in the repository
@@ -223,4 +141,3 @@ def download_attack_data_files():
         # Ensure directories exist and download the file
         if not os.path.exists(os.path.join(save_folder, os.path.basename(file_path))):
             download_url(file_url, save_folder)
-

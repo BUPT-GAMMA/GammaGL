@@ -10,6 +10,7 @@ import tensorlayerx as tlx
 from gammagl.models import RoheHAN
 from utils import *
 import pickle as pkl
+from gammagl.datasets.acm4rohe import ACM4Rohe
 
 class SemiSpvzLoss(tlx.nn.Module):
     def __init__(self, net, loss_fn):
@@ -28,8 +29,22 @@ def main(args):
     download_attack_data_files()
     # Load ACM raw dataset
     dataname = 'acm'
-    g, features_dict, labels, num_classes, train_idx, val_idx, test_idx, \
-    train_mask, val_mask, test_mask = load_acm_raw()
+    dataset = ACM4Rohe(root = "./")
+    g = dataset[0]
+    features_dict = {ntype: g[ntype].x for ntype in g.node_types if hasattr(g[ntype], 'x')}
+    labels = g['paper'].y
+    train_mask = g['paper'].train_mask
+    val_mask = g['paper'].val_mask
+    test_mask = g['paper'].test_mask
+
+    # Compute number of classes
+    num_classes = int(tlx.reduce_max(labels)) + 1
+
+    # Get train_idx, val_idx, test_idx from masks
+    train_idx = np.where(train_mask)[0]
+    val_idx = np.where(val_mask)[0]
+    test_idx = np.where(test_mask)[0]
+
     x_dict = features_dict
     y = labels
     features = features_dict['paper']
@@ -109,7 +124,7 @@ def main(args):
         # Evaluate on validation set
         model.set_eval()
         val_loss, val_acc, val_micro_f1, val_macro_f1 = evaluate(model, data, y, val_idx, loss_func)
-        
+
         print(f"Epoch {epoch+1} | Train Loss: {loss.item():.4f} | Val Micro-F1: {val_micro_f1:.4f} | Val Macro-F1: {val_macro_f1:.4f}")
 
         # Save best model
@@ -156,7 +171,7 @@ def main(args):
         add_list = items[3]
         if target_node not in tar_idx:
             continue
-        
+
         # Modify adjacency matrices for the attack
         mod_hete_adj_dict = {}
         for key in hete_adjs.keys():
@@ -198,7 +213,7 @@ def main(args):
                 model.layer_list[0].gat_layers[key].settings['TransM'] = trans_edge_weights_list[i]
             else:
                 raise KeyError(f"Edge type key '{key}' not found in gat_layers.")
-        
+
         # Prepare modified graph and data
         mod_features_dict = {'paper': features}
         g_atk = get_hg(dataname, mod_hete_adj_dict, mod_features_dict, y, train_mask, val_mask, test_mask)
