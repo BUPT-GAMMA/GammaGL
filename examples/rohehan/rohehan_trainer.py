@@ -25,11 +25,11 @@ class SemiSpvzLoss(tlx.nn.Module):
         return loss
 
 def main(args):
+    download_attack_data_files()
     # Load ACM raw dataset
     dataname = 'acm'
-    g, meta_g, features_dict, labels, num_classes, train_idx, val_idx, test_idx, \
+    g, features_dict, labels, num_classes, train_idx, val_idx, test_idx, \
     train_mask, val_mask, test_mask = load_acm_raw()
-
     x_dict = features_dict
     y = labels
     features = features_dict['paper']
@@ -51,7 +51,7 @@ def main(args):
         'pf': edge_index_to_adj_matrix(g['paper', 'pf', 'field'].edge_index, g['paper'].num_nodes, g['field'].num_nodes),
         'fp': edge_index_to_adj_matrix(g['field', 'fp', 'paper'].edge_index, g['field'].num_nodes, g['paper'].num_nodes)
     }
-
+    meta_g = get_hg(dataname, hete_adjs, features_dict, labels, train_mask, val_mask, test_mask)
     # Prepare edge index and node count dictionaries
     edge_index_dict = {etype: meta_g[etype].edge_index for etype in meta_g.edge_types}
     num_nodes_dict = {ntype: meta_g[ntype].num_nodes for ntype in meta_g.node_types}
@@ -94,8 +94,12 @@ def main(args):
         "y": y
     }
 
+    # Ensure the best model path exists
+    if not os.path.exists(args.best_model_path):
+        os.makedirs(args.best_model_path)
+
     # Training loop
-    best_model_saver = BestModelSaver()
+    best_val_acc = 0.0
 
     for epoch in range(args.num_epochs):
         model.set_train()
@@ -105,11 +109,17 @@ def main(args):
         # Evaluate on validation set
         model.set_eval()
         val_loss, val_acc, val_micro_f1, val_macro_f1 = evaluate(model, data, y, val_idx, loss_func)
-        best_model_saver.step(to_item(val_loss), val_acc, model)
-        print(f"Epoch {epoch} | Train Loss: {loss.item():.4f} | Val Micro-F1: {val_micro_f1:.4f} | Val Macro-F1: {val_macro_f1:.4f}")
+        
+        print(f"Epoch {epoch+1} | Train Loss: {loss.item():.4f} | Val Micro-F1: {val_micro_f1:.4f} | Val Macro-F1: {val_macro_f1:.4f}")
+
+        # Save best model
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            # Save model weights
+            model.save_weights(os.path.join(args.best_model_path, 'best_model.npz'), format='npz_dict')
 
     # Load the best model
-    best_model_saver.load_checkpoint(model)
+    model.load_weights(os.path.join(args.best_model_path, 'best_model.npz'), format='npz_dict')
 
     # Test the model
     test_loss, test_acc, test_micro_f1, test_macro_f1 = evaluate(model, data, y, test_idx, loss_func)
@@ -219,15 +229,14 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=2, help="Random seed.")
-    parser.add_argument("--hetero", action='store_true', help="Use heterogeneous graph.")
-    parser.add_argument("--log_dir", type=str, default='results', help="Log directory.")
     parser.add_argument("--lr", type=float, default=0.005, help="Learning rate.")
     parser.add_argument("--num_heads", type=int, default=[8], help="Number of attention heads.")
     parser.add_argument("--hidden_units", type=int, default=8, help="Hidden units.")
     parser.add_argument("--dropout", type=float, default=0.6, help="Dropout rate.")
     parser.add_argument("--weight_decay", type=float, default=0.001, help="Weight decay.")
     parser.add_argument("--num_epochs", type=int, default=100, help="Number of training epochs.")
-    parser.add_argument("--gpu", type=int, default=3, help="GPU index. Use -1 for CPU.")
+    parser.add_argument("--gpu", type=int, default=0, help="GPU index. Use -1 for CPU.")
+    parser.add_argument("--best_model_path", type=str, default='./', help="Path to save the best model.")
     args = parser.parse_args()
 
     # Setup configuration

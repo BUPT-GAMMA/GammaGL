@@ -61,6 +61,7 @@ from .gnnlfhf import GNNLFHFModel
 from .dhn import DHNModel
 from .dna import DNAModel
 from .dfad import DFADModel, DFADGenerator
+from .rohehan import RoheHAN
 
 __all__ = [
     'HeCo',
@@ -129,6 +130,7 @@ __all__ = [
     'DNAModel',
     'DFADModel',
     'DFADGenerator'
+    'RoheHAN'
 ]
 
 classes = __all__

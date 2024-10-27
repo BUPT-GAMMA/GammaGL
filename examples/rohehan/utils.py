@@ -11,8 +11,9 @@ from gammagl.utils import mask_to_index
 from gammagl.data import HeteroGraph
 import scipy.sparse as sp
 from contextlib import nullcontext
+from gammagl.data import download_url
 
-# Evaluation functions for accuracy and F1-score
+# Evaluation function for accuracy and F1-score
 def score(logits, labels):
     predictions = tlx.argmax(logits, axis=1)
     predictions = tlx.convert_to_numpy(predictions)
@@ -23,20 +24,8 @@ def score(logits, labels):
     macro_f1 = f1_score(labels, predictions, average='macro')
     return accuracy, micro_f1, macro_f1
 
-# Detailed evaluation, returning per-node accuracy in addition to global metrics
-def score_detail(logits, labels):
-    predictions = tlx.argmax(logits, axis=1)
-    predictions = tlx.convert_to_numpy(predictions)
-    labels = tlx.convert_to_numpy(labels)
-
-    acc_detail = (predictions == labels).astype(int)
-    accuracy = np.sum(acc_detail) / len(acc_detail)
-    micro_f1 = f1_score(labels, predictions, average='micro')
-    macro_f1 = f1_score(labels, predictions, average='macro')
-    return accuracy, micro_f1, macro_f1, acc_detail
-
 # Evaluate the model, returning loss and accuracy scores
-def evaluate(model, data, labels, mask, loss_func, detail=False):
+def evaluate(model, data, labels, mask, loss_func):
     model.set_eval()
     logits = model(data['x_dict'], data['edge_index_dict'], data['num_nodes_dict'])
     logits = logits['paper']  # Focus evaluation on 'paper' nodes
@@ -45,12 +34,8 @@ def evaluate(model, data, labels, mask, loss_func, detail=False):
     labels_masked = tlx.gather(labels, tlx.convert_to_tensor(mask_indices, dtype=tlx.int64))
     loss = loss_func(logits_masked, labels_masked)
 
-    if detail:
-        accuracy, micro_f1, macro_f1, acc_detail = score_detail(logits_masked, labels_masked)
-        return acc_detail, accuracy, micro_f1, macro_f1
-    else:
-        accuracy, micro_f1, macro_f1 = score(logits_masked, labels_masked)
-        return loss, accuracy, micro_f1, macro_f1
+    accuracy, micro_f1, macro_f1 = score(logits_masked, labels_masked)
+    return loss, accuracy, micro_f1, macro_f1
 
 # Construct a heterogeneous graph with the given data
 def get_hg(dataname, given_adj_dict, features_dict, labels=None, train_mask=None, val_mask=None, test_mask=None):
@@ -70,51 +55,14 @@ def get_hg(dataname, given_adj_dict, features_dict, labels=None, train_mask=None
 
     return meta_graph
 
-# Create a directory if it doesn't exist
-def mkdir_p(path, log=True):
-    try:
-        os.makedirs(path)
-        if log:
-            print(f'Created directory {path}')
-    except OSError as exc:
-        if exc.errno == errno.EEXIST and os.path.isdir(path) and log:
-            print(f'Directory {path} already exists.')
-        else:
-            raise
-
-# Get the current date and time in a formatted string
-def get_date_postfix():
-    dt = datetime.datetime.now()
-    post_fix = f'{dt.date()}_{dt.hour:02d}-{dt.minute:02d}-{dt.second:02d}'
-    return post_fix
-
-# Setup logging directory based on arguments
-def setup_log_dir(args, sampling=False):
-    date_postfix = get_date_postfix()
-    log_dir = os.path.join(args.log_dir, f'{args.dataset}_{date_postfix}')
-
-    if sampling:
-        log_dir += '_sampling'
-
-    mkdir_p(log_dir)
-    return log_dir
-
 # Set random seed and device settings based on input arguments
 def setup(args):
     tlx.set_seed(args.seed)
-    args.dataset = 'ACMRaw'
-    args.log_dir = setup_log_dir(args)
     if args.gpu >= 0:
         tlx.set_device("GPU", args.gpu)
     else:
         tlx.set_device("CPU")
     return args
-
-# Create a binary mask from a list of indices
-def get_binary_mask(total_size, indices):
-    mask = np.zeros(total_size, dtype=bool)
-    mask[indices] = True
-    return mask
 
 # Load and preprocess the ACM dataset
 def load_acm_raw():
@@ -192,34 +140,8 @@ def load_acm_raw():
     graph['paper'].val_mask = val_mask
     graph['paper'].test_mask = test_mask
 
-    # Create meta-path graphs (PAP and PFP)
-    pap_adj = p_vs_a.dot(p_vs_a.T)
-    pap_edge_index = np.vstack(pap_adj.nonzero())
-    pfp_adj = p_vs_f.dot(p_vs_f.T)
-    pfp_edge_index = np.vstack(pfp_adj.nonzero())
-
-    # Build the meta-path graph
-    meta_graph = HeteroGraph()
-    meta_graph['paper'].x = features_dict['paper']
-    meta_graph['paper'].num_nodes = num_nodes
-    meta_graph['paper', 'author', 'paper'].edge_index = pap_edge_index
-    meta_graph['paper', 'field', 'paper'].edge_index = pfp_edge_index
-
-    # Add labels and masks to the meta-path graph
-    meta_graph['paper'].y = labels
-    meta_graph['paper'].train_mask = train_mask
-    meta_graph['paper'].val_mask = val_mask
-    meta_graph['paper'].test_mask = test_mask
-
-    return graph, meta_graph, features_dict, labels, num_classes, train_idx, val_idx, test_idx, \
+    return graph, features_dict, labels, num_classes, train_idx, val_idx, test_idx, \
            train_mask, val_mask, test_mask
-
-# Load a specific dataset
-def load_data(dataset):
-    if dataset == 'ACMRaw':
-        return load_acm_raw()
-    else:
-        raise NotImplementedError(f'Unsupported dataset {dataset}')
 
 # Compute the transition matrix for edge types based on meta-paths
 def get_transition(given_hete_adjs, metapath_info, edge_index_dict, edge_types):
@@ -274,28 +196,31 @@ def no_grad():
         return mindspore.context.set_context(mode=mindspore.context.PYNATIVE_MODE)
     else:
         raise NotImplementedError(f"Unsupported backend: {tlx.BACKEND}")
+    
+def download_attack_data_files():
+    """Download necessary ACM data files from GitHub if they are missing."""
+    # Define the base URL for raw files in the repository
+    base_url = "https://raw.githubusercontent.com/BUPT-GAMMA/RoHe/main/Code/data"
 
-# Helper class to save the best-performing model based on accuracy and loss
-class BestModelSaver(object):
-    def __init__(self):
-        dt = datetime.datetime.now()
-        self.filename = f'best_model_{dt.date()}_{dt.hour:02d}-{dt.minute:02d}-{dt.second:02d}.npz'
-        self.best_acc = None
-        self.best_loss = None
+    # Files to download
+    files_to_download = [
+        "generated_attacks/adv_acm_pap_pa_1.pkl",
+        "generated_attacks/adv_acm_pap_pa_3.pkl",
+        "generated_attacks/adv_acm_pap_pa_5.pkl",
+        "preprocess/target_nodes/acm_r_target0.pkl",
+        "preprocess/target_nodes/acm_r_target1.pkl"
+        "preprocess/target_nodes/acm_r_target2.pkl"
+        "preprocess/target_nodes/acm_r_target3.pkl"
+        "preprocess/target_nodes/acm_r_target4.pkl"
+    ]
 
-    def step(self, loss, acc, model):
-        if self.best_loss is None:
-            self.best_acc = acc
-            self.best_loss = loss
-            self.save_checkpoint(model)
-        elif (loss <= self.best_loss) and (acc >= self.best_acc):
-            self.save_checkpoint(model)
-            self.best_loss = min(loss, self.best_loss)
-            self.best_acc = max(acc, self.best_acc)
+    # Download each file if it does not exist locally
+    for file_path in files_to_download:
+        # Construct the full URL and local save path
+        file_url = f"{base_url}/{file_path}"
+        save_folder = os.path.join("data", os.path.dirname(file_path))
 
-    def save_checkpoint(self, model):
-        print(self.filename)
-        model.save_weights(self.filename, format='npz_dict')
+        # Ensure directories exist and download the file
+        if not os.path.exists(os.path.join(save_folder, os.path.basename(file_path))):
+            download_url(file_url, save_folder)
 
-    def load_checkpoint(self, model):
-        model.load_weights(self.filename, format='npz_dict')
