@@ -10,6 +10,7 @@ import tensorlayerx as tlx
 from gammagl.models import RoheHAN
 from utils import *
 import pickle as pkl
+from gammagl.utils.convert import edge_index_to_adj_matrix
 from gammagl.datasets.acm4rohe import ACM4Rohe
 
 class SemiSpvzLoss(tlx.nn.Module):
@@ -25,12 +26,25 @@ class SemiSpvzLoss(tlx.nn.Module):
         loss = self.loss_fn(train_logits, train_y)
         return loss
 
+# Evaluate the model, returning loss and accuracy scores
+def evaluate(model, data, labels, mask, loss_func):
+    model.set_eval()
+    logits = model(data['x_dict'], data['edge_index_dict'], data['num_nodes_dict'])
+    logits = logits['paper']  # Focus evaluation on 'paper' nodes
+    mask_indices = mask  # Assuming mask is an array of indices
+    logits_masked = tlx.gather(logits, tlx.convert_to_tensor(mask_indices, dtype=tlx.int64))
+    labels_masked = tlx.gather(labels, tlx.convert_to_tensor(mask_indices, dtype=tlx.int64))
+    loss = loss_func(logits_masked, labels_masked)
+
+    accuracy, micro_f1, macro_f1 = score(logits_masked, labels_masked)
+    return loss, accuracy, micro_f1, macro_f1
+
 def main(args):
-    download_attack_data_files()
     # Load ACM raw dataset
     dataname = 'acm'
     dataset = ACM4Rohe(root = "./")
     g = dataset[0]
+    dataset.download_attack_data_files()
     features_dict = {ntype: g[ntype].x for ntype in g.node_types if hasattr(g[ntype], 'x')}
     labels = g['paper'].y
     train_mask = g['paper'].train_mask
@@ -66,7 +80,7 @@ def main(args):
         'pf': edge_index_to_adj_matrix(g['paper', 'pf', 'field'].edge_index, g['paper'].num_nodes, g['field'].num_nodes),
         'fp': edge_index_to_adj_matrix(g['field', 'fp', 'paper'].edge_index, g['field'].num_nodes, g['paper'].num_nodes)
     }
-    meta_g = get_hg(dataname, hete_adjs, features_dict, labels, train_mask, val_mask, test_mask)
+    meta_g = dataset.get_meta_graph(dataname, hete_adjs, features_dict, labels, train_mask, val_mask, test_mask)
     # Prepare edge index and node count dictionaries
     edge_index_dict = {etype: meta_g[etype].edge_index for etype in meta_g.edge_types}
     num_nodes_dict = {ntype: meta_g[ntype].num_nodes for ntype in meta_g.node_types}
@@ -143,6 +157,7 @@ def main(args):
     # Load target node IDs
     print("Loading target nodes")
     tar_idx = []
+    # can attack 500 target nodes by seting range(5)
     for i in range(1):
         with open(f'data/preprocess/target_nodes/{dataname}_r_target{i}.pkl', 'rb') as f:
             tar_tmp = np.sort(pkl.load(f))
@@ -216,7 +231,7 @@ def main(args):
 
         # Prepare modified graph and data
         mod_features_dict = {'paper': features}
-        g_atk = get_hg(dataname, mod_hete_adj_dict, mod_features_dict, y, train_mask, val_mask, test_mask)
+        g_atk = dataset.get_meta_graph(dataname, mod_hete_adj_dict, mod_features_dict, y, train_mask, val_mask, test_mask)
         data_atk = {
             "x_dict": g_atk.x_dict,
             "edge_index_dict": {etype: g_atk[etype].edge_index for etype in g_atk.edge_types},
@@ -255,6 +270,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Setup configuration
-    args = setup(args)
+    tlx.set_seed(args.seed)
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
 
     main(args)
