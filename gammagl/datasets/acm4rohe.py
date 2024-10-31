@@ -9,9 +9,9 @@ import scipy.sparse as sp
 
 class ACM4Rohe(InMemoryDataset):
     r"""The ACM dataset for heterogeneous graph neural networks, consisting of nodes of types
-    :obj:`"paper"`, :obj:`"author"`, and :obj:`"field"`. This dataset was adapted from 
-    `"Heterogeneous Graph Attention Network" <https://github.com/Jhy1993/HAN>`_, 
-    and is typically used for semi-supervised node classification in 
+    :obj:`"paper"`, :obj:`"author"`, and :obj:`"field"`. This dataset was adapted from
+    `"Heterogeneous Graph Attention Network" <https://github.com/Jhy1993/HAN>`_,
+    and is typically used for semi-supervised node classification in
     heterogeneous graphs.
 
     Parameters
@@ -19,15 +19,15 @@ class ACM4Rohe(InMemoryDataset):
     root: str, optional
         Root directory where the dataset should be saved.
     transform: callable, optional
-        A function/transform that takes in an :obj:`HeteroGraph` object 
-        and returns a transformed version. The data object will be transformed before 
+        A function/transform that takes in an :obj:`HeteroGraph` object
+        and returns a transformed version. The data object will be transformed before
         every access. (default: :obj:`None`)
     pre_transform: callable, optional
-        A function/transform that takes in an :obj:`HeteroGraph` object 
-        and returns a transformed version. The data object will be transformed before 
+        A function/transform that takes in an :obj:`HeteroGraph` object
+        and returns a transformed version. The data object will be transformed before
         being saved to disk. (default: :obj:`None`)
     force_reload: bool, optional
-        Whether to re-process the dataset, even if it has already been processed. 
+        Whether to re-process the dataset, even if it has already been processed.
         (default: :obj:`False`)
 
     Attributes
@@ -45,23 +45,30 @@ class ACM4Rohe(InMemoryDataset):
 
     @property
     def raw_file_names(self) -> List[str]:
-        return ["ACM.mat"]
+        return [
+            "ACM.mat",
+            "data/generated_attacks/adv_acm_pap_pa_1.pkl",
+            "data/generated_attacks/adv_acm_pap_pa_3.pkl",
+            "data/generated_attacks/adv_acm_pap_pa_5.pkl",
+            "data/preprocess/target_nodes/acm_r_target0.pkl",
+            "data/preprocess/target_nodes/acm_r_target1.pkl",
+            "data/preprocess/target_nodes/acm_r_target2.pkl",
+            "data/preprocess/target_nodes/acm_r_target3.pkl",
+            "data/preprocess/target_nodes/acm_r_target4.pkl"
+        ]
 
     @property
     def processed_file_names(self) -> str:
         return tlx.BACKEND + "_data.pt"
 
     def download(self):
+        # Download the main ACM dataset file
         download_url(self.url, self.raw_dir)
 
-    def download_attack_data_files(self):
-        r"""Download additional data files required for adversarial attacks on the ACM dataset.
-        
-        This method checks if files needed for adversarial attack simulations are present in 
-        the data directory. If any files are missing, it downloads them from a predefined URL.
-        """
+        # Download additional adversarial attack data files if missing
         base_url = "https://raw.githubusercontent.com/BUPT-GAMMA/RoHe/main/Code/data"
 
+        # List of required adversarial files to download
         files_to_download = [
             "generated_attacks/adv_acm_pap_pa_1.pkl",
             "generated_attacks/adv_acm_pap_pa_3.pkl",
@@ -73,11 +80,14 @@ class ACM4Rohe(InMemoryDataset):
             "preprocess/target_nodes/acm_r_target4.pkl"
         ]
 
+        # Download each file if not already present in its designated path
         for file_path in files_to_download:
             file_url = f"{base_url}/{file_path}"
-            save_folder = os.path.join("data", os.path.dirname(file_path))
+            save_folder = os.path.join(self.raw_dir, "data", os.path.dirname(file_path))
+            os.makedirs(save_folder, exist_ok=True)  # Ensure save directory exists
 
-            if not os.path.exists(os.path.join(save_folder, os.path.basename(file_path))):
+            save_path = os.path.join(save_folder, os.path.basename(file_path))
+            if not os.path.exists(save_path):
                 download_url(file_url, save_folder)
 
     def process(self):
@@ -154,10 +164,9 @@ class ACM4Rohe(InMemoryDataset):
         graph['field', 'fp', 'paper'].edge_index = edge_index_fp
 
         graph['paper'].y = labels
-        graph['paper'].train_mask = train_mask
-        graph['paper'].val_mask = val_mask
-        graph['paper'].test_mask = test_mask
-
+        graph['paper'].train_mask = tlx.convert_to_tensor(train_mask, dtype=tlx.bool)
+        graph['paper'].val_mask = tlx.convert_to_tensor(val_mask, dtype=tlx.bool)
+        graph['paper'].test_mask = tlx.convert_to_tensor(test_mask, dtype=tlx.bool)
         if self.pre_transform is not None:
             graph = self.pre_transform(graph)
 
@@ -165,12 +174,12 @@ class ACM4Rohe(InMemoryDataset):
 
     def get_meta_graph(self, dataname, given_adj_dict, features_dict, labels=None, train_mask=None, val_mask=None, test_mask=None):
         r"""Creates a meta-path based `HeteroGraph` for the ACM dataset.
-        
-        This function constructs a `HeteroGraph` with meta-path based edges 
+
+        This function constructs a `HeteroGraph` with meta-path based edges
         between `paper` nodes, representing the meta-paths:
         - Paper -> Author -> Paper (PAP)
         - Paper -> Field -> Paper (PFP)
-        
+
         """
         meta_graph = HeteroGraph()
         meta_graph['paper'].x = features_dict['paper']

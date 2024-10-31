@@ -10,7 +10,8 @@ import tensorlayerx as tlx
 from gammagl.models import RoheHAN
 from utils import *
 import pickle as pkl
-from gammagl.utils.convert import edge_index_to_adj_matrix
+from gammagl.utils import mask_to_index
+from gammagl.utils import edge_index_to_adj_matrix
 from gammagl.datasets.acm4rohe import ACM4Rohe
 
 class SemiSpvzLoss(tlx.nn.Module):
@@ -42,9 +43,8 @@ def evaluate(model, data, labels, mask, loss_func):
 def main(args):
     # Load ACM raw dataset
     dataname = 'acm'
-    dataset = ACM4Rohe(root = "./")
+    dataset = ACM4Rohe(root = args.dataset_path)
     g = dataset[0]
-    dataset.download_attack_data_files()
     features_dict = {ntype: g[ntype].x for ntype in g.node_types if hasattr(g[ntype], 'x')}
     labels = g['paper'].y
     train_mask = g['paper'].train_mask
@@ -55,9 +55,9 @@ def main(args):
     num_classes = int(tlx.reduce_max(labels)) + 1
 
     # Get train_idx, val_idx, test_idx from masks
-    train_idx = np.where(train_mask)[0]
-    val_idx = np.where(val_mask)[0]
-    test_idx = np.where(test_mask)[0]
+    train_idx = mask_to_index(train_mask)
+    val_idx = mask_to_index(val_mask)
+    test_idx = mask_to_index(test_mask)
 
     x_dict = features_dict
     y = labels
@@ -123,10 +123,6 @@ def main(args):
         "y": y
     }
 
-    # Ensure the best model path exists
-    if not os.path.exists(args.best_model_path):
-        os.makedirs(args.best_model_path)
-
     # Training loop
     best_val_acc = 0.0
 
@@ -159,7 +155,8 @@ def main(args):
     tar_idx = []
     # can attack 500 target nodes by seting range(5)
     for i in range(1):
-        with open(f'data/preprocess/target_nodes/{dataname}_r_target{i}.pkl', 'rb') as f:
+        target_filename = os.path.join(args.dataset_path, f'ACM4Rohe/raw/data/preprocess/target_nodes/acm_r_target{i}.pkl')
+        with open(target_filename, 'rb') as f:
             tar_tmp = np.sort(pkl.load(f))
         tar_idx.extend(tar_tmp)
 
@@ -173,7 +170,7 @@ def main(args):
 
     # Load adversarial attacks
     n_perturbation = 1
-    adv_filename = f'data/generated_attacks/adv_acm_pap_pa_{n_perturbation}.pkl'
+    adv_filename = os.path.join(args.dataset_path, 'ACM4Rohe/raw/data/generated_attacks', f'adv_acm_pap_pa_{n_perturbation}.pkl')
     with open(adv_filename, 'rb') as f:
         modified_opt = pkl.load(f)
 
@@ -266,6 +263,7 @@ if __name__ == '__main__':
     parser.add_argument("--weight_decay", type=float, default=0.001, help="Weight decay.")
     parser.add_argument("--num_epochs", type=int, default=100, help="Number of training epochs.")
     parser.add_argument("--gpu", type=int, default=0, help="GPU index. Use -1 for CPU.")
+    parser.add_argument("--dataset_path", type=str, default=r'', help="path to save dataset")
     parser.add_argument("--best_model_path", type=str, default='./', help="Path to save the best model.")
     args = parser.parse_args()
 
