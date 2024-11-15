@@ -61,6 +61,7 @@ from .gnnlfhf import GNNLFHFModel
 from .dhn import DHNModel
 from .dna import DNAModel
 from .dfad import DFADModel, DFADGenerator
+from .fatragnn import FatraGNNModel, Graph_Editer
 
 __all__ = [
     'HeCo',
@@ -128,7 +129,8 @@ __all__ = [
     'DHNModel',
     'DNAModel',
     'DFADModel',
-    'DFADGenerator'
+    'DFADGenerator',
+    'FatraGNNModel'
 ]
 
 classes = __all__
