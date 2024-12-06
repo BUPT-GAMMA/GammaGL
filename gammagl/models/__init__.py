@@ -61,6 +61,7 @@ from .gnnlfhf import GNNLFHFModel
 from .dhn import DHNModel
 from .dna import DNAModel
 from .dfad import DFADModel, DFADGenerator
+from .fatragnn import FatraGNNModel, Graph_Editer
 from .rohehan import RoheHAN
 
 __all__ = [
@@ -129,7 +130,8 @@ __all__ = [
     'DHNModel',
     'DNAModel',
     'DFADModel',
-    'DFADGenerator'
+    'DFADGenerator',
+    'FatraGNNModel',
     'RoheHAN'
 ]
 

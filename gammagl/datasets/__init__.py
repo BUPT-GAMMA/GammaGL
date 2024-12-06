@@ -23,6 +23,8 @@ from .molecule_net import MoleculeNet
 from .facebook import FacebookPagePage
 from .acm4heco import ACM4HeCo
 from .yelp import Yelp
+from .bail import Bail
+from .credit import Credit
 from .acm4dhn import ACM4DHN
 from .acm4rohe import ACM4Rohe
 
@@ -51,6 +53,8 @@ __all__ = [
     'FacebookPagePage',
     'NGSIM_US_101',
     'Yelp',
+    'Bail',
+    'Credit',
     'ACM4DHN',
     'ACM4Rohe'
 ]
