@@ -1,0 +1,55 @@
+name: Build and Test
+
+on: [push, pull_request]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - name: Checkout master and HEAD
+        run: |
+          git checkout ${{ github.event.pull_request.head.sha }}
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Other dependencies Package
+        run: |
+          pip install ninja
+
+      - name: Install TensorLyaerX
+        run: |
+          pip install git+https://github.com/dddg617/TensorLayerX.git@nightly
+
+      - name: Install PyTorch, torchvision and torchaudio
+        run: |
+          pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu121
+
+      - name: Install llvmlite
+        run: |
+          pip install llvmlite
+
+      - name: Install package
+        run: |
+          python setup.py install build_ext --inplace
+
+      - name: Run TF tests
+        run: |
+          TL_BACKEND=tensorflow pytest
+
+      - name: Run TH tests
+        run: |
+          TL_BACKEND=torch pytest
