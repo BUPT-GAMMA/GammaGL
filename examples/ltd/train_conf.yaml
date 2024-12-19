@@ -1,0 +1,89 @@
+GCN:
+  cora:
+    train_per_class: 20
+    val_per_class: 20
+    my_val_per_class: 10
+    hidden_dim: 64
+    drop_rate: 0.8
+    num_layers: 2
+    my_lr: 1.92E-04
+    my_t_lr: 2.60E-04
+    lam: 1
+    k: 1
+    t_lr: 0.005
+    l2_coef: 0.01
+    n_epoch: 200
+  citeseer:
+    train_per_class: 20
+    val_per_class: 20
+    my_val_per_class: 10
+    hidden_dim: 64
+    drop_rate: 0.8
+    num_layers: 2
+    my_lr: 6.90E-06
+    my_t_lr: 7.46E-05
+    lam: 1
+    k: 1
+    t_lr: 0.01
+    l2_coef: 0.01
+    n_epoch: 200
+  pubmed:
+    train_per_class: 20
+    val_per_class: 20
+    my_val_per_class: 10
+    hidden_dim: 16
+    drop_rate: 0.5
+    num_layers: 2
+    my_lr: 7.40E-06
+    my_t_lr: 9.38E-05
+    lam: 200
+    k: 1
+    t_lr: 0.01
+    l2_coef: 0.002
+    n_epoch: 200
+GAT:
+  cora:
+    train_per_class: 20
+    val_per_class: 20
+    my_val_per_class: 10
+    hidden_dim: 64
+    heads: 8
+    drop_rate: 0.6
+    num_layers: 2
+    my_lr: 1.68E-03
+    my_t_lr: 3.29E-04
+    lam: 1
+    k: 2
+    t_lr: 0.01
+    l2_coef: 0.005
+    n_epoch: 50
+  citeseer:
+    train_per_class: 20
+    val_per_class: 20
+    my_val_per_class: 10
+    hidden_dim: 64
+    heads: 8
+    drop_rate: 0.6
+    num_layers: 2
+    my_lr: 6.24E-05
+    my_t_lr: 1.71E-04
+    lam: 1
+    k: 2
+    t_lr: 0.01
+    l2_coef: 0.01
+    n_epoch: 50
+  pubmed:
+    train_per_class: 20
+    val_per_class: 20
+    my_val_per_class: 10
+    hidden_dim: 8
+    heads: 8
+    drop_rate: 0.2
+    num_layers: 2
+    my_lr: 2.95E-05
+    my_t_lr: 3.27E-06
+    lam: 200
+    k: 2
+    t_lr: 0.01
+    l2_coef: 0.001
+    n_epoch: 50
