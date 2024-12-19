@@ -142,7 +142,7 @@ Currently, GammaGL requires **Python Version >= 3.9** and is only supported on *
    
    # For torch, version 2.1+cuda 11.8
    # https://pytorch.org/get-started/locally/
-   $ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+   $ pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
    
    # For paddle, any latest stable version
    # https://www.paddlepaddle.org.cn/
