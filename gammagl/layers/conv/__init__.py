@@ -35,6 +35,7 @@ from .fusedgat_conv import FusedGATConv
 from .hid_conv import Hid_conv
 from .dhn_conv import DHNConv
 from .dna_conv import DNAConv
+from .rohehan_conv import RoheHANConv
 
 __all__ = [
     'MessagePassing',
@@ -73,7 +74,8 @@ __all__ = [
     'Hid_conv',
     'HEATlayer',
     'DHNConv',
-    'DNAConv'
+    'DNAConv',
+    'RoheHANConv'
 ]
 
 classes = __all__

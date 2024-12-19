@@ -12,7 +12,7 @@ from .device import set_device
 from .to_dense_batch import to_dense_batch
 from .subgraph import k_hop_subgraph
 from .negative_sampling import negative_sampling
-from .convert import to_scipy_sparse_matrix
+from .convert import to_scipy_sparse_matrix, edge_index_to_adj_matrix
 from .read_embeddings import read_embeddings
 from .homophily import homophily
 from .to_dense_adj import to_dense_adj
@@ -48,7 +48,8 @@ __all__ = [
     'batched_shortest_path_distance',
     'get_train_val_test_split',
     'get_laplacian',
-    'find_all_simple_paths'
+    'find_all_simple_paths',
+    'edge_index_to_adj_matrix'
 ]
 
 classes = __all__

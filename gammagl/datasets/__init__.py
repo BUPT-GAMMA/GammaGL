@@ -26,6 +26,7 @@ from .yelp import Yelp
 from .bail import Bail
 from .credit import Credit
 from .acm4dhn import ACM4DHN
+from .acm4rohe import ACM4Rohe
 
 __all__ = [
     'ACM4HeCo',
@@ -54,7 +55,8 @@ __all__ = [
     'Yelp',
     'Bail',
     'Credit',
-    'ACM4DHN'
+    'ACM4DHN',
+    'ACM4Rohe'
 ]
 
 classes = __all__
