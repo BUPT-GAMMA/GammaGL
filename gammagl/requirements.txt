@@ -1,0 +1,14 @@
+git+https://github.com/dddg617/TensorLayerX.git@nightly
+numpy<=1.23.5
+scipy
+tensorflow==2.11.0
+paddlepaddle==2.3.2
+pytest
+numba
+tqdm
+rich
+django
+pyparsing
+paddlenlp
+pybind11
+protobuf==3.19.6
