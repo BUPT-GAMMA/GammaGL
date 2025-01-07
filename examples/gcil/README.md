@@ -1,7 +1,7 @@
-# Graph Convolutional Networks (GCIL)
+# Graph Contrastive Invariant Learning from the Causal Perspective (GCIL)
 
 - Paper link: [https://arxiv.org/pdf/2401.12564v2](https://arxiv.org/pdf/2401.12564v2)
-- Author's code repo: [https://github.com/tkipf/gcn](https://github.com/tkipf/gcn). Note that the original code is 
+- Author's code repo: [https://github.com/BUPT-GAMMA/GCIL](https://github.com/BUPT-GAMMA/GCIL). Note that the original code is 
   implemented with Tensorflow for the paper. 
 
 # Dataset Statics
@@ -23,13 +23,13 @@ TL_BACKEND="torch" python gcil_trainer.py pubmed
 ```
 
 Ma-F1:
-| Dataset | Paper | Our(th)    |
-| ------- | ----- | ---------- |
-| cora    | 71.96 | 45.19±0.22 |
-| pubmed  | 76.32 | 42.98±0.30 |
+| Dataset | Paper    | Our(th)    |
+| ------- | -------- | ---------- |
+| cora    | 83.8±0.5 | 45.19±0.22 |
+| pubmed  | 81.5±0.5 | 46.30±0.02 |
 
 Mi-F1
-| Dataset | Paper | Our(th)    |
-| ------- | ----- | ---------- |
-| cora    | 72.07 | 49.71±0.22 |
-| pubmed  | 76.88 | 49.69±0.30 |
+| Dataset | Paper    | Our(th)    |
+| ------- | -------- | ---------- |
+| cora    | 84.4±0.7 | 49.71±0.22 |
+| pubmed  | 81.6±0.7 | 53.77±0.01 |

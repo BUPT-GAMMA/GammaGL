@@ -73,8 +73,8 @@ class MLP(nn.Module):
     def __init__(self, nfeat, nhid, nclass, use_bn=True):
         super(MLP, self).__init__()
 
-        self.layer1 = nn.Linear(nfeat, nhid, bias=True)
-        self.layer2 = nn.Linear(nhid, nclass, bias=True)
+        self.layer1 = nn.Linear(in_features=nfeat, out_features=nhid)
+        self.layer2 = nn.Linear(in_features=nhid, out_features=nclass)
 
         self.bn = nn.BatchNorm1d(nhid)
         self.use_bn = use_bn

@@ -14,7 +14,7 @@ from aug import random_aug
 from params import set_params
 
 from gammagl.data import Graph
-from gammagl.datasets import WikiCS, Flickr, Planetoid, Coauthor
+from gammagl.datasets import Planetoid
 
 from sklearn.metrics import f1_score
 import scipy.sparse as sp
@@ -31,11 +31,33 @@ class SemiSpvzLoss(WithLoss):
     def __init__(self, net, loss_fn):
         super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
 
-    def forward(self, data, y):
-        logits = self.backbone_network(data['x'], data['edge_index'], None, data['num_nodes'])
-        train_logits = tlx.gather(logits, data['train_idx'])
-        train_y = tlx.gather(data['y'], data['train_idx'])
-        loss = self._loss_fn(train_logits, train_y)
+    def forward(self, data, y): 
+        z1, z2, h1, h2 = self.backbone_network(data['graph1'], data['feat1'], data['attr1'], data['graph2'], data['feat2'], data['attr2'])
+        std_x = tlx.sqrt(h1.var(dim=0) + 0.0001)
+        std_y = tlx.sqrt(h2.var(dim=0) + 0.0001)
+
+        std_loss = tlx.ops.reduce_sum(tlx.sqrt((1 - std_x)**2)) / 2 + tlx.ops.reduce_sum(tlx.sqrt((1 - std_y)**2)) / 2
+        
+        c = tlx.matmul(z1.T, z2) / data['num_nodes']
+        c1 = tlx.matmul(z1.T, z1) / data['num_nodes']
+        c2 = tlx.matmul(z2.T, z2) / data['num_nodes']
+
+        loss_inv = -tlx.diag(c).sum() 
+        iden = tlx.convert_to_tensor(np.eye(c.shape[0])).to(args.device)
+        loss_dec1 = (iden - c1).pow(2).sum()
+        loss_dec2 = (iden - c2).pow(2).sum()
+        
+        loss = data['alpha']*loss_inv + data['beta'] * \
+            (loss_dec1 + loss_dec2) + data['gamma']*std_loss
+        return loss
+
+class LogRegLoss(WithLoss):
+    def __init__(self, net, loss_fn):
+        super(LogRegLoss, self).__init__(backbone=net, loss_fn=loss_fn)
+
+    def forward(self, data, y): 
+        logits = self.backbone_network(data['train_embs'])
+        loss = self._loss_fn(logits, y)
         return loss
 
 def calculate_acc(logits, y, metrics):
@@ -43,38 +65,6 @@ def calculate_acc(logits, y, metrics):
     rst = metrics.result() 
     metrics.reset() 
     return rst
-
-
-def sinkhorn(K, dist, sin_iter):
-    # make the matrix sum to 1
-    u = np.ones([len(dist), 1]) / len(dist)
-    K_ = sp.diags(1./dist)*K
-    dist = dist.reshape(-1, 1)
-    ll = 0
-    for it in range(sin_iter):
-        u = 1./K_.dot(dist / (K.T.dot(u)))
-    v = dist / (K.T.dot(u))
-    delta = np.diag(u.reshape(-1)).dot(K).dot(np.diag(v.reshape(-1)))
-    return delta
-
-
-def plug(theta, num_node, laplace, delta_add, delta_dele, epsilon, dist, sin_iter, c_flag=False):
-    C = (1 - theta)*laplace.A
-    if c_flag:
-        C = laplace.A
-    K_add = np.exp(2 * (C*delta_add).sum() * C / epsilon)
-    K_dele = np.exp(-2 * (C*delta_dele).sum() * C / epsilon)
-
-    delta_add = sinkhorn(K_add, dist, sin_iter)
-
-    delta_dele = sinkhorn(K_dele, dist, sin_iter)
-    return delta_add, delta_dele
-
-
-def update(theta, epoch, total):
-    theta = theta - theta*(epoch/total)
-    return theta
-
 
 def normalize_adj(adj):
     """Symmetrically normalize adjacency matrix."""
@@ -85,30 +75,11 @@ def normalize_adj(adj):
     d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
     return adj.dot(d_mat_inv_sqrt).transpose().dot(d_mat_inv_sqrt).tocoo()
 
-def preprocess_features(features):
-    """Row-normalize feature matrix and convert to tuple representation"""
-    rowsum = tlx.convert_to_numpy(tlx.reduce_sum(tlx.to_device(features, "cpu"), axis=1))
-    r_inv = np.power(rowsum, -1).flatten()
-    r_inv[np.isinf(r_inv)] = 0.
-    r_mat_inv = sp.diags(r_inv)
-    features = r_mat_inv.dot(tlx.to_device(features, "cpu"))
-    # return tlx.convert_to_tensor(features)
-    if isinstance(features, np.ndarray):
-        return features
-    else:
-        return features.todense(), sparse_to_tuple(features)
-
-def get_dataset(path,name,scope_flag):
+def get_dataset(name):
     if name == 'cora':
         dataset = Planetoid(root="", name='cora')
-    elif name == 'citeseer':
-        dataset = Planetoid(root="", name='citeseer')
     elif name == 'pubmed':
         dataset = Planetoid(root="", name='pubmed')
-    elif name == 'wiki':
-        dataset = WikiCS("")
-    elif name == 'flickr':
-        dataset = Flickr("")
     else:
         raise ValueError(f"Unknown dataset name: {name}")
     graph = dataset[0]
@@ -122,13 +93,9 @@ def get_dataset(path,name,scope_flag):
 
 
     feat = graph.x
-    if name != 'wiki':
-        feat = tlx.convert_to_tensor(preprocess_features(feat), dtype=tlx.float32)
-    else:
-        feat = tlx.convert_to_tensor(feat, dtype=tlx.float32)
+    feat = tlx.convert_to_tensor(feat, dtype=tlx.float32)
 
 
-    num_features = feat.shape[-1]
     label = graph.y
     num_class = label.max()+1
 
@@ -156,24 +123,28 @@ def test(embeds, labels, num_class, train_idx, val_idx, test_idx):
     ''' Linear Evaluation '''
     # print(train_embs.shape)
     logreg = LogReg(train_embs.shape[1], num_class)
-    opt = Adam(lr=args.lr2, weight_decay=args.wd2)
+    optimizer = Adam(lr=args.lr2, weight_decay=args.wd2)
 
-    logreg = logreg.to(args.device)
-    loss_fn = tlx.losses.softmax_cross_entropy_with_logits
+    # logreg = logreg.to(args.device)
+    train_weights = logreg.trainable_weights
+    loss_func = LogRegLoss(logreg, tlx.losses.softmax_cross_entropy_with_logits)
+    
+    train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
     best_val_acc = 0
     eval_acc = 0
-
+    data = {
+        'train_embs': train_embs
+    }
     for epoch in range(800):
         logreg.train()
+        train_one_step(data, train_labels)
+        
+        logreg.eval()
         logits = logreg(train_embs)
         preds = tlx.argmax(logits, axis=1)
         train_acc = tlx.reduce_sum(preds == train_labels).float() / train_labels.shape[0]
-        loss = loss_fn(logits, train_labels)
-        loss.backward()
 
-
-        logreg.eval()
         val_logits = logreg(val_embs)
         test_logits = logreg(test_embs)
 
@@ -201,7 +172,7 @@ def test(embeds, labels, num_class, train_idx, val_idx, test_idx):
 
 def train(params):
     path = "./dataset/" + args.dataset
-    adj, feat, labels, num_class, train_idx, val_idx, test_idx, laplace, scope = get_dataset(path, args.dataset, args.scope_flag)
+    adj, feat, labels, num_class, train_idx, val_idx, test_idx, laplace, scope = get_dataset(args.dataset)
 
     adj = adj + sp.eye(adj.shape[0])
 
@@ -226,30 +197,11 @@ def train(params):
                 pass
         print("Number of select adjs:", len(sele_adjs))
         epoch_inter = args.epoch_inter
-    elif args.dataset == 'wiki':
-        sele_adjs = []
-        for i in range(7):
-            sele_adjs.append(sp.load_npz(path + "/0.1_1_" + str(i) + ".npz"))
-        epoch_inter = args.epoch_inter
     elif args.dataset == 'cora':
         sele_adjs = []
         for i in range(7):
             sele_adjs.append(sp.load_npz(path + "/0.01_1_" + str(i) + ".npz"))
         epoch_inter = args.epoch_inter
-    elif args.dataset == 'blog':
-        sele_adjs = []
-        for i in range(7):
-            sele_adjs.append(sp.load_npz(path + "/0.01_1_" + str(i) + ".npz"))
-        epoch_inter = args.epoch_inter
-    elif args.dataset == 'flickr':
-        sele_adjs = []
-        for i in range(4):
-            sele_adjs.append(sp.load_npz(path + "/0.01_1_" + str(i) + ".npz"))
-        epoch_inter = args.epoch_inter
-    else:
-        scope_matrix = sp.coo_matrix(
-            (np.ones(scope.shape[1]), (scope[0, :], scope[1, :])), shape=adj.shape).A
-        dist = adj.A.sum(-1) / adj.A.sum()
 
     if args.gpu != -1:
         args.device = 'cuda:{}'.format(args.gpu) 
@@ -259,19 +211,16 @@ def train(params):
     in_dim = feat.shape[1]
     
     model = GCILModel(in_dim, args.hid_dim, args.out_dim, args.n_layers, args.use_mlp)
-    model = model.to(args.device)
+    # model = model.to(args.device)
 
     optimizer = tlx.optimizers.Adam(
     lr=args.lr1,
     weight_decay=args.wd1
     )
-    num_nodes = graph.num_nodes
-    N = graph.num_nodes
+    train_weights = model.trainable_weights
+    loss_func = SemiSpvzLoss(model, tlx.losses.softmax_cross_entropy_with_logits)
     
-    loss_fn = tlx.losses.softmax_cross_entropy_with_logits
-
-    # loss_func = SemiSpvzLoss(net=model, loss_fn=loss_fn)
-    # train_one_step = TrainOneStep(loss_func, optimizer, model.trainable_weights)
+    train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
     #### SpCo ######
     theta = 1
@@ -289,14 +238,6 @@ def train(params):
     new_attr = tlx.convert_to_tensor(new_adj[new_adj.nonzero()])[0]
     new_diag_attr = tlx.convert_to_tensor(new_adj[range_node, range_node])[0]
     j = 0
-
-    data = {
-        "x": graph.x,
-        "y": graph.y,
-        "edge_index": edge_index,
-        "in_dim": in_dim,
-        "num_nodes": num_nodes
-    }
     
     # Training Loop
     for epoch in range(params['epoch']):
@@ -315,36 +256,38 @@ def train(params):
         feat1 = feat1.to(args.device)
         feat2 = feat2.to(args.device)
 
+        data = {
+            "x": graph.x,
+            "y": graph.y,
+            "edge_index": edge_index,
+            "in_dim": in_dim,
+            "num_nodes": graph.num_nodes,
+            "graph1": graph1,
+            "graph2": graph2,
+            "attr1": attr1,
+            "attr2": attr2,
+            "feat1": feat1,
+            "feat2": feat2,
+            "alpha": params['alpha'],
+            'beta': params['beta'],
+            "gamma": params['gamma']
+        }
+        
+        loss = train_one_step(data, graph.y)
+
         z1, z2, h1, h2 = model(graph1, feat1, attr1, graph2, feat2, attr2)
-        # print(z1.shape, z2.shape, h1.shape, h2.shape)
-
-        std_x = tlx.sqrt(h1.var(dim=0) + 0.0001)
-        std_y = tlx.sqrt(h2.var(dim=0) + 0.0001)
-
-        std_loss = tlx.ops.reduce_sum(tlx.sqrt((1 - std_x)**2)) / 2 + tlx.ops.reduce_sum(tlx.sqrt((1 - std_y)**2)) / 2
-
-        c = tlx.matmul(z1.T, z2) / N
-        c1 = tlx.matmul(z1.T, z1) / N
-        c2 = tlx.matmul(z2.T, z2) / N
-
-        loss_inv = -tlx.diag(c).sum() 
+        c = tlx.matmul(z1.T, z2) / graph.num_nodes
+        c1 = tlx.matmul(z1.T, z1) / graph.num_nodes
+        c2 = tlx.matmul(z2.T, z2) / graph.num_nodes
         iden = tlx.convert_to_tensor(np.eye(c.shape[0])).to(args.device)
-        loss_dec1 = (iden - c1).pow(2).sum()
-        loss_dec2 = (iden - c2).pow(2).sum()
-
-
-
-        loss = params['alpha']*loss_inv + params['beta'] * \
-            (loss_dec1 + loss_dec2) + params['gamma']*std_loss
-
-        loss.backward()
+        # loss.backward()
 
         # Print the results
         print('Epoch={:03d}, loss={:.4f}, loss_inv={:.4f}, loss_dec={:.4f}'.format(
         epoch, 
-        loss.detach().cpu().numpy().item(),  
-        -tlx.diag(c).sum().detach().cpu().numpy().item(),  
-        (iden - c1).pow(2).sum().detach().cpu().numpy().item() + (iden - c2).pow(2).sum().detach().cpu().numpy().item()  # 同样处理loss_dec
+        loss.item(),  
+        -tlx.diag(c).sum().item(),  
+        (iden - c1).pow(2).sum().item() + (iden - c2).pow(2).sum().item()  # 同样处理loss_dec
         ))
 
 
@@ -368,7 +311,7 @@ def train(params):
                     pass
 
 
-        elif args.dataset in ['wiki', 'cora', 'blog', 'flickr']:
+        elif args.dataset == 'cora':
             flag = (epoch - 1) % epoch_inter
             if flag == 0:
                 try:
@@ -386,36 +329,6 @@ def train(params):
                     new_diag_attr = tlx.convert_to_tensor(new_adj[range_node, range_node], dtype=tlx.float32)[0]  # 使用 tlx.float32
                 except IndexError:
                     pass
-        else:
-            if epoch % args.turn == 0:
-                print("================================================")
-                if args.dataset in ["cora", "citeseer"] and epoch != 0:
-                    delta_add, delta_dele = plug(theta, num_node, laplace, delta_add, delta_dele, args.epsilon, dist,
-                                                args.sin_iter, True)
-                else:
-                    delta_add, delta_dele = plug(theta, num_node, laplace, delta_add, delta_dele, args.epsilon, dist,
-                                                args.sin_iter)
-
-                # 用 TensorLayerX 处理
-                delta = (delta_add - delta_dele) * scope_matrix
-                
-                path_cora = path+'/0.01_1_'+str(j)+'.npz'
-                sp.save_npz(path_cora, normalize_adj(delta))
-                j += 1
-
-                delta = args.lam * normalize_adj(delta)
-                new_adj = adj + delta
-                
-                nonzero_indices = np.array(new_adj.nonzero())
-                edge_index = tlx.ops.convert_to_tensor(nonzero_indices, dtype=tlx.int64)
-
-                x = tlx.convert_to_tensor(feat, dtype=tlx.float32)
-                new_graph = Graph(x=x, edge_index=edge_index)
-
-                new_attr = tlx.convert_to_tensor(new_adj[new_adj.nonzero()], dtype=tlx.float32)[0]  # 使用 tlx.float32
-                new_diag_attr = tlx.convert_to_tensor(new_adj[range_node, range_node], dtype=tlx.float32)[0]  # 使用 tlx.float32
-
-                theta = update(1, epoch, args.epochs)
 
 
     # Final Testing
@@ -491,7 +404,7 @@ def main(args):
     micros = tlx.convert_to_tensor(micros)
     macros = tlx.convert_to_tensor(macros)
 
-    print('AVG accuracy:{:.4f}, Std:{:.4f}, Macro:{:.4f}, Std:{:.4f}'.format(
+    print('AVG Micro:{:.4f}, Std:{:.4f}, Macro:{:.4f}, Std:{:.4f}'.format(
     tlx.ops.reduce_mean(micros).cpu().numpy().item(),
     tlx.ops.reduce_std(micros).cpu().numpy().item(),
     tlx.ops.reduce_mean(macros).cpu().numpy().item(),
