@@ -33,7 +33,7 @@ def calculate_acc(logits, y, metrics):
     return rst
 
 def main(args):
-    # Load dataset
+
     if str.lower(args.dataset) in ['cora', 'pubmed', 'citeseer']:
         dataset = Planetoid(args.dataset_path, args.dataset)
         graph = dataset[0]
@@ -43,7 +43,7 @@ def main(args):
     elif str.lower(args.dataset) in ['chameleon', 'squirrel']:
         dataset = WikipediaNetwork(args.dataset_path, args.dataset)
         graph = dataset[0]
-        # 使用第一个分割
+
         split_idx = 0
         current_dir = os.path.dirname(os.path.abspath(__file__))
         split_path = os.path.join(current_dir, args.dataset, 'geom_gcn', 'raw', 
@@ -59,20 +59,20 @@ def main(args):
     elif str.lower(args.dataset) == 'actor':
         dataset = Actor(args.dataset_path)
         graph = dataset[0]
-        # Actor数据集已经包含了多个splits的mask
-        split_idx = args.split_idx  # 使用指定的split
+
+        split_idx = args.split_idx 
         train_idx = mask_to_index(graph.train_mask[:, split_idx])
         val_idx = mask_to_index(graph.val_mask[:, split_idx])
         test_idx = mask_to_index(graph.test_mask[:, split_idx])
     elif str.lower(args.dataset) == 'deezer':
         dataset = DeezerEurope(args.dataset_path)
         graph = dataset[0]
-        # DeezerEurope需要随机划分训练集
+
         num_nodes = graph.num_nodes
         train_ratio = 0.6
         val_ratio = 0.2
         
-        # 随机生成索引
+
         indices = np.random.permutation(num_nodes)
         train_size = int(num_nodes * train_ratio)
         val_size = int(num_nodes * val_ratio)
@@ -85,7 +85,7 @@ def main(args):
         
     edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes)
 
-    # Create model
+
     net = SGFormerModel(feature_dim=dataset.num_node_features,
                        hidden_dim=args.hidden_dim,
                        num_class=dataset.num_classes,
@@ -104,7 +104,7 @@ def main(args):
     loss_func = SemiSpvzLoss(net, tlx.losses.softmax_cross_entropy_with_logits)
     train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
 
-    # Move data to device
+
     data = {
         "x": tlx.convert_to_tensor(graph.x),
         "y": tlx.convert_to_tensor(graph.y),
@@ -165,7 +165,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     args = parser.parse_args()
     
-    # 设置随机种子以确保可重复性
+
     np.random.seed(args.seed)
     
     if args.gpu >= 0:

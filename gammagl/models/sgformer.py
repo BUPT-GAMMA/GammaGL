@@ -2,7 +2,7 @@ import tensorlayerx as tlx
 import tensorlayerx.nn as nn
 from gammagl.layers.conv import MessagePassing
 from gammagl.utils import degree
-from sgformer.layer.sgformer_layer import TransConvLayer,GraphConvLayer
+from gammagl.layers.attention.sgformer_layer import TransConvLayer,GraphConvLayer
 
 class SGFormerModel(nn.Module):
     def __init__(self, feature_dim, hidden_dim, num_class,
@@ -11,14 +11,14 @@ class SGFormerModel(nn.Module):
                  graph_weight=0.8, name=None):
         super().__init__(name=name)
         
-        # Transformer branch
+
         self.trans_convs = nn.ModuleList([
             TransConvLayer(feature_dim if i==0 else hidden_dim, 
                          hidden_dim, trans_num_heads, use_weight=True)
             for i in range(trans_num_layers)
         ])
         
-        # GNN branch  
+ 
         self.graph_convs = nn.ModuleList([
             GraphConvLayer(feature_dim if i==0 else hidden_dim,
                          hidden_dim, use_weight=True, use_init=False)
@@ -32,23 +32,23 @@ class SGFormerModel(nn.Module):
         self.activation = tlx.ReLU()
 
     def forward(self, x, edge_index, edge_weight=None, num_nodes=None):
-        # Transformer branch
+
         x1 = x
         for conv in self.trans_convs:
             x1 = conv(x1, x1)
             x1 = self.activation(x1)
             x1 = tlx.nn.Dropout(self.trans_dropout)(x1)
             
-        # GNN branch
+
         x2 = x
         for conv in self.graph_convs:
             x2 = conv(x2, edge_index, x2, num_nodes)
             x2 = self.activation(x2)
             x2 = tlx.nn.Dropout(self.gnn_dropout)(x2)
             
-        # Combine branches
+
         x = self.graph_weight * x2 + (1 - self.graph_weight) * x1
         
-        # Final classification
+
         x = self.fc(x)
         return x 
