@@ -118,8 +118,8 @@ def load_extensions():
 
     return extensions
 
-install_requires = ['numpy==1.24', 'pandas', 'numba', 'scipy', 'protobuf', 'pyparsing', 'rdkit',
-                    'tensorboardx', 'pytest', 'tensorlayerx', 'rich', 'tqdm', 'pybind11', 'panda', 'ninja']
+install_requires = ['numpy==1.24', 'pandas', 'numba==0.59.0', 'scipy', 'protobuf', 'pyparsing', 'rdkit',
+                    'tensorboardx', 'pytest', 'tensorlayerx', 'rich', 'tqdm', 'pybind11', 'panda', 'ninja==1.11.1.1']
 
 classifiers = [
     'Development Status :: 3 - Alpha',
