@@ -26,6 +26,7 @@ from .yelp import Yelp
 from .bail import Bail
 from .credit import Credit
 from .acm4dhn import ACM4DHN
+from .acm4rohe import ACM4Rohe
 from .actor import Actor
 from .deezer_europe import DeezerEurope
 
@@ -57,6 +58,7 @@ __all__ = [
     'Bail',
     'Credit',
     'ACM4DHN',
+    'ACM4Rohe',
     'Actor',
     'DeezerEurope',
 ]
