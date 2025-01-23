@@ -31,6 +31,28 @@ def to_scipy_sparse_matrix(edge_index, edge_attr = None, num_nodes = None):
     num_nodes = maybe_num_nodes(edge_index, num_nodes)
     return ssp.coo_matrix((edge_attr, (row, col)), (num_nodes, num_nodes))
 
+def edge_index_to_adj_matrix(edge_index, num_src_nodes, num_dst_nodes):
+    r"""Converts edge indices to a sparse adjacency matrix in CSC format.
+
+    Parameters
+    ----------
+    edge_index : tuple of arrays
+        A tuple containing source and destination indices of edges.
+    num_src_nodes : int
+        The number of source nodes.
+    num_dst_nodes : int
+        The number of destination nodes.
+
+    Returns
+    -------
+    scipy.sparse.csc_matrix
+        The adjacency matrix in CSC format with shape (num_src_nodes, num_dst_nodes),
+        where entries are 1 for existing edges, and 0 for non-edges.
+    """
+    src, dst = edge_index
+    data = np.ones(src.shape[0])
+    adj_matrix = ssp.csc_matrix((data, (src, dst)), shape=(num_src_nodes, num_dst_nodes))
+    return adj_matrix
 
 def to_networkx(data, node_attrs = None, edge_attrs = None, graph_attrs = None,
     to_undirected = False, to_multi = False, remove_self_loops = False):
