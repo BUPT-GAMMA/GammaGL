@@ -64,6 +64,7 @@ from .dfad import DFADModel, DFADGenerator
 from .fatragnn import FatraGNNModel, Graph_Editer
 from .rohehan import RoheHAN
 from .gcil import GCILModel, LogReg 
+from .sgformer import SGFormerModel
 
 __all__ = [
     'HeCo',
@@ -135,7 +136,8 @@ __all__ = [
     'FatraGNNModel',
     'RoheHAN',
     'GCILModel',
-    'LogReg'
+    'LogReg',
+    'sgformer',
 ]
 
 classes = __all__
