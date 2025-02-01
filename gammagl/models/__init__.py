@@ -62,6 +62,9 @@ from .dhn import DHNModel
 from .dna import DNAModel
 from .dfad import DFADModel, DFADGenerator
 from .fatragnn import FatraGNNModel, Graph_Editer
+from .rohehan import RoheHAN
+from .gcil import GCILModel, LogReg 
+from .sgformer import SGFormerModel
 
 __all__ = [
     'HeCo',
@@ -130,7 +133,11 @@ __all__ = [
     'DNAModel',
     'DFADModel',
     'DFADGenerator',
-    'FatraGNNModel'
+    'FatraGNNModel',
+    'RoheHAN',
+    'GCILModel',
+    'LogReg',
+    'sgformer',
 ]
 
 classes = __all__

@@ -1,3 +1,4 @@
+
 # !/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
@@ -19,6 +20,9 @@ if 'TL_BACKEND' in os.environ:
 
     elif os.environ['TL_BACKEND'] == 'torch':
         from .torch import *
+    
+    elif os.environ['TL_BACKEND'] == 'jittor':
+        from .jittor import *
 
     else:
         raise NotImplementedError("This backend is not supported")
