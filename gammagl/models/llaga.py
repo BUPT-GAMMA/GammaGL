@@ -434,6 +434,15 @@ class LlagaLlamaModel(LlagaMetaModel, LlamaModel):
 
 
 class LlagaLlamaForCausalLM(LlamaForCausalLM, LlagaMetaForCausalLM):
+    r"""LLaGA model from the
+        `"LLaGA: Large Language and Graph Assistant"
+        <http://arxiv.org/abs/2402.08170>`_ paper. Based on LlamaForCausalLM with additional graph encoder implemented.
+
+        Parameters
+        ----------
+        config: LlagaConfig
+            Defined in the config.json file in the model directory
+    """
     config_class = LlagaConfig
 
     def __init__(self, config):

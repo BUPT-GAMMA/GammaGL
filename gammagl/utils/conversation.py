@@ -381,6 +381,19 @@ conv_llava_v1_mmtag = Conversation(
     version="v1_mmtag",
 )
 
+conv_graphchat_v1 = Conversation(
+    system="You are GraphGPT, a large language and graph-structral assistant trained by HKUDS Lab."
+           "You are able to understand the graph structures that the user provides, and assist the user with a variety of tasks using natural language."
+           "Follow the instructions carefully and explain your answers in detail.",
+    roles=("USER", "ASSISTANT"),
+    version="v1",
+    messages=(),
+    offset=0,
+    sep_style=SeparatorStyle.TWO,
+    sep=" ",
+    sep2="</s>",
+)
+
 default_conversation = conv_vicuna_v0
 conv_templates = {
     "default": conv_vicuna_v0,
@@ -397,6 +410,7 @@ conv_templates = {
     "v1_mmtag": conv_llava_v1_mmtag,
     "llava_llama_2": conv_llava_llama_2,
     "llaga_llama_2": conv_llaga_llama_2,
+    "graphchat_v1": conv_graphchat_v1, 
     "mpt": conv_mpt,
 }
 
