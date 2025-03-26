@@ -65,6 +65,7 @@ from .fatragnn import FatraGNNModel, Graph_Editer
 from .rohehan import RoheHAN
 from .gcil import GCILModel, LogReg 
 from .sgformer import SGFormerModel
+from .dcgc import EdgeWeight, TemperatureScaling
 
 __all__ = [
     'HeCo',
@@ -138,6 +139,8 @@ __all__ = [
     'GCILModel',
     'LogReg',
     'sgformer',
+    'EdgeWeight',
+    'TemperatureScaling',
 ]
 
 classes = __all__
