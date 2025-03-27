@@ -1,5 +1,5 @@
 import tensorlayerx as tlx
-from bga_layer import BGALayer
+from .bga_layer import BGALayer
 
 
 class BGA(tlx.nn.Module):
@@ -19,7 +19,7 @@ class BGA(tlx.nn.Module):
         self.classifier = tlx.nn.Linear(in_features=hidden_channels, out_features=out_channels)
         self.attn = []
 
-    def forward(self, x: tlx.Tensor, patch: tlx.Tensor, need_attn=False):
+    def forward(self, x, patch, need_attn=False):
         patch_mask = tlx.cast(patch != self.num_nodes - 1, dtype=tlx.float32)
         patch_mask = tlx.expand_dims(patch_mask, axis=-1)
         attn_mask = tlx.cast(tlx.matmul(patch_mask, tlx.transpose(patch_mask, perm=[0, 2, 1])), dtype=tlx.int32)
