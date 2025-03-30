@@ -107,9 +107,9 @@ class GCNConv(MessagePassing):
         
         return out
 
-    def message_aggregate(self, x, edge_index, edge_weight=None, aggr="sum"):
-        if edge_weight is None:
-            edge_weight = tlx.ones(shape=(tlx.get_tensor_shape(edge_index)[1],), dtype=tlx.float32)
-        out = gspmm(edge_index, edge_weight, x, aggr)
+    # def message_aggregate(self, x, edge_index, edge_weight=None, aggr="sum"):
+    #     if edge_weight is None:
+    #         edge_weight = tlx.ones(shape=(tlx.get_tensor_shape(edge_index)[1],), dtype=tlx.float32)
+    #     out = gspmm(edge_index, edge_weight, x, aggr)
 
-        return out
+    #     return out
