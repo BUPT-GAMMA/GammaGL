@@ -34,7 +34,7 @@ def to_dense_adj(
         edge_attr = None if edge_attr is None else tlx.mask_select(edge_attr, mask)
 
     if edge_attr is None:
-        edge_attr = tlx.ones(tlx.numel(idx0), dtype=tlx.int64)
+        edge_attr = tlx.ones((tlx.numel(idx0),), dtype=tlx.int64)
 
     size = [batch_size, max_num_nodes, max_num_nodes]
     size += tlx.get_tensor_shape(edge_attr)[1: ]
