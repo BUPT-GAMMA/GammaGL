@@ -34,11 +34,11 @@ Results
 ```bash
 
 # available dataset: "inj_cora", "inj_amazon", "reddit"
-TL_BACKEND="torch" python adagad_trainer.py --use_cfg --seeds 0 --dataset inj_cora
+TL_BACKEND="torch" python adagad_trainer.py --use_cfg --dataset inj_cora
 
-TL_BACKEND="torch" python adagad_trainer.py --use_cfg --seeds 0 --dataset inj_amazon
+TL_BACKEND="torch" python adagad_trainer.py --use_cfg --dataset inj_amazon
 
-TL_BACKEND="torch" python adagad_trainer.py --use_cfg --seeds 0 --dataset reddit
+TL_BACKEND="torch" python adagad_trainer.py --use_cfg --dataset reddit
 ```
 
 Criteria：AUC
@@ -49,4 +49,4 @@ Criteria：AUC
 | inj_amazon | 83.25±0.03 | 81.01±0.13 |
 | reddit     | 56.89±0.01 | 56.86±0.12 |
 
-![[auc_comparison_paper_vs_our.png]]
+![](auc_comparison_paper_vs_our.png)
