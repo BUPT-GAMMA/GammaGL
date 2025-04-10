@@ -65,6 +65,7 @@ from .fatragnn import FatraGNNModel, Graph_Editer
 from .rohehan import RoheHAN
 from .gcil import GCILModel, LogReg 
 from .sgformer import SGFormerModel
+from .adagad import PreModel, ReModel
 
 __all__ = [
     'HeCo',
@@ -138,6 +139,8 @@ __all__ = [
     'GCILModel',
     'LogReg',
     'sgformer',
+    'PreModel',
+    'ReModel'
 ]
 
 classes = __all__
