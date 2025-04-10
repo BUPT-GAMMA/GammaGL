@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 from tensorlayerx.utils import PyCppExtension, PyCUDAExtension, PyBuildExtension
 
 # TODO will depend on different host
-WITH_CUDA = False
+WITH_CUDA = True
 # WITH_CUDA = True
 
 cuda_macro = ('COMPILE_WITH_CUDA', True)
