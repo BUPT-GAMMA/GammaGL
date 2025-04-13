@@ -74,7 +74,7 @@ def metis_partition(g, n_patches=50):
     for i in range(n_patches):
         patch.append(list())
         # 使用 numpy 的 np.where 来代替 torch.where
-        patch[-1] = np.where(membership == i)[0].tolist()  # 归属到 i 号部分的节点
+        patch[-1] = np.where(tlx.convert_to_numpy(membership == i))[0].tolist()  # 归属到 i 号部分的节点
         max_patch_size = max(max_patch_size, len(patch[-1]))  # 更新最大的子图大小
 
     # 填充所有子图，使它们的大小一致
