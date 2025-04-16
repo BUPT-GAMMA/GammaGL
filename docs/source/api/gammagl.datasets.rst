@@ -26,3 +26,4 @@ gammagl.datasets
    gammagl.datasets.AMiner
    gammagl.datasets.PolBlogs
    gammagl.datasets.WikiCS
+   gammagl.datasets.ADDataset
