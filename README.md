@@ -496,7 +496,7 @@ GammaGL Team[GAMMA LAB] and Peng Cheng Laboratory.
 
 See more in [CONTRIBUTING](./CONTRIBUTING.md).
 
-Contribution is always welcomed. Please feel free to open an issue or email to yaoqiliu@bupt.edu.cn.
+Contribution is always welcomed. Please feel free to open an issue or email to cuishanyuanai@bupt.edu.cn.
 
 ## Cite GammaGL
 If you use GammaGL in a scientific publication, we would appreciate citations to the following paper:
