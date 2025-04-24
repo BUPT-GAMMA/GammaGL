@@ -172,11 +172,9 @@ class VGAE(Module):
         self.dc = InnerProductDecoder(dropout, act=lambda x: x)
 
     def encode(self, x, adj):
-        # 确保输入张量在正确的设备上
         backend = tlx.BACKEND
         if backend == 'torch':
             import torch
-            # 检查设备并确保一致性
             if isinstance(x, torch.Tensor) and isinstance(adj, torch.Tensor):
                 if x.device != adj.device:
                     adj = adj.to(x.device)
@@ -193,11 +191,9 @@ class VGAE(Module):
             return mu
 
     def forward(self, x, adj):
-        # 确保输入张量在正确的设备上
         backend = tlx.BACKEND
         if backend == 'torch':
             import torch
-            # 检查设备并确保一致性
             if isinstance(x, torch.Tensor) and isinstance(adj, torch.Tensor):
                 if x.device != adj.device:
                     adj = adj.to(x.device)
@@ -221,8 +217,6 @@ class Discriminator(Module):
     """
     def __init__(self, hidden_dim1, hidden_dim2, hidden_dim3):
         super(Discriminator, self).__init__()
-        
-        # Sequential network for discrimination
         self.dis = tlx.nn.Sequential([
             Linear(out_features=hidden_dim3, in_features=hidden_dim2, 
                   W_init=tlx.initializers.HeNormal()),
@@ -241,7 +235,6 @@ class Discriminator(Module):
 
 
 class InnerProductDecoder(Module):
-    """内积解码器"""
     def __init__(self, dropout=0., act=tlx.sigmoid, name=None):
         super(InnerProductDecoder, self).__init__(name=name)
         self.dropout = dropout
@@ -249,49 +242,31 @@ class InnerProductDecoder(Module):
         self.dropout_layer = Dropout(p=dropout)
 
     def forward(self, z):
-        """
-        解码器前向传播，在 CPU 上计算避免 OOM
-        """
-        # 应用dropout
         z = self.dropout_layer(z)
-        
         try:
-            # 获取当前后端
             backend = tlx.BACKEND
             
-            # 对于 TensorFlow 后端，在 CPU 上计算
             if backend == 'tensorflow':
                 import tensorflow as tf
-                print("在 CPU 上执行内积解码器计算...")
                 with tf.device('/CPU:0'):
                     adj = tlx.matmul(z, tlx.transpose(z))
                     if self.act is not None:
                         adj = self.act(adj)
                     return adj
-            
-            # 对于 PyTorch 后端，确保在正确的设备上计算
             elif backend == 'torch':
                 import torch
-                # 获取设备
                 device = z.device
                 adj = tlx.matmul(z, tlx.transpose(z))
                 if self.act is not None:
                     adj = self.act(adj)
                 return adj
-            
-            # 对于其他后端，直接计算
             adj = tlx.matmul(z, tlx.transpose(z))
             if self.act is not None:
                 adj = self.act(adj)
             return adj
             
         except Exception as e:
-            print(f"内积解码器出错: {e}")
-            print("尝试使用NumPy在CPU上计算...")
-            
-            # 最后的备选方案：使用NumPy在CPU上计算
             try:
-                # 对于 PyTorch 后端，确保先将张量移动到 CPU
                 if backend == 'torch':
                     z_cpu = z.cpu()
                     z_np = tlx.convert_to_numpy(z_cpu)
@@ -303,23 +278,18 @@ class InnerProductDecoder(Module):
                     if self.act == tlx.sigmoid:
                         adj_np = 1.0 / (1.0 + np.exp(-adj_np))
                     else:
-                        # 对于其他激活函数，先转回张量再应用
-                        # 对于 PyTorch 后端，确保在正确的设备上
                         if backend == 'torch':
                             adj = tlx.convert_to_tensor(adj_np).to(z.device)
                         else:
                             adj = tlx.convert_to_tensor(adj_np)
                         adj = self.act(adj)
                         return adj
-                
-                # 对于 PyTorch 后端，确保在正确的设备上
                 if backend == 'torch':
                     return tlx.convert_to_tensor(adj_np).to(z.device)
                 else:
                     return tlx.convert_to_tensor(adj_np)
             except Exception as np_e:
-                print(f"NumPy计算也失败: {np_e}")
-                raise e  # 重新抛出原始异常
+                raise e 
 
 
 
