@@ -40,20 +40,16 @@ def cluster_alignment_simple(data, bottom_pred, models_pred_labels_tensor_list):
     cluster_num = tlx.reduce_max(tlx.convert_to_tensor(data.labels)) + 1
     n_nodes = data.features.shape[0]
     
-    # 确保bottom_pred是numpy数组
     if not isinstance(bottom_pred, np.ndarray):
         bottom_pred = tlx.convert_to_numpy(bottom_pred)
     
-    # 创建one-hot张量
     indices = np.arange(len(bottom_pred))
     one_hot = np.zeros((len(bottom_pred), cluster_num))
     one_hot[indices, bottom_pred] = 1
     bottom_label_one_hot = tlx.convert_to_numpy(tlx.convert_to_tensor(one_hot))
     
-    # 转换所有模型预测标签为numpy数组
     numpy_models_pred_labels = []
     for tensor in models_pred_labels_tensor_list:
-        # 检查是否已经是NumPy数组
         if isinstance(tensor, np.ndarray):
             numpy_models_pred_labels.append(tensor)
         else:

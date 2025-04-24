@@ -23,25 +23,21 @@ class PairwiseAttrSim(nn.Module):
         self.gcn2 = GraphConvolution(nhid2, nhid2, dropout, act=lambda x: x)
         self.disc2 = nn.Linear(in_features=nhid2, out_features=self.nclass, name="linear_18")
         
-        # 移除 LogSoftmax 层，直接使用 softmax_cross_entropy 损失函数
 
     def build_knn(self, X, k=10):
         args = self.args
         if not os.path.exists(f'saved/{args.dataset}_knn_{k}.npz'):
             print("performance buliding knn...")
             from sklearn.neighbors import kneighbors_graph
-            # 确保X是numpy数组
             if not isinstance(X, np.ndarray):
                 X = tlx.convert_to_numpy(X)
             A_knn = kneighbors_graph(X, k, mode='connectivity',
                             metric='cosine', include_self=True, n_jobs=4)
-            # 保存结果
             if not os.path.exists('saved'):
                 os.makedirs('saved')
             sp.save_npz(f'saved/{args.dataset}_knn_{k}.npz', A_knn)
         else:
             A_knn = sp.load_npz(f'saved/{args.dataset}_knn_{k}.npz')
-        # 转换为TensorLayerX张量
         self.edge_index_knn = tlx.convert_to_tensor(np.array(A_knn.nonzero()), dtype=tlx.int64)
 
     def sample(self, n_samples=4000):
@@ -71,14 +67,10 @@ class PairwiseAttrSim(nn.Module):
         return sampled_edges, labels
 
     def negative_sampling(self, edge_index, num_nodes, num_neg_samples):
-        # 简单实现负采样
-        # 将边索引转换为numpy数组
         edge_index_np = tlx.convert_to_numpy(edge_index)
         
-        # 创建边的集合，用于快速查找
         edge_set = set([(i, j) for i, j in zip(edge_index_np[0], edge_index_np[1])])
         
-        # 生成负样本
         neg_edges = []
         while len(neg_edges) < num_neg_samples:
             i = np.random.randint(0, num_nodes)
@@ -86,7 +78,6 @@ class PairwiseAttrSim(nn.Module):
             if (i, j) not in edge_set and i != j:
                 neg_edges.append([i, j])
         
-        # 转换为TensorLayerX张量
         return tlx.convert_to_tensor(np.array(neg_edges).T, dtype=tlx.int64)
 
     def gcn2_forward(self, input, adj):
@@ -99,27 +90,16 @@ class PairwiseAttrSim(nn.Module):
         embeddings0 = tlx.gather(embeddings, node_pairs[0])
         embeddings1 = tlx.gather(embeddings, node_pairs[1])
         embeddings = self.disc2(tlx.abs(embeddings0 - embeddings1))
-        # 修改：使用 softmax_cross_entropy_with_logits 替代 nll_loss
         loss = tlx.losses.softmax_cross_entropy_with_logits(embeddings, labels)
         return loss
 
     def make_loss_stage_one(self, embeddings):
         node_pairs, labels = self.sample()
-
-        #1. 转换为 TLX Tensor（防止 numpy 类型引发错误）
         node_pairs = [tlx.convert_to_tensor(pair) for pair in node_pairs]
         labels = tlx.convert_to_tensor(labels)
-
-        #2. embeddings0/1 = embeddings[node_pairs[i]]
         embeddings0 = tlx.gather(embeddings, node_pairs[0])
         embeddings1 = tlx.gather(embeddings, node_pairs[1])
-
-        #3. embeddings = self.disc1(torch.abs(...))
-        # torch.abs -> tlx.ops.abs
         embeddings = self.disc1(tlx.ops.abs(embeddings0 - embeddings1))  
-
-        #4. loss = softmax_cross_entropy
-        #合并torch.log_softmax、torch.nll_loss -> tlx.softmax_cross_entropy_with_logits
         loss = tlx.losses.softmax_cross_entropy_with_logits(embeddings, labels)  
 
         return loss

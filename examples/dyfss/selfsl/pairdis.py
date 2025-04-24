@@ -92,7 +92,6 @@ class PairwiseDistance(nn.Module):
 
         if self.num_nodes > 5000:
             runs = 10
-        # 在sample方法中
         if self.cnt % runs == 0:
             self.cnt += 1
             pos_edge_index = tlx.convert_to_tensor(self.A_3_aug[all_target_nodes].nonzero(), dtype=tlx.int64)
@@ -116,7 +115,6 @@ class PairwiseDistance(nn.Module):
         embeddings0 = embeddings[node_pairs[0]]
         embeddings1 = embeddings[node_pairs[1]]
         embeddings = self.disc2(tlx.abs(embeddings0 - embeddings1))
-        # 修改：使用 softmax_cross_entropy_with_logits 替代 log_softmax 和 nll_loss
         loss = tlx.losses.softmax_cross_entropy_with_logits(embeddings, labels)
         return loss
 
@@ -125,7 +123,6 @@ class PairwiseDistance(nn.Module):
         embeddings0 = embeddings[node_pairs[0]]
         embeddings1 = embeddings[node_pairs[1]]
         embeddings = self.disc1(tlx.abs(embeddings0 - embeddings1))
-        # 修改：使用 softmax_cross_entropy_with_logits 替代 log_softmax 和 nll_loss
         loss = tlx.losses.softmax_cross_entropy_with_logits(embeddings, labels)
         return loss
 
@@ -158,7 +155,6 @@ def work_wrapper(args):
     return worker(*args)
 
 
-# 修改worker函数，添加种子参数
 def worker(n, kn, A_list, all_target_nodes, seed=42):
     labels = []
     sampled_edges = []
@@ -171,7 +167,6 @@ def worker(n, kn, A_list, all_target_nodes, seed=42):
         if num_edges <= kn:
             idx_selected = np.arange(num_edges)
         else:
-            # 使用固定种子确保结果可复现
             idx_selected = np.random.default_rng(seed).choice(num_edges,
                             kn, replace=False).astype(np.int32)
         labels.append(tlx.ones((len(idx_selected),), dtype=tlx.int64) * ii)
@@ -181,7 +176,6 @@ def worker(n, kn, A_list, all_target_nodes, seed=42):
     sampled_edges = tlx.concat(sampled_edges, axis=1)
     return labels, sampled_edges
 
-# 修改work_wrapper函数，传递种子参数
 def work_wrapper(args):
     if len(args) == 4:
         n, kn, A_list, all_target_nodes = args
@@ -190,7 +184,6 @@ def work_wrapper(args):
         n, kn, A_list, all_target_nodes, seed = args
         return worker(n, kn, A_list, all_target_nodes, seed)
 
-# 修改multi_sample方法，传递种子参数
 def multi_sample(self, n, kn, A_list, all):
     seed = getattr(self.args, 'seed', 42)
     params = [(n, kn, A_list, all, seed), (n, kn, A_list, all, seed),
@@ -202,21 +195,16 @@ def multi_sample(self, n, kn, A_list, all):
     pool.join()
     return data
 
-# 修改negative_sampling函数，添加种子参数
 def negative_sampling(edge_index, num_nodes, num_neg_samples, seed=42):
-    """生成负采样边"""
-    # 转换为numpy数组处理
+
     edge_index_np = tlx.convert_to_numpy(edge_index)
     
-    # 创建所有可能的边的集合
     existing_edges = set()
     for i in range(edge_index_np.shape[1]):
         existing_edges.add((edge_index_np[0, i], edge_index_np[1, i]))
     
-    # 使用固定种子的随机数生成器
     rng = np.random.default_rng(seed)
     
-    # 生成负采样边
     neg_edges = []
     while len(neg_edges) < num_neg_samples:
         i = rng.integers(0, num_nodes)
@@ -225,6 +213,5 @@ def negative_sampling(edge_index, num_nodes, num_neg_samples, seed=42):
             neg_edges.append([i, j])
             existing_edges.add((i, j))
     
-    # 转换为张量
     neg_edges = tlx.convert_to_tensor(np.array(neg_edges).T, dtype=tlx.int64)
     return neg_edges

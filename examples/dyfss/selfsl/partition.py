@@ -30,13 +30,9 @@ class Par(nn.Module):
         self.gcn = encoder
         self.gcn2 = GraphConvolution(nhid2, nhid2, dropout, act=lambda x: x)
         self.disc2 = nn.Linear(in_features=nhid2, out_features=self.nparts)
-
-    # 修改第24-25行
-    # 确保使用tlx的张量转换方法
     def make_loss_stage_two(self, encoder_features, adj_norm):
         embeddings = self.gcn2_forward(encoder_features, adj_norm)
         embeddings = self.disc2(embeddings)
-        # 修改：使用 softmax_cross_entropy_with_logits 替代 log_softmax 和 nll_loss
         loss = tlx.losses.softmax_cross_entropy_with_logits(
             output=embeddings[self.sampled_indices], 
             target=self.pseudo_labels[self.sampled_indices]
@@ -45,7 +41,6 @@ class Par(nn.Module):
 
     def make_loss_stage_one(self, embeddings):
         embeddings = self.disc1(embeddings)
-        # 修改：使用 softmax_cross_entropy_with_logits 替代 log_softmax 和 nll_loss
         loss = tlx.losses.softmax_cross_entropy_with_logits(
             output=embeddings[self.sampled_indices], 
             target=self.pseudo_labels[self.sampled_indices]

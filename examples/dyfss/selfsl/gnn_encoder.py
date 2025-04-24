@@ -17,10 +17,8 @@ class GraphConvolution(nn.Module):
             self.bias = None
         self.reset_parameters()
 
-    # 修改初始化参数方法
     def reset_parameters(self):
         stdv = 1. / math.sqrt(self.weight.shape[1])
-        # 使用 TensorLayerX 的初始化方式
         self.weight = tlx.ops.assign(self.weight, 
                                    tlx.initializers.RandomUniform(-stdv, stdv)(self.weight.shape))
         if self.bias is not None:
@@ -33,7 +31,7 @@ class GraphConvolution(nn.Module):
         else:
             support = tlx.matmul(input, self.weight)
             
-        if isinstance(adj, tuple):  # 稀疏格式
+        if isinstance(adj, tuple):  
             indices, values, shape = adj
             output = tlx.sparse_dense_matmul(indices, values, shape, support)
         else:

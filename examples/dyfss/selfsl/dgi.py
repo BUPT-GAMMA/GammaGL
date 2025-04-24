@@ -18,27 +18,19 @@ class DGI(nn.Module):
         self.data = data
         self.processed_data = processed_data
         self.device = device
-
         self.read = AvgReadout()
-        # 使用TensorLayerX的Sigmoid替代PyTorch的Sigmoid
         self.sigm = nn.Sigmoid()
         self.disc1 = Discriminator(nhid1)
-        # 使用TensorLayerX的sigmoid_cross_entropy替代PyTorch的BCEWithLogitsLoss
         self.b_xent = tlx.losses.sigmoid_cross_entropy
-
         self.encoder = encoder
         self.gcn2 = GraphConvolution(nhid2, nhid2, dropout, act=lambda x: x)
         self.disc2 = Discriminator(nhid2)
-
         pseudo_labels = self.get_label()
-        # 移除.to(device)调用，TensorLayerX会自动处理设备分配
         self.pseudo_labels = pseudo_labels
-        # 添加num_nodes属性
         self.num_nodes = data.adj.shape[0]
 
     def get_label(self):
         nb_nodes = self.processed_data.features.shape[0]
-        # 使用TensorLayerX的ones和zeros替代PyTorch的ones和zeros
         lbl_1 = tlx.ones((nb_nodes,))
         lbl_2 = tlx.zeros((nb_nodes,))
         lbl = tlx.concat([lbl_1, lbl_2], axis=0)
@@ -102,7 +94,7 @@ class DGI(nn.Module):
 
 
 
-class DGISample(nn.Module):  # 将nn.Module改为tlx_nn.Module
+class DGISample(nn.Module):  
 
     def __init__(self, data, processed_data, encoder, nhid1, nhid2, dropout, device, **kwargs):
         super(DGISample, self).__init__()
@@ -110,15 +102,10 @@ class DGISample(nn.Module):  # 将nn.Module改为tlx_nn.Module
         self.data = data
         self.processed_data = processed_data
         self.device = device
-
         self.read = AvgReadout()
-        # 使用TensorLayerX的Sigmoid替代PyTorch的Sigmoid
         self.sigm = nn.Sigmoid()
         self.disc1 = Discriminator(nhid1)
-        # 使用TensorLayerX的sigmoid_cross_entropy替代PyTorch的BCEWithLogitsLoss
         self.b_xent = tlx.losses.sigmoid_cross_entropy
-
-
         self.encoder = encoder
         self.gcn2 = GraphConvolution(nhid2, nhid2, dropout, act=lambda x: x)
         self.disc2 = Discriminator(nhid2)
@@ -128,12 +115,12 @@ class DGISample(nn.Module):  # 将nn.Module改为tlx_nn.Module
         else:
             self.sample_size = 2000
         self.pseudo_labels = self.get_label()
-        # self.b_xent = nn.BCEWithLogitsLoss()
+
         self.b_xent = tlx.losses.sigmoid_cross_entropy        
         self.num_nodes = data.adj.shape[0]
 
     def get_label(self):
-        # 使用TensorLayerX的ones和zeros替代PyTorch的ones和zeros
+   
         lbl_1 = tlx.ones((self.sample_size,))
         lbl_2 = tlx.zeros((self.sample_size,))
         lbl = tlx.concat([lbl_1, lbl_2], axis=0)
@@ -157,13 +144,11 @@ class DGISample(nn.Module):  # 将nn.Module改为tlx_nn.Module
 
         logits = self.forward2(features, shuf_fts, adj, None, None, None, None, embeddings)
         loss = self.b_xent(logits, self.pseudo_labels)
-        # print('Loss:', loss.item())
         return loss
 
     def forward2(self, seq1, seq2, adj, sparse, msk, samp_bias1, samp_bias2, embedding=None):
         idx = np.random.default_rng(self.args.seed).choice(self.num_nodes,
                 self.sample_size, replace=False)
-        # TODO: remove sparse
         if embedding is None:
             _, _, _, _, h_1 = self.encoder(seq1, adj)[idx]
         else:
