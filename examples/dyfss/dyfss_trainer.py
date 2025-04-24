@@ -512,7 +512,7 @@ if __name__ == '__main__':
     parser.add_argument('--hid_dim', type=list, default=[256, 128, 16], help='Hidden dimensions for encoder and discriminator')
     parser.add_argument('--lr_pretrain', type=float, default=0.001, help='Learning rate for pretraining')
     parser.add_argument('--lr_train_fusion', type=float, default=0.001, help='Learning rate for fusion training')
-    parser.add_argument('--pretrain_epochs', type=int, default=200, help='Number of pretraining epochs')
+    parser.add_argument('--pretrain_epochs', type=int, default=600, help='Number of pretraining epochs')
     parser.add_argument('--labels_epochs', type=int, default=200, help='Number of fusion training epochs')
     parser.add_argument('--w_ssl_stage_one', type=float, default=0.1, help='Weight for SSL loss in stage one')
     parser.add_argument('--w_ssl_stage_two', type=float, default=0.1, help='Weight for SSL loss in stage two')
