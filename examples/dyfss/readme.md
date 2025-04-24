@@ -1,4 +1,4 @@
-# Graph Contrastive Learning with Stable and Scalable
+# Every Node is Different: Dynamically Fusing Self-Supervised Tasks for Attributed Graph Clustering
 
 - Paper link: [https://arxiv.org/abs/2401.06595](https://arxiv.org/abs/2401.06595)
 - Author's code repo: [https://github.com/q086/DyFSS](https://github.com/q086/DyFSS).
@@ -27,7 +27,7 @@ TL_BACKEND="torch" python dyfss_trainer.py --dataset photo --lr 0.001 --pretrain
 
 | Dataset  | Paper Code | Out(th)    |
 | -------- | ---------- | ---------- |
-| Cora     | 60.7±0.3   | 61.7±0.76  |
-| Citeseer | 56.3±0.19  | 66.0±0.20  |
-| Photo    | 79.4±0.13  | 79.2±0.34  |
+| Cora     | 60.7±0.70  | 61.7±0.74  |
+| Citeseer | 56.3±0.62  | 66.0±0.76  |
+| Photo    | 79.4±0.47  | 79.2±1.16  |
 
