@@ -32,7 +32,7 @@ from .mlp import MLP
 from .graphgan_generator import Generator
 from .graphgan_discriminator import Discriminator
 from .graphgan import GraphGAN
-from .vgae import VGAEModel, GAEModel,Discriminator,InnerProductDecoder
+from .vgae import VGAEModel, GAEModel,InnerProductDecoder
 from .gen import GEstimationN
 from .skipgram import SkipGramModel
 from .deepwalk import DeepWalkModel
