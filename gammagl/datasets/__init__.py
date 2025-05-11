@@ -29,6 +29,7 @@ from .acm4dhn import ACM4DHN
 from .acm4rohe import ACM4Rohe
 from .actor import Actor
 from .deezer_europe import DeezerEurope
+from .ADDataset import ADDataset
 
 __all__ = [
     'ACM4HeCo',
@@ -61,6 +62,7 @@ __all__ = [
     'ACM4Rohe',
     'Actor',
     'DeezerEurope',
+    'ADDataset'
 ]
 
 classes = __all__
