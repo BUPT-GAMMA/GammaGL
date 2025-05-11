@@ -107,3 +107,5 @@ Model
     gammagl.models.CAGCNModel
     gammagl.models.CoGSLModel
     gammagl.models.Specformer
+    gammagl.models.PreModel
+    gammagl.models.ReModel

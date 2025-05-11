@@ -65,6 +65,7 @@ from .fatragnn import FatraGNNModel, Graph_Editer
 from .rohehan import RoheHAN
 from .gcil import GCILModel, LogReg 
 from .sgformer import SGFormerModel
+from .adagad import PreModel, ReModel
 from .dyfss import MoeSSL,VGAE,Discriminator,InnerProductDecoder
 
 __all__ = [
@@ -140,6 +141,8 @@ __all__ = [
     'GCILModel',
     'LogReg',
     'sgformer',
+    'PreModel',
+    'ReModel'
     'MoeSSL',
     'VGAE',
     'Discriminator',
