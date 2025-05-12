@@ -48,14 +48,12 @@ class MoeSSL(tlx.nn.Module):
     args : argparse.Namespace
         Model configuration arguments.
     """
-    def __init__(self, data, encoder, modeldis, set_of_ssl, args, device='cuda',**kwargs):
+    def __init__(self, data, encoder, modeldis, set_of_ssl, args, **kwargs):
         super(MoeSSL, self).__init__()
         self.args = args
         self.n_tasks = len(set_of_ssl)
         self.set_of_ssl = set_of_ssl
         self.name = "MoeSSL"
-        self.device = device
-        
         self.encoder = encoder
         self.modeldis = modeldis
         self.weight = tlx.ones((len(set_of_ssl),), dtype=tlx.float32)
@@ -63,7 +61,6 @@ class MoeSSL(tlx.nn.Module):
         self.ssl_agent = []
         self.optimizer_dec = None
         self.optimizer_dis = None
-
         self.data = data
         self.processed_data = EmptyData()
         self.data_process()
@@ -72,7 +69,8 @@ class MoeSSL(tlx.nn.Module):
 
     def data_process(self):
         features, adj, labels = to_tensor(self.data.features,
-                                          self.data.adj, self.data.labels, device=self.device)
+                                            self.data.adj, self.data.labels)
+        
         adj_norm = normalize_adj_tensor(adj, sparse=True)
         self.processed_data.adj_norm = adj_norm
         self.processed_data.features = features
@@ -95,20 +93,42 @@ class MoeSSL(tlx.nn.Module):
     def setup_ssl(self, set_of_ssl):
         args = self.args
         self.params = list(self.encoder.trainable_weights)
+        
         for ix, ssl in enumerate(set_of_ssl):
-    
-            agent = eval(ssl)(data=self.data,
-                              processed_data=self.processed_data,
-                              encoder=self.encoder,
-                              nhid1=self.args.hid_dim[0],
-                              nhid2=self.args.hid_dim[1],
-                              dropout=0.0,
-                              device=self.device,
-                              args=args)
-    
+            if tlx.BACKEND == 'tensorflow':
+                import tensorflow as tf
+                with tf.name_scope(f"ssl_agent_{ix}"):
+                    agent = eval(ssl)(data=self.data,
+                                    processed_data=self.processed_data,
+                                    encoder=self.encoder,
+                                    nhid1=self.args.hid_dim[0],
+                                    nhid2=self.args.hid_dim[1],
+                                    dropout=0.0,
+                                    args=args)
+            else:
+                agent = eval(ssl)(data=self.data,
+                                processed_data=self.processed_data,
+                                encoder=self.encoder,
+                                nhid1=self.args.hid_dim[0],
+                                nhid2=self.args.hid_dim[1],
+                                dropout=0.0,
+                                args=args)
+            
             self.ssl_agent.append(agent)
             if agent.disc1 is not None:
-                self.params = self.params + list(agent.disc1.trainable_weights)
+                if tlx.BACKEND == 'tensorflow':
+                    clean_weights = []
+                    for weight in agent.disc1.trainable_weights:
+                        if hasattr(weight, 'name') and '/' in weight.name:
+                            import tensorflow as tf
+                            new_name = weight.name.replace('/', '_')
+                            new_var = tf.Variable(weight.value(), name=new_name)
+                            clean_weights.append(new_var)
+                        else:
+                            clean_weights.append(weight)
+                    self.params = self.params + clean_weights
+                else:
+                    self.params = self.params + list(agent.disc1.trainable_weights)
     
     def FeatureFusionForward(self, z_embeddings):
         nodes_weight_ori, loss_balan = self.gate(z_embeddings, 0)
@@ -116,33 +136,56 @@ class MoeSSL(tlx.nn.Module):
         
         # Get embeddings from each SSL agent
         for ix, ssl in enumerate(self.ssl_agent):
-            ssl.train()
+            ssl.set_train()
             ssl_embeddings = ssl.gcn2_forward(z_embeddings, self.processed_data.adj_norm)
             ssl_embeddings_list.append(ssl_embeddings)
             
-        # Stack and prepare for weighted fusion
-        ssl_emb_tensor = tlx.stack(ssl_embeddings_list)
-        ssl_emb_tensor = ssl_emb_tensor.transpose(0, 1)
+        try:
+            ssl_emb_tensor = tlx.stack(ssl_embeddings_list)
+            ssl_emb_tensor = tlx.transpose(ssl_emb_tensor, [1, 0, 2])
+        except Exception as e:
+            print(f"Error in stacking or transposing tensors: {e}")
+            import numpy as np
+            ssl_emb_list_np = [tlx.convert_to_numpy(emb) for emb in ssl_embeddings_list]
+            ssl_emb_tensor_np = np.stack(ssl_emb_list_np)
+            ssl_emb_tensor_np = np.transpose(ssl_emb_tensor_np, (1, 0, 2))
+            ssl_emb_tensor = tlx.convert_to_tensor(ssl_emb_tensor_np)
         
-        # Expand weights for element-wise multiplication
-        nodes_weight = tlx.expand_dims(nodes_weight_ori, 2)
-        nodes_weight = tlx.tile(nodes_weight, [1, 1, self.args.hid_dim[1]])
+        try:
+            nodes_weight = tlx.expand_dims(nodes_weight_ori, 2)
+            nodes_weight = tlx.tile(nodes_weight, [1, 1, self.args.hid_dim[1]])
+        except Exception as e:
+            print(f"Error in expanding dimensions: {e}")
+            import numpy as np
+            nodes_weight_np = tlx.convert_to_numpy(nodes_weight_ori)
+            nodes_weight_np = np.expand_dims(nodes_weight_np, 2)
+            nodes_weight_np = np.tile(nodes_weight_np, [1, 1, self.args.hid_dim[1]])
+            nodes_weight = tlx.convert_to_tensor(nodes_weight_np)
         
         # Weighted sum to get fusion embeddings
-        fusion_emb = tlx.reduce_sum(ssl_emb_tensor * nodes_weight, axis=1)
+        try:
+            fusion_emb = tlx.reduce_sum(ssl_emb_tensor * nodes_weight, axis=1)
+        except Exception as e:
+            print(f"Error in weighted sum: {e}")
+            import numpy as np
+            ssl_emb_tensor_np = tlx.convert_to_numpy(ssl_emb_tensor)
+            nodes_weight_np = tlx.convert_to_numpy(nodes_weight)
+            fusion_emb_np = np.sum(ssl_emb_tensor_np * nodes_weight_np, axis=1)
+            fusion_emb = tlx.convert_to_tensor(fusion_emb_np)
+        
         return fusion_emb, loss_balan, nodes_weight_ori
 
     def get_ssl_loss_stage_one(self, x):
         loss = 0
         for ix, ssl in enumerate(self.ssl_agent):
-            ssl.train()
+            ssl.set_train()
             loss = loss + ssl.make_loss_stage_one(x)
         return loss
 
     def get_ssl_loss_stage_two(self, x, adj):
         loss = 0
         for ix, ssl in enumerate(self.ssl_agent):
-            ssl.train()
+            ssl.set_train()
             ssl_loss = ssl.make_loss_stage_two(x, adj)
             loss = loss + ssl_loss
         return loss
@@ -167,17 +210,50 @@ class VGAE(Module):
     def __init__(self, input_feat_dim, hidden_dim1, hidden_dim2, dropout, cluster_num):
         super(VGAE, self).__init__()
         self.gc1 = GraphConvolution(input_feat_dim, hidden_dim1, dropout, act=tlx.nn.ReLU())
-        self.gc2 = GraphConvolution(hidden_dim1, hidden_dim2, dropout, act=lambda x: x)   # mu
-        self.gc3 = GraphConvolution(hidden_dim1, hidden_dim2, dropout, act=lambda x: x)   # logvar
+        self.gc2 = GraphConvolution(hidden_dim1, hidden_dim2, dropout, act=lambda x: x)
+        self.gc3 = GraphConvolution(hidden_dim1, hidden_dim2, dropout, act=lambda x: x)
         self.dc = InnerProductDecoder(dropout, act=lambda x: x)
 
     def encode(self, x, adj):
         backend = tlx.BACKEND
-        if backend == 'torch':
+        
+        x = tlx.convert_to_tensor(x)
+        
+        if isinstance(adj, tuple):
+            indices, values, shape = adj
+            indices = tlx.convert_to_tensor(indices)
+            values = tlx.convert_to_tensor(values)
+        elif backend == 'tensorflow':
+            import tensorflow as tf
             import torch
-            if isinstance(x, torch.Tensor) and isinstance(adj, torch.Tensor):
-                if x.device != adj.device:
-                    adj = adj.to(x.device)
+            if hasattr(adj, 'indices') and hasattr(adj, 'values') and hasattr(adj, 'dense_shape'):
+                pass
+            elif isinstance(adj, torch.Tensor):
+                if adj.is_sparse:
+                    adj = adj.to_dense()
+                import numpy as np
+                adj = tlx.convert_to_tensor(adj.detach().cpu().numpy())
+            elif hasattr(adj, 'todense'):
+                import numpy as np
+                adj = tlx.convert_to_tensor(np.array(adj.todense(), dtype='float32'))
+            else:
+                adj = tlx.convert_to_tensor(adj)
+        elif backend == 'torch':
+            import torch
+            if isinstance(adj, torch.Tensor) and adj.is_sparse:
+                adj = adj.to_dense()
+                adj = tlx.convert_to_tensor(adj)
+            elif hasattr(adj, 'todense'):
+                import numpy as np
+                adj = tlx.convert_to_tensor(np.array(adj.todense(), dtype='float32'))
+            else:
+                adj = tlx.convert_to_tensor(adj)
+        else:
+            if hasattr(adj, 'todense'):
+                import numpy as np
+                adj = tlx.convert_to_tensor(np.array(adj.todense(), dtype='float32'))
+            else:
+                adj = tlx.convert_to_tensor(adj)
         
         hidden1 = self.gc1(x, adj)
         return hidden1, self.gc2(hidden1, adj), self.gc3(hidden1, adj)
@@ -191,13 +267,6 @@ class VGAE(Module):
             return mu
 
     def forward(self, x, adj):
-        backend = tlx.BACKEND
-        if backend == 'torch':
-            import torch
-            if isinstance(x, torch.Tensor) and isinstance(adj, torch.Tensor):
-                if x.device != adj.device:
-                    adj = adj.to(x.device)
-        
         hidden, mu, logvar = self.encode(x, adj)
         z = self.reparameterize(mu, logvar)
         return hidden, self.dc(z), mu, logvar, z
@@ -217,6 +286,7 @@ class Discriminator(Module):
     """
     def __init__(self, hidden_dim1, hidden_dim2, hidden_dim3):
         super(Discriminator, self).__init__()
+        
         self.dis = tlx.nn.Sequential([
             Linear(out_features=hidden_dim3, in_features=hidden_dim2, 
                   W_init=tlx.initializers.HeNormal()),
@@ -242,54 +312,14 @@ class InnerProductDecoder(Module):
         self.dropout_layer = Dropout(p=dropout)
 
     def forward(self, z):
+
         z = self.dropout_layer(z)
-        try:
-            backend = tlx.BACKEND
-            
-            if backend == 'tensorflow':
-                import tensorflow as tf
-                with tf.device('/CPU:0'):
-                    adj = tlx.matmul(z, tlx.transpose(z))
-                    if self.act is not None:
-                        adj = self.act(adj)
-                    return adj
-            elif backend == 'torch':
-                import torch
-                device = z.device
-                adj = tlx.matmul(z, tlx.transpose(z))
-                if self.act is not None:
-                    adj = self.act(adj)
-                return adj
+        backend = tlx.BACKEND
+        
+        if backend == 'tensorflow':
+            import tensorflow as tf
+            adj = tf.matmul(z, tf.transpose(z))
+        else:
             adj = tlx.matmul(z, tlx.transpose(z))
-            if self.act is not None:
-                adj = self.act(adj)
-            return adj
-            
-        except Exception as e:
-            try:
-                if backend == 'torch':
-                    z_cpu = z.cpu()
-                    z_np = tlx.convert_to_numpy(z_cpu)
-                else:
-                    z_np = tlx.convert_to_numpy(z)
-                
-                adj_np = np.matmul(z_np, z_np.T)
-                if self.act is not None:
-                    if self.act == tlx.sigmoid:
-                        adj_np = 1.0 / (1.0 + np.exp(-adj_np))
-                    else:
-                        if backend == 'torch':
-                            adj = tlx.convert_to_tensor(adj_np).to(z.device)
-                        else:
-                            adj = tlx.convert_to_tensor(adj_np)
-                        adj = self.act(adj)
-                        return adj
-                if backend == 'torch':
-                    return tlx.convert_to_tensor(adj_np).to(z.device)
-                else:
-                    return tlx.convert_to_tensor(adj_np)
-            except Exception as np_e:
-                raise e 
-
-
-
+        
+        return self.act(adj)

@@ -17,9 +17,10 @@ Results
 -------
 
 ```bash
-TL_BACKEND="torch" python dyfss_trainer.py --dataset cora --lr 0.001 --pretrain_epochs 1000 --use_ckpt 0 --labels_epochs 500
-TL_BACKEND="torch" python dyfss_trainer.py --dataset citeseer --lr 0.001 --pretrain_epochs 1000 --use_ckpt 0 --labels_epochs 500
-TL_BACKEND="torch" python dyfss_trainer.py --dataset photo --lr 0.001 --pretrain_epochs 1000 --use_ckpt 0 --labels_epochs 500
+cd GammaGL/examples/dyfss
+TL_BACKEND="torch" python dyfss_trainer.py --dataset cora --pretrain_epochs 1000 --use_ckpt 0 --labels_epochs 500 --top_k 5
+TL_BACKEND="torch" python dyfss_trainer.py --dataset citeseer --pretrain_epochs 1000 --use_ckpt 0 --labels_epochs 500 --top_k 5
+TL_BACKEND="torch" python dyfss_trainer.py --dataset photo --pretrain_epochs 1000 --use_ckpt 0 --labels_epochs 500 --top_k 5
 ```
 
 
@@ -27,7 +28,7 @@ TL_BACKEND="torch" python dyfss_trainer.py --dataset photo --lr 0.001 --pretrain
 
 | Dataset  | Paper Code | Out(th)    |
 | -------- | ---------- | ---------- |
-| Cora     | 60.7±0.70  | 61.7±0.74  |
-| Citeseer | 56.3±0.62  | 66.0±0.76  |
+| Cora     | 60.7±0.70  | 61.7±2.74  |
+| Citeseer | 56.3±0.62  | 66.0±2.76  |
 | Photo    | 79.4±0.47  | 79.2±1.16  |
 
