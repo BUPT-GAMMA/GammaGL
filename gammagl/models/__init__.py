@@ -139,7 +139,7 @@ __all__ = [
     'GCILModel',
     'LogReg',
     'sgformer',
-    'EGTModel'
+    'EGTModel',
 ]
 
 classes = __all__

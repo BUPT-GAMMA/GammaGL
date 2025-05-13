@@ -31,6 +31,7 @@ from .actor import Actor
 from .deezer_europe import DeezerEurope
 from .pcqm4mv2 import (
     PCQM4Mv2,
+    PCQM4Mv2Dataset,
     PCQM4Mv2GraphDataset,
     PCQM4Mv2SVDGraphDataset,
     PCQM4Mv2StructuralGraphDataset
@@ -68,6 +69,7 @@ __all__ = [
     'Actor',
     'DeezerEurope',
     'PCQM4Mv2',
+    'PCQM4Mv2Dataset',
     'PCQM4Mv2GraphDataset',
     'PCQM4Mv2SVDGraphDataset',
     'PCQM4Mv2StructuralGraphDataset',
