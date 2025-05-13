@@ -43,7 +43,7 @@ from .herec import HERec
 from .metapath2vec import MetaPath2Vec
 from .iehgcn import ieHGCNModel
 from .tadw import TADWModel
-from .mgnni import MGNNI_m_MLP, MGNNI_m_att 
+from .mgnni import MGNNI_m_MLP, MGNNI_m_att
 from .magcl import NewGrace
 from .cagcn import CAGCNModel
 from .cogsl import CoGSLModel
@@ -63,8 +63,9 @@ from .dna import DNAModel
 from .dfad import DFADModel, DFADGenerator
 from .fatragnn import FatraGNNModel, Graph_Editer
 from .rohehan import RoheHAN
-from .gcil import GCILModel, LogReg 
+from .gcil import GCILModel, LogReg
 from .sgformer import SGFormerModel
+from .egt import EGTModel
 
 __all__ = [
     'HeCo',
@@ -138,6 +139,7 @@ __all__ = [
     'GCILModel',
     'LogReg',
     'sgformer',
+    'EGTModel'
 ]
 
 classes = __all__

@@ -27,7 +27,7 @@ TL_BACKEND="torch" python examples/egt/egt_trainer.py examples/egt/config.yaml
 TL_BACKEND="tensorflow" python examples/egt/egt_trainer.py examples/egt/config.yaml
 ```
 
-| Dataset  | Paper      | Our(torch)      | Our(tf)   |
-| -------- | ---------- | ------------ | ------------ |
-| PCQM4Mv2 | 0.0869     | 0.0873(±0.007) | 0.0884(±0.009) |
+| Dataset  | Paper      | Our(torch)     | Our(tf)        |
+| -------- | ---------- | -------------- | -------------- |
+| PCQM4Mv2 | 0.0869     | 0.0860(±0.007) | 0.0863(±0.009) |
 
