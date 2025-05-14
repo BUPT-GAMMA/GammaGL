@@ -32,7 +32,7 @@ from .mlp import MLP
 from .graphgan_generator import Generator
 from .graphgan_discriminator import Discriminator
 from .graphgan import GraphGAN
-from .vgae import VGAEModel, GAEModel
+from .vgae import VGAEModel, GAEModel,InnerProductDecoder
 from .gen import GEstimationN
 from .skipgram import SkipGramModel
 from .deepwalk import DeepWalkModel
@@ -66,9 +66,11 @@ from .rohehan import RoheHAN
 from .gcil import GCILModel, LogReg 
 from .sgformer import SGFormerModel
 from .adagad import PreModel, ReModel
+from .dyfss import MoeSSL,VGAE,Discriminator,InnerProductDecoder
 
 __all__ = [
     'HeCo',
+    'VGAE',
     'GCNModel',
     'GATModel',
     'GaANModel',
@@ -99,7 +101,7 @@ __all__ = [
     'HardGATModel',
     # 'GraphGAN',
     # 'Generator',
-    # 'Discriminator',
+    'Discriminator',
     'DGCNNModel',
     'FILMModel',
     'GEstimationN',
@@ -141,6 +143,10 @@ __all__ = [
     'sgformer',
     'PreModel',
     'ReModel'
+    'MoeSSL',
+    'VGAE',
+    'Discriminator',
+    'InnerProductDecoder'
 ]
 
 classes = __all__
