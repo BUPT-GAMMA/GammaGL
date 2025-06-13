@@ -147,7 +147,7 @@ __all__ = [
     'MoeSSL',
     'VGAE',
     'Discriminator',
-    'InnerProductDecoder'，
+    'InnerProductDecoder',
     'EGTModel',
 ]
 
