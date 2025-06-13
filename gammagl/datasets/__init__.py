@@ -69,7 +69,7 @@ __all__ = [
     'ACM4Rohe',
     'Actor',
     'DeezerEurope',
-    'ADDataset'，
+    'ADDataset',
     'PCQM4Mv2',
     'PCQM4Mv2Dataset',
     'PCQM4Mv2GraphDataset',
