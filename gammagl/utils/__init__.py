@@ -22,6 +22,9 @@ from .get_split import get_train_val_test_split
 from .get_laplacian import get_laplacian
 from .simple_path import find_all_simple_paths
 from .dotdict import HDict
+from .nasa_utils import compute_gcn_norm
+from .nasa_utils import accuracy_tlx
+
 __all__ = [
     'calc_A_norm_hat',
     'calc_gcn_norm',
@@ -50,7 +53,9 @@ __all__ = [
     'get_laplacian',
     'find_all_simple_paths',
     'edge_index_to_adj_matrix',
-    'HDict'
+    'HDict',
+    'accuracy_tlx',
+    'compute_gcn_norm',
 ]
 
 classes = __all__
