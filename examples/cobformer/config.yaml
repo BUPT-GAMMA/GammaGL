@@ -1,0 +1,67 @@
+Cora:
+  seed: 123
+  learning_rate: 0.01
+  num_hidden: 64
+  activation: 'relu'
+  base_model: 'GCNConv'
+  num_layers: 1
+  n_head: 4
+  num_epochs: 500
+  weight_decay: 0.0005
+CiteSeer:
+  seed: 123
+  learning_rate: 0.005
+  num_hidden: 64
+  activation: 'relu'
+  base_model: 'GCNConv'
+  num_layers: 1
+  n_head: 1
+  num_epochs: 500
+  weight_decay: 0.001
+PubMed:
+  seed: 123
+  learning_rate: 0.005
+  num_hidden: 64
+  activation: 'relu'
+  base_model: 'GCNConv'
+  num_layers: 1
+  n_head: 1
+  num_epochs: 500
+  weight_decay: 0.001
+ogbn-arxiv:
+  seed: 123
+  learning_rate: 0.005
+  num_hidden: 256
+  activation: 'relu'
+  base_model: 'GCNConv'
+  num_layers: 1
+  n_head: 4
+  num_epochs: 3000
+  weight_decay: 0.
+ogbn-products:
+  seed: 123
+  num_hidden: 256
+  activation: 'relu'
+  base_model: 'GCNConv'
+  n_head: 4
+  num_epochs: 1000
+film:
+  seed: 123
+  learning_rate: 0.05
+  num_hidden: 64
+  activation: 'relu'
+  base_model: 'GCNConv'
+  num_layers: 1
+  n_head: 2
+  num_epochs: 600
+  weight_decay: 0.005
+deezer:
+  seed: 123
+  learning_rate: 0.01
+  num_hidden: 96
+  activation: 'relu'
+  base_model: 'GCNConv'
+  num_layers: 1
+  n_head: 1
+  num_epochs: 200
+  weight_decay: 0.0005
