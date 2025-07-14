@@ -66,8 +66,9 @@ from .rohehan import RoheHAN
 from .gcil import GCILModel, LogReg
 from .sgformer import SGFormerModel
 from .adagad import PreModel, ReModel
-# from .dyfss import MoeSSL,VGAE,Discriminator,InnerProductDecoder
+from .dyfss import MoeSSL,VGAE,Discriminator,InnerProductDecoder
 from .egt import EGTModel
+from .CoBFormer import CoBFormer
 
 __all__ = [
     'HeCo',
@@ -149,6 +150,7 @@ __all__ = [
     'Discriminator',
     'InnerProductDecoder',
     'EGTModel',
+    'CoBFormer',
 ]
 
 classes = __all__
