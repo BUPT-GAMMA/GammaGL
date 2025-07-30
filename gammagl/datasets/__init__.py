@@ -62,16 +62,7 @@ __all__ = [
     'ACM4Rohe',
     'Actor',
     'DeezerEurope',
-<<<<<<< HEAD
-    'ADDataset',
-    'PCQM4Mv2',
-    'PCQM4Mv2Dataset',
-    'PCQM4Mv2GraphDataset',
-    'PCQM4Mv2SVDGraphDataset',
-    'PCQM4Mv2StructuralGraphDataset',
-=======
     'ADDataset'
->>>>>>> parent of 949453e ([Model] EGT (#238))
 ]
 
 classes = __all__
