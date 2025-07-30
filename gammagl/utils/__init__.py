@@ -21,7 +21,7 @@ from .shortest_path import shortest_path_distance, batched_shortest_path_distanc
 from .get_split import get_train_val_test_split
 from .get_laplacian import get_laplacian
 from .simple_path import find_all_simple_paths
-from .dotdict import HDict
+
 __all__ = [
     'calc_A_norm_hat',
     'calc_gcn_norm',
@@ -49,8 +49,7 @@ __all__ = [
     'get_train_val_test_split',
     'get_laplacian',
     'find_all_simple_paths',
-    'edge_index_to_adj_matrix',
-    'HDict'
+    'edge_index_to_adj_matrix'
 ]
 
 classes = __all__
