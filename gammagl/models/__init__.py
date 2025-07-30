@@ -141,18 +141,6 @@ __all__ = [
     'sgformer',
     'PreModel',
     'ReModel'
-<<<<<<< HEAD
-    'MoeSSL',
-    'VGAE',
-    'Discriminator',
-<<<<<<< HEAD
-    'InnerProductDecoder',
-    'EGTModel',
-=======
-    'InnerProductDecoder'
->>>>>>> parent of 949453e ([Model] EGT (#238))
-=======
->>>>>>> parent of 0871e6c ([Model] Dyfss (#236))
 ]
 
 classes = __all__
