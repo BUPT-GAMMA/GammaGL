@@ -1,0 +1,2 @@
+from .translator_chatglm_arxiv import TranslatorCHATGLMArxiv
+from .translator_qformer_arxiv import TranslatorQformerArxiv

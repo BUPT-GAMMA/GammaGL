@@ -66,6 +66,7 @@ from .rohehan import RoheHAN
 from .gcil import GCILModel, LogReg 
 from .sgformer import SGFormerModel
 from .adagad import PreModel, ReModel
+from .graphtranslator import TranslatorCHATGLMArxiv, TranslatorQformerArxiv
 
 __all__ = [
     'HeCo',
