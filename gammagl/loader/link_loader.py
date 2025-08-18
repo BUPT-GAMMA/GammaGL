@@ -75,7 +75,7 @@ class LinkLoader(DataLoader):
             edge_label_index = graph.edge_index
         if self.edge_label is None:
             # edge_label = tlx.zeros(edge_label_index.size(1))
-            edge_label = tlx.zeros(edge_label_index.shape[1])
+            edge_label = tlx.zeros((edge_label_index.shape[1],))
 
         super(LinkLoader, self).__init__(LinkDataset(edge_label_index, edge_label),
                                          collate_fn=self.collate_fn,

@@ -1,0 +1,74 @@
+model:
+  arch: translator_arxiv_chatglm
+  model_type: translator_generate_stage2
+  load_finetuned: False
+  pretrained: "./model_output/pretrain_arxiv_stage2/checkpoint_0.pth"
+  llm_dir: "./models/chatglm2-6b"
+  bert_dir: "./models/bert-base-uncased"
+
+
+  # behavior encoder
+  behavior_length: 768
+  freeze_behavior: True
+  behavior_precision: "fp16"
+
+  # Text
+  max_txt_len: 2048
+
+  # Q-Former
+  num_query_token: 32
+  cross_attention_freq: 2
+
+datasets:
+  arxiv_caption: # name of the dataset builder
+    type: translator_generate_stage2
+    datasets_dir: "../data/arxiv_test.csv"
+    pred_dir: "../data/pred.txt"
+    arxiv_processor:
+      train:
+        name: "translator_arxiv_train"
+        max_length: 1024
+        vocab_size: 100000
+    text_processor:
+      train:
+        name: "translator_caption"
+
+
+run:
+  task: arxiv_generate
+  # optimizer
+  lr_sched: "linear_warmup_cosine_lr"
+  init_lr: 1e-4
+  min_lr: 1e-5
+  warmup_lr: 1e-6
+
+  weight_decay: 0.05
+  max_epoch: 1
+  batch_size_train: 1
+  batch_size_eval: 64
+  warmup_steps: 5000
+  accum_grad_iters: 32
+  log_freq: 50
+
+
+  seed: 42
+  output_dir: "./model_output/pretrain_arxiv_stage2"
+
+  amp: True
+  resume_ckpt_path: null
+
+  evaluate: False
+  train_splits: ["train"]
+
+  device: "cuda:2"
+  dist_url: "env://"
+  distributed: Flase
+
+prompt:
+  generate_prompt: [
+  "\nQuestion: Please summarize the topic and content of the paper and its citations in English.\nAnswer:",
+  "\nQuestion: Based on the summary of the above paper titled <{}>, please determine into which of the following 40 arXiv CS sub-categories would this paper most likely fall?",
+  "categories: <Artificial Intelligence; Hardware Architecture; Computational Complexity; Computational Engineering, Finance, and Science; Computational Geometry; Computation and Language; Cryptography and Security; Computer Vision and Pattern Recognition; Computers and Society; Databases; Distributed, Parallel, and Cluster Computing; Digital Libraries; Discrete Mathematics; Data Structures and Algorithms; Emerging Technologies; Formal Languages and Automata Theory; General Literature; Graphics; Computer Science and Game Theory; Human-Computer Interaction; Information Retrieval; Information Theory; Machine Learning; Logic in Computer Science; Multiagent Systems; Multimedia; Mathematical Software; Numerical Analysis; Neural and Evolutionary Computing; Networking and Internet Architecture; Other Computer Science; Operating Systems; Performance; Programming Languages; Robotics; Symbolic Computation; Sound; Software Engineering; Social and Information Networks; Systems and Control>",
+  "Please give 5 likely categories, in order from most likely to least likely, and give your reasoning. Provide response in JSON format with the following keys: category, reason. \n\nAnswer:",
+  "Round 0:\n\nQuestion:We are trying to explore the paper titled {}. \n Please summarize the topic and content of the paper and its citations in English \n\nAnswer:{} \n\nRound 1:\n{}"
+]

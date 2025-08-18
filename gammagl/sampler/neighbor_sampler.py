@@ -187,7 +187,7 @@ class NeighborSampler(BaseSampler):
         # orig_edge_label_index = edge_label_index
         if issubclass(self.data_cls, Graph):
 
-            query_nodes = tlx.reshape(edge_label_index, -1)
+            query_nodes = tlx.reshape(edge_label_index, (-1,))
 
             query_nodes, reverse = gammagl.ops.unique(query_nodes, return_inverse=True)
 
