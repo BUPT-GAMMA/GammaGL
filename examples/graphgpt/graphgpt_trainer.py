@@ -1,5 +1,4 @@
 import argparse
-from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 import os
 from gammagl.utils.conversation import conv_templates, SeparatorStyle
@@ -7,6 +6,8 @@ from gammagl.utils.gfm_utils import disable_torch_init, KeywordsStoppingCriteria
 from gammagl.utils.gfm_utils import DEFAULT_G_END_TOKEN, DEFAULT_G_START_TOKEN, DEFAULT_GRAPH_PATCH_TOKEN, DEFAULT_GRAPH_TOKEN, GRAPH_TOKEN_INDEX
 from transformers import CLIPVisionModel, CLIPImageProcessor, StoppingCriteria
 from gammagl.models.graphgpt import *
+from transformers import AutoTokenizer, AutoModelForCausalLM
+import sys
 
 from torch_geometric.data import Data
 import json
@@ -14,7 +15,7 @@ import copy
 from tqdm import tqdm
 import json
 import os.path as osp
-import ray
+
 
 os.environ['TL_BACKEND'] = 'torch'
 
@@ -44,50 +45,21 @@ def load_prompting_file(file_path):
 
 # def prepare_query(instruct_item): 
 
-
-def run_eval(args, num_gpus):
-    # split question file into num_gpus files
+def run_eval(args):
+    # Load and slice prompting file according to start/end
     prompt_file = load_prompting_file(args.prompting_file)
     args.end_id = min(args.end_id, len(prompt_file))
-    prompt_file = prompt_file[args.start_id:args.end_id]
-    chunk_size = len(prompt_file) // num_gpus
-    ans_handles = []
-    split_list = list(range(args.start_id, args.end_id, chunk_size))
-    idx_list = list(range(0, len(prompt_file), chunk_size))
-    if len(split_list) == num_gpus: 
-        split_list.append(args.end_id)
-        idx_list.append(len(prompt_file))
-    elif len(split_list) == num_gpus + 1: 
-        split_list[-1] = args.end_id
-        idx_list[-1] = len(prompt_file)
-    else: 
-        raise ValueError('error in the number of list')
+    prompt_slice = prompt_file[args.start_id:args.end_id]
 
-    if osp.exists(args.output_res_path) is False: 
-        os.mkdir(args.output_res_path)
-    
-    for idx in range(len(idx_list) - 1):
-        start_idx = idx_list[idx]
-        end_idx = idx_list[idx + 1]
-        
-        start_split = split_list[idx]
-        end_split = split_list[idx + 1]
-        ans_handles.append(
-            eval_model.remote(
-                args, prompt_file[start_idx:end_idx], start_split, end_split
-            )
-        )
+    # Ensure output directory exists
+    os.makedirs(args.output_res_path, exist_ok=True)
 
-    ans_jsons = []
-    for ans_handle in ans_handles:
-        ans_jsons.extend(ray.get(ans_handle))
-
-    # with open(args.output_res_path, "w") as ans_file:
-    #     for line in ans_jsons:
-    #         ans_file.write(json.dumps(line) + "\n")
+    # Directly run evaluation without Ray
+    print('--- evaluating without Ray ---')
+    ans_jsons = eval_model(args, prompt_slice, args.start_id, args.end_id)
+    print('--- done ---')
 
 
-@ray.remote(num_gpus=1)
 @torch.inference_mode()
 def eval_model(args, prompt_file, start_idx, end_idx):
     # load prompting file
@@ -115,7 +87,17 @@ def eval_model(args, prompt_file, start_idx, end_idx):
     # TODO: add graph tower
     # if graph_tower.device.type == 'meta':
     #     print('meta')
-    clip_graph, args_graph= load_model_pretrained(CLIP, model.config.pretrain_graph_model_path)
+    # Resolve graph tower pretrain path (supports absolute or relative to model dir)
+    cfg_pretrain_path = getattr(model.config, "pretrain_graph_model_path", None)
+    if args.pretrain_graph_model_path is not None:
+        pretrain_path = args.pretrain_graph_model_path
+    else:
+        if cfg_pretrain_path is None:
+            raise ValueError("pretrain_graph_model_path not set; please provide --pretrain_graph_model_path")
+        pretrain_path = cfg_pretrain_path if osp.isabs(cfg_pretrain_path) else osp.join(args.model_name, cfg_pretrain_path)
+    assert osp.exists(osp.join(pretrain_path, 'config.json')), f'config.json missing at {pretrain_path}'
+
+    clip_graph, args_graph = load_model_pretrained(CLIP, pretrain_path)
     graph_tower = graph_transformer(args_graph)
     graph_tower = transfer_param_tograph(clip_graph, graph_tower)
     
@@ -208,7 +190,7 @@ def eval_model(args, prompt_file, start_idx, end_idx):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model-name", type=str, default="facebook/opt-350m")
+    parser.add_argument("--model-name", type=str, default="/home/zbs2/GammaGL_algo/论文复现/GraphLama/GraphGPT_data/GraphGPT")
     # parser.add_argument("--image-file", type=str, required=True)
     # parser.add_argument("--query", type=str, required=True)
     parser.add_argument("--prompting_file", type=str, default=None)
@@ -216,17 +198,15 @@ if __name__ == "__main__":
     parser.add_argument("--graph_data_path", type=str, default=None)
 
     parser.add_argument("--output_res_path", type=str, default=None)
-    parser.add_argument("--num_gpus", type=int, default=4)
 
     parser.add_argument("--start_id", type=int, default=0)
     parser.add_argument("--end_id", type=int, default=20567)
+    parser.add_argument("--pretrain_graph_model_path", type=str, default=None,
+                        help="Path to graph tower pretrain directory containing config.json (overrides model config)")
 
     args = parser.parse_args()
 
-    # eval_model(args)
-
-    ray.init()
-    run_eval(args, args.num_gpus)
-
+    # Run in single process without Ray
+    run_eval(args)
 
 # protobuf             4.22.3

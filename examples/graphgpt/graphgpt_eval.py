@@ -17,8 +17,6 @@ label_to_idx = {
     "pubmed":{"Experimentally induced diabetes": 0, "Type 2 diabetes": 2, "Type 1 diabetes": 1}
 }
 
-
-
 data_list = []
 folder = 'output_stage_2_{}_nc'.format(args.dataset)
 for filename in os.listdir(folder):
