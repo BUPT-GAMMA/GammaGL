@@ -331,7 +331,7 @@ class Dataset(Dataset):
                 f"The `pre_transform` argument differs from the one used in "
                 f"the pre-processed version of this dataset. If you want to "
                 f"make use of another pre-processing technique, make sure to "
-                f"sure to delete '{self.processed_dir}' first"
+                f"delete '{self.processed_dir}' first"
                 f"`force_reload=True` explicitly to reload the dataset.")
 
         f = osp.join(self.processed_dir, tlx.BACKEND + '_pre_filter.pt')
