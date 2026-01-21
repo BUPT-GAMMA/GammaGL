@@ -154,12 +154,23 @@ class Dataset(Dataset):
             obj[0].tensor()
         elif tlx.BACKEND == 'torch':
             import torch
+            import inspect
+            
+            # Device detection logic
             id = torch.tensor(1).get_device()
             if id != -1:
                 device = 'cuda:' + str(id)
             else:
                 device = 'cpu'
-            obj = torch.load(file_name, map_location=device)
+            
+            # Check if current torch.load supports 'weights_only' argument (PyTorch 2.4+)
+            sig = inspect.signature(torch.load)
+            if 'weights_only' in sig.parameters:
+                # Explicitly set weights_only=False to allow loading complex objects (like Graph)
+                obj = torch.load(file_name, map_location=device, weights_only=False)
+            else:
+                # Fallback for older PyTorch versions without this argument
+                obj = torch.load(file_name, map_location=device)
         else:
             with open(file_name, 'rb') as f:
                 obj = pickle.load(f)
