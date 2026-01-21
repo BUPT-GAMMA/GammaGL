@@ -339,7 +339,7 @@ class Dataset(Dataset):
             warnings.warn(
                 "The `pre_filter` argument differs from the one used in the "
                 "pre-processed version of this dataset. If you want to make "
-                "use of another pre-fitering technique, make sure to delete "
+                "use of another pre-filtering technique, make sure to delete "
                 "'{self.processed_dir}' first"
                 "`force_reload=True` explicitly to reload the dataset.")
 
