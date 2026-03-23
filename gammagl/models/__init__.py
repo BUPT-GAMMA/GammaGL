@@ -66,6 +66,7 @@ from .rohehan import RoheHAN
 from .gcil import GCILModel, LogReg 
 from .sgformer import SGFormerModel
 from .adagad import PreModel, ReModel
+from .edgeprompt import EdgePromptGCNModel, EdgePromptNodeClassifier
 
 __all__ = [
     'HeCo',
@@ -111,7 +112,7 @@ __all__ = [
     'HPN',
     'GMMModel',
     'HERec',
-    'MetaPath2Vec'
+    'MetaPath2Vec',
     'ieHGCNModel',
     'TADWModel',
     'MGNNI_m_MLP',
@@ -140,7 +141,9 @@ __all__ = [
     'LogReg',
     'sgformer',
     'PreModel',
-    'ReModel'
+    'ReModel',
+    'EdgePromptGCNModel',
+    'EdgePromptNodeClassifier'
 ]
 
 classes = __all__
