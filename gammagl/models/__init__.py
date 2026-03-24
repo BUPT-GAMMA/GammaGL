@@ -67,6 +67,7 @@ from .gcil import GCILModel, LogReg
 from .sgformer import SGFormerModel
 from .adagad import PreModel, ReModel
 from .edgeprompt import EdgePromptGCNModel, EdgePromptNodeClassifier
+from .nodeid import NodeIDGNN
 
 __all__ = [
     'HeCo',
@@ -144,6 +145,8 @@ __all__ = [
     'ReModel',
     'EdgePromptGCNModel',
     'EdgePromptNodeClassifier'
+    'ReModel'
+    , 'NodeIDGNN'
 ]
 
 classes = __all__
