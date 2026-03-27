@@ -63,3 +63,6 @@ class GCNModel(tlx.nn.Module):
         # x = self.conv2(x, edge_index, edge_weight, num_nodes)
         return x
 
+    def parameters(self, recurse: bool = True):
+        for name, param in self.named_parameters(recurse=recurse):
+            yield param
