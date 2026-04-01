@@ -40,8 +40,8 @@ import torch.nn.functional as F
 import torch
 import math
 
-_tokenizer = _Tokenizer("/home/yy3/graph-text-align/GraphGPT/graphgpt/model/graph_layers/bpe_simple_vocab_16e6.txt.gz") # the path of this file, should be found in GraphGPT project
-
+# 不合理的地方，应该路由一下换一下
+_tokenizer = _Tokenizer("/home/zbs2/GammaGL_algo/论文复现/GraphLama/GraphGPT_data/bpe_simple_vocab_16e6.txt.gz") # the path of this file, should be found in GraphGPT project
 
 class LayerNorm(nn.LayerNorm):
     """Subclass torch's LayerNorm to handle fp16."""
