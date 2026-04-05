@@ -5,7 +5,7 @@ Adaptive Message Passing (AMP)
 - Paper link:[https://arxiv.org/pdf/2312.16560]
 - Author's code repo:[https://github.com/nec-research/Adaptive-Message-Passing]
 
-What this example does
+
 ----------------------
 
 
