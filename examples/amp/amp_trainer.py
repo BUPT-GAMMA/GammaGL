@@ -1,25 +1,32 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
-"""
-AMP on ZINC. ``gammagl.datasets.ZINC`` **固定**从 ``<dataset_path>/ZINC/raw/`` 读数据（与类名一致），
-不能直接把数据根设为 ``ZINC-PE`` 文件夹名。
-
-若你只有 ``ZINC-PE/raw/*.index``：仍需 ``train/val/test.pickle``（来自官方 ``molecules.zip``）。
-可用 ``--zinc_local_zip`` / 网络下载补齐后，再用 ``--zinc_index_dir .../ZINC-PE/raw`` 覆盖三份 ``*.index``。
-"""
+"""AMP on ZINC（GammaGL）。数据目录须为 ``<dataset_path>/ZINC/raw/``。"""
 
 import os
+import sys
 
-# Must be set before ``import tensorlayerx`` (otherwise TLX may try TensorFlow backend).
-os.environ.setdefault("TL_BACKEND", "torch")
+
+def _configure_tl_backend_early() -> None:
+    argv = sys.argv[1:]
+    for i, arg in enumerate(argv):
+        if arg in ("--tl-backend", "--tl_backend") and i + 1 < len(argv):
+            os.environ["TL_BACKEND"] = argv[i + 1].strip()
+            return
+    os.environ.setdefault("TL_BACKEND", "torch")
+
+
+_configure_tl_backend_early()
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+# PyTorch 在 CUDA 上启用确定性 matmul 时需要（见 torch.use_deterministic_algorithms）
+if os.environ.get("TL_BACKEND", "torch").strip().lower() == "torch":
+    os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
 
 import argparse
+import inspect
 import os.path as osp
 import random
 import shutil
 import ssl
-import sys
 import urllib.request
 import zipfile
 from typing import Optional
@@ -28,21 +35,19 @@ import numpy as np
 import tensorlayerx as tlx
 from tensorlayerx.model import TrainOneStep, WithLoss
 
+from gammagl.datasets import ZINC
+from gammagl.loader import DataLoader
+from gammagl.models import AMPModel, amp_elbo_regression_loss
+
+
+def _tl_backend_name() -> str:
+    return os.environ.get("TL_BACKEND", "torch").strip().lower()
+
 
 def _patch_torch_and_tlx_named_members() -> None:
-    """
-    修复 ``TypeError: _named_members() got an unexpected keyword argument 'remove_duplicate'``。
-
-    **根因**：PyTorch 2.x 的 ``named_parameters`` 会向 ``_named_members`` 传入 ``remove_duplicate``，
-    但 TensorLayerX 的 ``tensorlayerx.nn.core.core_torch.Module`` **重写了** ``_named_members``，
-    且签名里没有该参数；方法解析时走到 TLX 的实现而非 ``torch.nn.Module``，故只补丁后者无效。
-
-    做法：包装 TLX 的 ``Module._named_members``，吞掉 ``remove_duplicate`` 再调用原实现；并顺带包装
-    ``torch.nn.Module._named_members`` 以防纯 ``nn.Module`` 混搭旧实现。
-    """
     import torch.nn as nn
 
-    def _wrap_nn_module_named_members() -> None:
+    def _wrap_nn() -> None:
         orig = nn.Module.__dict__.get("_named_members", nn.Module._named_members)
         if getattr(orig, "__amp_remove_dup_patched__", False):
             return
@@ -54,7 +59,7 @@ def _patch_torch_and_tlx_named_members() -> None:
         _wrapped.__amp_remove_dup_patched__ = True  # type: ignore[attr-defined]
         nn.Module._named_members = _wrapped  # type: ignore[method-assign]
 
-    def _wrap_tlx_module_named_members() -> None:
+    def _wrap_tlx() -> None:
         from tensorlayerx.nn.core import core_torch
 
         orig = core_torch.Module._named_members
@@ -68,22 +73,11 @@ def _patch_torch_and_tlx_named_members() -> None:
         _wrapped.__amp_remove_dup_patched__ = True  # type: ignore[attr-defined]
         core_torch.Module._named_members = _wrapped  # type: ignore[method-assign]
 
-    _wrap_nn_module_named_members()
-    _wrap_tlx_module_named_members()
-
-
-_patch_torch_and_tlx_named_members()
+    _wrap_nn()
+    _wrap_tlx()
 
 
 def _patch_torch_optim_functional_adam() -> None:
-    """
-    兼容 TensorLayerX 与 PyTorch 2.x 的 ``torch.optim._functional.adam``：
-
-    - 补上关键字 ``maximize=False``；
-    - TLX 传入的 ``state_steps`` 为 Python int 列表，2.x 要求「单元素张量」列表，在此转换。
-    """
-    import inspect
-
     import torch
     import torch.optim._functional as F
 
@@ -99,7 +93,6 @@ def _patch_torch_optim_functional_adam() -> None:
     def _adam(*args, **kwargs):
         kwargs.setdefault("maximize", False)
         a = list(args)
-        # F.adam(..., state_steps, *, amsgrad=...) — state_steps 为第 6 个位置参数（0-based 下标 5）
         if len(a) >= 6:
             steps = a[5]
             if steps and not isinstance(steps[0], torch.Tensor):
@@ -112,9 +105,20 @@ def _patch_torch_optim_functional_adam() -> None:
     F.adam = _adam  # type: ignore[assignment]
 
 
-_patch_torch_optim_functional_adam()
+def _apply_torch_compatibility_patches() -> None:
+    if _tl_backend_name() != "torch":
+        return
+    try:
+        import torch  # noqa: F401
+    except ImportError:
+        return
+    _patch_torch_and_tlx_named_members()
+    _patch_torch_optim_functional_adam()
 
-# ``AMPModel`` 依赖 ``global_add_pool`` 别名（部分 GammaGL 版本仅有 ``global_sum_pool``）
+
+_apply_torch_compatibility_patches()
+
+
 def _patch_glob_add_pool_alias() -> None:
     import gammagl.layers.pool.glob as g
 
@@ -124,13 +128,6 @@ def _patch_glob_add_pool_alias() -> None:
 
 _patch_glob_add_pool_alias()
 
-from gammagl.datasets import ZINC
-from gammagl.loader import DataLoader
-from gammagl.models import AMPModel, amp_elbo_regression_loss
-
-# ---------------------------------------------------------------------------
-# ZINC raw layout (must match ``gammagl.datasets.zinc.ZINC``)
-# ---------------------------------------------------------------------------
 _ZINC_URL = "https://www.dropbox.com/s/feo9qle74kg48gy/molecules.zip?dl=1"
 _SPLIT_URL_TMPL = (
     "https://raw.githubusercontent.com/graphdeeplearning/"
@@ -187,7 +184,6 @@ def ensure_zinc_raw(
     local_zip: Optional[str] = None,
     github_proxy: bool = False,
 ) -> None:
-    """Populate ``<root>/ZINC/raw`` so GammaGL's ``ZINC`` skips its own download."""
     root = osp.abspath(osp.normpath(dataset_root))
     raw_dir = osp.join(root, "ZINC", "raw")
     if all(osp.isfile(osp.join(raw_dir, n)) for n in _RAW_NAMES):
@@ -238,10 +234,6 @@ def ensure_zinc_raw(
 
 
 def _copy_zinc_split_indices(dataset_root: str, index_src_dir: str) -> bool:
-    """
-    将外部目录（如 ``ZINC-PE/raw``）下的 ``*.index`` 复制到 ``<dataset_path>/ZINC/raw/``。
-    返回是否复制了任一文件（用于触发重新 process）。
-    """
     if not (index_src_dir or "").strip():
         return False
     src = osp.abspath(osp.expanduser(index_src_dir.strip()))
@@ -278,7 +270,6 @@ class AMPELBOLoss(WithLoss):
         if len(tlx.get_tensor_shape(y)) == 1:
             y = tlx.expand_dims(y, axis=-1)
 
-        # 训练需 ELBO 辅助量；``AMPModel.forward`` 只返回标量预测，须调用 ``forward_elbo``
         _, output_stack, aux = self.backbone_network.forward_elbo(
             x, data.edge_index, None, data.batch
         )
@@ -401,10 +392,35 @@ def fix_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
     tlx.set_seed(seed)
+    if _tl_backend_name() == "torch":
+        try:
+            import torch
+
+            if torch.cuda.is_available():
+                os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+            torch.manual_seed(seed)
+            if torch.cuda.is_available():
+                torch.cuda.manual_seed(seed)
+                torch.cuda.manual_seed_all(seed)
+            torch.backends.cudnn.deterministic = True
+            torch.backends.cudnn.benchmark = False
+            try:
+                torch.use_deterministic_algorithms(True)
+            except Exception:
+                pass
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="AMP on ZINC (GammaGL)")
+    parser.add_argument(
+        "--tl-backend",
+        type=str,
+        default=None,
+        metavar="NAME",
+        help="TensorLayerX backend (or set env TL_BACKEND).",
+    )
     parser.add_argument("--dataset_path", type=str, default="", help="ZINC root directory")
     parser.add_argument("--gpu", type=int, default=0, help="GPU id; <0 for CPU")
     parser.add_argument("--seed", type=int, default=42)
@@ -471,6 +487,15 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    if (args.tl_backend or "").strip():
+        be = args.tl_backend.strip()
+        if be != _tl_backend_name():
+            print(
+                f"[amp_trainer] Warning: --tl-backend={be} differs from TL_BACKEND={_tl_backend_name()} "
+                f"(set at import time). Use `export TL_BACKEND={be}` or pass --tl-backend first.",
+                file=sys.stderr,
+            )
+
     if args.gpu >= 0:
         tlx.set_device("GPU", args.gpu)
     else:
