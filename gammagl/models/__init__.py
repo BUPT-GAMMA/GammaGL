@@ -67,6 +67,7 @@ from .gcil import GCILModel, LogReg
 from .sgformer import SGFormerModel
 from .adagad import PreModel, ReModel
 from .nodeid import NodeIDGNN
+from .amp import AMPModel
 
 __all__ = [
     'HeCo',
@@ -142,7 +143,8 @@ __all__ = [
     'sgformer',
     'PreModel',
     'ReModel'
-    , 'NodeIDGNN'
+    , 'NodeIDGNN',
+    'AMPModel'
 ]
 
 classes = __all__
