@@ -1,0 +1,16 @@
+{
+    "data": "cora",
+    "path": "./data/",
+    "algo": "gcn_thr",
+    "epochs": 500,
+    "patience": 50,
+    "lr": 0.001,
+    "weight_decay": 1e-5,
+    "layer": 3,
+    "hidden": 256,
+    "dropout": 0.8,
+    "thr_a": 0.5,
+    "thr_w": 0.5,
+    "inductive": false,
+    "multil": false
+}

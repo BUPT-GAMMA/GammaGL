@@ -1,0 +1,22 @@
+{
+    "data": "citeseer",
+    "path": "./data/",
+    "algo": "sgc",
+    "epochs": 200,
+    "patience": 20,
+    "batch": 512,
+    "lr": 0.01,
+    "weight_decay": 1e-5,
+    "layer": 2,
+    "hidden": 512,
+    "dropout": 0.5,
+    "thr_a": 0.0001,
+    "thr_w": 0.1,
+    "inductive": false,
+    "multil": false,
+    "chn": {
+        "hop": 20,
+        "alpha": 0.1,
+        "rrz": 0.5
+    }
+}

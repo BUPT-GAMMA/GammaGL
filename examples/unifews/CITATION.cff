@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: "If you use this framework, please cite our paper as below."
+authors:
+  - family-names: Liao
+    given-names: Ningyi
+    orcid: https://orcid.org/0000-0003-3176-4401
+  - family-names: Yu
+    given-names: Zihao
+  - family-names: Zeng
+    given-names: Ruixiao
+  - family-names: Luo
+    given-names: Siqiang
+    orcid: https://orcid.org/0000-0001-8197-0903
+title: "Unifews"
+version: 1.0.0
+date-released: 2025-05-30
+url: https://icml.cc/virtual/2025/poster/45740
+eprint: 2403.13268
+preferred-citation:
+  type: conference-paper
+  authors:
+  - family-names: Liao
+    given-names: Ningyi
+    orcid: https://orcid.org/0000-0003-3176-4401
+  - family-names: Yu
+    given-names: Zihao
+  - family-names: Zeng
+    given-names: Ruixiao
+  - family-names: Luo
+    given-names: Siqiang
+    orcid: https://orcid.org/0000-0001-8197-0903
+  journal: "42nd International Conference on Machine Learning"
+  month: 5
+  title: "Unifews: You Need Fewer Operations for Efficient Graph Neural Networks"
+  publisher: PMLR
+  volume: 267
+  year: 2025

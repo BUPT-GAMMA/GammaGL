@@ -67,7 +67,11 @@ from .gcil import GCILModel, LogReg
 from .sgformer import SGFormerModel
 from .adagad import PreModel, ReModel
 from .nodeid import NodeIDGNN
-
+from .gcn2_model import SandwitchGCNII
+from .gcn2_model import SandwitchThr
+from .gnn_model import GNNThr
+from .gnn_model import GNNLPThr
+from .mlp_model import MLP_unifews
 __all__ = [
     'HeCo',
     'GCNModel',
@@ -141,8 +145,13 @@ __all__ = [
     'LogReg',
     'sgformer',
     'PreModel',
-    'ReModel'
-    , 'NodeIDGNN'
+    'ReModel',
+    'NodeIDGNN',
+    'SandwitchGCNII',
+    'SandwitchThr',
+    'GNNThr',
+    'GNNLPThr',
+    'MLP_unifews'
 ]
 
 classes = __all__

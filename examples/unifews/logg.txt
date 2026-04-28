@@ -1,0 +1,77 @@
+GIN:
+Epoch:0200 | loss:0.0036, val acc:0.8196, time:9.7994, macs:0.0000
+============================================================
+[Val] best acc: 0.86957
+[Test] acc: 0.87621
+[Test] MACs: 0.0000G  |  Num adj: 25.246k  |  Num weight: 737.280k
+
+GCN:
+Epoch:0200 | loss:0.1497, val acc:0.8132, time:5.7020, macs:0.0000
+============================================================
+[Val] best acc: 0.83736
+[Test] acc: 0.83441
+[Test] MACs: 0.0000G  |  Num adj: 25.246k  |  Num weight: 737.280k
+
+GCN_Rnd:
+Epoch:0200 | loss:0.2479, val acc:0.7069, time:16.1041, macs:0.0000
+============================================================
+[Val] best acc: 0.76006
+[Test] acc: 0.78778
+[Test] MACs: 0.0000G  |  Num adj: 12.622k  |  Num weight: 737.280k
+
+GCN_thr:
+Epoch:0200 | loss:0.0202, val acc:0.8213, time:6.5412, macs:0.0000
+============================================================
+[Val] best acc: 0.88567
+[Test] acc: 0.88907
+[Test] MACs: 0.0000G  |  Num adj: 4.970k  |  Num weight: 737.280k
+
+
+GAT 1 head:
+Epoch:0200 | loss:0.0187, val acc:0.8406, time:9.2766, macs:0.0000
+============================================================
+[Val] best acc: 0.88567
+[Test] acc: 0.88907
+[Test] MACs: 0.0000G  |  Num adj: 25.246k  |  Num weight: 737.280k
+
+GAT_rnd 1 head:
+Epoch:0200 | loss:0.2100, val acc:0.7391, time:19.3585, macs:0.0000
+============================================================
+[Val] best acc: 0.78100
+[Test] acc: 0.78296
+[Test] MACs: 0.0000G  |  Num adj: 12.622k  |  Num weight: 737.280k
+
+GAT_thr 1 head:
+Epoch:0200 | loss:0.0187, val acc:0.8406, time:9.6856, macs:0.0000
+============================================================
+[Val] best acc: 0.88567
+[Test] acc: 0.88907
+[Test] MACs: 0.0000G  |  Num adj: 4.970k  |  Num weight: 737.280k
+
+GCN2:
+Epoch:0200 | loss:0.0032, val acc:0.7246, time:11.8525, macs:0.0000
+============================================================
+[Val] best acc: 0.86634
+[Test] acc: 0.85852
+[Test] MACs: 0.0000G  |  Num adj: 25.246k  |  Num weight: 524.288k
+
+GCN2_thr:
+Epoch:0200 | loss:0.0032, val acc:0.7182, time:11.4987, macs:0.0000
+============================================================
+[Val] best acc: 0.87118
+[Test] acc: 0.85691
+[Test] MACs: 0.0000G  |  Num adj: 25.246k  |  Num weight: 524.288k
+
+SAGE:
+Epoch:0200 | loss:0.0030, val acc:0.8631, time:6.8489, macs:0.0000
+============================================================
+[Val] best acc: 0.89050
+[Test] acc: 0.88585
+[Test] MACs: 0.0000G  |  Num adj: 25.246k  |  Num weight: 1474.560k
+
+SAGEThr:
+Epoch:0200 | loss:0.0030, val acc:0.8535, time:13.5751, macs:0.0000
+============================================================
+[Val] best acc: 0.88567
+[Test] acc: 0.87781
+[Test] MACs: 0.0000G  |  Num adj: 4.970k  |  Num weight: 1474.560k

@@ -1,0 +1,22 @@
+{
+    "data": "arxiv",
+    "path": "./data/",
+    "algo": "sgc",
+    "epochs": 200,
+    "patience": 20,
+    "batch": 16384,
+    "lr": 0.01,
+    "weight_decay": 1e-5,
+    "layer": 2,
+    "hidden": 512,
+    "dropout": 0.5,
+    "thr_a": 1e-6,
+    "thr_w": 1e-2,
+    "inductive": false,
+    "multil": false,
+    "chn": {
+        "hop": 20,
+        "alpha": 0.5,
+        "rrz": 0.5
+    }
+}

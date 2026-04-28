@@ -36,6 +36,15 @@ from .hid_conv import Hid_conv
 from .dhn_conv import DHNConv
 from .dna_conv import DNAConv
 from .rohehan_conv import RoheHANConv
+from .gat_thr import ConvThr
+from .gat_thr import GATv2ConvThr
+from .gat_thr import GATv2ConvRaw
+from .gcn2_thr import GCNIIConvRaw
+from .gcn2_thr import GCNIIConvThr
+from .gcn_thr import GCNConvRaw
+from .gcn_thr import GCNConvThr
+from .gsage_thr import SAGEConvRaw
+from .gsage_thr import SAGEConvThr
 
 __all__ = [
     'MessagePassing',
@@ -75,7 +84,16 @@ __all__ = [
     'HEATlayer',
     'DHNConv',
     'DNAConv',
-    'RoheHANConv'
+    'RoheHANConv',
+    'ConvThr',
+    'GCNConvRaw',
+    'GCNConvThr',
+    'GATv2ConvRaw',
+    'GATv2ConvThr',
+    'GCNIIConvRaw',
+    'GCNIIConvThr',
+    'SAGEConvRaw',
+    'SAGEConvThr'
 ]
 
 classes = __all__

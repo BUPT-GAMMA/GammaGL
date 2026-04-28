@@ -1,0 +1,56 @@
+GIN:
+Epoch:0200 | loss:0.0036, val acc:0.8196, time:9.7994, macs:0.0000
+============================================================
+[Val] best acc: 0.86957
+[Test] acc: 0.87621
+[Test] MACs: 0.0000G  |  Num adj: 25.246k  |  Num weight: 737.280k
+
+GCN:
+[Val] best acc: 0.88084 (epoch: 7/200), [Test] best acc: 0.88746
+[Train] time: 0.9701 s (avg: 4.9 ms), MACs: 372.356 G (avg: 1.9 G)
+[Test]  time: 0.0013 s, MACs: 1.8618 G, Num adj: 25.246 k, Num weight: 737.280 k
+
+GCN_Rnd:
+[Val] best acc: 0.49758 (epoch: 5/200), [Test] best acc: 0.50322
+[Train] time: 3.3963 s (avg: 17.0 ms), MACs: 233.407 G (avg: 1.2 G)
+[Test]  time: 0.0123 s, MACs: 0.9334 G, Num adj: 12.622 k, Num weight: 368.640 k
+
+GCN_thr:
+[Val] best acc: 0.88406 (epoch: 12/200), [Test] best acc: 0.87621
+[Train] time: 1.9255 s (avg: 9.6 ms), MACs: 193.105 G (avg: 1.0 G)
+[Test]  time: 0.0036 s, MACs: 1.0401 G, Num adj: 19.759 k, Num weight: 410.501 k
+
+GAT 1 head:
+[Val] best acc: 0.84219 (epoch: 9/200), [Test] best acc: 0.86334
+[Train] time: 1.4139 s (avg: 7.1 ms), MACs: 736.763 G (avg: 3.7 G)
+[Test]  time: 0.0023 s, MACs: 3.6838 G, Num adj: 25.246 k, Num weight: 1474.560 k
+
+GAT_rnd 1 head:
+[Val] best acc: 0.56844 (epoch: 4/200), [Test] best acc: 0.57395
+[Train] time: 2.4730 s (avg: 12.4 ms), MACs: 462.459 G (avg: 2.3 G)
+[Test]  time: 0.0037 s, MACs: 1.8451 G, Num adj: 12.622 k, Num weight: 737.280 k
+
+GAT_thr 1 head:
+[Val] best acc: 0.86795 (epoch: 76/200), [Test] best acc: 0.86817
+[Train] time: 5.1634 s (avg: 25.8 ms), MACs: 346.099 G (avg: 1.7 G)
+[Test]  time: 0.0070 s, MACs: 1.6733 G, Num adj: 5.280 k, Num weight: 670.713 k
+
+GCN2:
+[Val] best acc: 0.88889 (epoch: 8/200), [Test] best acc: 0.89711
+[Train] time: 1.1205 s (avg: 5.6 ms), MACs: 892.958 G (avg: 4.5 G)
+[Test]  time: 0.0015 s, MACs: 4.4648 G, Num adj: 25.246 k, Num weight: 524.288 k
+
+GCN2_thr:
+[Val] best acc: 0.88406 (epoch: 13/200), [Test] best acc: 0.87460
+[Train] time: 2.3359 s (avg: 11.7 ms), MACs: 794.865 G (avg: 4.0 G)
+[Test]  time: 0.0045 s, MACs: 4.0245 G, Num adj: 20.179 k, Num weight: 349.173 k
+
+SAGE:
+[Val] best acc: 0.88889 (epoch: 6/200), [Test] best acc: 0.90354
+[Train] time: 1.8280 s (avg: 9.1 ms), MACs: 739.042 G (avg: 3.7 G)
+[Test]  time: 0.0034 s, MACs: 3.6952 G, Num adj: 25.246 k, Num weight: 1474.560 k
+
+SAGEThr:
+[Val] best acc: 0.89050 (epoch: 10/200), [Test] best acc: 0.89550
+[Train] time: 2.5806 s (avg: 12.9 ms), MACs: 130.386 G (avg: 0.7 G)
+[Test]  time: 0.0061 s, MACs: 0.7651 G, Num adj: 24.344 k, Num weight: 298.269 k
