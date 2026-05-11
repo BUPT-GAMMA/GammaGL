@@ -36,7 +36,6 @@ from .hid_conv import Hid_conv
 from .dhn_conv import DHNConv
 from .dna_conv import DNAConv
 from .rohehan_conv import RoheHANConv
-
 __all__ = [
     'MessagePassing',
     'GCNConv',
@@ -75,7 +74,39 @@ __all__ = [
     'HEATlayer',
     'DHNConv',
     'DNAConv',
-    'RoheHANConv'
+    'RoheHANConv',
+    'EuclideanEncoder',
+    'ManifoldEncoder',
+    'ConstCurveLinear',
+    'ConstCurveAgg',
 ]
 
 classes = __all__
+
+# Lazy imports for RGT layers (to avoid circular dependency issues)
+def __getattr__(name):
+    if name in ('EuclideanEncoder', 'ManifoldEncoder', 'ConstCurveLinear', 'ConstCurveAgg'):
+        from .rgt_layers import EuclideanEncoder, ManifoldEncoder, ConstCurveLinear, ConstCurveAgg
+        return {'EuclideanEncoder': EuclideanEncoder, 'ManifoldEncoder': ManifoldEncoder,
+                'ConstCurveLinear': ConstCurveLinear, 'ConstCurveAgg': ConstCurveAgg}[name]
+    if name in ('Lorentz', 'Sphere', 'Euclidean', 'ProductSpace'):
+        if name == 'Lorentz':
+            from .manifold_lorentz import Lorentz
+            return Lorentz
+        if name == 'Sphere':
+            from .manifold_sphere import Sphere
+            return Sphere
+        if name == 'Euclidean':
+            from .manifold_euclidean import Euclidean
+            return Euclidean
+        if name == 'ProductSpace':
+            from .manifold_product import ProductSpace
+            return ProductSpace
+    if name in ('VectorQuantize_E', 'VectorQuantize_R'):
+        if name == 'VectorQuantize_E':
+            from .vq_euclidean import VectorQuantize_E
+            return VectorQuantize_E
+        if name == 'VectorQuantize_R':
+            from .vq_riemann import VectorQuantize_R
+            return VectorQuantize_R
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

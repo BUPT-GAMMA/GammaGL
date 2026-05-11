@@ -6,6 +6,18 @@ try:
 except:
     pass
 
+__all__ = [
+    "use_ext",
+    "unsorted_segment_sum",
+    "unsorted_segment_mean",
+    "unsorted_segment_max",
+    "segment_max",
+    "segment_mean",
+    "segment_sum",
+    "gspmm",
+    "bspmm",
+]
+
 
 def unsorted_segment_sum(x, segment_ids, num_segments=None):
     """
@@ -45,19 +57,20 @@ def unsorted_segment_sum(x, segment_ids, num_segments=None):
         # assert segment_ids.max() < num_segments
 
     try:
-        return c_segment_sum(x, segment_ids, num_segments)
-    except Exception as e:
-        raise e
+        if use_ext:
+            return c_segment_sum(x, segment_ids, num_segments)
+        else:
+            raise Exception("C++ extension not available")
+    except:
+        if len(segment_ids.shape) == 1:
+            s = torch.prod(torch.tensor(x.shape[1:], device=x.device)).to(torch.int64)
+            segment_ids = segment_ids.repeat_interleave(s).view(segment_ids.shape[0], *x.shape[1:])
 
-    # if len(segment_ids.shape) == 1:
-    #     s = torch.prod(torch.tensor(x.shape[1:], device=x.device)).to(torch.int64)
-    #     segment_ids = segment_ids.repeat_interleave(s).view(segment_ids.shape[0], *x.shape[1:])
-    #
-    # assert x.shape == segment_ids.shape, "data.shape and segment_ids.shape should be equal"
-    #
-    # shape = [num_segments] + list(x.shape[1:])
-    # tensor = torch.zeros(*shape, device=x.device).to(x.dtype).scatter_add(0, segment_ids, x)
-    # return tensor
+        assert x.shape == segment_ids.shape, "data.shape and segment_ids.shape should be equal"
+
+        shape = [num_segments] + list(x.shape[1:])
+        tensor = torch.zeros(*shape, device=x.device).to(x.dtype).scatter_add(0, segment_ids, x)
+        return tensor
 
 
 def unsorted_segment_mean(x, segment_ids, num_segments=None):
@@ -98,23 +111,24 @@ def unsorted_segment_mean(x, segment_ids, num_segments=None):
     # assert segment_ids.max() < num_segments
 
     try:
-        return c_segment_mean(x, segment_ids, num_segments)
-    except Exception as e:
-        raise e
+        if use_ext:
+            return c_segment_mean(x, segment_ids, num_segments)
+        else:
+            raise Exception("C++ extension not available")
+    except:
+        if len(segment_ids.shape) == 1:
+            s = torch.prod(torch.tensor(x.shape[1:], device=x.device)).to(torch.int64)
+            segment_ids = segment_ids.repeat_interleave(s).view(segment_ids.shape[0], *x.shape[1:])
 
-    # if len(segment_ids.shape) == 1:
-    #     s = torch.prod(torch.tensor(x.shape[1:], device=x.device)).to(torch.int64)
-    #     segment_ids = segment_ids.repeat_interleave(s).view(segment_ids.shape[0], *x.shape[1:])
-    #
-    # assert x.shape == segment_ids.shape, "data.shape and segment_ids.shape should be equal"
-    #
-    # shape = [num_segments] + list(x.shape[1:])
-    # ones_data = torch.ones_like(x, dtype=x.dtype, device=x.device)
-    # tensor = torch.zeros(*shape, device=x.device).to(x.dtype).scatter_add(0, segment_ids, x)
-    # tensor_nums = torch.zeros(*shape, device=x.device).to(x.dtype).scatter_add(0, segment_ids, ones_data)
-    # tensor = tensor / tensor_nums
-    # tensor[torch.isnan(tensor)] = 0
-    # return tensor
+        assert x.shape == segment_ids.shape, "data.shape and segment_ids.shape should be equal"
+
+        shape = [num_segments] + list(x.shape[1:])
+        ones_data = torch.ones_like(x, dtype=x.dtype, device=x.device)
+        tensor = torch.zeros(*shape, device=x.device).to(x.dtype).scatter_add(0, segment_ids, x)
+        tensor_nums = torch.zeros(*shape, device=x.device).to(x.dtype).scatter_add(0, segment_ids, ones_data)
+        tensor = tensor / tensor_nums
+        tensor[torch.isnan(tensor)] = 0
+        return tensor
 
 
 def unsorted_segment_max(x, segment_ids, num_segments=None):
@@ -155,13 +169,15 @@ def unsorted_segment_max(x, segment_ids, num_segments=None):
 
     assert x.shape[0] == segment_ids.shape[0], "the length of segment_ids should be equal to data.shape[0]."
     try:
-        return c_segment_max(x, segment_ids, num_segments)
-    except Exception as e:
-        raise e
-    # res = []
-    # for i in range(num_segments):
-    #     res.append(torch.max(x[segment_ids == i], dim=0)[0])
-    # return torch.stack(res, dim=0)
+        if use_ext:
+            return c_segment_max(x, segment_ids, num_segments)
+        else:
+            raise Exception("C++ extension not available")
+    except:
+        res = []
+        for i in range(num_segments):
+            res.append(torch.max(x[segment_ids == i], dim=0)[0])
+        return torch.stack(res, dim=0)
 
 
 def segment_max(x, segment_ids, num_segments=None):
@@ -287,23 +303,55 @@ def gspmm(index, weight=None, x=None, reduce='sum'):
         [ 8.,  8.,  8.,  8.,  8.,  8.,  8.,  8.],
         [ 4.,  4.,  4.,  4.,  4.,  4.,  4.,  4.]])
     """
-    if weight == None:
+    if weight is None:
         weight = torch.ones(size=(index.shape[1], ), dtype=torch.float32)
+
     if reduce == 'sum':
-        return c_spmm_sum(index, weight, x)
+        if use_ext:
+            return c_spmm_sum(index, weight, x)
+        else:
+            return _gspmm_fallback(index, weight, x, reduce='sum')
     elif reduce == 'mean':
-        return c_spmm_mean(index, weight, x)
+        if use_ext:
+            return c_spmm_mean(index, weight, x)
+        else:
+            return _gspmm_fallback(index, weight, x, reduce='mean')
     elif reduce == 'max':
-        return c_spmm_max(index, weight, x)
+        if use_ext:
+            return c_spmm_max(index, weight, x)
+        else:
+            return _gspmm_fallback(index, weight, x, reduce='max')
     else:
         raise Exception("Unsupported reduce type, please choose from ['sum', 'mean', 'max'].")
-    
+
+
+def _gspmm_fallback(index, weight, x, reduce='sum'):
+    row, col = index[0], index[1]
+    out = torch.zeros((index.max().item() + 1, x.shape[-1]), dtype=x.dtype, device=x.device)
+    weighted_x = x * weight.unsqueeze(-1)
+    if reduce == 'sum':
+        return torch.zeros_like(x).index_add_(0, row, weighted_x.index_select(0, col))
+    elif reduce == 'mean':
+        scatter_count = torch.zeros((index.max().item() + 1, 1), dtype=x.dtype, device=x.device)
+        scatter_count.index_add_(0, row, torch.ones((col.shape[0], 1), dtype=x.dtype, device=x.device))
+        scatter_count = torch.clamp(scatter_count, min=1)
+        out = torch.zeros((index.max().item() + 1, x.shape[-1]), dtype=x.dtype, device=x.device)
+        out.index_add_(0, row, weighted_x.index_select(0, col))
+        return out / scatter_count
+    elif reduce == 'max':
+        for i in range(col.shape[0]):
+            out[row[i]] = torch.max(out[row[i]], weighted_x[col[i]])
+        return out
+
 
 def bspmm(index, weight=None, x=None, reduce='sum'):
-    if weight == None:
+    if weight is None:
         weight = torch.ones(size=(index.shape[1], ), dtype=torch.float32)
     if reduce == 'sum':
-        return c_bspmm_sum(index, weight, x)
+        if use_ext:
+            return c_bspmm_sum(index, weight, x)
+        else:
+            return _gspmm_fallback(index, weight, x, reduce='sum')
     # elif reduce == 'mean':
     #     return c_spmm_mean(index, weight, x)
     # elif reduce == 'max':

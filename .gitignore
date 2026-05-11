@@ -1,4 +1,7 @@
 # For this repo
+PR_Description.md
+run_server.py
+iteration_log.md
 .idea
 .vscode
 .DS_Store
