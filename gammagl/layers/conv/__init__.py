@@ -36,6 +36,7 @@ from .hid_conv import Hid_conv
 from .dhn_conv import DHNConv
 from .dna_conv import DNAConv
 from .rohehan_conv import RoheHANConv
+from .molecule_gnn_conv import MoleculeGNNConv
 
 __all__ = [
     'MessagePassing',
@@ -75,7 +76,20 @@ __all__ = [
     'HEATlayer',
     'DHNConv',
     'DNAConv',
-    'RoheHANConv'
+    'RoheHANConv',
+    'MoleculeGNNConv',
+    'EuclideanEncoder',
+    'ManifoldEncoder',
+    'ConstCurveLinear',
+    'ConstCurveAgg',
 ]
 
 classes = __all__
+
+# Lazy imports for RGT layers (to avoid circular dependency issues)
+def __getattr__(name):
+    if name in ('EuclideanEncoder', 'ManifoldEncoder', 'ConstCurveLinear', 'ConstCurveAgg'):
+        from .rgt_layers import EuclideanEncoder, ManifoldEncoder, ConstCurveLinear, ConstCurveAgg
+        return {'EuclideanEncoder': EuclideanEncoder, 'ManifoldEncoder': ManifoldEncoder,
+                'ConstCurveLinear': ConstCurveLinear, 'ConstCurveAgg': ConstCurveAgg}[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
