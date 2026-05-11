@@ -3,13 +3,44 @@
 import os
 import os.path as osp
 from setuptools import setup, find_packages
-# from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtension
-# from ggl_build_extension import PyCudaExtension, PyCPUExtension
-from tensorlayerx.utils import PyCppExtension, PyCUDAExtension, PyBuildExtension
 
-# TODO will depend on different host
-WITH_CUDA = True
-# WITH_CUDA = True
+# Prefer torch backend during build to avoid TensorFlow-side imports/noise.
+os.environ.setdefault("TL_BACKEND", "torch")
+
+# Prefer TLX build helpers when available; fallback to torch cpp_extension.
+# If neither is available (e.g. in pip build isolation), provide dummy fallbacks.
+_extensions_available = False
+try:
+    from tensorlayerx.utils import PyCppExtension, PyCUDAExtension, PyBuildExtension
+    _extensions_available = True
+except Exception:
+    try:
+        from torch.utils.cpp_extension import CppExtension, CUDAExtension, BuildExtension
+
+        def PyCppExtension(*args, **kwargs):
+            kwargs.pop("use_torch", None)
+            return CppExtension(*args, **kwargs)
+
+        def PyCUDAExtension(*args, **kwargs):
+            kwargs.pop("use_torch", None)
+            return CUDAExtension(*args, **kwargs)
+
+        PyBuildExtension = BuildExtension
+        _extensions_available = True
+    except Exception:
+        # Neither TLX nor torch available at build time – provide dummy stubs.
+        # The C++ extensions will be skipped; Python-only install will still work.
+        PyCppExtension = None
+        PyCUDAExtension = None
+
+        class PyBuildExtension:
+            def __new__(cls, *args, **kwargs):
+                return None
+
+# CUDA build switch:
+# - default enabled
+# - export WITH_CUDA=0 to force CPU-only extensions
+WITH_CUDA = os.environ.get("WITH_CUDA", "1") not in ("0", "false", "False")
 
 cuda_macro = ('COMPILE_WITH_CUDA', True)
 omp_macro = ('COMPLIE_WITH_OMP', True)  # Note: OpenMP needs gcc>4.2.0
@@ -112,9 +143,21 @@ def load_ops_extensions():
     return extensions
 
 
+# Build switch for optional GammaGL ops extensions (sparse/segment/tensor).
+# These require third_party dependencies (e.g. parallel_hashmap submodule).
+BUILD_GGL_OPS = os.environ.get("BUILD_GGL_OPS", "0") in ("1", "true", "True")
+
 # Start to include cuda ops, if no cuda found, will only compile cpu ops
 def load_extensions():
-    extensions = load_mpops_extensions() + load_ops_extensions()
+    if not _extensions_available:
+        print("C++ build helpers not available (torch/tensorlayerx missing in build env).")
+        print("Skipping C++ extensions – Python-only install will proceed.")
+        return []
+    extensions = load_mpops_extensions()
+    if BUILD_GGL_OPS:
+        extensions += load_ops_extensions()
+    else:
+        print("Skip building gammagl/ops extensions (set BUILD_GGL_OPS=1 to enable).")
 
     return extensions
 
@@ -133,6 +176,9 @@ def readme():
     return content
 
 
+_ext_modules = load_extensions()
+_cmdclass = {'build_ext': PyBuildExtension} if _extensions_available else {}
+
 setup(
     name="gammagl",
     version="0.6.0",
@@ -140,8 +186,8 @@ setup(
     author_email="tyzhao@bupt.edu.cn",
     maintainer="Tianyu Zhao",
     license="Apache-2.0 License",
-    cmdclass={'build_ext': PyBuildExtension},
-    ext_modules=load_extensions(),
+    cmdclass=_cmdclass,
+    ext_modules=_ext_modules,
     description=" ",
     long_description=readme(),
     url="https://github.com/BUPT-GAMMA/GammaGL",
