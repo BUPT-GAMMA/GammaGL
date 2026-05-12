@@ -1,5 +1,6 @@
 import os
-os.environ['TL_BACKEND'] = 'torch'
+if 'TL_BACKEND' not in os.environ:
+    os.environ['TL_BACKEND'] = 'torch'
 
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
@@ -26,7 +27,7 @@ def reset_bn_(bn_module):
         new_var = tlx.initializers.Ones()(bn_module.moving_var.shape)
         bn_module.moving_var.data = new_var
     
-from gammagl.layers.conv.gat_thr import (
+from gammagl.layers.conv.gat_unifews import (
     ThrInPrune, LayerNumLogger, rewind, 
     reset_weight_, reset_bias_, 
     gcn_norm, add_remaining_self_loops
@@ -169,7 +170,7 @@ class SandwitchGCNII(nn.Module):
 
 class SandwitchThr(SandwitchGCNII):
     def __init__(self, nlayer, nfeat, nhidden, nclass,
-                 thr_a=0.0, thr_w=0.0, dropout: float = 0.0, layer: str = 'gcn2_thr',
+                 thr_a=0.0, thr_w=0.0, dropout: float = 0.0, layer: str = 'gcn2_unifews',
                  **kwargs):
         
         alpha = kwargs.get('alpha', 0.1)

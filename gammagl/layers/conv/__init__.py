@@ -36,15 +36,15 @@ from .hid_conv import Hid_conv
 from .dhn_conv import DHNConv
 from .dna_conv import DNAConv
 from .rohehan_conv import RoheHANConv
-from .gat_thr import ConvThr
-from .gat_thr import GATv2ConvThr
-from .gat_thr import GATv2ConvRaw
-from .gcn2_thr import GCNIIConvRaw
-from .gcn2_thr import GCNIIConvThr
-from .gcn_thr import GCNConvRaw
-from .gcn_thr import GCNConvThr
-from .gsage_thr import SAGEConvRaw
-from .gsage_thr import SAGEConvThr
+from .gat_unifews import ConvThr
+from .gat_unifews import GATv2ConvThr
+from .gat_unifews import GATv2ConvRaw
+from .gcn2_unifews import GCNIIConvRaw
+from .gcn2_unifews import GCNIIConvThr
+from .gcn_unifews import GCNConvRaw
+from .gcn_unifews import GCNConvThr
+from .gsage_unifews import SAGEConvRaw
+from .gsage_unifews import SAGEConvThr
 
 __all__ = [
     'MessagePassing',

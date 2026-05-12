@@ -1,5 +1,6 @@
 import os
-os.environ['TL_BACKEND'] = 'torch'
+if 'TL_BACKEND' not in os.environ:
+    os.environ['TL_BACKEND'] = 'torch'
 from datetime import datetime
 import uuid
 import json
@@ -7,14 +8,13 @@ import copy
 from typing import Union, Callable
 from dotmap import DotMap
 
-# ===================== 核心替换：PyTorch → TensorLayerX =====================
 import tensorlayerx as tlx
-# TLX 模型基类替代 torch.nn.Module
+
 from tensorlayerx.nn import Module
 
 
 def prepare_opt(parser) -> DotMap:
-    # 【纯配置逻辑，无修改】配置解析函数
+
     opt_parser = vars(parser.parse_args())
     config_path = opt_parser['config']
     if not os.path.isfile(config_path):
@@ -28,7 +28,6 @@ def prepare_opt(parser) -> DotMap:
 
 
 class Logger(object):
-    # 【日志工具，无框架依赖，完全保留】
     def __init__(self, data: str, algo: str, flag_run: str='', dir: tuple=None):
         super(Logger, self).__init__()
 
@@ -152,10 +151,6 @@ class Logger(object):
         return hstr, cstr
 
 class ModelLogger(object):
-    """
-    【核心修改：替换 PyTorch 为 TensorLayerX】
-    模型保存/加载/最优模型记录，接口完全不变
-    """
     def __init__(self, logger: Logger, patience: int=99999,
                  prefix: str='model', storage: str='model_gpu',
                  cmp: Union[Callable[[float, float], bool], str]='>'):
@@ -177,7 +172,6 @@ class ModelLogger(object):
 
     @property
     def state_dict(self):
-        # TLX 与 PyTorch 接口一致
         return self.model.state_dict()
 
     # ===== Load and save
@@ -198,7 +192,6 @@ class ModelLogger(object):
             assert self.model is not None
             if model is None:
                 model = self.model
-            # TLX 加载权重
             state_dict = tlx.load(path, map_location=map_location)
             model.load_state_dict(state_dict)
         elif self.storage in ['state_ram', 'state_gpu']:
@@ -210,7 +203,6 @@ class ModelLogger(object):
                 self.model.remove()
             model.load_state_dict(self.mem)
         elif self.storage == 'model':
-            # TLX 加载模型
             model = tlx.load(path, map_location=map_location)
         elif self.storage in ['model_ram', 'model_gpu']:
             model = copy.deepcopy(self.mem)
@@ -222,10 +214,8 @@ class ModelLogger(object):
         path = self.logger.path_join(name + '.pth')
 
         if self.storage == 'state':
-            # TLX 保存权重
             tlx.save(self.state_dict, path)
         elif self.storage == 'model':
-            # TLX 保存模型
             tlx.save(self.model, path)
         elif self.storage == 'state_gpu':
             if hasattr(self, 'mem'): del self.mem
@@ -287,7 +277,6 @@ class ModelLogger(object):
 
 
 class LayerNumLogger(object):
-    # 【纯计数工具，无修改】
     def __init__(self, name: str=None):
         self.name = name
         self.numel_before = None

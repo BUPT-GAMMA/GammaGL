@@ -1,5 +1,6 @@
 import os
-os.environ['TL_BACKEND'] = 'torch'
+if 'TL_BACKEND' not in os.environ:
+    os.environ['TL_BACKEND'] = 'torch'
 
 import gc
 import random

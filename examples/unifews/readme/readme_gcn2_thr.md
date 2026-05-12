@@ -18,7 +18,7 @@ Dataset Statics
 Results
 -------
 ```bash
-ALGO=gcn2_thr 
+ALGO=gcn2_unifews #gcn2
 for DATASTR in cora citeseer pubmed
 do
     for THRA in 0.0e+00 5.0e-02 
@@ -40,29 +40,7 @@ done
 
 ```
 
--------
-```bash
-ALGO=gcn2_thr #gcn2
-for DATASTR in cora citeseer pubmed
-do
-    for THRA in 0.0e+00 5.0e-03 1.0e-02 1.5e-02 2.0e-02 2.5e-02 3.0e-02 4.0e-02 5.0e-02 6.0e-02 8.0e-02 1.0e-01 1.5e-01 
-    do
 
-        for THRW in 0.0e+00 8.0e-01 1.2e+00 2.0e+00
-       
-        do
-            for SEED in 42 43
-            do
-                OUTDIR=./save/${DATASTR}/${ALGO}/${SEED}-${THRA}-${THRW}
-                mkdir -p ${OUTDIR}
-                OUTFILE=${OUTDIR}/out.txt
-                python -u run_fb.py --seed ${SEED} --config ./config/${DATASTR}.json --dev ${1:--1} \
-                    --algo ${ALGO} --thr_a ${THRA} --thr_w ${THRW} >> ${OUTFILE} &
-                echo $! && wait
-            done
-        done
-    done
-done
 
 
 ```

@@ -1,6 +1,7 @@
 import os.path as osp
 import os
-os.environ['TL_BACKEND'] = 'torch'
+if 'TL_BACKEND' not in os.environ:
+    os.environ['TL_BACKEND'] = 'torch'
 import sys
 import gc
 import copy
@@ -8,14 +9,11 @@ from dotmap import DotMap
 import numpy as np
 import scipy.sparse as sp
 
-# ===================== 核心框架导入（仅保留必需的，删除所有废弃数据集导入） =====================
 import tensorlayerx as tlx
 from gammagl.data import Graph
 from typing import Any, Callable, List, Optional, Union, Sequence
 
-# ===================== 手动实现所有GammaGL废弃函数，彻底解决导入错误 =====================
 def stochastic_blockmodel_graph(block_sizes, edge_probs, directed=False):
-    """手动实现 SBM 图生成，100%兼容原有接口"""
     N = sum(block_sizes)
     edges = []
     for i, size_i in enumerate(block_sizes):
@@ -44,13 +42,12 @@ def stochastic_blockmodel_graph(block_sizes, edge_probs, directed=False):
     return edge_index
 
 def to_scipy_sparse_matrix(edge_index, num_nodes=None):
-    """手动实现稀疏矩阵转换"""
+    
     if num_nodes is None:
         num_nodes = edge_index.max() + 1
     return sp.coo_matrix((np.ones(edge_index.shape[1]), (edge_index[0], edge_index[1])),
                          shape=(num_nodes, num_nodes))
 
-# 手动实现SBM数据集类，不依赖GammaGL内置类
 class DummySBM:
     def __init__(self, edge_index, num_nodes):
         self.edge_index = edge_index
@@ -61,13 +58,11 @@ from .gen_cat import gencat, feature_extraction
 from .data_processor import DataProcess, DataProcess_inductive, matstd_clip
 from precompute.prop import A2Prop
 
-# 打印设置（仅保留numpy，删除TLX无效方法）
 np.set_printoptions(linewidth=160, edgeitems=5, threshold=20,
                     formatter=dict(float=lambda x: "% 9.3e" % x))
 
 
 def dmap2dct(chnname: str, dmap: DotMap, processor: DataProcess):
-    """【纯逻辑函数，无修改】参数映射函数"""
     typedct = {'sgc': -2, 'gbp': -3,
                'sgc_agp': 0, 'gbp_agp': 1,
                'sgc_thr': 2, 'gbp_thr': 3,}
@@ -85,7 +80,6 @@ def dmap2dct(chnname: str, dmap: DotMap, processor: DataProcess):
 
 
 def to_list(value: Any) -> Sequence:
-    """【纯工具函数，无修改】"""
     if isinstance(value, Sequence) and not isinstance(value, str):
         return value
     else:
@@ -94,8 +88,7 @@ def to_list(value: Any) -> Sequence:
 
 # ===================== 彻底删除废弃的GammaGL数据集继承，纯手动实现 =====================
 def sbm_mixture_of_Gaussians(n, n_features, sizes, probs, std_, means, nodes_per_mean):
-    """【纯手动实现】SBM高斯混合数据生成，无任何GammaGL数据集依赖"""
-    # 手动生成SBM图
+    
     edge_index = stochastic_blockmodel_graph(sizes, probs, directed=False)
     g_ = DummySBM(edge_index=edge_index, num_nodes=sum(sizes))
 
@@ -125,7 +118,7 @@ def sbm_mixture_of_Gaussians(n, n_features, sizes, probs, std_, means, nodes_per
 def load_csbm(datastr: str, datapath: str="./data/",
                    inductive: bool=False, multil: bool=False,
                    seed: int=0, **kwargs):
-    """【接口完全不变】CSBM数据集加载"""
+    
     n = 500
     n_features = 127
     q = 0.1
@@ -141,7 +134,6 @@ def load_csbm(datastr: str, datapath: str="./data/",
     g = sbm_mixture_of_Gaussians(n, n_features, sizes, probs, std_, means, nodes_per_mean)
 
     idx_rnd = np.random.permutation(2*n)
-    # 张量：torch → tlx
     adj = {'train': g.edge_index,
            'test':  g.edge_index}
     feat = {'train': tlx.convert_to_tensor(g.x, tlx.float32),
@@ -163,7 +155,6 @@ def load_csbm(datastr: str, datapath: str="./data/",
 def load_gencat(datastr: str, datapath: str="./data/",
                    inductive: bool=False, multil: bool=False,
                    seed: int=0, **kwargs):
-    """【纯numpy逻辑，无修改】生成图数据加载"""
     dp = DataProcess('cora', path="./data/", seed=0)
     dp.input(['adjnpz', 'labels', 'attr_matrix'])
     M, D, class_size, H, node_degree = feature_extraction(dp.adj_matrix, dp.attr_matrix, dp.labels.tolist())
@@ -194,12 +185,9 @@ def load_gencat(datastr: str, datapath: str="./data/",
         print(dp)
     return adj, feat, labels, idx, nfeat, nclass
 
-
-# ========== 核心数据加载函数（完全兼容原版） ==========
 def load_edgelist(datastr: str, datapath: str="./data/",
                    inductive: bool=False, multil: bool=False,
                    seed: int=0, **kwargs):
-    """【最常用函数，接口/返回值完全不变】边列表数据加载"""
     if datastr.startswith('csbm'):
         return load_csbm(datastr, datapath, inductive, multil, seed, **kwargs)
     elif datastr.startswith('gencat'):
@@ -256,7 +244,6 @@ def load_embedding(datastr: str, algo: str, algo_chn: DotMap,
                    datapath: str="./data/",
                    inductive: bool=False, multil: bool=False,
                    seed: int=0, **kwargs):
-    """【嵌入加载函数，C++扩展兼容，无修改】"""
     dp = DataProcess(datastr, path=datapath, seed=seed)
     dp.input(['labels', 'attr_matrix', 'deg'])
     if inductive:
@@ -289,7 +276,6 @@ def load_embedding(datastr: str, algo: str, algo_chn: DotMap,
     if seed >= 15:
         print(dp)
 
-    # C++ 扩展调用（完全兼容）
     py_a2prop = A2Prop()
     py_a2prop.load(os.path.join(datapath, datastr), m, n, seed)
     chn = dmap2dct(algo, DotMap(algo_chn), dp)

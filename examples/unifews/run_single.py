@@ -1,5 +1,6 @@
 import os
-os.environ['TL_BACKEND'] = 'torch'
+if 'TL_BACKEND' not in os.environ:
+    os.environ['TL_BACKEND'] = 'torch'
 
 import random
 import argparse
@@ -11,7 +12,7 @@ from tensorlayerx import nn
 from gammagl.utils.logger_gamma import Logger, ModelLogger, prepare_opt
 from gammagl.utils.loader_gamma import load_edgelist
 import gammagl.utils.metric_gamma as metric
-from gammagl.layers.conv.gcn_thr import identity_n_norm
+from gammagl.layers.conv.gcn_unifews import identity_n_norm
 from gammagl.models.gnn_model import flops_modules_dict
 import gammagl.models.mlp_model as mlp_model
 import gammagl.models.gnn_model as gnn_model

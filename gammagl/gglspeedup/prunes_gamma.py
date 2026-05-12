@@ -1,5 +1,6 @@
 import os
-os.environ['TL_BACKEND'] = 'torch'
+if 'TL_BACKEND' not in os.environ:
+    os.environ['TL_BACKEND'] = 'torch'
 import tensorlayerx as tlx
 from tensorlayerx.nn import Module
 from abc import ABC, abstractmethod
@@ -96,12 +97,12 @@ class RandomUnstructured(BasePruningMethod):
     def _validate_amount(self, amount):
         if isinstance(amount, float):
             if not (0.0 <= amount <= 1.0):
-                raise ValueError("剪枝比例必须在 0.0 ~ 1.0 之间")
+                raise ValueError("The ratio of pruning must range from 0 to 1.")
         elif isinstance(amount, int):
             if amount < 0:
-                raise ValueError("剪枝数量不能为负数")
+                raise ValueError("Pruning quantity cannot be negative.")
         else:
-            raise TypeError("amount 必须为 int(绝对数量) 或 float(剪枝比例)")
+            raise TypeError("amount must be either an integer for absolute quantity or a float for pruning ratio.")
 
     def _get_prune_count(self, amount, tensor_size):
         if isinstance(amount, int):

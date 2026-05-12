@@ -1,7 +1,7 @@
 {
     "data": "cora",
     "path": "./data/",
-    "algo": "gcn_thr",
+    "algo": "gcn_unifews",
     "epochs": 200,
     "patience": 20,
     "lr": 0.001,

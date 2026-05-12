@@ -18,7 +18,7 @@ do
                     OUTDIR=./save/${DATASTR}/${ALGO}/${SEED}-${THRA}-${THRW}
                     mkdir -p ${OUTDIR}
                     OUTFILE=${OUTDIR}/out.txt
-                    python -u run_mb_gamma.py --seed ${SEED} --config ./config/${DATASTR}_mb.json --dev ${1:--1} \
+                    python -u run_mlp.py --seed ${SEED} --config ./config/${DATASTR}_mb.json --dev ${1:--1} \
                         --algo ${ALGO} --thr_a ${THRA} --thr_w ${THRW} >> ${OUTFILE} &
                     echo $! && wait
                 done

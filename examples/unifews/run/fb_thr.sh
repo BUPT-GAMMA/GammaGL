@@ -15,7 +15,7 @@ do
                 OUTDIR=./save/${DATASTR}/${ALGO}/${SEED}-${THRA}-${THRW}
                 mkdir -p ${OUTDIR}
                 OUTFILE=${OUTDIR}/out.txt
-                python -u run_fb_gamma.py --seed ${SEED} --config ./config/${DATASTR}.json --dev ${1:--1} \
+                python -u run_single.py --seed ${SEED} --config ./config/${DATASTR}.json --dev ${1:--1} \
                     --algo ${ALGO} --thr_a ${THRA} --thr_w ${THRW} >> ${OUTFILE} &
                 echo $! && wait
             done

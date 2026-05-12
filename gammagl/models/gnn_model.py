@@ -1,5 +1,6 @@
 import os
-os.environ['TL_BACKEND'] = 'torch'
+if 'TL_BACKEND' not in os.environ:
+    os.environ['TL_BACKEND'] = 'torch'
 
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
@@ -26,16 +27,16 @@ def reset_bn_(bn_module):
         new_var = tlx.initializers.Ones()(bn_module.moving_var.shape)
         bn_module.moving_var.data = new_var
     
-from gammagl.layers.conv.gcn_thr import (
+from gammagl.layers.conv.gcn_unifews import (
     ThrInPrune, LayerNumLogger, rewind, 
     reset_weight_, reset_bias_, 
     gcn_norm, add_remaining_self_loops,
     layer_dict_gcn,
     flops_modules_dict_gcn
 )
-from gammagl.layers.conv.gat_thr import layer_dict_gat,flops_modules_dict_gat
-from gammagl.layers.conv.gcn2_thr import layer_dict_gcn2,flops_modules_dict_gcn2
-from gammagl.layers.conv.gsage_thr import layer_dict_gsage,flops_modules_dict_gsage
+from gammagl.layers.conv.gat_unifews import layer_dict_gat,flops_modules_dict_gat
+from gammagl.layers.conv.gcn2_unifews import layer_dict_gcn2,flops_modules_dict_gcn2
+from gammagl.layers.conv.gsage_unifews import layer_dict_gsage,flops_modules_dict_gsage
 
 layer_dict = {
     **layer_dict_gcn,
