@@ -13,10 +13,10 @@ from gammagl.utils.logger_gamma import Logger, ModelLogger, prepare_opt
 from gammagl.utils.loader_gamma import load_edgelist
 import gammagl.utils.metric_gamma as metric
 from gammagl.layers.conv.gcn_unifews import identity_n_norm
-from gammagl.models.gnn_model import flops_modules_dict
-import gammagl.models.mlp_model as mlp_model
-import gammagl.models.gnn_model as gnn_model
-import gammagl.models.gcn2_model as gcn2_model
+from gammagl.models.gnn_unifews import flops_modules_dict
+import gammagl.models.mlp_unifews as mlp_model
+import gammagl.models.gnn_unifews as gnn_model
+import gammagl.models.gcn2_unifews as gcn2_model
 
 class PureTLXAdam:
     def __init__(self, lr=0.001, weight_decay=0.0):

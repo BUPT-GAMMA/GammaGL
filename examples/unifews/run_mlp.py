@@ -79,8 +79,8 @@ class PureTLXAdam:
 from gammagl.utils.logger_gamma import Logger, ModelLogger, prepare_opt
 from gammagl.utils.loader_gamma import load_embedding
 import gammagl.utils.metric_gamma as metric
-from gammagl.models.gnn_model import flops_modules_dict
-import gammagl.models.mlp_model as models
+from gammagl.models.gnn_unifews import flops_modules_dict
+import gammagl.models.mlp_unifews as models
 
 np.set_printoptions(linewidth=160, edgeitems=5, threshold=20,
                     formatter=dict(float=lambda x: "%.6e" % x))

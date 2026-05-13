@@ -150,7 +150,7 @@ def softmax(src, index, ptr=None, num_nodes=None):
     out_sum = scatter(out, index, axis=0, dim_size=num_nodes, reduce='sum')
     out_sum_gathered = tlx.gather(out_sum, index)
     return out / (out_sum_gathered + 1e-16)
-
+'''
 def gcn_norm(edge_index, edge_weight, num_nodes, improved=False, add_self_loops=True, flow="source_to_target", dtype=tlx.float32):
     if add_self_loops:
         edge_index, edge_weight = add_remaining_self_loops(edge_index, edge_weight, 1.0, num_nodes)
@@ -162,7 +162,7 @@ def gcn_norm(edge_index, edge_weight, num_nodes, improved=False, add_self_loops=
     deg_inv_sqrt = pow_with_pinv(deg, -0.5)
     edge_weight = deg_inv_sqrt[row] * edge_weight * deg_inv_sqrt[col]
     return edge_index, edge_weight
-
+'''
 def identity_n_norm(edge_index, edge_weight=None, num_nodes=None,
                     rnorm=None, diag=1., dtype=tlx.float32):
     if tlx.is_tensor(edge_index):

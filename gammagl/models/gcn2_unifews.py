@@ -30,10 +30,10 @@ def reset_bn_(bn_module):
 from gammagl.layers.conv.gat_unifews import (
     ThrInPrune, LayerNumLogger, rewind, 
     reset_weight_, reset_bias_, 
-    gcn_norm, add_remaining_self_loops
+    add_remaining_self_loops
 )
-
-from .gnn_model import layer_dict
+from gammagl.layers.conv.gcn_unifews import gcn_norm
+from .gnn_unifews import layer_dict
 
 kwargs_default = {
     'gcn': {
