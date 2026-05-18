@@ -1,5 +1,4 @@
 import os
-os.environ['TL_BACKEND'] = 'torch'
 
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
@@ -8,25 +7,8 @@ import numpy as np
 import time
 import logging
 
-# Compatibility for mixed torch internals.
-def _compat_named_parameters(self, prefix='', recurse=True, remove_duplicate=True):
-    memo = set()
-    modules = self.named_modules(prefix=prefix) if recurse else [(prefix, self)]
-    for module_prefix, module in modules:
-        for name, param in module._parameters.items():
-            if param is None:
-                continue
-            if remove_duplicate and param in memo:
-                continue
-            if remove_duplicate:
-                memo.add(param)
-            full_name = f"{module_prefix}.{name}" if module_prefix else name
-            yield full_name, param
-
-torch.nn.Module.named_parameters = _compat_named_parameters
-
-from gammagl.models.rgt import RGT
-from gammagl.models.rgt_heads import NodeClsHead, LinkPredHead, GraphClsHead, ShotNCHead
+from gammagl.models.rgt import RGT, NodeClsHead, LinkPredHead, GraphClsHead, ShotNCHead
+from rgt_mappings import class_maps
 from utils import (
     EarlyStopping, act_fn, get_word2vec_dim,
     cal_accuracy, cal_AUC_AP, cal_F1,
@@ -36,150 +18,12 @@ from utils import (
 )
 from gammagl.loader.rgt_loader import ExtractNodeLoader, ExtractLinkLoader, ExtractGraphLoader
 from gammagl.transforms import RandomLinkSplit
-from gammagl.datasets.rgt_mappings import class_maps
 import gensim.downloader as api
 import os
 import re
 from tqdm import tqdm
 
 
-def load_torch_weights_to_tlx(model, pretrained_dict):
-    """Load checkpoint weights using state_dict only (avoid trainable_weights on old torch)."""
-    backend = tlx.BACKEND
-    need_transpose = backend in ['tensorflow', 'mindspore', 'paddle']
-    try:
-        model_state = model.state_dict()
-    except Exception as e:
-        print(f"[WARN] state_dict() failed, skip loading checkpoint: {e}")
-        return model
-
-    updated_state = dict(model_state)
-    loaded_count = 0
-    skipped_count = 0
-    optional_missing_count = 0
-    optional_missing_examples = []
-    missing_key_count = 0
-    shape_mismatch_count = 0
-    missing_examples = []
-    shape_examples = []
-
-    def _to_numpy(val):
-        if isinstance(val, torch.Tensor):
-            return val.detach().cpu().numpy()
-        return np.array(val)
-
-    if not isinstance(pretrained_dict, dict):
-        print(f"[WARN] checkpoint object is not a dict (got {type(pretrained_dict)}), skip loading.")
-        return model
-
-    def _candidate_keys(key):
-        keys = {key}
-        if key.startswith("module."):
-            keys.add(key[7:])
-        for k in list(keys):
-            if k.startswith("pretrained_model."):
-                keys.add(k[len("pretrained_model."):])
-            else:
-                keys.add("pretrained_model." + k)
-
-        def _aliases(k):
-            out = {k}
-            out.add(k.replace(".weights", ".weight"))
-            out.add(k.replace(".weight", ".weights"))
-            out.add(k.replace(".biases", ".bias"))
-            out.add(k.replace(".bias", ".biases"))
-            out.add(k.replace(".weight.weight", ".weight"))
-            out.add(k.replace(".weight.bias", ".bias"))
-            out.add(k.replace(".weight.weight", ".weight.weights"))
-            out.add(k.replace(".weight.bias", ".weight.biases"))
-            return out
-
-        expanded = set()
-        frontier = set(keys)
-        for _ in range(2):
-            next_frontier = set()
-            for k in frontier:
-                next_frontier |= _aliases(k)
-            expanded |= next_frontier
-            frontier = next_frontier
-        expanded |= keys
-        return list(expanded)
-
-    def _is_optional_missing(k):
-        return (
-            k.endswith("project_in.bias")
-            or k.endswith("project_out.bias")
-            or k.endswith("._codebook.initted")
-            or k.endswith("._codebook.cluster_size")
-            or k.endswith("._codebook.embed_avg")
-        )
-
-    for key, val in pretrained_dict.items():
-        if key is None:
-            skipped_count += 1
-            continue
-        if not isinstance(key, str):
-            key = str(key)
-        candidate_keys = _candidate_keys(key)
-
-        target_key = None
-        for ck in candidate_keys:
-            if ck in model_state:
-                target_key = ck
-                break
-        if target_key is None:
-            if _is_optional_missing(key):
-                optional_missing_count += 1
-                if len(optional_missing_examples) < 10:
-                    optional_missing_examples.append(key)
-            else:
-                skipped_count += 1
-                missing_key_count += 1
-                if len(missing_examples) < 10:
-                    missing_examples.append(key)
-            continue
-
-        src = _to_numpy(val)
-        if not np.isfinite(src).all():
-            src = np.nan_to_num(src, nan=0.0, posinf=1e4, neginf=-1e4)
-        if np.issubdtype(src.dtype, np.floating):
-            src = np.clip(src, -1e4, 1e4)
-        dst_shape = tuple(model_state[target_key].shape)
-        src_shape = tuple(src.shape)
-
-        if src_shape == dst_shape:
-            updated_state[target_key] = tlx.convert_to_tensor(src, dtype=model_state[target_key].dtype)
-            loaded_count += 1
-            continue
-
-        if len(src_shape) == 2 and src_shape[::-1] == dst_shape:
-            updated_state[target_key] = tlx.convert_to_tensor(src.T, dtype=model_state[target_key].dtype)
-            loaded_count += 1
-            continue
-
-        if src.size == int(np.prod(dst_shape)) and src.size > 0:
-            reshaped = np.reshape(src, dst_shape)
-            updated_state[target_key] = tlx.convert_to_tensor(reshaped, dtype=model_state[target_key].dtype)
-            loaded_count += 1
-            continue
-
-        skipped_count += 1
-        shape_mismatch_count += 1
-        if len(shape_examples) < 10:
-            shape_examples.append((key, src_shape, target_key, dst_shape))
-
-    try:
-        model.load_state_dict(updated_state, strict=False)
-    except TypeError:
-        model.load_state_dict(updated_state)
-    print(f"[Checkpoint] loaded={loaded_count}, skipped={skipped_count}, backend={backend}")
-    if optional_missing_count > 0:
-        print(f"[Checkpoint] optional_missing={optional_missing_count}, sample={optional_missing_examples}")
-    if missing_key_count > 0:
-        print(f"[Checkpoint] missing_keys={missing_key_count}, sample={missing_examples}")
-    if shape_mismatch_count > 0:
-        print(f"[Checkpoint] shape_mismatch={shape_mismatch_count}, sample={shape_examples}")
-    return model
 
 
 def safe_to_float(value):
@@ -280,7 +124,7 @@ class SupervisedExp(object):
                 self.logger.info(f"---------------Loading pretrained models from {path}-------------")
 
                 pretrained_dict = load_model(path)
-                pretrained_model = load_torch_weights_to_tlx(pretrained_model, pretrained_dict)
+                pretrained_model.load_state_dict(pretrained_dict)
         
         self.pretrained_model = pretrained_model
         
@@ -522,7 +366,7 @@ class NodeClassification(SupervisedExp):
         path = os.path.join(self.configs.checkpoints, self.configs.task_model_path)
         self.logger.info(f"--------------Loading from {path}--------------------")
         task_dict = load_model(path)
-        self.nc_model = load_torch_weights_to_tlx(self.nc_model, task_dict)
+        self.nc_model.load_state_dict(task_dict)
         trues = []
         preds = []
         for data in test_loader:
@@ -756,7 +600,7 @@ class LinkPrediction(SupervisedExp):
         path = os.path.join(self.configs.checkpoints, self.configs.task_model_path)
         self.logger.info(f"--------------Loading from {path}--------------------")
         task_dict = load_model(path)
-        self.lp_model = load_torch_weights_to_tlx(self.lp_model, task_dict)
+        self.lp_model.load_state_dict(task_dict)
         test_label = []
         test_pred = []
         for data in test_loader:
@@ -953,7 +797,7 @@ class GraphClassification(SupervisedExp):
         path = os.path.join(self.configs.checkpoints, self.configs.task_model_path)
         self.logger.info(f"--------------Loading from {path}--------------------")
         task_dict = load_model(path)
-        self.gc_model = load_torch_weights_to_tlx(self.gc_model, task_dict)
+        self.gc_model.load_state_dict(task_dict)
         trues = []
         preds = []
         for data in test_loader:

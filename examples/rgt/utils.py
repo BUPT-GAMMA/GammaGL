@@ -1,10 +1,3 @@
-import os as _os
-_os.environ.setdefault('TL_BACKEND', 'torch')
-
-import tensorlayerx as tlx
-if getattr(tlx, 'BACKEND', 'backend') == 'backend':
-    tlx.BACKEND = 'torch'
-
 import numpy as np
 import os
 import pickle
@@ -426,38 +419,9 @@ def _numpy_to_backend(arr):
 
 
 def load_model(path):
-    """Load model state dict from file in a backend-agnostic way.
-
-    Handles two formats:
-    1. Pickle format from save_model (plain pickle of numpy arrays)
-    2. Torch-saved checkpoints (requires torch.load to unpack, then
-       immediately converted to numpy before returning)
-    """
-    save_dict = None
-
-    # Try plain pickle first (format used by save_model)
-    try:
-        with open(path, 'rb') as f:
-            save_dict = pickle.load(f)
-    except (pickle.UnpicklingError, EOFError, ValueError):
-        pass
-
-    # If plain pickle failed, the file was saved with torch.save.
-    # Torch is unavoidable here because torch.save embeds custom
-    # persistent-id instructions that only torch.load can decode.
-    if save_dict is None:
-        import torch
-        save_dict = torch.load(path, map_location='cpu', weights_only=False)
-        # Immediately convert torch tensors to numpy
-        result = {}
-        for key, val in save_dict.items():
-            if isinstance(val, torch.Tensor):
-                result[key] = val.detach().cpu().numpy()
-            elif isinstance(val, np.ndarray):
-                result[key] = val
-            else:
-                result[key] = val
-        save_dict = result
+    """Load model state dict from file (pickle format with numpy arrays)."""
+    with open(path, 'rb') as f:
+        save_dict = pickle.load(f)
 
     # Convert numpy arrays to backend-native tensors via tlx
     for key, val in save_dict.items():

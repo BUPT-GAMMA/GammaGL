@@ -67,6 +67,7 @@ from .gcil import GCILModel, LogReg
 from .sgformer import SGFormerModel
 from .adagad import PreModel, ReModel
 from .nodeid import NodeIDGNN
+from .rgt import RGT, NodeClsHead, LinkPredHead, GraphClsHead, ShotNCHead
 __all__ = [
     'HeCo',
     'GCNModel',
@@ -150,14 +151,3 @@ __all__ = [
 ]
 
 classes = __all__
-
-# Lazy imports for RGT (to avoid circular dependency issues)
-def __getattr__(name):
-    if name == 'RGT':
-        from .rgt import RGT
-        return RGT
-    if name in ('NodeClsHead', 'LinkPredHead', 'GraphClsHead', 'ShotNCHead'):
-        from .rgt_heads import NodeClsHead, LinkPredHead, GraphClsHead, ShotNCHead
-        return {'NodeClsHead': NodeClsHead, 'LinkPredHead': LinkPredHead,
-                'GraphClsHead': GraphClsHead, 'ShotNCHead': ShotNCHead}[name]
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

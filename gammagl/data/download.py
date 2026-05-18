@@ -34,25 +34,10 @@ def download_url(url: str, folder: str, log: bool = True,
         url = 'https://ghproxy.com/' + url
     path = osp.join(folder, filename)
 
-    if osp.exists(path) and osp.getsize(path) > 0:  # pragma: no cover
-        # Check if existing file size matches expected
-        context = ssl._create_unverified_context()
-        try:
-            req = urllib.request.Request(url, method='HEAD')
-            response = urllib.request.urlopen(req, context=context)
-            expected_size = int(response.getheader('Content-Length', '0'))
-            if expected_size > 0 and osp.getsize(path) == expected_size:
-                if log:
-                    print(f'Using existing file {filename}', file=sys.stderr)
-                return path
-            else:
-                if log:
-                    print(f'Existing file {filename} is incomplete, re-downloading...', file=sys.stderr)
-                os.remove(path)
-        except Exception:
-            if log:
-                print(f'Re-downloading {filename}...', file=sys.stderr)
-            os.remove(path)
+    if osp.exists(path):  # pragma: no cover
+        if log:
+            print(f'Using existing file {filename}', file=sys.stderr)
+        return path
 
     if log:
         print(f'Downloading {url}', file=sys.stderr)
@@ -69,7 +54,6 @@ def download_url(url: str, folder: str, log: bool = True,
     if file_size == 0:
         print(f"Remote file size not found.")
 
-    downloaded = 0
     with open(path, 'wb') as f:
         # workaround for https://bugs.python.org/issue42853
         # add download progress bar
@@ -80,16 +64,7 @@ def download_url(url: str, folder: str, log: bool = True,
                 if not chunk:
                     break
                 f.write(chunk)
-                chunk_len = len(chunk)
-                downloaded += chunk_len
-                pbar.update(chunk_len)
-
-    # Verify downloaded file size
-    if file_size > 0 and downloaded < file_size:
-        if log:
-            print(f'Download incomplete ({downloaded}/{file_size} bytes), removing partial file.', file=sys.stderr)
-        os.remove(path)
-        raise RuntimeError(f'Failed to download {url}: got {downloaded}/{file_size} bytes')
+                pbar.update(chunk_size)
 
     return path
 

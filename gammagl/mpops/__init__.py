@@ -1,5 +1,5 @@
 
-#!/usr/bin/env python3
+# !/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
 # @Time    : 2022/04/16 08:31
@@ -8,44 +8,23 @@
 
 
 import os
-import tensorlayerx as tlx
-import numpy as np
+if 'TL_BACKEND' in os.environ:
+    if os.environ['TL_BACKEND'] == 'tensorflow':
+        from .tensorflow import *
 
-def _get_tlx_backend():
-    """Detect the actual backend used by TensorLayerX."""
-    if 'TL_BACKEND' in os.environ:
-        return os.environ['TL_BACKEND']
+    elif os.environ['TL_BACKEND'] == 'mindspore':
+        from .mindspore import *
+
+    elif os.environ['TL_BACKEND'] == 'paddle':
+        from .paddle import *
+
+    elif os.environ['TL_BACKEND'] == 'torch':
+        from .torch import *
     
-    t = tlx.zeros((1,))
-    backend_name = type(t).__module__.lower()
-    if 'tensorflow' in backend_name:
-        return 'tensorflow'
-    elif 'torch' in backend_name:
-        return 'torch'
-    elif 'paddle' in backend_name:
-        return 'paddle'
-    elif 'mindspore' in backend_name:
-        return 'mindspore'
-    elif 'jittor' in backend_name:
-        return 'jittor'
-    return 'tensorflow'
+    elif os.environ['TL_BACKEND'] == 'jittor':
+        from .jittor import *
 
-_backend = _get_tlx_backend()
-
-if _backend == 'tensorflow':
-    from .tensorflow import *
-
-elif _backend == 'mindspore':
-    from .mindspore import *
-
-elif _backend == 'paddle':
-    from .paddle import *
-
-elif _backend == 'torch':
-    from .torch import *
-
-elif _backend == 'jittor':
-    from .jittor import *
-
+    else:
+        raise NotImplementedError("This backend is not supported")
 else:
-    raise NotImplementedError(f"This backend is not supported: {_backend}")
+    from .torch import *

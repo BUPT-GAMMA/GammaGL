@@ -1,5 +1,4 @@
 import os
-os.environ['TL_BACKEND'] = 'torch'  # Set backend before importing TLX/GammaGL
 
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn

@@ -5,9 +5,7 @@ import tensorlayerx as tlx
 from einops import rearrange, repeat, reduce, pack, unpack, einsum
 
 from typing import Callable
-from .rgt_layers import ConstCurveLinear
-from .manifold_lorentz import Lorentz
-from .manifold_sphere import Sphere
+from .rgt_layers import ConstCurveLinear, Lorentz, Sphere
 
 def exists(val):
     return val is not None

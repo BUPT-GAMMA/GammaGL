@@ -1,6 +1,3 @@
-import os
-os.environ.setdefault('TL_BACKEND', 'torch')
-
 import numpy as np
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
