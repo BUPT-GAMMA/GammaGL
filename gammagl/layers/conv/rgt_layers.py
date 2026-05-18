@@ -401,14 +401,14 @@ class Lorentz(geoopt.Lorentz):
         if tuple(x.shape) == tuple(y.shape):
             inner_xy = tlx.reduce_sum((-x[..., :1] * y[..., :1]) + (x[..., 1:] * y[..., 1:]), axis=dim, keepdims=True)
             arg = -inner_xy / self.k
-            arg = tlx.where(tlx.isnan(arg), tlx.ones_like(arg) * (1.0 + 1e-5), arg)
+            arg = tlx.where(tlx.is_nan(arg), tlx.ones_like(arg) * (1.0 + 1e-5), arg)
             arg = tlx.maximum(arg, tlx.ones_like(arg) * (1.0 + 1e-5))
             d = tlx.sqrt(self.k) * arcosh(arg)
             return d if keepdim else tlx.squeeze(d, axis=dim)
 
         cinner_xy = self.cinner(x, y)
         arg = -cinner_xy / self.k
-        arg = tlx.where(tlx.isnan(arg), tlx.ones_like(arg) * (1.0 + 1e-5), arg)
+        arg = tlx.where(tlx.is_nan(arg), tlx.ones_like(arg) * (1.0 + 1e-5), arg)
         arg = tlx.maximum(arg, tlx.ones_like(arg) * (1.0 + 1e-5))
         return tlx.sqrt(self.k) * arcosh(arg)
 

@@ -3,6 +3,7 @@ import os
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
 import torch
+import torch.serialization as _torch_serialization
 from torch_geometric.data import Data as PyGData
 import numpy as np
 import time
@@ -97,8 +98,13 @@ class Pretrain(object):
             cache_path = os.path.join(cache_dir, f"{data_name}_pyg_data.pkl")
             if os.path.exists(cache_path):
                 self.logger.info(f"Loading cached data from {cache_path}")
-                with open(cache_path, 'rb') as f:
-                    pyg_data = pickle.load(f)
+                _orig_restore = _torch_serialization.default_restore_location
+                _torch_serialization.default_restore_location = lambda s, l: _orig_restore(s, 'cpu')
+                try:
+                    with open(cache_path, 'rb') as f:
+                        pyg_data = pickle.load(f)
+                finally:
+                    _torch_serialization.default_restore_location = _orig_restore
                 num_nodes = pyg_data.num_nodes if pyg_data.num_nodes is not None else pyg_data.x.shape[0]
                 num_edges = pyg_data.edge_index.shape[1]
                 self.logger.info(f"Dataset {data_name} loaded from cache in {time.time()-t0:.2f}s (num_nodes={num_nodes}, num_edges={num_edges})")

@@ -399,7 +399,7 @@ class EuclideanCodebook(tlx.nn.Module):
         sample_codebook_temp = default(sample_codebook_temp, self.sample_codebook_temp)
 
         if _has_nan(x):
-            nan_mask = tlx.isnan(x)
+            nan_mask = tlx.is_nan(x)
             x = tlx.where(nan_mask, tlx.zeros_like(x), x)
 
         x = tlx.cast(x, tlx.float32)
@@ -616,7 +616,7 @@ class CosineSimCodebook(tlx.nn.Module):
         sample_codebook_temp = default(sample_codebook_temp, self.sample_codebook_temp)
 
         if _has_nan(x):
-            nan_mask = tlx.isnan(x)
+            nan_mask = tlx.is_nan(x)
             x = tlx.where(nan_mask, tlx.zeros_like(x), x)
 
         x = tlx.cast(x, tlx.float32)
@@ -647,8 +647,8 @@ class CosineSimCodebook(tlx.nn.Module):
             if isinstance(dist, np.ndarray):
                 dist = np.nan_to_num(dist, nan=0.0, posinf=1e4, neginf=0.0)
             elif hasattr(dist, 'numpy'):
-                dist = tlx.where(tlx.isnan(dist), tlx.zeros_like(dist), dist)
-                dist = tlx.where(tlx.isinf(dist), tlx.sign(dist) * tlx.convert_to_tensor(1e4, dtype=dist.dtype), dist)
+                dist = tlx.where(tlx.is_nan(dist), tlx.zeros_like(dist), dist)
+                dist = tlx.where(tlx.is_inf(dist), tlx.sign(dist) * tlx.convert_to_tensor(1e4, dtype=dist.dtype), dist)
             return dist
 
         dist = -manifold_pairwise_dist(self.manifold, flatten, embed)

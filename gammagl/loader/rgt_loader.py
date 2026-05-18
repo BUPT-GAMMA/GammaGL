@@ -369,7 +369,7 @@ def _build_tree_cycle_sequence(G, n_id_list, batch_size, max_cycle_edges, max_se
         if len(cycle_nodes) == max_cycle_edges and cycle_nodes[0] == cycle_nodes[-1]:
             cycle_ei = _nx_to_edge_index(cG)
         else:
-            seq = sample_sequence_fn(m, sequence_length=max_cycle_edges)
+            seq = sample_sequence_fn(m, max_cycle_edges)
             seq = [int(s) for s in seq]
             cG2 = nx.Graph([(seq[i], seq[i + 1]) for i in range(len(seq) - 1)])
             cycle_ei = _nx_to_edge_index(cG2)
@@ -473,6 +473,10 @@ class ExtractNodeLoader:
             batch_data.batch_cycle = batch_cycle
             batch_data.batch_sequence = batch_sequence
 
+            if hasattr(self.data, 'tokens') and self.data.tokens is not None:
+                n_id_np = tlx.convert_to_numpy(batch_data.n_id)
+                batch_data.tokens = self.data.tokens[n_id_np]
+
             self.cache.put(key, batch_data)
             yield batch_data
 
@@ -556,6 +560,10 @@ class ExtractLinkLoader:
             batch_data.batch_tree = batch_tree
             batch_data.batch_cycle = batch_cycle
             batch_data.batch_sequence = batch_sequence
+
+            if hasattr(self.data, 'tokens') and self.data.tokens is not None:
+                n_id_np = tlx.convert_to_numpy(batch_data.n_id)
+                batch_data.tokens = self.data.tokens[n_id_np]
 
             self.cache.put(key, batch_data)
             yield batch_data

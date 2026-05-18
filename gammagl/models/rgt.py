@@ -15,7 +15,7 @@ def _tensor_has_nan(x):
 
 
 def _sanitize_tensor(x, clip=1e4):
-    return tlx.clip_by_value(tlx.where(tlx.isnan(x) | tlx.isinf(x),
+    return tlx.clip_by_value(tlx.where(tlx.is_nan(x) | tlx.is_inf(x),
                                         tlx.zeros_like(x), x),
                              -clip, clip)
 

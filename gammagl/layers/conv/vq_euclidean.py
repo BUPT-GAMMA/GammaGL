@@ -421,7 +421,7 @@ class EuclideanCodebook(tlx.nn.Module):
         sample_codebook_temp = default(sample_codebook_temp, self.sample_codebook_temp)
 
         if _has_nan(x):
-            x = tlx.where(tlx.isnan(x), tlx.zeros_like(x), x)
+            x = tlx.where(tlx.is_nan(x), tlx.zeros_like(x), x)
 
         x = tlx.cast(x, tlx.float32)
 
@@ -632,7 +632,7 @@ class CosineSimCodebook(tlx.nn.Module):
         sample_codebook_temp = default(sample_codebook_temp, self.sample_codebook_temp)
 
         if _has_nan(x):
-            x = tlx.where(tlx.isnan(x), tlx.zeros_like(x), x)
+            x = tlx.where(tlx.is_nan(x), tlx.zeros_like(x), x)
 
         x = tlx.cast(x, tlx.float32)
 
