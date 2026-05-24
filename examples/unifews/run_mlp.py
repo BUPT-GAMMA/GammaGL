@@ -200,8 +200,6 @@ for epoch in range(1, args.epochs + 1):
     if not model_logger.is_early_stop(epoch):
         epoch_conv = epoch - model_logger.patience
 
-# ========== Test ==========
-#model = model_logger.load()
 acc_test, time_test, _, _ = eval(loader_test)
 macs_test, _ = cal_flops(loader_val)
 macs_test *= len(idx['test'])

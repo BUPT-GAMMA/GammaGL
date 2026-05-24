@@ -43,13 +43,14 @@ do
                 OUTDIR=./save/${DATASTR}/${ALGO}/${SEED}-${THRA}-${THRW}
                 mkdir -p ${OUTDIR}
                 OUTFILE=${OUTDIR}/out.txt
-                TL_BACKEND="torch" python -u run_single.py --seed ${SEED} --dev ${1:--1} --algo ${ALGO} --thr_a ${THRA} --thr_w ${THRW} --data ${DATASTR} --path ./data/ --epochs 200 --patience 20 --lr 0.001 --weight_decay 1e-5 --layer 2 --hidden 512 --dropout 0.5 --inductive false --multil false >> ${OUTFILE} &
+                TL_BACKEND="torch" python -u run_single.py --seed ${SEED} --dev ${1:--1} --algo ${ALGO} --thr_a ${THRA} --thr_w ${THRW} --data ${DATASTR} --path ./data/ --epochs 200 --patience 20 --lr 0.001 --weight_decay 1e-5 --layer 2 --hidden 512 --dropout 0.5  >> ${OUTFILE} &
                 echo $! && wait
             done
         done
     done
 done
 ```
+
 
 ## Decouple Mode (run_mlp.py)
 
