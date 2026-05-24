@@ -36,7 +36,7 @@ from .hid_conv import Hid_conv
 from .dhn_conv import DHNConv
 from .dna_conv import DNAConv
 from .rohehan_conv import RoheHANConv
-from .gat_unifews import ConvThr
+from .gcn_unifews import ConvThr
 from .gat_unifews import GATv2ConvThr
 from .gat_unifews import GATv2ConvRaw
 from .gcn2_unifews import GCNIIConvRaw

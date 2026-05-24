@@ -1,78 +1,32 @@
 import os
-if 'TL_BACKEND' not in os.environ:
-    os.environ['TL_BACKEND'] = 'torch'
-
 import random
 import argparse
 import numpy as np
 
 import tensorlayerx as tlx
 from tensorlayerx import nn
+from tensorlayerx.model import WithLoss, TrainOneStep
 
-from gammagl.utils.logger_gamma import Logger, ModelLogger, prepare_opt
-from gammagl.utils.loader_gamma import load_edgelist
-import gammagl.utils.metric_gamma as metric
+from gammagl.utils.logger_unifews import Logger, ModelLogger, prepare_opt
+from gammagl.utils.loader_unifews import load_edgelist
+import gammagl.utils.metric_unifews as metric
 from gammagl.layers.conv.gcn_unifews import identity_n_norm
 from gammagl.models.gnn_unifews import flops_modules_dict
 import gammagl.models.mlp_unifews as mlp_model
 import gammagl.models.gnn_unifews as gnn_model
 import gammagl.models.gcn2_unifews as gcn2_model
 
-class PureTLXAdam:
-    def __init__(self, lr=0.001, weight_decay=0.0):
-        self.lr = lr
-        self.weight_decay = weight_decay
-        self.m = []
-        self.v = []
-        self.t = 0
-        self.beta1 = 0.9
-        self.beta2 = 0.999
-        self.epsilon = 1e-7
 
-    def gradient(self, loss, weights):
-        
-        if hasattr(loss, 'backward'):
-            loss.backward()
-        
-        grads = []
-        for w in weights:
-            grad = w.grad if hasattr(w, 'grad') else tlx.zeros_like(w)
-            grads.append(grad)
-        return grads
+class SemiSpvzLoss(WithLoss):
+    """Semi-supervised loss wrapper that only computes loss on training nodes."""
+    def __init__(self, net, loss_fn):
+        super().__init__(backbone=net, loss_fn=loss_fn)
 
-    def apply_gradients(self, grads_and_vars):
-       
-        grads_and_vars = list(grads_and_vars)
-        if not grads_and_vars:
-            return
-        
-        self.t += 1
-        bias_correction1 = 1.0 - self.beta1**self.t
-        bias_correction2 = 1.0 - self.beta2**self.t
-        step_size = self.lr * (bias_correction2**0.5) / bias_correction1
-        
-        if len(self.m) != len(grads_and_vars):
-            self.m = [tlx.zeros_like(v) for g, v in grads_and_vars]
-            self.v = [tlx.zeros_like(v) for g, v in grads_and_vars]
-        
-        for i, (g, p) in enumerate(grads_and_vars):
-            if g is None:
-                continue
-            
-            
-            if self.weight_decay != 0:
-                g = g + self.weight_decay * p
-
-            self.m[i] = self.beta1 * self.m[i] + (1.0 - self.beta1) * g
-            self.v[i] = self.beta2 * self.v[i] + (1.0 - self.beta2) * (g * g)
-            
-            update = step_size * (self.m[i] / (tlx.sqrt(self.v[i]) + self.epsilon))
-            
-            p.data -= update
-            
-            
-            if hasattr(p, 'grad') and p.grad is not None:
-                p.grad = None
+    def forward(self, data, label):
+        x, edge_idx, train_idx = data
+        logits = self._backbone(x, edge_idx)
+        train_logits = tlx.gather(logits, train_idx)
+        return self._loss_fn(train_logits, label)
 
 
 
@@ -84,13 +38,24 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-f', '--seed', type=int, default=11, help='Random seed.')
 parser.add_argument('-v', '--dev', type=int, default=0, help='Device id.')
 parser.add_argument('-c', '--config', type=str, default='cora', help='Config file name.')
-parser.add_argument('-m', '--algo', type=str, default=None, help='Model name')
+parser.add_argument('-m', '--algo', type=str, default='gcn_unifews', help='Model name')
 parser.add_argument('-n', '--suffix', type=str, default='', help='Save name suffix.')
-parser.add_argument('-a', '--thr_a', type=float, default=None, help='Threshold of adj.')
-parser.add_argument('-w', '--thr_w', type=float, default=None, help='Threshold of weight.')
-parser.add_argument('-l', '--layer', type=int, default=None, help='Layer.')
-args = prepare_opt(parser)
+parser.add_argument('-a', '--thr_a', type=float, default=0.5, help='Threshold of adj.')
+parser.add_argument('-w', '--thr_w', type=float, default=0.5, help='Threshold of weight.')
+parser.add_argument('-l', '--layer', type=int, default=2, help='Layer.')
+parser.add_argument('--data', type=str, default='cora', help='dataset name')
+parser.add_argument('--path', type=str, default='./data/', help='data path')
+parser.add_argument('--epochs', type=int, default=200, help='number of epochs')
+parser.add_argument('--patience', type=int, default=20, help='early stop patience')
+parser.add_argument('--lr', type=float, default=0.001, help='learning rate')
+parser.add_argument('--weight_decay', type=float, default=1e-5, help='weight decay')
+parser.add_argument('--hidden', type=int, default=512, help='hidden dimension')
+parser.add_argument('--dropout', type=float, default=0.5, help='dropout rate')
+parser.add_argument('--inductive', action='store_true', default=False, help='inductive setting')
+parser.add_argument('--multil', action='store_true', default=False, help='multi-label classification')
 
+#args = prepare_opt(parser)
+args = parser.parse_args()
 
 if args.dev >= 0:
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.dev)
@@ -111,7 +76,7 @@ model_logger = ModelLogger(logger,
                 patience=args.patience,
                 cmp='max',
                 prefix='model'+args.suffix,
-                storage='state_gpu')
+                storage='state')
 stopwatch = metric.Stopwatch()
 
 # ========== download data
@@ -151,8 +116,10 @@ if logger.lvl_config > 2:
 
 model_logger.register(model, save_init=False)
 
-optimizer = PureTLXAdam(lr=args.lr, weight_decay=args.weight_decay)
 loss_fn = tlx.losses.sigmoid_cross_entropy if args.multil else tlx.losses.softmax_cross_entropy_with_logits
+net_with_loss = SemiSpvzLoss(model, loss_fn)
+optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.weight_decay)
+train_one_step = TrainOneStep(net_with_loss, optimizer, model.trainable_weights)
 
 def train(x, edge_idx, y, idx_split, epoch, verbose=False):
     model.train()
@@ -163,15 +130,7 @@ def train(x, edge_idx, y, idx_split, epoch, verbose=False):
 
     stopwatch.reset()
     stopwatch.start()
-
-   
-    output = model(x, edge_idx, node_lock=tlx.convert_to_tensor([]))[idx_split]
-    loss = loss_fn(output, y)
-
-   
-    grads = optimizer.gradient(loss, model.trainable_weights)
-    optimizer.apply_gradients(zip(grads, model.trainable_weights))
-
+    loss = train_one_step([x, edge_idx, idx_split], y)
     stopwatch.pause()
     return float(loss), stopwatch.time
 

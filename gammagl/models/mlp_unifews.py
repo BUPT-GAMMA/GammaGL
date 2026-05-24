@@ -1,31 +1,31 @@
 import os
-if 'TL_BACKEND' not in os.environ:
-    os.environ['TL_BACKEND'] = 'torch'
-
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
 from gammagl.gglspeedup.prunes_gamma import prune, rewind, ThrInPrune, ThrProdPrune
 
 def reset_bn_(bn_module):
-    
     if bn_module is None:
         return
 
     if hasattr(bn_module, 'weight') and bn_module.weight is not None:
-        new_gamma = tlx.initializers.Ones()(bn_module.weight.shape)
-        bn_module.weight.data = new_gamma
+        new_gamma = tlx.convert_to_tensor(
+            tlx.initializers.Ones()(bn_module.weight.shape), dtype=bn_module.weight.dtype)
+        tlx.assign(bn_module.weight, new_gamma)
 
     if hasattr(bn_module, 'bias') and bn_module.bias is not None:
-        new_beta = tlx.initializers.Zeros()(bn_module.bias.shape)
-        bn_module.bias.data = new_beta
+        new_beta = tlx.convert_to_tensor(
+            tlx.initializers.Zeros()(bn_module.bias.shape), dtype=bn_module.bias.dtype)
+        tlx.assign(bn_module.bias, new_beta)
 
     if hasattr(bn_module, 'moving_mean') and bn_module.moving_mean is not None:
-        new_mean = tlx.initializers.Zeros()(bn_module.moving_mean.shape)
-        bn_module.moving_mean.data = new_mean
+        new_mean = tlx.convert_to_tensor(
+            tlx.initializers.Zeros()(bn_module.moving_mean.shape), dtype=bn_module.moving_mean.dtype)
+        tlx.assign(bn_module.moving_mean, new_mean)
 
     if hasattr(bn_module, 'moving_var') and bn_module.moving_var is not None:
-        new_var = tlx.initializers.Ones()(bn_module.moving_var.shape)
-        bn_module.moving_var.data = new_var
+        new_var = tlx.convert_to_tensor(
+            tlx.initializers.Ones()(bn_module.moving_var.shape), dtype=bn_module.moving_var.dtype)
+        tlx.assign(bn_module.moving_var, new_var)
     
 from gammagl.layers.conv.gat_unifews import (
     ThrInPrune, LayerNumLogger, rewind, 

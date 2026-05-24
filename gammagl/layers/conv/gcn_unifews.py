@@ -1,7 +1,4 @@
 import os
-if 'TL_BACKEND' not in os.environ:
-    os.environ['TL_BACKEND'] = 'torch'
-
 from math import log
 import numpy as np
 from typing import Optional, Tuple, Union, Any
@@ -10,7 +7,6 @@ from typing import Optional, Tuple, Union, Any
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
 from tensorlayerx.nn import Linear
-import gammagl as ggl
 
 Tensor = Any
 Adj = Tensor
@@ -22,8 +18,8 @@ from gammagl.layers.conv import (
 )
 
 
-from gammagl.gglspeedup.prunes_gamma import ThrInPrune, rewind,prune
-from gammagl.utils.logger_gamma import LayerNumLogger
+from gammagl.gglspeedup.prunes_gamma import ThrInPrune, rewind,prune, _tensor_numel
+from gammagl.utils.logger_unifews import LayerNumLogger
 
 
 def norm(x, p=2, axis=None, keepdims=False):
@@ -93,6 +89,8 @@ def reset_bias_(bias: Optional[Tensor], in_channels: int, initializer: Optional[
         bias.copy_(new_bias)
     return bias
 
+
+
 def maybe_num_nodes(edge_index, num_nodes=None):
     if num_nodes is not None:
         return num_nodes
@@ -111,6 +109,8 @@ def scatter(src, index, axis=0, dim_size=None, reduce='sum'):
         return tlx.unsorted_segment_min(src, index, num_segments=dim_size)
     else:
         raise ValueError(f"Unsupported reduce type: {reduce}")
+
+
 
 def add_remaining_self_loops(edge_index, edge_weight=None, fill_value=1.0, num_nodes=None):
     num_nodes = maybe_num_nodes(edge_index, num_nodes)
@@ -243,7 +243,7 @@ class GCNConvRaw(GCNConv):
     def forward(self, x, edge_tuple: PairTensor, **kwargs):
         (edge_index, edge_weight) = edge_tuple
         self.logger_a.numel_after = edge_index.shape[1]
-        self.logger_w.numel_after = self.linear.weights.numel()
+        self.logger_w.numel_after = _tensor_numel(self.linear.weights)
         return super().forward(x, edge_index, edge_weight)
 
     @classmethod
@@ -314,8 +314,8 @@ class GCNConvThr(ConvThr, GCNConvRaw):
         elif self.scheme_w == 'full':
             raise NotImplementedError()
         
-        self.logger_w.numel_before = self.linear.weights.numel()
-        self.logger_w.numel_after = tlx.reduce_sum(self.linear.weights != 0).item()
+        self.logger_w.numel_before = _tensor_numel(self.linear.weights)
+        self.logger_w.numel_after = int(tlx.convert_to_numpy(tlx.reduce_sum(tlx.cast(self.linear.weights != 0, tlx.float32))))
 
         self.idx_lock = None
         

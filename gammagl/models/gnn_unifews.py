@@ -1,7 +1,4 @@
 import os
-if 'TL_BACKEND' not in os.environ:
-    os.environ['TL_BACKEND'] = 'torch'
-
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
 from gammagl.gglspeedup.prunes_gamma import prune, rewind, ThrInPrune, ThrProdPrune
@@ -26,7 +23,7 @@ def reset_bn_(bn_module):
     if hasattr(bn_module, 'moving_var') and bn_module.moving_var is not None:
         new_var = tlx.initializers.Ones()(bn_module.moving_var.shape)
         bn_module.moving_var.data = new_var
-    
+        
 from gammagl.layers.conv.gcn_unifews import (
     ThrInPrune, LayerNumLogger, rewind, 
     reset_weight_, reset_bias_, 
