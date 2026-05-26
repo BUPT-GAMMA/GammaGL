@@ -1,6 +1,5 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-# os.environ['TL_BACKEND'] = 'torch'
 
 import sys
 import argparse
@@ -504,7 +503,7 @@ def collect_train_smiles_molecular(train_graphs, atom_decoder):
 
 
 def evaluate_generated_graphs(generated, dataset_name, graphs, test_ds,
-                              dataset_infos, num_node_types, reference_graphs=None,
+                              dataset_infos, reference_graphs=None,
                               train_graphs=None):
     fold_metrics = {}
     is_molecular = dataset_name in ('qm9', 'guacamol', 'zinc250k', 'moses')
@@ -788,12 +787,10 @@ class MultiGPUTrainer:
     on separate CUDA streams, then averages gradients on the primary GPU.
     """
     def __init__(self, model, loss_wrapper, loss_fn, n_gpu, lr, weight_decay):
-        import copy
         self.n_gpu = n_gpu
         self.primary = 0
         self.models = [model]
         self.loss_wrappers = [loss_wrapper]
-        self.loss_fns = [loss_fn]
 
         # Ensure primary model is explicitly on cuda:0
         model.to('cuda:0')
@@ -1078,6 +1075,16 @@ def compute_step_probs(R_t_X, R_t_E, X_t, E_t, dt):
     return prob_X, prob_E
 
 
+def _cfg_unconditional_pred(model, X_in, E_in, extra_data, y_t, node_mask):
+    r"""Compute unconditional model predictions for classifier-free guidance."""
+    y_uncond = tlx.ones_like(y_t) * (-1.0)
+    y_in_uncond = tlx.concat([y_uncond, extra_data.y], axis=-1)
+    with no_grad():
+        pred_X_u, pred_E_u, _ = model(X_in, E_in, y_in_uncond, node_mask)
+    pred_X_soft_u = tlx.softmax(pred_X_u, axis=-1)
+    pred_E_soft_u = tlx.softmax(pred_E_u, axis=-1)
+    return pred_X_soft_u, pred_E_soft_u
+
 
 def sample_batch(model, noise_dist, rate_matrix_designer, time_distorter,
                  extra_features, domain_features, node_dist,
@@ -1232,7 +1239,7 @@ def sample_batch(model, noise_dist, rate_matrix_designer, time_distorter,
         y_in = tlx.concat([y_t, extra_data.y], axis=-1)
 
         with no_grad():
-            pred_X, pred_E, pred_y = model(X_in, E_in, y_in, node_mask)
+            pred_X, pred_E, _ = model(X_in, E_in, y_in, node_mask)
 
         # Softmax predictions
         pred_X_soft = tlx.softmax(pred_X, axis=-1)
@@ -1250,13 +1257,8 @@ def sample_batch(model, noise_dist, rate_matrix_designer, time_distorter,
             # Final step: sample directly from predictions
             # Apply CFG at prediction level for the final step
             if conditional and cond_labels is not None:
-                y_uncond = tlx.ones_like(y_t) * (-1.0)
-                y_in_uncond = tlx.concat([y_uncond, extra_data.y], axis=-1)
-                with no_grad():
-                    pred_X_u, pred_E_u, _ = model(X_in, E_in, y_in_uncond, node_mask)
-                pred_X_soft_u = tlx.softmax(pred_X_u, axis=-1)
-                pred_E_soft_u = tlx.softmax(pred_E_u, axis=-1)
-
+                pred_X_soft_u, pred_E_soft_u = _cfg_unconditional_pred(
+                    model, X_in, E_in, extra_data, y_t, node_mask)
                 eps_cfg = 1e-6
                 w = guidance_weight
                 pred_X_soft = tlx.softmax(
@@ -1277,14 +1279,8 @@ def sample_batch(model, noise_dist, rate_matrix_designer, time_distorter,
 
             # Classifier-free guidance: blend rate matrices in log-space
             if conditional and cond_labels is not None:
-                # Compute unconditional rate matrix
-                y_uncond = tlx.ones_like(y_t) * (-1.0)
-                y_in_uncond = tlx.concat([y_uncond, extra_data.y], axis=-1)
-                with no_grad():
-                    pred_X_u, pred_E_u, _ = model(X_in, E_in, y_in_uncond, node_mask)
-                pred_X_soft_u = tlx.softmax(pred_X_u, axis=-1)
-                pred_E_soft_u = tlx.softmax(pred_E_u, axis=-1)
-
+                pred_X_soft_u, pred_E_soft_u = _cfg_unconditional_pred(
+                    model, X_in, E_in, extra_data, y_t, node_mask)
                 R_X_u, R_E_u = rate_matrix_designer.compute_graph_rate_matrix(
                     t_dist, node_mask, (X_t, E_t), (pred_X_soft_u, pred_E_soft_u)
                 )
@@ -1678,9 +1674,6 @@ def load_real_dataset(name, root=None, conditional=False, target='mu', remove_h=
 
 
 # ============================================================
-# Molecular Dataset Info Helper
-# ============================================================
-
 # ============================================================
 # Main
 # ============================================================
@@ -1831,15 +1824,18 @@ def main(args):
         kld=getattr(args, 'kld', False),
     )
 
+    # ------- Time distorter -------
+    time_distorter = TimeDistorter(
+        train_distortion=args.train_distortion,
+        sample_distortion=args.sample_distortion,
+    )
+
     conditional = getattr(args, 'conditional', False) and n_cond > 0
     loss_wrapper = DeFoGWithLoss(
         backbone=model,
         loss_fn=loss_fn,
         noise_dist=noise_dist,
-        time_distorter=TimeDistorter(
-            train_distortion=args.train_distortion,
-            sample_distortion=args.sample_distortion,
-        ),
+        time_distorter=time_distorter,
         extra_features=extra_features,
         domain_features=domain_features,
         conditional=conditional,
@@ -1852,12 +1848,6 @@ def main(args):
         eta=args.eta,
         omega=args.omega,
         limit_dist=limit_dist,
-    )
-
-    # ------- Time distorter -------
-    time_distorter = TimeDistorter(
-        train_distortion=args.train_distortion,
-        sample_distortion=args.sample_distortion,
     )
 
     # ------- Optimizer -------
@@ -2062,7 +2052,6 @@ def main(args):
                             graphs,
                             val_ds,
                             dataset_infos,
-                            args.num_node_types,
                             reference_graphs=[val_ds[i] for i in range(min(len(val_ds), 200))] if val_ds is not None else None,
                             train_graphs=graphs,
                         )
@@ -2144,7 +2133,6 @@ def main(args):
                     graphs,
                     test_ds,
                     dataset_infos,
-                    args.num_node_types,
                 )
                 all_fold_metrics.append(fold_metrics)
 
