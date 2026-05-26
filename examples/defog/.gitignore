@@ -1,0 +1,19 @@
+# Checkpoints and generated data
+checkpoints/
+checkpoints_*/
+*.npz
+*.pkl
+*.npy
+generated_graphs*.npy
+
+# Dataset caches
+data/
+raw/
+processed/
+
+# External binaries
+orca/
+
+# Misc
+*.log
+logs/

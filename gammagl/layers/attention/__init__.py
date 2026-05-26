@@ -5,6 +5,7 @@ from .graphormer_layer import GraphormerLayer
 from .heco_encoder import Sc_encoder
 from .heco_encoder import Mp_encoder
 from .sgformer_layer import TransConvLayer, GraphConvLayer
+from .defog_layer import XEyTransformerLayer, NodeEdgeBlock, Xtoy, Etoy
 __all__ = [
     'Sc_encoder',
     'Mp_encoder',
@@ -14,6 +15,10 @@ __all__ = [
     'GraphormerLayer',
     'TransConvLayer',
     'GraphConvLayer',
+    'XEyTransformerLayer',
+    'NodeEdgeBlock',
+    'Xtoy',
+    'Etoy',
 ]
 
 classes = __all__

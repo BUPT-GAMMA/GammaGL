@@ -30,6 +30,12 @@ from .acm4rohe import ACM4Rohe
 from .actor import Actor
 from .deezer_europe import DeezerEurope
 from .ADDataset import ADDataset
+from .spectre_dataset import PlanarGraphDataset, TreeGraphDataset, SBMGraphDataset, Comm20GraphDataset
+from .qm9_dataset import QM9Gen
+from .moses_dataset import MOSESDataset
+from .guacamol_dataset import GuacaMolDataset
+from .zinc250k_dataset import ZINC250kGen
+from .tls_dataset import TLSGraphDataset
 
 __all__ = [
     'ACM4HeCo',
@@ -62,7 +68,15 @@ __all__ = [
     'ACM4Rohe',
     'Actor',
     'DeezerEurope',
-    'ADDataset'
+    'ADDataset',
+    'PlanarGraphDataset',
+    'TreeGraphDataset',
+    'SBMGraphDataset',
+    'QM9Gen',
+    'MOSESDataset',
+    'GuacaMolDataset',
+    'ZINC250kGen',
+    'TLSGraphDataset',
 ]
 
 classes = __all__
