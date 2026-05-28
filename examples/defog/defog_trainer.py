@@ -513,9 +513,21 @@ def evaluate_generated_graphs(generated, dataset_name, graphs, test_ds,
         remove_h = dataset_infos.get('remove_h', True)
         train_graph_source = train_graphs if train_graphs is not None else graphs
 
-        if atom_decoder is not None:
+        train_smiles = dataset_infos.get('train_smiles')
+
+        if atom_decoder is not None and train_smiles is None:
             print("Collecting training SMILES...")
             train_smiles = collect_train_smiles_molecular(train_graph_source, atom_decoder)
+            dataset_infos['train_smiles'] = train_smiles
+
+            if reference_graphs is not None:
+                print("Collecting reference SMILES for FCD...")
+                reference_smiles = collect_train_smiles_molecular(reference_graphs, atom_decoder)
+            elif test_ds is not None:
+                print("Collecting reference SMILES from test_ds...")
+                reference_smiles = collect_train_smiles_molecular(test_ds, atom_decoder)
+            else:
+                reference_smiles = train_smiles
 
             atom_counts = np.zeros(len(atom_decoder), dtype=np.int64)
             max_edge_type = 0
@@ -563,7 +575,7 @@ def evaluate_generated_graphs(generated, dataset_name, graphs, test_ds,
 
             try:
                 from rdkit_functions import compute_fcd
-                fcd_score = compute_fcd(all_smiles, train_smiles)
+                fcd_score = compute_fcd(all_smiles, reference_smiles)
                 fold_metrics['fcd'] = fcd_score
                 print(f"  FCD: {fcd_score:.4f}")
             except Exception as e:

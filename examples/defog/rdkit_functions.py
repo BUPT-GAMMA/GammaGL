@@ -254,7 +254,6 @@ class BasicMolecularMetrics:
             atom_types, edge_types = graph
             mol = build_molecule(atom_types, edge_types, self.atom_decoder)
             smiles = mol2smiles(mol)
-            all_smiles.append(smiles)
 
             try:
                 mol_frags = Chem.rdmolops.GetMolFrags(mol, asMols=True, sanitizeFrags=True)
@@ -268,10 +267,13 @@ class BasicMolecularMetrics:
                     largest_mol = max(mol_frags, default=mol, key=lambda m: m.GetNumAtoms())
                     smiles = mol2smiles(largest_mol)
                     valid.append(smiles)
+                    all_smiles.append(smiles)
                 except Chem.rdchem.AtomValenceException:
-                    pass
+                    all_smiles.append(None)
                 except Chem.rdchem.KekulizeException:
-                    pass
+                    all_smiles.append(None)
+            else:
+                all_smiles.append(None)
 
         validity = len(valid) / max(len(generated), 1)
         return valid, validity, np.array(num_components), all_smiles
