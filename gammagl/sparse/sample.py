@@ -5,13 +5,14 @@ from time import time
 from typing import Tuple
 
 import tensorlayerx as tlx
-import gammagl.ops
 from gammagl.sparse import SparseGraph
 from gammagl.utils.platform_utils import Tensor
 
 
 def sample_adj(src: SparseGraph, subset: Tensor, num_neighbors: int,
                replace: bool = False) -> Tuple[SparseGraph, Tensor]:
+    import gammagl.ops
+
     rowptr, col, value = src.csr()
 
     # start = time()

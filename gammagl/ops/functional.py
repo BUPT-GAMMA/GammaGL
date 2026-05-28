@@ -3,9 +3,6 @@
 # @created 2023/3/22
 
 
-from .tensor import unique as unique_impl
-
-
 def boolean_dispatch(arg_name, arg_index, default, if_true, if_false, module_name, func_name):
     """
     Dispatches to either of 2 script functions based on a boolean argument.
@@ -27,6 +24,7 @@ def boolean_dispatch(arg_name, arg_index, default, if_true, if_false, module_nam
 
 
 def _unique_impl(input, sorted=True, return_inverse=False, return_counts=False):
+    from .tensor import unique as unique_impl
     output, inverse, counts = unique_impl(input, sorted, return_inverse, return_counts)
     return output, inverse, counts
 

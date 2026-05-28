@@ -2,7 +2,6 @@
 import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
 from gammagl.utils import segment_softmax
-from gammagl.ops.functional import _unique_impl
 import numpy as np
 
 

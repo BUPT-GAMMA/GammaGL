@@ -11,7 +11,6 @@ from typing import Union, Dict, Set, Optional, Any, Tuple, List
 import gammagl
 from gammagl.data import Graph, HeteroGraph
 from gammagl.data.storage import EdgeStorage, NodeStorage
-from gammagl.ops.sparse import ind2ptr
 from gammagl.utils.platform_utils import all_to_numpy
 
 
@@ -124,6 +123,7 @@ def get_input_nodes_index(graph: Union[Graph, HeteroGraph], input_nodes=None):
 
 # csc format
 def to_csc(graph: Union[Graph, EdgeStorage], device, is_sorted):
+    from gammagl.ops.sparse import ind2ptr
     perm = None
     # for dense graph
     if graph.edge_index is not None:
@@ -132,7 +132,7 @@ def to_csc(graph: Union[Graph, EdgeStorage], device, is_sorted):
             perm = tlx.argsort(tlx.add((col * graph.size(0)), row))
             row = tlx.gather(row, perm)
 
-        colptr = gammagl.ops.sparse.ind2ptr(tlx.gather(col, perm), graph.size(1))
+        colptr = ind2ptr(tlx.gather(col, perm), graph.size(1))
 
     else:
         row = tlx.zeros(0)
@@ -143,6 +143,7 @@ def to_csc(graph: Union[Graph, EdgeStorage], device, is_sorted):
 
 # csr format
 def to_csr(graph: Union[Graph, EdgeStorage], device, is_sorted):
+    from gammagl.ops.sparse import ind2ptr
     perm = None
     # for dense graph
     if graph.edge_index is not None:
@@ -151,7 +152,7 @@ def to_csr(graph: Union[Graph, EdgeStorage], device, is_sorted):
             perm = tlx.argsort(tlx.add((row * graph.size(1)), col))
             col = tlx.gather(col, perm)
 
-        rowptr = gammagl.ops.sparse.ind2ptr(tlx.convert_to_numpy(tlx.gather(row, perm)), graph.size(0))
+        rowptr = ind2ptr(tlx.convert_to_numpy(tlx.gather(row, perm)), graph.size(0))
 
     else:
         col = tlx.zeros(0)

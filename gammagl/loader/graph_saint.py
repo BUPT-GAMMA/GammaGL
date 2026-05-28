@@ -8,7 +8,6 @@ from tensorlayerx.dataflow import DataLoader
 from gammagl.data import Graph
 from gammagl.loader.utils import get_input_nodes_index
 from gammagl.sparse.graph import SparseGraph
-from gammagl.ops import unique
 import numpy as np
 
 
@@ -39,6 +38,7 @@ class GraphSAINTSampler(DataLoader):
         raise NotImplementedError
 
     def __getitem__(self, idx):
+        from gammagl.ops import unique
         node_idx = unique(self.__sample_nodes__(self.__batch_size__))
         adj, _ = self.adj.saint_subgraph(node_idx)
         return node_idx, adj

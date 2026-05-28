@@ -26,7 +26,6 @@ from typing import Any, Dict, List, Optional, Tuple
 import tensorlayerx as tlx
 from gammagl.typing import EdgeType
 from gammagl.utils.mixin import CastMixin
-from gammagl.ops.sparse import ind2ptr, ptr2ind
 
 # Tensorlayerx does not have a Tensor type name. For each backend, the corresponding
 # Tensor type is used. Here, use an empty Tensor class instead.
@@ -254,6 +253,7 @@ class GraphStore(ABC):
         attr: EdgeAttr,
         layout: EdgeLayout,
         store: bool = False):
+        from gammagl.ops.sparse import ind2ptr, ptr2ind
 
         (row, col), perm = self.get_edge_index(attr), None
 

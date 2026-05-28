@@ -151,7 +151,7 @@ def main(args):
     )
 
     num_folds = max(1, args.num_sample_fold)
-    all_fold_metrics = []
+    all_generated = []
 
     for fold in range(num_folds):
         print(f"\n--- Sampling fold {fold + 1}/{num_folds} ---")
@@ -184,7 +184,9 @@ def main(args):
             n_edges = int(np.sum(e > 0)) // 2
             print(f"  Graph {i}: {len(x)} nodes, {n_edges} edges")
 
-        # Save generated graphs
+        all_generated.extend(generated)
+
+        # Save generated graphs (per fold)
         import pickle
         save_name = f'generated_graphs_fold{fold}.npy' if num_folds > 1 else 'generated_graphs.npy'
         save_path = os.path.join(args.save_dir, save_name)
@@ -192,33 +194,18 @@ def main(args):
             pickle.dump(generated, f)
         print(f"Saved to {save_path}")
 
-        # ------- Evaluation -------
-        if args.evaluate:
-            print("\n" + "=" * 60)
-            print(f"EVALUATION (fold {fold + 1}/{num_folds})")
-            print("=" * 60)
-            fold_metrics = evaluate_generated_graphs(
-                generated,
-                args.dataset,
-                graphs,
-                test_ds,
-                dataset_infos,
-                args.num_node_types,
-            )
-            all_fold_metrics.append(fold_metrics)
-
-    # Multi-fold summary
-    if num_folds > 1 and len(all_fold_metrics) > 1:
+    # ------- Evaluation on all generated graphs -------
+    if args.evaluate and len(all_generated) > 0:
         print("\n" + "=" * 60)
-        print(f"MULTI-FOLD SUMMARY ({num_folds} folds)")
+        print(f"EVALUATION ({len(all_generated)} total graphs)")
         print("=" * 60)
-        all_keys = sorted(set().union(*all_fold_metrics))
-        for key in all_keys:
-            vals = [m[key] for m in all_fold_metrics if key in m]
-            if vals:
-                mean_val = np.mean(vals)
-                std_val = np.std(vals)
-                print(f"  {key}: {mean_val:.6f} +/- {std_val:.6f}")
+        _ = evaluate_generated_graphs(
+            all_generated,
+            args.dataset,
+            graphs,
+            test_ds,
+            dataset_infos,
+        )
 
     # Restore original weights
     if sampling_ema is not None:

@@ -1079,7 +1079,7 @@ def _cfg_unconditional_pred(model, X_in, E_in, extra_data, y_t, node_mask):
     r"""Compute unconditional model predictions for classifier-free guidance."""
     y_uncond = tlx.ones_like(y_t) * (-1.0)
     y_in_uncond = tlx.concat([y_uncond, extra_data.y], axis=-1)
-    with no_grad():
+    with torch.no_grad():
         pred_X_u, pred_E_u, _ = model(X_in, E_in, y_in_uncond, node_mask)
     pred_X_soft_u = tlx.softmax(pred_X_u, axis=-1)
     pred_E_soft_u = tlx.softmax(pred_E_u, axis=-1)
@@ -1467,7 +1467,7 @@ def compute_dataset_infos(graphs, num_node_types, num_edge_types):
 
 
 
-def load_real_dataset(name, root=None, conditional=False, target='mu', remove_h=None):
+def load_real_dataset(name, root=None, conditional=False, target='mu', remove_h=None, use_defog_split=False):
     r"""Load a real graph generation dataset.
 
     Parameters
@@ -1545,9 +1545,9 @@ def load_real_dataset(name, root=None, conditional=False, target='mu', remove_h=
             remove_h = True
         kwargs['remove_h'] = remove_h
         kwargs['aromatic'] = True
-        kwargs['use_defog_split'] = getattr(args, 'use_defog_split', False)
-    # QM9 supports conditional generation
-    if name == 'qm9' and conditional:
+        kwargs['use_defog_split'] = use_defog_split
+    # QM9 and TLS support conditional generation
+    if name in ('qm9', 'tls') and conditional:
         kwargs['conditional'] = True
         kwargs['target'] = target
     print(f"[debug:data] Instantiating {name} train split...", flush=True)
@@ -2183,8 +2183,8 @@ if __name__ == '__main__':
     parser.add_argument('--conditional', action='store_true',
                         help='Enable classifier-free guidance conditional generation')
     parser.add_argument('--target', type=str, default='mu',
-                        choices=['mu', 'homo', 'both'],
-                        help='Target property for conditional generation (QM9 only)')
+                        choices=['mu', 'homo', 'both', 'k2'],
+                        help='Target property for conditional generation (QM9: mu/homo/both; TLS: k2)')
     parser.add_argument('--guidance_weight', type=float, default=2.0,
                         help='Classifier-free guidance weight')
 

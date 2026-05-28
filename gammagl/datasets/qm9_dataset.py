@@ -49,8 +49,8 @@ class QM9Gen(InMemoryDataset):
 
     # Hard-coded statistics from the DeFoG paper (remove_h=True, aromatic=True)
     STATS_REMOVE_H = {
-        'n_nodes': np.array([0, 0, 0, 1.5e-05, 3.6e-04, 4.4e-03,
-                             3.54e-02, 1.222e-01, 0.0, 8.378e-01]),
+        'n_nodes': np.array([0, 2.2930e-05, 3.8217e-05, 6.8791e-05, 2.3695e-04,
+                             9.7072e-04, 0.0046472, 0.023985, 0.13666, 0.83337]),
         'node_types': np.array([0.7230, 0.1151, 0.1593, 0.0026]),
         'edge_types': np.array([0.7261, 0.2384, 0.0274, 0.0081, 0.0]),
         'valency_distribution': np.pad(
@@ -147,7 +147,8 @@ class QM9Gen(InMemoryDataset):
         # Download and extract QM9 zip
         file_path = download_url(self.raw_url, self.raw_dir)
         extract_zip(file_path, self.raw_dir)
-        os.unlink(file_path)
+        if os.path.exists(file_path):
+            os.unlink(file_path)
         # Download uncharacterized molecules list
         download_url(self.raw_url2, self.raw_dir,
                      filename='uncharacterized.txt')

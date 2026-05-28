@@ -1,7 +1,6 @@
 import tensorlayerx as tlx
 from gammagl.layers.conv import MessagePassing
 from gammagl.utils import sort_edge_index 
-from gammagl.ops.sparse import ind2ptr
 
 
 class FusedGATConv(MessagePassing):
@@ -100,6 +99,7 @@ class FusedGATConv(MessagePassing):
             col_ptr = kwargs['col_ptr']
 
         else:
+            from gammagl.ops.sparse import ind2ptr
             num_edges = tlx.ops.get_tensor_shape(edge_index)[1]
             if num_nodes is None:
                 num_nodes = int(tlx.reduce_max(edge_index)) + 1

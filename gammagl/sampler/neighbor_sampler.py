@@ -12,7 +12,6 @@ from gammagl.data.heterograph import HeteroGraph
 import tensorlayerx as tlx
 from dataclasses import dataclass
 import random
-import gammagl.ops
 from gammagl.typing import NodeType
 from gammagl.utils.platform_utils import Tensor, EdgeType
 
@@ -108,6 +107,7 @@ class NeighborSampler(BaseSampler):
                                  f"{self.num_hops} entries (got {len(value)})")
 
     def _sample(self, seed, **kwargs):
+        import gammagl.ops
         if issubclass(self.data_cls, Graph):
             out = gammagl.ops.sparse.neighbor_sample(
                 self.colptr,
@@ -189,6 +189,7 @@ class NeighborSampler(BaseSampler):
 
             query_nodes = tlx.reshape(edge_label_index, -1)
 
+            import gammagl.ops
             query_nodes, reverse = gammagl.ops.unique(query_nodes, return_inverse=True)
 
             edge_label_index = tlx.reshape(reverse, (2, -1))

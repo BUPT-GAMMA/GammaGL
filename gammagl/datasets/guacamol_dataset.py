@@ -93,9 +93,85 @@ class GuacaMolDataset(InMemoryDataset):
         ]
 
     def download(self):
-        download_url(self.URLS['train'], self.raw_dir, filename='train.smiles')
-        download_url(self.URLS['test'], self.raw_dir, filename='test.smiles')
-        download_url(self.URLS['valid'], self.raw_dir, filename='valid.smiles')
+        # Try Figshare direct download first
+        for split, filename in [('train', 'train.smiles'),
+                                ('test', 'test.smiles'),
+                                ('valid', 'valid.smiles')]:
+            download_url(self.URLS[split], self.raw_dir, filename=filename)
+
+        # Check if files are valid (non-empty)
+        all_valid = True
+        for filename in self.raw_file_names:
+            path = osp.join(self.raw_dir, filename)
+            if not osp.exists(path) or osp.getsize(path) == 0:
+                all_valid = False
+                break
+
+        if not all_valid:
+            # Figshare may be blocked by WAF; fallback to guacamol package data generation
+            print("Figshare download returned empty files (likely WAF blocked).")
+            print("Attempting to generate GuacaMol data via the official guacamol package...")
+            try:
+                self._generate_via_guacamol_package()
+            except Exception as e:
+                raise RuntimeError(
+                    f"Failed to download GuacaMol data from Figshare and could not "
+                    f"generate via guacamol package: {e}. "
+                    f"Please install guacamol (pip install guacamol) or manually "
+                    f"download the .smiles files from Figshare and place them in "
+                    f"{self.raw_dir}"
+                ) from e
+
+    def _generate_via_guacamol_package(self):
+        """Generate train/valid/test .smiles via the official guacamol package.
+
+        This is a fallback when Figshare direct downloads are blocked by WAF.
+        It downloads ChEMBL 24.1 from EBI FTP and runs the canonical filtering
+        pipeline.  The resulting files are copied into ``self.raw_dir``.
+        """
+        import tempfile
+        import shutil
+        import importlib.util
+
+        spec = importlib.util.find_spec('guacamol')
+        if spec is None:
+            raise RuntimeError("guacamol package not installed")
+
+        get_data_path = osp.join(osp.dirname(spec.origin), 'data', 'get_data.py')
+        if not osp.exists(get_data_path):
+            raise RuntimeError(f"guacamol get_data.py not found at {get_data_path}")
+
+        tmpdir = tempfile.mkdtemp(prefix='guacamol_datagen_')
+        try:
+            import subprocess
+            import sys
+            cmd = [
+                sys.executable, get_data_path,
+                '--destination', tmpdir,
+                '--n_jobs', '8',
+            ]
+            print(f"Running: {' '.join(cmd)}")
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode != 0:
+                raise RuntimeError(
+                    f"guacamol data generation failed:\n{result.stderr}"
+                )
+            # Copy generated files with expected names
+            mapping = {
+                'chembl24_canon_train.smiles': 'train.smiles',
+                'chembl24_canon_dev-valid.smiles': 'valid.smiles',
+                'chembl24_canon_test.smiles': 'test.smiles',
+            }
+            for src_name, dst_name in mapping.items():
+                src = osp.join(tmpdir, src_name)
+                dst = osp.join(self.raw_dir, dst_name)
+                if osp.exists(src):
+                    shutil.copy2(src, dst)
+                    print(f"Copied {src_name} -> {dst_name}")
+                else:
+                    raise RuntimeError(f"Expected output {src} not found")
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
     def process(self):
         try:
@@ -192,13 +268,11 @@ class GuacaMolDataset(InMemoryDataset):
                 data_list.append(data)
 
             if len(data_list) == 0:
-                data_list = [Graph(
-                    x=np.zeros((1, num_atom_types), dtype=np.float32),
-                    edge_index=np.zeros((2, 0), dtype=np.int64),
-                    edge_attr=np.zeros((0, num_bond_types), dtype=np.float32),
-                    y=np.zeros((1, 0), dtype=np.float32),
-                    to_tensor=True,
-                )]
+                raise RuntimeError(
+                    f"GuacaMolDataset: no valid graphs generated for split "
+                    f"'{split_name}'. The raw SMILES file may be empty or "
+                    f"corrupt. Please check {self.raw_dir}"
+                )
 
             collated_data, slices = self.collate(data_list)
             self.save_data(
