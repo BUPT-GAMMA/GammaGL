@@ -504,7 +504,7 @@ def collect_train_smiles_molecular(train_graphs, atom_decoder):
 
 def evaluate_generated_graphs(generated, dataset_name, graphs, test_ds,
                               dataset_infos, reference_graphs=None,
-                              train_graphs=None):
+                              train_graphs=None, cache_dir=None):
     fold_metrics = {}
     is_molecular = dataset_name in ('qm9', 'guacamol', 'zinc250k', 'moses')
 
@@ -513,21 +513,58 @@ def evaluate_generated_graphs(generated, dataset_name, graphs, test_ds,
         remove_h = dataset_infos.get('remove_h', True)
         train_graph_source = train_graphs if train_graphs is not None else graphs
 
+        # 1. Check in-memory cache
         train_smiles = dataset_infos.get('train_smiles')
+        reference_smiles = dataset_infos.get('reference_smiles')
+
+        # 2. Check disk cache if not in memory
+        cache_file = None
+        ref_cache_file = None
+        if cache_dir is not None:
+            os.makedirs(cache_dir, exist_ok=True)
+            cache_file = os.path.join(cache_dir, f"train_smiles_cache_{dataset_name}.pkl")
+            ref_cache_file = os.path.join(cache_dir, f"ref_smiles_cache_{dataset_name}.pkl")
+
+        if train_smiles is None and cache_file is not None and os.path.exists(cache_file):
+            import pickle
+            with open(cache_file, 'rb') as f:
+                train_smiles = pickle.load(f)
+            dataset_infos['train_smiles'] = train_smiles
+            print(f"Loaded {len(train_smiles)} training SMILES from disk cache")
+
+        if reference_smiles is None and ref_cache_file is not None and os.path.exists(ref_cache_file):
+            import pickle
+            with open(ref_cache_file, 'rb') as f:
+                reference_smiles = pickle.load(f)
+            dataset_infos['reference_smiles'] = reference_smiles
+            print(f"Loaded {len(reference_smiles)} reference SMILES from disk cache")
 
         if atom_decoder is not None and train_smiles is None:
             print("Collecting training SMILES...")
             train_smiles = collect_train_smiles_molecular(train_graph_source, atom_decoder)
             dataset_infos['train_smiles'] = train_smiles
+            if cache_file is not None:
+                import pickle
+                with open(cache_file, 'wb') as f:
+                    pickle.dump(train_smiles, f)
+                print(f"Cached training SMILES to disk: {cache_file}")
 
+        if atom_decoder is not None and reference_smiles is None:
             if reference_graphs is not None:
                 print("Collecting reference SMILES for FCD...")
                 reference_smiles = collect_train_smiles_molecular(reference_graphs, atom_decoder)
             elif test_ds is not None:
                 print("Collecting reference SMILES from test_ds...")
-                reference_smiles = collect_train_smiles_molecular(test_ds, atom_decoder)
+                ref_graphs = [test_ds[i] for i in range(len(test_ds))]
+                reference_smiles = collect_train_smiles_molecular(ref_graphs, atom_decoder)
             else:
                 reference_smiles = train_smiles
+            dataset_infos['reference_smiles'] = reference_smiles
+            if ref_cache_file is not None:
+                import pickle
+                with open(ref_cache_file, 'wb') as f:
+                    pickle.dump(reference_smiles, f)
+                print(f"Cached reference SMILES to disk: {ref_cache_file}")
 
             atom_counts = np.zeros(len(atom_decoder), dtype=np.int64)
             max_edge_type = 0
@@ -2066,6 +2103,7 @@ def main(args):
                             dataset_infos,
                             reference_graphs=[val_ds[i] for i in range(min(len(val_ds), 200))] if val_ds is not None else None,
                             train_graphs=graphs,
+                            cache_dir=args.save_dir,
                         )
                     finally:
                         if ema is not None:
@@ -2145,6 +2183,7 @@ def main(args):
                     graphs,
                     test_ds,
                     dataset_infos,
+                    cache_dir=args.save_dir,
                 )
                 all_fold_metrics.append(fold_metrics)
 
