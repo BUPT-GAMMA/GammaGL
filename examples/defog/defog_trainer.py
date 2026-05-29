@@ -1949,8 +1949,23 @@ def main(args):
     from gammagl.loader.dataloader import Collater
     sampler = SeededRandomSampler(graphs, seed=args.seed)
     batch_sampler = BatchSampler(sampler, args.batch_size, drop_last=False)
-    loader = DataLoader(graphs, batch_sampler=batch_sampler, collate_fn=Collater(follow_batch=None, exclude_keys=None))
-    print("[debug] DataLoader created (seeded shuffle)")
+    
+    try:
+        import torch
+        from torch.utils.data import DataLoader as TorchDataLoader
+        loader = TorchDataLoader(
+            graphs,
+            batch_sampler=batch_sampler,
+            collate_fn=Collater(follow_batch=None, exclude_keys=None),
+            num_workers=8,
+            pin_memory=True,
+            persistent_workers=True
+        )
+        print("[debug] DataLoader created (seeded shuffle) with num_workers=8 (PyTorch)")
+    except Exception as e:
+        print(f"[warn] PyTorch DataLoader failed: {e}. Falling back to default.")
+        loader = DataLoader(graphs, batch_sampler=batch_sampler, collate_fn=Collater(follow_batch=None, exclude_keys=None))
+        print("[debug] DataLoader created (seeded shuffle)")
 
     # EMA (Exponential Moving Average)
     ema = None
