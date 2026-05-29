@@ -1959,7 +1959,8 @@ def main(args):
             collate_fn=Collater(follow_batch=None, exclude_keys=None),
             num_workers=8,
             pin_memory=True,
-            persistent_workers=True
+            persistent_workers=True,
+            multiprocessing_context='spawn'
         )
         print("[debug] DataLoader created (seeded shuffle) with num_workers=8 (PyTorch)")
     except Exception as e:
