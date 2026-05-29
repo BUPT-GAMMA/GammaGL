@@ -1965,11 +1965,17 @@ def main(args):
         start_epoch = getattr(args, 'start_epoch', 0) or 0
         if args.resume_from:
             ckpt_path = os.path.join(args.resume_from, 'last_model.npz')
+            ema_path = os.path.join(args.resume_from, 'last_ema.pkl')
             if not os.path.exists(ckpt_path):
                 ckpt_path = os.path.join(args.resume_from, 'best_model.npz')
+                ema_path = os.path.join(args.resume_from, 'best_ema.pkl')
             if os.path.exists(ckpt_path):
                 model.load_weights(ckpt_path, format='npz_dict')
                 print(f"Resumed model weights from {ckpt_path}, starting at epoch {start_epoch}")
+                if ema is not None and os.path.exists(ema_path):
+                    with open(ema_path, 'rb') as f:
+                        ema.load_state_dict(f.read())
+                    print(f"Resumed EMA weights from {ema_path}")
             else:
                 print(f"WARNING: --resume_from={args.resume_from} but no checkpoint found, training from scratch")
 
