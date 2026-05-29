@@ -135,6 +135,7 @@ TL_BACKEND="torch" python defog_sample_only.py \
 
 ## Benchmark Results
 
+<!--
 ### Planar (3 seeds)
 
 We train DeFoG on the Planar dataset for 100,000 epochs with 3 different random seeds (43, 44, 45) and report mean ± std. Results are compared against the DeFoG paper (Table 7, mean ± std over 5 sampling runs with 40 graphs each).
@@ -162,6 +163,94 @@ TL_BACKEND="torch" python defog_trainer.py \
   --save_dir ./checkpoints_planar_seed43 \
   --sample \
   --evaluate
+```
+-->
+
+### Planar (seed 0, completed)
+
+Trained for 100,000 epochs. Best checkpoint at epoch 96000 (validation score 1.0).
+
+| Metric | Best (epoch 96000) |
+|--------|--------------------|
+| Valid ↑ | 100.0% |
+| Unique ↑ | 100.0% |
+| Non-iso ↑ | 100.0% |
+| Planar Acc ↑ | 100.0% |
+| Degree ↓ | 0.000566 |
+| Spectre ↓ | 0.009673 |
+| Clustering ↓ | 0.029575 |
+| Orbit ↓ | 0.000386 |
+| Wavelet ↓ | 0.000057 |
+
+### Planar (seed 1, ongoing)
+
+Resume from epoch 3935, currently ~54700 / 100000.
+
+| Metric | Current (epoch 54000) |
+|--------|----------------------|
+| Valid ↑ | 92.5% |
+| Unique ↑ | 100.0% |
+| Non-iso ↑ | 100.0% |
+| Planar Acc ↑ | 92.5% |
+| Degree ↓ | 0.000504 |
+| Spectre ↓ | 0.009354 |
+| Clustering ↓ | 0.030809 |
+| Orbit ↓ | 0.004450 |
+| Wavelet ↓ | 0.000093 |
+
+### Planar (seed 2, planned)
+
+Planned for future reproduction.
+
+### Tree (seed 0, completed)
+
+Trained for 100,000 epochs. Best checkpoint at epoch 72000 (validation score 1.0).
+
+| Metric | Best (epoch 72000) | Final (epoch 100000) |
+|--------|--------------------|----------------------|
+| Valid ↑ | **100.0%** | 55.0% |
+| Unique ↑ | 82.5% | 97.5% |
+| Non-iso ↑ | 100.0% | 100.0% |
+| Tree Acc ↑ | **100.0%** | 55.0% |
+| Degree ↓ | 0.000575 | 0.000314 |
+| Spectre ↓ | 0.010322 | 0.010755 |
+| Clustering ↓ | 0.000000 | 0.000000 |
+| Orbit ↓ | 0.000007 | 0.000017 |
+| Wavelet ↓ | 0.000613 | 0.000479 |
+
+### QM9 no-H (seed 0, completed)
+
+Trained for 1,000 epochs without explicit hydrogens.
+
+| Metric | GammaGL (no-H) | Paper (DeFoG, no-H 500 steps) |
+|--------|----------------|-------------------------------|
+| Validity ↑ | **99.02%** | 99.3% |
+| Relaxed Validity ↑ | **99.80%** | 99.4% |
+| Uniqueness ↑ | **99.80%** | 96.3% |
+| Novelty ↑ | **40.39%** | — |
+| FCD ↓ | **0.7934** | 0.12 |
+
+*Training command:*
+```bash
+TL_BACKEND="torch" python defog_trainer.py \
+  --dataset qm9 \
+  --data_root ./datasets \
+  --save_dir ./checkpoints_qm9_noh_seed0_final \
+  --seed 0 \
+  --gpu 5 \
+  --n_layers 9 \
+  --n_epochs 1000 \
+  --batch_size 1024 \
+  --lr 2e-4 \
+  --train_distortion identity \
+  --sample_distortion polydec \
+  --sample_steps 500 \
+  --omega 0 \
+  --eta 0 \
+  --check_val_every_n_epochs 50 \
+  --sample_every_val 1 \
+  --val_num_samples 512 \
+  --remove_h
 ```
 
 ## Important Parameters
