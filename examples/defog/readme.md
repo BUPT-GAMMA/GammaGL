@@ -166,41 +166,21 @@ TL_BACKEND="torch" python defog_trainer.py \
 ```
 -->
 
-### Planar (seed 0, completed)
+### Planar (3 seeds, completed)
 
-Trained for 100,000 epochs. Best checkpoint at epoch 96000 (validation score 1.0).
+Trained for 100,000 epochs each. Results compared against the DeFoG paper (Table 7).
 
-| Metric | Best (epoch 96000) |
-|--------|--------------------|
-| Valid ↑ | 100.0% |
-| Unique ↑ | 100.0% |
-| Non-iso ↑ | 100.0% |
-| Planar Acc ↑ | 100.0% |
-| Degree ↓ | 0.000566 |
-| Spectre ↓ | 0.009673 |
-| Clustering ↓ | 0.029575 |
-| Orbit ↓ | 0.000386 |
-| Wavelet ↓ | 0.000057 |
-
-### Planar (seed 1, ongoing)
-
-Resume from epoch 3935, currently ~54700 / 100000.
-
-| Metric | Current (epoch 54000) |
-|--------|----------------------|
-| Valid ↑ | 92.5% |
-| Unique ↑ | 100.0% |
-| Non-iso ↑ | 100.0% |
-| Planar Acc ↑ | 92.5% |
-| Degree ↓ | 0.000504 |
-| Spectre ↓ | 0.009354 |
-| Clustering ↓ | 0.030809 |
-| Orbit ↓ | 0.004450 |
-| Wavelet ↓ | 0.000093 |
-
-### Planar (seed 2, planned)
-
-Planned for future reproduction.
+| Metric | Paper (DeFoG) | Seed 0 | Seed 1 | Seed 2 | Mean ± Std |
+|--------|---------------|--------|--------|--------|------------|
+| Valid ↑ | 99.5 ± 1.0 | 99.0 | 97.7 | 99.5 | **98.7 ± 0.8** |
+| Unique ↑ | 100.0 ± 0.0 | 100.0 | 100.0 | 100.0 | **100.0 ± 0.0** |
+| Non-iso ↑ | 100.0 ± 0.0 | 100.0 | 100.0 | 100.0 | **100.0 ± 0.0** |
+| Planar Acc ↑ | — | 99.0 | 97.7 | 99.5 | **98.7 ± 0.8** |
+| Degree ↓ | 0.0005 ± 0.0002 | 0.000032 | 0.000038 | 0.000511 | **0.000194 ± 0.000221** |
+| Spectre ↓ | 0.0072 ± 0.0011 | 0.004791 | 0.004527 | 0.004335 | **0.004551 ± 0.000189** |
+| Clustering ↓ | 0.0501 ± 0.0149 | 0.020626 | 0.018320 | 0.037029 | **0.025325 ± 0.008415** |
+| Orbit ↓ | 0.0006 ± 0.0004 | 0.000059 | 0.001910 | 0.000223 | **0.000731 ± 0.000824** |
+| Wavelet ↓ | 0.0014 ± 0.0002 | 0.000016 | 0.000139 | 0.000167 | **0.000107 ± 0.000066** |
 
 ### Tree (seed 0, completed)
 
