@@ -3,59 +3,78 @@
 - Paper link: [https://arxiv.org/abs/2410.14109](https://arxiv.org/abs/2410.14109)
 - Author's code repo: [https://github.com/hormoz-lab/coed-gnn](https://github.com/hormoz-lab/coed-gnn)
 
-# Dataset Statics
+## Dataset Statics
 
-| Dataset | # Nodes | # Edges | # Classes |
-|---------|---------|---------|-----------|
-| Cora    | 2,708   | 10,556  | 7         |
+| Dataset    | # Nodes | # Edges | # Classes |
+|------------|---------|---------|-----------|
+| Cora       | 2,708   | 10,556  | 7         |
+| Texas      | 183     | 309     | 5         |
+| Wisconsin  | 251     | 515     | 5         |
+| Chameleon  | 2,277   | 36,101  | 5         |
+| Squirrel   | 5,201   | 217,073 | 5         |
 
-This reproduction uses the `Geom-GCN` 10 fixed splits on `Cora`.
+All datasets use the `Geom-GCN` 10 fixed splits for evaluation.
 
 ## Files
 
-- `examples/coed/coed_trainer.py`: training and evaluation entry for Cora node classification
-- `examples/coed/geom_planetoid.py`: helper for loading `Geom-GCN` fixed splits
-- `examples/coed/run_coed_cora.py`: lightweight launcher for the trainer
+- `examples/coed/coed_trainer.py`: Multi-dataset training and evaluation entry
 - `gammagl/models/coed.py`: CoED-GNN backbone model
 - `gammagl/layers/conv/coed_conv.py`: CoED directional convolution layer
 
-## Environment
-
-```bash
-/home/mr/venv/gammagl-py311-cpu
-```
-
 ## Results
 
-Run the reproduction with:
+### Cora
 
 ```bash
-cd /home/mr/GammaGL-fork
-source /home/mr/venv/gammagl-py311-cpu/bin/activate
-python examples/coed/coed_trainer.py
+TL_BACKEND="torch" python examples/coed/coed_trainer.py --dataset cora
 ```
 
-Or:
+| Metric     | Paper      | Our(torch)           |
+|------------|------------|----------------------|
+| Test Acc   | 86.42      | 87.00 +/- 1.44      |
+
+### Texas
 
 ```bash
-cd /home/mr/GammaGL-fork
-bash examples/coed/reproduce_cora.sh
+TL_BACKEND="torch" python examples/coed/coed_trainer.py --dataset texas
 ```
 
-The target reference result is:
+| Metric     | Paper      | Our(torch)           |
+|------------|------------|----------------------|
+| Test Acc   |            |                      |
 
-```text
-test acc: 86.41851 +/- 1.37720
+### Wisconsin
+
+```bash
+TL_BACKEND="torch" python examples/coed/coed_trainer.py --dataset wisconsin
 ```
 
-The locally verified result is:
+| Metric     | Paper      | Our(torch)           |
+|------------|------------|----------------------|
+| Test Acc   |            |                      |
 
-```text
-test acc: 87.00201 +/- 1.43747
+### Chameleon
+
+```bash
+TL_BACKEND="torch" python examples/coed/coed_trainer.py --dataset chameleon
 ```
+
+| Metric     | Paper      | Our(torch)           |
+|------------|------------|----------------------|
+| Test Acc   |            |                      |
+
+### Squirrel
+
+```bash
+TL_BACKEND="torch" python examples/coed/coed_trainer.py --dataset squirrel
+```
+
+| Metric     | Paper      | Our(torch)           |
+|------------|------------|----------------------|
+| Test Acc   |            |                      |
 
 ## Notes
 
-- The implementation uses the GammaGL `Planetoid` Cora dataset and stores `Geom-GCN` split files under `data/planetoid/cora/geom-gcn/raw`.
-- The default setup uses `hidden_dim=128`, `num_layers=2`, `lr=5e-4`, `weight_decay=1e-4`, `drop_rate=0.5`, `alpha=0.0`, `self_loop=True`, `normalize=False`, and `self_feature_transform=False`.
-- A short smoke test with `--n_epoch 5` is only for pipeline verification and should not be used as the final reproduction result.
+- The default setup uses `hidden_dim=64`, `num_layers=2`, `lr=1e-3`, `l2_coef=0.0`, `alpha=0.5`, `self_loop=True`, `normalize=False`, `self_feature_transform=False`, `patience=100`, `n_epoch=5000`.
+- The implementation evaluates all 10 Geom-GCN fixed splits and reports mean +/- std test accuracy.
+- The model and convolution layers are registered in `gammagl/models/__init__.py` and `gammagl/layers/conv/__init__.py` and can be imported via standard GammaGL paths.

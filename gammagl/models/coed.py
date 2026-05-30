@@ -5,23 +5,10 @@ This module implements the node classification backbone described in
 <https://arxiv.org/abs/2410.14109>`_.
 """
 
-import importlib.util
-import os
-
 import tensorlayerx as tlx
 from tensorlayerx.nn import Dropout, Linear, Module, ReLU
 
-
-def _load_coed_conv():
-    file_path = os.path.join(os.path.dirname(__file__), "..", "layers", "conv", "coed_conv.py")
-    file_path = os.path.abspath(file_path)
-    spec = importlib.util.spec_from_file_location("coed_conv_local", file_path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.CoEDConv
-
-
-CoEDConv = _load_coed_conv()
+from gammagl.layers.conv import CoEDConv, JumpingKnowledge
 
 
 class CoEDModel(Module):
@@ -46,6 +33,11 @@ class CoEDModel(Module):
     self_feature_transform: bool, optional
         If set to :obj:`True`, each CoED layer also learns a self-feature
         transform branch.
+    jumping_knowledge: str, optional
+        Type of jumping-knowledge aggregation (:obj:`"cat"`, :obj:`"max"`,
+        :obj:`"lstm"`, or :obj:`None`).  When set, intermediate layer
+        outputs are aggregated and projected through an additional linear
+        layer.
     name: str, optional
         Model name.
 
@@ -61,12 +53,14 @@ class CoEDModel(Module):
         drop_rate=0.5,
         normalize=False,
         self_feature_transform=False,
+        jumping_knowledge=None,
         name=None,
     ):
         super().__init__(name=name)
         self.alpha = alpha
         self.num_layers = num_layers
         self.normalize = normalize
+        self.jumping_knowledge = jumping_knowledge
 
         self.convs = []
         in_channels = feature_dim
@@ -80,12 +74,29 @@ class CoEDModel(Module):
             self.add_module("conv{}".format(layer_idx + 1), conv)
             in_channels = hidden_dim
 
-        self.readout = Linear(
-            in_features=hidden_dim,
-            out_features=num_class,
-            W_init="xavier_uniform",
-            b_init=tlx.initializers.Zeros(),
-        )
+        if jumping_knowledge is not None:
+            self.jump = JumpingKnowledge(jumping_knowledge, hidden_dim, num_layers)
+            if jumping_knowledge == "cat":
+                jk_dim = hidden_dim * num_layers
+            else:
+                jk_dim = hidden_dim
+            self.lin = Linear(
+                in_features=jk_dim,
+                out_features=num_class,
+                W_init="xavier_uniform",
+                b_init=tlx.initializers.Zeros(),
+            )
+            self.readout = None
+        else:
+            self.jump = None
+            self.lin = None
+            self.readout = Linear(
+                in_features=hidden_dim,
+                out_features=num_class,
+                W_init="xavier_uniform",
+                b_init=tlx.initializers.Zeros(),
+            )
+
         self.relu = ReLU()
         self.dropout = Dropout(p=drop_rate)
 
@@ -100,12 +111,22 @@ class CoEDModel(Module):
 
     def forward(self, x, edge_index, edge_weight=None, num_nodes=None):
         """Compute node logits."""
+        x_intermediate = []
+
         for layer_idx, conv in enumerate(self.convs):
             x = self.combine(conv.forward(x, edge_index, edge_weight=edge_weight, num_nodes=num_nodes))
-            if layer_idx != self.num_layers - 1:
+
+            if layer_idx != self.num_layers - 1 or self.jump is not None:
                 x = self.relu.forward(x)
                 x = self.dropout.forward(x)
                 if self.normalize:
                     x = tlx.l2_normalize(x, axis=1)
+                x_intermediate.append(x)
 
-        return self.readout.forward(x)
+        if self.jump is not None:
+            x = self.jump(x_intermediate)
+            x = self.lin.forward(x)
+        else:
+            x = self.readout.forward(x)
+
+        return x

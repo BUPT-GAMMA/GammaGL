@@ -1,136 +1,57 @@
-"""CoED-GNN node classification trainer for Cora on GammaGL."""
+# !/usr/bin/env python
+# -*- encoding: utf-8 -*-
+"""
+@File    :   coed_trainer.py
+@Time    :   2024/12/30 15:30:00
+@Author  :   GammaGL
+"""
+
+import os
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['TL_BACKEND'] = 'torch'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+# 0:Output all; 1:Filter out INFO; 2:Filter out INFO and WARNING; 3:Filter out INFO, WARNING, and ERROR
 
 import argparse
-import importlib.util
-import os
-import random
-import sys
-
-os.environ.setdefault("TL_BACKEND", "torch")
-
 import numpy as np
 import tensorlayerx as tlx
-
-from gammagl.mpops import unsorted_segment_sum
+from gammagl.datasets import WebKB, WikipediaNetwork
+from gammagl.models import CoEDModel
 from gammagl.utils import mask_to_index
+from tensorlayerx.model import TrainOneStep, WithLoss
+import gammagl.transforms as T
+
 from geom_planetoid import load_planetoid_with_geom_splits
 
 
-def _load_local_coed_model():
-    file_path = os.path.join(os.path.dirname(__file__), "..", "..", "gammagl", "models", "coed.py")
-    file_path = os.path.abspath(file_path)
-    spec = importlib.util.spec_from_file_location("coed_model_local", file_path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.CoEDModel
+class SemiSpvzLoss(WithLoss):
+    r"""Loss wrapper for semi-supervised node classification."""
+
+    def __init__(self, net, loss_fn):
+        super(SemiSpvzLoss, self).__init__(backbone=net, loss_fn=loss_fn)
+
+    def forward(self, data, y):
+        logits = self.backbone_network(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
+        train_logits = tlx.gather(logits, data['train_idx'])
+        train_y = tlx.gather(data['y'], data['train_idx'])
+        loss = self._loss_fn(train_logits, train_y)
+        return loss
 
 
-CoEDModel = _load_local_coed_model()
-
-
-class AdamLike:
-    """A lightweight Adam optimizer used to avoid backend version conflicts."""
-
-    def __init__(self, lr, beta1=0.9, beta2=0.999, eps=1e-8, weight_decay=0.0):
-        self.lr = lr
-        self.beta1 = beta1
-        self.beta2 = beta2
-        self.eps = eps
-        self.weight_decay = weight_decay
-        self.step_count = 0
-        self.m = {}
-        self.v = {}
-
-    def zero_grad(self, params):
-        for param in params:
-            if getattr(param, "grad", None) is not None:
-                param.grad.zero_()
-
-    def step(self, params):
-        self.step_count += 1
-        beta1_correction = 1.0 - self.beta1 ** self.step_count
-        beta2_correction = 1.0 - self.beta2 ** self.step_count
-
-        for idx, param in enumerate(params):
-            grad = getattr(param, "grad", None)
-            if grad is None:
-                continue
-
-            if idx not in self.m:
-                self.m[idx] = tlx.zeros_like(param)
-                self.v[idx] = tlx.zeros_like(param)
-
-            grad_to_use = grad
-            if self.weight_decay != 0.0:
-                grad_to_use = grad_to_use + self.weight_decay * param
-
-            self.m[idx] = self.beta1 * self.m[idx] + (1.0 - self.beta1) * grad_to_use
-            self.v[idx] = self.beta2 * self.v[idx] + (1.0 - self.beta2) * (grad_to_use * grad_to_use)
-
-            m_hat = self.m[idx] / beta1_correction
-            v_hat = self.v[idx] / beta2_correction
-            update = self.lr * m_hat / (tlx.sqrt(v_hat) + self.eps)
-            param.data.copy_(param.data - update)
-
-
-def set_seed(seed):
-    """Set random seeds for reproducible runs."""
-    random.seed(seed)
-    np.random.seed(seed)
-    tlx.set_seed(seed)
-
-
-def collect_trainable_weights(module):
-    """Collect trainable parameters recursively from a TLX module tree."""
-    weights = []
-
-    for weight in getattr(module, "_parameters", {}).values():
-        if weight is not None and getattr(weight, "requires_grad", False):
-            weights.append(weight)
-
-    for child in getattr(module, "_modules", {}).values():
-        if child is not None:
-            weights.extend(collect_trainable_weights(child))
-
-    return weights
-
-
-def clone_trainable_state(module, prefix=""):
-    """Clone the current trainable state for early stopping restoration."""
-    state = {}
-
-    for name, weight in getattr(module, "_parameters", {}).items():
-        if weight is not None and getattr(weight, "requires_grad", False):
-            state[prefix + name] = weight.detach().clone()
-
-    for child_name, child in getattr(module, "_modules", {}).items():
-        if child is not None:
-            state.update(clone_trainable_state(child, prefix=prefix + child_name + "."))
-
-    return state
-
-
-def restore_trainable_state(module, state, prefix=""):
-    """Restore a previously cloned trainable state."""
-    for name, weight in getattr(module, "_parameters", {}).items():
-        key = prefix + name
-        if weight is not None and key in state:
-            weight.data.copy_(state[key])
-
-    for child_name, child in getattr(module, "_modules", {}).items():
-        if child is not None:
-            restore_trainable_state(child, state, prefix=prefix + child_name + ".")
-
-
-def row_normalize_features(x, eps=1e-12):
-    """Apply row-wise feature normalization."""
-    row_sum = tlx.reduce_sum(x, axis=1, keepdims=True)
-    row_sum = tlx.maximum(row_sum, tlx.ones_like(row_sum) * eps)
-    return x / row_sum
+def calculate_acc(logits, y, metrics):
+    r"""Compute accuracy via the TLX metrics API."""
+    metrics.update(logits, y)
+    rst = metrics.result()
+    metrics.reset()
+    return rst
 
 
 def get_edge_index_and_theta(edge_index):
-    """Build the fuzzy edge list and its initial phase angles."""
+    r"""Build the fuzzy edge list and initial phase angles from an edge_index.
+
+    Symmetric (undirected) edges are kept only once with theta = pi/4;
+    directed edges are kept as-is with theta = 0.
+    """
     src = tlx.convert_to_numpy(edge_index[0]).tolist()
     dst = tlx.convert_to_numpy(edge_index[1]).tolist()
 
@@ -171,7 +92,16 @@ def get_edge_index_and_theta(edge_index):
 
 
 def get_fuzzy_laplacian(edge_index, theta, num_nodes, edge_weight=None, add_self_loop=False):
-    """Construct normalized directional edge weights for CoED message passing."""
+    r"""Construct normalized directional edge weights for CoED message passing.
+
+    This implements the fuzzy Laplacian normalization described in the paper.
+    For each edge (i, j) with phase angle theta_k, the directional weights are:
+      - src-to-dst: cos^2(theta_k)
+      - dst-to-src: sin^2(theta_k)
+    These are then symmetrically normalized by node degrees.
+    """
+    from gammagl.mpops import unsorted_segment_sum
+
     senders = edge_index[0]
     receivers = edge_index[1]
 
@@ -196,14 +126,18 @@ def get_fuzzy_laplacian(edge_index, theta, num_nodes, edge_weight=None, add_self
         out_weight = tlx.concat([out_weight, ones], axis=0)
         in_weight = tlx.concat([in_weight, ones], axis=0)
 
-    deg_senders = tlx.reshape(unsorted_segment_sum(out_weight, conv_senders, num_segments=num_nodes), (-1,)) + 1e-12
-    deg_receivers = tlx.reshape(unsorted_segment_sum(in_weight, conv_senders, num_segments=num_nodes), (-1,)) + 1e-12
+    deg_senders = tlx.reshape(
+        unsorted_segment_sum(out_weight, conv_senders, num_segments=num_nodes), (-1,)
+    ) + 1e-12
+    deg_receivers = tlx.reshape(
+        unsorted_segment_sum(in_weight, conv_senders, num_segments=num_nodes), (-1,)
+    ) + 1e-12
 
-    deg_inv_sqrt_senders = tlx.where(deg_senders < 1e-11, tlx.zeros_like(deg_senders), tlx.pow(deg_senders, -0.5))
+    deg_inv_sqrt_senders = tlx.where(
+        deg_senders < 1e-11, tlx.zeros_like(deg_senders), tlx.pow(deg_senders, -0.5)
+    )
     deg_inv_sqrt_receivers = tlx.where(
-        deg_receivers < 1e-11,
-        tlx.zeros_like(deg_receivers),
-        tlx.pow(deg_receivers, -0.5),
+        deg_receivers < 1e-11, tlx.zeros_like(deg_receivers), tlx.pow(deg_receivers, -0.5)
     )
 
     ew_src_to_dst = (
@@ -222,69 +156,100 @@ def get_fuzzy_laplacian(edge_index, theta, num_nodes, edge_weight=None, add_self
     return conv_edge_index, conv_edge_weight
 
 
-def calculate_acc(logits, y, idx):
-    """Calculate node classification accuracy on indexed nodes."""
-    pred = tlx.gather(tlx.argmax(logits, axis=-1), idx)
-    label = tlx.gather(y, idx)
-    return float(tlx.reduce_mean(tlx.cast(pred == label, tlx.float32)))
-
-
-def resolve_dataset_path(dataset_path):
-    """Resolve a local Planetoid cache path before attempting any download."""
-    candidates = [
-        os.path.abspath(dataset_path),
-        "/home/mr/GammaGL-fork/data/planetoid",
-        "/home/mr/GammaGL/data/planetoid",
-    ]
-    for candidate in candidates:
-        raw_dir = os.path.join(candidate, "cora", "raw")
-        if os.path.exists(raw_dir):
-            return candidate
-    return os.path.abspath(dataset_path)
+def set_seed(seed):
+    r"""Set random seeds for reproducible runs."""
+    np.random.seed(seed)
+    tlx.set_seed(seed)
 
 
 def main(args):
-    """Train and evaluate CoED-GNN on the 10 Geom-GCN splits of Cora."""
-    tlx.set_device("CPU")
-    dataset_path = resolve_dataset_path(args.dataset_path)
+    # ------------------------------------------------------------------
+    # 1. Load dataset
+    # ------------------------------------------------------------------
+    dataset_name = str.lower(args.dataset)
 
-    dataset, graph = load_planetoid_with_geom_splits(
-        root=dataset_path,
-        name=args.dataset,
-        num_splits=args.geom_splits,
-    )
+    if dataset_name in ['cora', 'pubmed', 'citeseer']:
+        # Planetoid with Geom-GCN 10 fixed splits
+        dataset, graph = load_planetoid_with_geom_splits(
+            root=args.dataset_path, name=dataset_name,
+            num_splits=args.num_splits, transform=T.NormalizeFeatures(),
+        )
+    elif dataset_name in ['texas', 'wisconsin', 'cornell']:
+        dataset = WebKB(args.dataset_path, dataset_name, transform=T.NormalizeFeatures())
+        graph = dataset[0]
+        # WebKB masks are flat 1D: concatenation of 10 splits
+        n = graph.num_nodes
+        train_idx = mask_to_index(graph.train_mask[args.split_idx * n: (args.split_idx + 1) * n])
+        val_idx = mask_to_index(graph.val_mask[args.split_idx * n: (args.split_idx + 1) * n])
+        test_idx = mask_to_index(graph.test_mask[args.split_idx * n: (args.split_idx + 1) * n])
+    elif dataset_name in ['chameleon', 'squirrel']:
+        dataset = WikipediaNetwork(args.dataset_path, dataset_name, geom_gcn_preprocess=True)
+        graph = dataset[0]
+        # WikipediaNetwork masks are flat 1D: concatenation of 10 splits
+        n = graph.num_nodes
+        train_idx = mask_to_index(graph.train_mask[args.split_idx * n: (args.split_idx + 1) * n])
+        val_idx = mask_to_index(graph.val_mask[args.split_idx * n: (args.split_idx + 1) * n])
+        test_idx = mask_to_index(graph.test_mask[args.split_idx * n: (args.split_idx + 1) * n])
+    else:
+        raise ValueError('Unknown dataset: {}'.format(args.dataset))
 
-    if args.normalize_features:
-        graph.x = row_normalize_features(graph.x)
+    # ------------------------------------------------------------------
+    # 2. Build fuzzy edge structure (dataset-level, shared across splits)
+    # ------------------------------------------------------------------
+    if args.remove_existing_self_loop:
+        # Remove self-loops from the original edge_index
+        src = tlx.convert_to_numpy(graph.edge_index[0])
+        dst = tlx.convert_to_numpy(graph.edge_index[1])
+        mask = src != dst
+        graph.edge_index = tlx.convert_to_tensor(
+            np.array([src[mask], dst[mask]], dtype=np.int64), dtype=tlx.int64
+        )
 
     edge_index, theta = get_edge_index_and_theta(graph.edge_index)
-    edge_weight = tlx.ones((tlx.get_tensor_shape(edge_index)[1],), dtype=tlx.float32)
+    num_nodes = graph.num_nodes
+
     conv_edge_index, conv_edge_weight = get_fuzzy_laplacian(
         edge_index=edge_index,
         theta=theta,
-        num_nodes=graph.num_nodes,
-        edge_weight=edge_weight,
+        num_nodes=num_nodes,
         add_self_loop=args.self_loop,
     )
 
+    # ------------------------------------------------------------------
+    # 3. Run multi-split evaluation
+    # ------------------------------------------------------------------
     split_test_accs = []
-    for split_id in range(args.geom_splits):
-        train_idx = mask_to_index(graph.train_mask[:, split_id])
-        val_idx = mask_to_index(graph.val_mask[:, split_id])
-        test_idx = mask_to_index(graph.test_mask[:, split_id])
+
+    for split_id in range(args.num_splits):
+        # Reload masks for this split
+        if dataset_name in ['cora', 'pubmed', 'citeseer']:
+            # Geom-GCN splits: 2D masks [num_nodes, num_splits]
+            train_idx = mask_to_index(graph.train_mask[:, split_id])
+            val_idx = mask_to_index(graph.val_mask[:, split_id])
+            test_idx = mask_to_index(graph.test_mask[:, split_id])
+        else:
+            n = graph.num_nodes
+            train_idx = mask_to_index(graph.train_mask[split_id * n: (split_id + 1) * n])
+            val_idx = mask_to_index(graph.val_mask[split_id * n: (split_id + 1) * n])
+            test_idx = mask_to_index(graph.test_mask[split_id * n: (split_id + 1) * n])
 
         data = {
             "x": graph.x,
+            "y": graph.y,
             "edge_index": conv_edge_index,
             "edge_weight": conv_edge_weight,
-            "num_nodes": graph.num_nodes,
             "train_idx": train_idx,
+            "test_idx": test_idx,
+            "val_idx": val_idx,
+            "num_nodes": num_nodes,
         }
 
         for run in range(args.runs):
             set_seed(args.seed + split_id * 97 + run)
 
-            model = CoEDModel(
+            # Instantiate model
+            jk = args.jumping_knowledge if args.jumping_knowledge != "None" else None
+            net = CoEDModel(
                 feature_dim=dataset.num_node_features,
                 hidden_dim=args.hidden_dim,
                 num_class=dataset.num_classes,
@@ -293,62 +258,67 @@ def main(args):
                 drop_rate=args.drop_rate,
                 normalize=args.normalize,
                 self_feature_transform=args.self_feature_transform,
+                jumping_knowledge=jk,
                 name="CoED",
             )
 
-            optimizer = AdamLike(lr=args.lr, weight_decay=args.weight_decay)
-            train_weights = collect_trainable_weights(model)
+            optimizer = tlx.optimizers.Adam(lr=args.lr, weight_decay=args.l2_coef)
+            metrics = tlx.metrics.Accuracy()
+            train_weights = net.trainable_weights
 
-            best_val_acc = 0.0
-            best_test_acc = 0.0
+            loss_func = SemiSpvzLoss(net, tlx.losses.softmax_cross_entropy_with_logits)
+            train_one_step = TrainOneStep(loss_func, optimizer, train_weights)
+
+            best_val_acc = 0
+            best_test_acc = 0
             bad_counter = 0
-            best_state = None
 
             for epoch in range(1, args.n_epoch + 1):
-                model.set_train()
-                optimizer.zero_grad(train_weights)
-                logits = model.forward(data["x"], data["edge_index"], data["edge_weight"], data["num_nodes"])
-                train_logits = tlx.gather(logits, data["train_idx"])
-                train_y = tlx.gather(graph.y, data["train_idx"])
-                loss = tlx.losses.softmax_cross_entropy_with_logits(train_logits, train_y)
-                loss.backward()
-                optimizer.step(train_weights)
+                net.set_train()
+                train_loss = train_one_step(data, graph.y)
 
-                model.set_eval()
-                logits = model.forward(data["x"], data["edge_index"], data["edge_weight"], data["num_nodes"])
-                val_acc = calculate_acc(logits, graph.y, val_idx)
-                test_acc = calculate_acc(logits, graph.y, test_idx)
+                net.set_eval()
+                logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
+
+                val_logits = tlx.gather(logits, data['val_idx'])
+                val_y = tlx.gather(data['y'], data['val_idx'])
+                val_acc = calculate_acc(val_logits, val_y, metrics)
+
+                test_logits = tlx.gather(logits, data['test_idx'])
+                test_y = tlx.gather(data['y'], data['test_idx'])
+                test_acc = calculate_acc(test_logits, test_y, metrics)
 
                 if val_acc > best_val_acc:
                     best_val_acc = val_acc
                     best_test_acc = test_acc
-                    best_state = clone_trainable_state(model)
                     bad_counter = 0
+                    net.save_weights(args.best_model_path + net.name + ".npz", format='npz_dict')
                 else:
                     bad_counter += 1
 
                 if epoch % args.print_freq == 0 or epoch == 1:
                     print(
-                        "split {:02d} run {:02d} epoch {:04d} loss {:.4f} val {:.4f} best_test {:.4f} patience {}/{}".format(
-                            split_id,
-                            run,
-                            epoch,
-                            float(loss.item() if hasattr(loss, "item") else loss),
-                            val_acc,
-                            best_test_acc,
-                            bad_counter,
-                            args.patience,
+                        "split {:02d} run {:02d} epoch {:04d} "
+                        "loss {:.4f} val {:.4f} best_test {:.4f} patience {}/{}".format(
+                            split_id, run, epoch,
+                            float(train_loss.item()),
+                            val_acc, best_test_acc,
+                            bad_counter, args.patience,
                         )
                     )
 
                 if bad_counter >= args.patience:
                     break
 
-            if best_state is not None:
-                restore_trainable_state(model, best_state)
-            model.set_eval()
-            logits = model.forward(data["x"], data["edge_index"], data["edge_weight"], data["num_nodes"])
-            best_test_acc = calculate_acc(logits, graph.y, test_idx)
+            # Restore best model for final evaluation
+            net.load_weights(args.best_model_path + net.name + ".npz", format='npz_dict')
+            if tlx.BACKEND == 'torch':
+                net.to(data['x'].device)
+            net.set_eval()
+            logits = net(data['x'], data['edge_index'], data['edge_weight'], data['num_nodes'])
+            test_logits = tlx.gather(logits, data['test_idx'])
+            test_y = tlx.gather(data['y'], data['test_idx'])
+            best_test_acc = calculate_acc(test_logits, test_y, metrics)
             split_test_accs.append(best_test_acc)
             print("split {:02d} run {:02d} best test acc: {:.5f}".format(split_id, run, best_test_acc * 100.0))
 
@@ -357,36 +327,65 @@ def main(args):
     print("test acc: {:.5f} +/- {:.5f}".format(mean_test, std_test))
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="CoED-GNN classification reproduction on Cora with GammaGL/TensorLayerX."
-    )
-    parser.add_argument("--dataset", type=str, default="cora")
-    parser.add_argument("--dataset_path", type=str, default="./data/planetoid")
-    parser.add_argument("--geom_splits", type=int, default=10)
-    parser.add_argument("--runs", type=int, default=1)
-    parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--n_epoch", type=int, default=100)
-    parser.add_argument("--patience", type=int, default=30)
-    parser.add_argument("--print_freq", type=int, default=20)
-    parser.add_argument("--hidden_dim", type=int, default=128)
-    parser.add_argument("--num_layers", type=int, default=2)
-    parser.add_argument("--lr", type=float, default=5e-4)
-    parser.add_argument("--weight_decay", type=float, default=1e-4)
-    parser.add_argument("--drop_rate", type=float, default=0.5)
-    parser.add_argument("--alpha", type=float, default=0.0)
-    parser.add_argument("--self_loop", dest="self_loop", action="store_true")
-    parser.add_argument("--no_self_loop", dest="self_loop", action="store_false")
-    parser.add_argument("--normalize", dest="normalize", action="store_true")
-    parser.add_argument("--no_normalize", dest="normalize", action="store_false")
-    parser.add_argument("--normalize_features", dest="normalize_features", action="store_true")
-    parser.add_argument("--no_normalize_features", dest="normalize_features", action="store_false")
-    parser.add_argument("--self_feature_transform", dest="self_feature_transform", action="store_true")
-    parser.add_argument("--no_self_feature_transform", dest="self_feature_transform", action="store_false")
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="CoED-GNN node classification with GammaGL/TensorLayerX.")
+
+    # Dataset
+    parser.add_argument('--dataset', type=str, default='cora',
+                        choices=['cora', 'texas', 'wisconsin', 'chameleon', 'squirrel'],
+                        help='Dataset name.')
+    parser.add_argument('--dataset_path', type=str, default=r'', help='Path to save/load dataset.')
+    parser.add_argument('--num_splits', type=int, default=10, help='Number of fixed splits to evaluate.')
+    parser.add_argument('--split_idx', type=int, default=0, help='Unused when num_splits > 0.')
+    parser.add_argument('--runs', type=int, default=1, help='Runs per split.')
+    parser.add_argument('--seed', type=int, default=42, help='Random seed.')
+
+    # Model
+    parser.add_argument('--hidden_dim', type=int, default=64, help='Hidden dimension.')
+    parser.add_argument('--num_layers', type=int, default=2, help='Number of GNN layers.')
+    parser.add_argument('--alpha', type=float, default=0.5, help='Direction convex combination parameter.')
+    parser.add_argument('--drop_rate', type=float, default=0.0, help='Feature dropout rate.')
+    parser.add_argument('--normalize', dest='normalize', action='store_true',
+                        help='L2-normalize hidden features at each layer.')
+    parser.add_argument('--no_normalize', dest='normalize', action='store_false')
+    parser.add_argument('--self_feature_transform', dest='self_feature_transform', action='store_true',
+                        help='Learn a separate self-feature transform branch.')
+    parser.add_argument('--no_self_feature_transform', dest='self_feature_transform', action='store_false')
+    parser.add_argument('--self_loop', dest='self_loop', action='store_true',
+                        help='Mix self features into directional messages.')
+    parser.add_argument('--no_self_loop', dest='self_loop', action='store_false')
+    parser.add_argument('--jumping_knowledge', type=str, default='None',
+                        choices=['None', 'cat', 'max', 'lstm'],
+                        help='Jumping-knowledge aggregation type.')
+    parser.add_argument('--remove_existing_self_loop', dest='remove_existing_self_loop',
+                        action='store_true',
+                        help='Remove existing self-loops from the graph before processing.')
+    parser.add_argument('--no_remove_existing_self_loop', dest='remove_existing_self_loop',
+                        action='store_false')
+
+    # Training
+    parser.add_argument('--lr', type=float, default=0.001, help='Learning rate.')
+    parser.add_argument('--l2_coef', type=float, default=0.0, help='Weight decay (L2 regularization).')
+    parser.add_argument('--n_epoch', type=int, default=5000, help='Max training epochs.')
+    parser.add_argument('--patience', type=int, default=100, help='Early stopping patience.')
+    parser.add_argument('--print_freq', type=int, default=50, help='Print frequency (epochs).')
+
+    # System
+    parser.add_argument('--best_model_path', type=str, default=r'./', help='Path to save best model.')
+    parser.add_argument('--gpu', type=int, default=0, help='GPU index, -1 for CPU.')
+
     parser.set_defaults(
-        self_loop=True,
         normalize=False,
-        normalize_features=False,
         self_feature_transform=False,
+        self_loop=True,
+        remove_existing_self_loop=False,
     )
-    main(parser.parse_args())
+
+    args = parser.parse_args()
+
+    if args.gpu >= 0:
+        tlx.set_device("GPU", args.gpu)
+    else:
+        tlx.set_device("CPU")
+
+    main(args)
