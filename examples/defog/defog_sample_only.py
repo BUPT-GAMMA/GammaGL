@@ -40,12 +40,12 @@ from extra_features_molecular import ExtraMolecularFeatures, DummyMolecularFeatu
 from sampler import sample_batch
 from evaluator import evaluate_generated_graphs
 
-# Import shared helpers from defog_trainer
+# Import shared helpers from defog_trainer and dataset_utils
 from defog_trainer import (
-    load_real_dataset,
     apply_dataset_preset,
-    load_model_snapshot_for_sampling,
+    load_model_snapshot_for_sampling
 )
+from dataset_utils import load_real_dataset
 
 
 def main(args):

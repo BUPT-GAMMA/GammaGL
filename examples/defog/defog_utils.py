@@ -279,45 +279,6 @@ def _tf_gather_last(tensor, index):
     return tf.reshape(flat_result, idx_shape)
 
 
-def multi_dim_std(tensor, dims):
-    r"""Compute standard deviation over multiple dimensions."""
-    mean_val = tlx.reduce_mean(tensor, axis=dims, keepdims=True)
-    diff_sq = (tensor - mean_val) ** 2
-    variance = tlx.reduce_mean(diff_sq, axis=dims)
-    return tlx.sqrt(variance + 1e-12)
-
-
-def multi_dim_min(tensor, dims):
-    r"""Compute min over multiple dimensions sequentially."""
-    result = tensor
-    for d in sorted(dims, reverse=True):
-        result = tlx.reduce_min(result, axis=d)
-    return result
-
-
-def multi_dim_max(tensor, dims):
-    r"""Compute max over multiple dimensions sequentially."""
-    result = tensor
-    for d in sorted(dims, reverse=True):
-        result = tlx.reduce_max(result, axis=d)
-    return result
-
-
-def count_nonzero(tensor, axis=-1):
-    r"""Count nonzero elements along an axis."""
-    nonzero_mask = tlx.cast(tensor != 0, tlx.float32)
-    return tlx.reduce_sum(nonzero_mask, axis=axis)
-
-
-def create_eye(n, batch_size=None):
-    r"""Create identity matrix, optionally batched."""
-    eye = tlx.eye(n)
-    if batch_size is not None:
-        eye = tlx.expand_dims(eye, axis=0)
-        eye = tlx.tile(eye, [batch_size, 1, 1])
-    return eye
-
-
 # ============================================================
 # PlaceHolder
 # ============================================================
@@ -486,28 +447,6 @@ def encode_no_edge(E):
         E_np[:, i, i, :] = 0.0
 
     return tlx.convert_to_tensor(E_np, dtype=E.dtype)
-
-
-def symmetrize_and_mask_diag(E):
-    r"""Symmetrize edge tensor and zero out the diagonal.
-
-    Parameters
-    ----------
-    E : tensor
-        Edge features ``(bs, n, n, de)`` or ``(bs, n, n)``.
-
-    Returns
-    -------
-    tensor
-        Symmetrized E.
-    """
-    if len(E.shape) == 4:
-        E_upper = backend_triu(E, diagonal=1)
-        E_sym = E_upper + tlx.transpose(E_upper, perm=[0, 2, 1, 3])
-    else:
-        E_upper = backend_triu(E, diagonal=1)
-        E_sym = E_upper + tlx.transpose(E_upper, perm=[0, 2, 1])
-    return E_sym
 
 
 # ============================================================

@@ -30,9 +30,9 @@ from time_distorter import TimeDistorter
 from sampler import sample_batch
 from evaluator import evaluate_generated_graphs
 from defog_trainer import (
-    load_model_snapshot_for_sampling,
-    load_real_dataset,
+    load_model_snapshot_for_sampling
 )
+from dataset_utils import load_real_dataset
 
 
 def _build_model(args, num_node_types, num_edge_types, test_labels):
