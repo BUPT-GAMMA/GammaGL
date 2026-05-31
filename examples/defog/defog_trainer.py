@@ -566,6 +566,7 @@ def evaluate_generated_graphs(generated, dataset_name, graphs, test_ds,
                     pickle.dump(reference_smiles, f)
                 print(f"Cached reference SMILES to disk: {ref_cache_file}")
 
+        if atom_decoder is not None:
             atom_counts = np.zeros(len(atom_decoder), dtype=np.int64)
             max_edge_type = 0
             for atom_types, edge_types in generated:
@@ -1959,7 +1960,8 @@ def main(args):
             collate_fn=Collater(follow_batch=None, exclude_keys=None),
             num_workers=8,
             pin_memory=True,
-            persistent_workers=True
+            persistent_workers=True,
+            multiprocessing_context='spawn'
         )
         print("[debug] DataLoader created (seeded shuffle) with num_workers=8 (PyTorch)")
     except Exception as e:
