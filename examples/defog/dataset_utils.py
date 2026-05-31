@@ -222,16 +222,16 @@ def load_real_dataset(name, root=None, conditional=False, target='mu', remove_h=
     test_ds = ds_cls(split='test', **kwargs)
     print(f"[debug:data] Test split ready", flush=True)
 
-    print(f"鏁版嵁闆?{name}: 璁粌闆?{len(train_ds)}, 楠岃瘉闆?{len(val_ds)}, 娴嬭瘯闆?{len(test_ds)}")
+    print(f"Dataset {name}: train={len(train_ds)}, val={len(val_ds)}, test={len(test_ds)}")
 
-    # Convert spectre datasets: x=ones(n,1) �?one-hot node type
+    # Convert spectre datasets: x=ones(n,1) -> one-hot node type
     # edge_attr=[0,1] is already 2-class one-hot (no-edge, edge)
     if convert_spectre:
         train_graphs = []
         for i in range(len(train_ds)):
             g = train_ds[i]
             n = g.x.shape[0]
-            # Node features: all same type �?one-hot [1, 0] for type 0
+            # Node features: all same type -> one-hot [1, 0] for type 0
             x_np = np.zeros((n, num_node_types), dtype=np.float32)
             x_np[:, 0] = 1.0
             g_new = Graph(
