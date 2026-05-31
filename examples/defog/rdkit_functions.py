@@ -125,11 +125,12 @@ def build_molecule_with_partial_charges(atom_types, edge_types, atom_decoder,
             if flag:
                 continue
             else:
-                idx = atomid_valence[0]
-                v = atomid_valence[1]
-                an = mol.GetAtomWithIdx(idx).GetAtomicNum()
-                if an in (7, 8, 16) and (v - ATOM_VALENCY.get(an, 0)) == 1:
-                    mol.GetAtomWithIdx(idx).SetFormalCharge(1)
+                if atomid_valence and len(atomid_valence) >= 2:
+                    idx = atomid_valence[0]
+                    v = atomid_valence[1]
+                    an = mol.GetAtomWithIdx(idx).GetAtomicNum()
+                    if an in (7, 8, 16) and (v - ATOM_VALENCY.get(an, 0)) == 1:
+                        mol.GetAtomWithIdx(idx).SetFormalCharge(1)
     return mol
 
 
@@ -163,6 +164,9 @@ def correct_mol(m):
         if flag:
             break
         else:
+            if not atomid_valence or len(atomid_valence) < 2:
+                # If the error is not a valency error with an index, we cannot correct it
+                return None, no_correct
             idx = atomid_valence[0]
             v = atomid_valence[1]
             queue = []
