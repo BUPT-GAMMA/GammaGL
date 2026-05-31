@@ -182,57 +182,49 @@ Trained for 100,000 epochs each. Results compared against the DeFoG paper (Table
 | Orbit ↓ | 0.0006 ± 0.0004 | 0.000059 | 0.001910 | 0.000223 | **0.000731 ± 0.000824** |
 | Wavelet ↓ | 0.0014 ± 0.0002 | 0.000016 | 0.000139 | 0.000167 | **0.000107 ± 0.000066** |
 
-### Tree (seed 0, completed)
+### Tree (3 seeds, completed)
 
-Trained for 100,000 epochs. Best checkpoint at epoch 72000 (validation score 1.0).
+Trained for 100,000 epochs each. Best checkpoint evaluated with 40 samples, 1000 denoising steps.
 
-| Metric | Best (epoch 72000) | Final (epoch 100000) |
-|--------|--------------------|----------------------|
-| Valid ↑ | **100.0%** | 55.0% |
-| Unique ↑ | 82.5% | 97.5% |
-| Non-iso ↑ | 100.0% | 100.0% |
-| Tree Acc ↑ | **100.0%** | 55.0% |
-| Degree ↓ | 0.000575 | 0.000314 |
-| Spectre ↓ | 0.010322 | 0.010755 |
-| Clustering ↓ | 0.000000 | 0.000000 |
-| Orbit ↓ | 0.000007 | 0.000017 |
-| Wavelet ↓ | 0.000613 | 0.000479 |
+| Metric | Paper (DeFoG) | Seed 0 (best) | Seed 1 | Seed 2 | Mean ± Std |
+|--------|---------------|---------------|--------|--------|------------|
+| Valid ↑ | 100.0 | 100.0 | 95.0 | 100.0 | **98.3 ± 2.4** |
+| Unique ↑ | 100.0 | 82.5 | 87.5 | 85.0 | **85.0 ± 2.0** |
+| Non-iso ↑ | 100.0 | 100.0 | 100.0 | 100.0 | **100.0 ± 0.0** |
+| Tree Acc ↑ | 100.0 | 100.0 | 95.0 | 100.0 | **98.3 ± 2.4** |
+| Degree ↓ | — | 0.000575 | 0.000582 | 0.000287 | **0.000481 ± 0.000137** |
+| Spectre ↓ | — | 0.010322 | 0.011042 | 0.011507 | **0.010957 ± 0.000488** |
+| Clustering ↓ | — | 0.000000 | 0.000000 | 0.000000 | **0.000000 ± 0.000000** |
+| Orbit ↓ | — | 0.000007 | 0.000013 | 0.000000 | **0.000007 ± 0.000005** |
+| Wavelet ↓ | — | 0.000613 | 0.000518 | 0.000586 | **0.000572 ± 0.000039** |
 
-### QM9 no-H (seed 0, completed)
-
-Trained for 1,000 epochs without explicit hydrogens.
-
-| Metric | GammaGL (no-H) | Paper (DeFoG, no-H 500 steps) |
-|--------|----------------|-------------------------------|
-| Validity ↑ | **99.02%** | 99.3% |
-| Relaxed Validity ↑ | **99.80%** | 99.4% |
-| Uniqueness ↑ | **99.80%** | 96.3% |
-| Novelty ↑ | **40.39%** | — |
-| FCD ↓ | **0.7934** | 0.12 |
-
-*Training command:*
+*Training command (per seed):*
 ```bash
 TL_BACKEND="torch" python defog_trainer.py \
-  --dataset qm9 \
+  --dataset tree \
   --data_root ./datasets \
-  --save_dir ./checkpoints_qm9_noh_seed0_final \
-  --seed 0 \
-  --gpu 5 \
-  --n_layers 9 \
-  --n_epochs 1000 \
-  --batch_size 1024 \
-  --lr 2e-4 \
-  --train_distortion identity \
-  --sample_distortion polydec \
-  --sample_steps 500 \
-  --omega 0 \
-  --eta 0 \
-  --check_val_every_n_epochs 50 \
-  --sample_every_val 1 \
-  --val_num_samples 512 \
-  --remove_h
+  --save_dir ./checkpoints_tree_seed${seed}_final \
+  --seed ${seed} \
+  --gpu 0 \
+  --n_layers 10 --hidden_mlp_X 128 --hidden_mlp_E 64 --hidden_mlp_y 128 \
+  --dx 256 --de 64 --dy 64 --dim_ffX 256 --dim_ffE 64 --dim_ffy 256 \
+  --n_head 8 --n_epochs 100000 --batch_size 64 --lr 2e-4 \
+  --train_distortion polydec --sample_distortion polydec \
+  --omega 0 --eta 0 --sample_steps 1000 \
+  --check_val_every_n_epochs 2000 --sample_every_val 1 --val_num_samples 40
 ```
 
+### QM9 no-H (3 seeds, completed)
+
+Trained for 1,000 epochs each without explicit hydrogens. Results compared against the DeFoG paper (no-H, 500 steps).
+
+| Metric | Paper (DeFoG) | Seed 0 | Seed 1 | Seed 2 | Mean ± Std |
+|--------|---------------|--------|--------|--------|------------|
+| Validity ↑ | 99.3 | 99.02 | 99.80 | 99.02 | **99.28 ± 0.37** |
+| Relaxed Validity ↑ | 99.4 | 99.80 | 100.00 | 99.61 | **99.80 ± 0.16** |
+| Uniqueness ↑ | 96.3 | 99.80 | 99.41 | 100.00 | **99.74 ± 0.24** |
+| Novelty ↑ | — | 40.39 | 35.36 | 29.80 | **35.18 ± 4.33** |
+| FCD ↓ | 0.12 | 0.7934 | 0.8657 | 0.7009 | **0.7867 ± 0.0674** |
 ## Important Parameters
 
 The parser-level defaults are generic. For named datasets, presets may replace them unless you pass an explicit CLI override.
