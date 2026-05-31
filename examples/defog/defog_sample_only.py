@@ -35,17 +35,16 @@ from gammagl.models.defog import DeFoGModel
 from noise_distribution import NoiseDistribution
 from rate_matrix import RateMatrixDesigner
 from time_distorter import TimeDistorter
-from extra_features import ExtraFeatures
+from extra_features import ExtraFeatures, compute_extra_data
 from extra_features_molecular import ExtraMolecularFeatures, DummyMolecularFeatures
+from sampler import sample_batch
+from evaluator import evaluate_generated_graphs
 
 # Import shared helpers from defog_trainer
 from defog_trainer import (
     load_real_dataset,
-    compute_extra_data,
-    sample_batch,
     apply_dataset_preset,
     load_model_snapshot_for_sampling,
-    evaluate_generated_graphs,
 )
 
 

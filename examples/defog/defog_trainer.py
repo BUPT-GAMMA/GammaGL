@@ -6,8 +6,6 @@ import argparse
 import random
 import numpy as np
 import torch
-import threading
-import copy
 import tensorlayerx as tlx
 from tensorlayerx.model import TrainOneStep, WithLoss
 
@@ -26,16 +24,15 @@ from gammagl.loader import DataLoader
 
 from defog_utils import (PlaceHolder, to_dense,
                          backend_one_hot, EMA)
-from flow_utils import p_xt_g_x1
-from flow_matching_utils import (sample_discrete_features,
-                                  sample_discrete_feature_noise)
-from noise_distribution import NoiseDistribution
+from noise_distribution import NoiseDistribution, apply_noise
 from rate_matrix import RateMatrixDesigner
 from time_distorter import TimeDistorter
-from extra_features import ExtraFeatures
+from extra_features import ExtraFeatures, compute_extra_data
 from extra_features_molecular import ExtraMolecularFeatures, DummyMolecularFeatures
 from train_metrics import TrainLossDiscrete
-from rdkit_functions import compute_molecular_metrics
+from sampler import sample_batch
+from evaluator import evaluate_generated_graphs, compute_selection_score
+from multi_gpu import MultiGPUTrainer
 
 
 # ============================================================
@@ -307,392 +304,6 @@ def load_model_snapshot_for_sampling(model, save_dir, ema_decay=0.0):
     return model_path, ema
 
 
-def compute_selection_score(dataset_name, metrics):
-    if dataset_name in ('planar', 'tree', 'sbm', 'comm20'):
-        for key in (
-            'sampling/frac_unic_non_iso_valid',
-            'sampling/frac_unique_non_iso',
-            'sampling/frac_non_iso',
-            'sampling/frac_unique',
-            'frac_unic_non_iso_valid',
-            'frac_unique_non_iso',
-            'frac_non_iso',
-            'frac_unique',
-            'valid',
-            'planar_acc',
-            'tree_acc',
-        ):
-            if key in metrics:
-                return float(metrics[key])
-        return float('-inf')
-
-    if dataset_name in ('qm9', 'guacamol', 'zinc250k', 'moses'):
-        score_parts = []
-        for key in ('Validity', 'Relaxed Validity', 'Uniqueness', 'Novelty'):
-            value = metrics.get(key)
-            if value is not None and value >= 0:
-                score_parts.append(float(value))
-        return float(np.mean(score_parts)) if score_parts else float('-inf')
-
-    degree = metrics.get('degree')
-    return -float(degree) if degree is not None else float('-inf')
-
-
-# ============================================================
-# AdamW Optimizer Wrapper for TensorLayerX (torch backend)
-# ============================================================
-
-class AdamW(tlx.optimizers.Adam):
-    r"""AdamW optimizer that uses ``torch.optim.AdamW`` (decoupled weight decay).
-
-    Drop-in replacement for ``tlx.optimizers.Adam`` with proper AdamW semantics
-    and ``amsgrad`` support.
-    """
-
-    def __init__(self, lr=1e-3, beta_1=0.9, beta_2=0.999, eps=1e-8,
-                 weight_decay=1e-2, amsgrad=False, grad_clip=None):
-        self.amsgrad = amsgrad
-        super().__init__(lr=lr, beta_1=beta_1, beta_2=beta_2, eps=eps,
-                         weight_decay=weight_decay, grad_clip=grad_clip)
-
-    def gradient(self, loss, weights=None, return_grad=True):
-        import torch
-        if weights is None:
-            raise AttributeError("Parameter train_weights must be entered.")
-        if not self.init_optim:
-            self.optimizer_adam = torch.optim.AdamW(
-                params=weights,
-                lr=self.lr,
-                betas=(self.beta_1, self.beta_2),
-                eps=self.eps,
-                weight_decay=self.weight_decay,
-                amsgrad=self.amsgrad,
-            )
-            self.init_optim = True
-        self.optimizer_adam.zero_grad()
-
-        if not torch.isfinite(loss):
-            print("[warn:optim] Non-finite loss before backward; skipping optimizer step", flush=True)
-            if return_grad:
-                return [torch.zeros_like(w) for w in weights]
-            return None
-
-        loss.backward()
-
-        nonfinite_grad_tensors = 0
-        for w in weights:
-            grad = w.grad
-            if grad is None:
-                continue
-            if not torch.isfinite(grad).all():
-                nonfinite_grad_tensors += 1
-                grad.data = torch.nan_to_num(grad.data, nan=0.0, posinf=0.0, neginf=0.0)
-
-        if nonfinite_grad_tensors > 0:
-            print(
-                f"[warn:optim] Sanitized non-finite gradients in {nonfinite_grad_tensors} tensors",
-                flush=True,
-            )
-
-        if self.grad_clip is not None:
-            grad_norm = self.grad_clip(weights)
-            if isinstance(grad_norm, torch.Tensor) and not torch.isfinite(grad_norm):
-                print("[warn:optim] Non-finite grad norm after clipping; zeroing gradients", flush=True)
-                for w in weights:
-                    if w.grad is not None:
-                        w.grad.zero_()
-
-        if return_grad:
-            return [w.grad for w in weights]
-        else:
-            return None
-
-    def apply_gradients(self, grads_and_vars=None, closure=None):
-        if not self.init_optim:
-            raise AttributeError("Can not apply gradients before zero_grad call.")
-        if closure is not None:
-            return self.optimizer_adam.step(closure)
-        self.optimizer_adam.step()
-        return None
-
-
-# ============================================================
-# Evaluation Helpers
-# ============================================================
-
-def graphs_to_networkx(graph_list):
-    """Convert a list of GammaGL Graph objects to networkx graphs.
-
-    Parameters
-    ----------
-    graph_list : list of Graph
-        Each graph has .x (one-hot node features), .edge_index, .edge_attr.
-
-    Returns
-    -------
-    list of nx.Graph
-    """
-    import networkx as nx
-    nx_graphs = []
-    for g in graph_list:
-        x_np = g.x if isinstance(g.x, np.ndarray) else tlx.convert_to_numpy(g.x)
-        edge_np = g.edge_index if isinstance(g.edge_index, np.ndarray) else tlx.convert_to_numpy(g.edge_index)
-
-        nx_g = nx.Graph()
-        n = x_np.shape[0]
-        nx_g.add_nodes_from(range(n))
-
-        if edge_np.shape[1] > 0:
-            src = edge_np[0].astype(int)
-            dst = edge_np[1].astype(int)
-            for s, d in zip(src, dst):
-                if s < d:
-                    nx_g.add_edge(int(s), int(d))
-        nx_graphs.append(nx_g)
-    return nx_graphs
-
-
-def collect_train_smiles_molecular(train_graphs, atom_decoder):
-    """Convert training molecular graphs to canonical SMILES.
-
-    Parameters
-    ----------
-    train_graphs : list of Graph
-        Training graphs with .x (one-hot), .edge_index, .edge_attr.
-    atom_decoder : list of str
-        Atom decoder aligned with the dataset preprocessing.
-
-    Returns
-    -------
-    list of str
-        Canonical SMILES for each valid training graph.
-    """
-    from rdkit_functions import build_molecule_with_partial_charges, mol2smiles
-
-    if atom_decoder is None:
-        return None
-
-    smiles_list = []
-    for g in train_graphs:
-        x_np = g.x if isinstance(g.x, np.ndarray) else tlx.convert_to_numpy(g.x)
-        edge_index_np = g.edge_index if isinstance(g.edge_index, np.ndarray) else tlx.convert_to_numpy(g.edge_index)
-        ea_np = g.edge_attr if isinstance(g.edge_attr, np.ndarray) else tlx.convert_to_numpy(g.edge_attr)
-
-        n = x_np.shape[0]
-        # Dense adjacency with edge types
-        adj = np.zeros((n, n), dtype=int)
-        if edge_index_np.shape[1] > 0:
-            src = edge_index_np[0].astype(int)
-            dst = edge_index_np[1].astype(int)
-            for idx in range(len(src)):
-                s, d = int(src[idx]), int(dst[idx])
-                if ea_np is not None and ea_np.ndim == 2 and ea_np.shape[0] == len(src):
-                    bond_type = int(np.argmax(ea_np[idx]))
-                else:
-                    bond_type = 1
-                adj[s, d] = bond_type
-
-        atom_types = np.argmax(x_np, axis=-1)
-        mol = build_molecule_with_partial_charges(atom_types, adj, atom_decoder)
-        smi = mol2smiles(mol)
-        if smi is not None:
-            smiles_list.append(smi)
-
-    print(f"  Collected {len(smiles_list)} valid SMILES from {len(train_graphs)} training graphs")
-    return smiles_list
-
-
-def evaluate_generated_graphs(generated, dataset_name, graphs, test_ds,
-                              dataset_infos, reference_graphs=None,
-                              train_graphs=None, cache_dir=None):
-    fold_metrics = {}
-    is_molecular = dataset_name in ('qm9', 'guacamol', 'zinc250k', 'moses')
-
-    if is_molecular:
-        atom_decoder = dataset_infos.get('atom_decoder')
-        remove_h = dataset_infos.get('remove_h', True)
-        train_graph_source = train_graphs if train_graphs is not None else graphs
-
-        # 1. Check in-memory cache
-        train_smiles = dataset_infos.get('train_smiles')
-        reference_smiles = dataset_infos.get('reference_smiles')
-
-        # 2. Check disk cache if not in memory
-        cache_file = None
-        ref_cache_file = None
-        if cache_dir is not None:
-            os.makedirs(cache_dir, exist_ok=True)
-            cache_file = os.path.join(cache_dir, f"train_smiles_cache_{dataset_name}.pkl")
-            ref_cache_file = os.path.join(cache_dir, f"ref_smiles_cache_{dataset_name}.pkl")
-
-        if train_smiles is None and cache_file is not None and os.path.exists(cache_file):
-            import pickle
-            with open(cache_file, 'rb') as f:
-                train_smiles = pickle.load(f)
-            dataset_infos['train_smiles'] = train_smiles
-            print(f"Loaded {len(train_smiles)} training SMILES from disk cache")
-
-        if reference_smiles is None and ref_cache_file is not None and os.path.exists(ref_cache_file):
-            import pickle
-            with open(ref_cache_file, 'rb') as f:
-                reference_smiles = pickle.load(f)
-            dataset_infos['reference_smiles'] = reference_smiles
-            print(f"Loaded {len(reference_smiles)} reference SMILES from disk cache")
-
-        if atom_decoder is not None and train_smiles is None:
-            print("Collecting training SMILES...")
-            train_smiles = collect_train_smiles_molecular(train_graph_source, atom_decoder)
-            dataset_infos['train_smiles'] = train_smiles
-            if cache_file is not None:
-                import pickle
-                with open(cache_file, 'wb') as f:
-                    pickle.dump(train_smiles, f)
-                print(f"Cached training SMILES to disk: {cache_file}")
-
-        if atom_decoder is not None and reference_smiles is None:
-            if reference_graphs is not None:
-                print("Collecting reference SMILES for FCD...")
-                reference_smiles = collect_train_smiles_molecular(reference_graphs, atom_decoder)
-            elif test_ds is not None:
-                print("Collecting reference SMILES from test_ds...")
-                ref_graphs = [test_ds[i] for i in range(len(test_ds))]
-                reference_smiles = collect_train_smiles_molecular(ref_graphs, atom_decoder)
-            else:
-                reference_smiles = train_smiles
-            dataset_infos['reference_smiles'] = reference_smiles
-            if ref_cache_file is not None:
-                import pickle
-                with open(ref_cache_file, 'wb') as f:
-                    pickle.dump(reference_smiles, f)
-                print(f"Cached reference SMILES to disk: {ref_cache_file}")
-
-        if atom_decoder is not None:
-            atom_counts = np.zeros(len(atom_decoder), dtype=np.int64)
-            max_edge_type = 0
-            for atom_types, edge_types in generated:
-                atom_types_np = np.asarray(atom_types, dtype=np.int64)
-                edge_types_np = np.asarray(edge_types, dtype=np.int64)
-                valid_atom_mask = (atom_types_np >= 0) & (atom_types_np < len(atom_decoder))
-                if valid_atom_mask.any():
-                    atom_counts += np.bincount(atom_types_np[valid_atom_mask], minlength=len(atom_decoder))
-                if edge_types_np.size > 0:
-                    max_edge_type = max(max_edge_type, int(edge_types_np.max()))
-
-            bond_counts = np.zeros(max_edge_type + 1, dtype=np.int64)
-            for _, edge_types in generated:
-                edge_types_np = np.asarray(edge_types, dtype=np.int64)
-                if edge_types_np.size == 0:
-                    continue
-                upper = np.triu(edge_types_np, k=1).reshape(-1)
-                valid_bonds = upper[upper >= 0]
-                if valid_bonds.size > 0:
-                    bond_counts += np.bincount(valid_bonds, minlength=len(bond_counts))
-
-            atom_summary = {atom_decoder[i]: int(atom_counts[i]) for i in range(len(atom_decoder))}
-            bond_summary = {int(i): int(bond_counts[i]) for i in range(len(bond_counts))}
-            print(f"  Generated atom type counts: {atom_summary}")
-            print(f"  Generated bond type counts: {bond_summary}")
-
-            print(f"\nEvaluating molecular metrics on {len(generated)} generated graphs...")
-            stability_dict, rdkit_metrics, all_smiles, summary = compute_molecular_metrics(
-                generated, train_smiles, atom_decoder, remove_h)
-
-            print(f"\n  Stability: {stability_dict}")
-            print(f"  Summary: {summary}")
-            fold_metrics.update(summary)
-            fold_metrics.update(stability_dict)
-
-            try:
-                from rdkit_functions import compute_distribution_metrics
-                dist_mae = compute_distribution_metrics(
-                    generated, dataset_infos, dataset_name)
-                fold_metrics.update(dist_mae)
-                print(f"  Distribution MAE: {dist_mae}")
-            except Exception as e:
-                print(f"  Distribution MAE skipped: {e}")
-
-            try:
-                from rdkit_functions import compute_fcd
-                fcd_score = compute_fcd(all_smiles, reference_smiles)
-                fold_metrics['fcd'] = fcd_score
-                print(f"  FCD: {fcd_score:.4f}")
-            except Exception as e:
-                print(f"  FCD skipped: {e}")
-
-            fold_metrics['selection_score'] = compute_selection_score(dataset_name, fold_metrics)
-    else:
-        from spectre_utils import evaluate_synthetic_graphs
-
-        print("Converting reference graphs to networkx...")
-        if reference_graphs is not None:
-            reference_nx = graphs_to_networkx(reference_graphs)
-        elif test_ds is not None:
-            reference_nx = graphs_to_networkx(
-                [test_ds[i] for i in range(min(len(test_ds), 200))])
-        else:
-            reference_nx = graphs_to_networkx(graphs[:min(len(graphs), 200)])
-
-        if train_graphs is not None:
-            train_nx = graphs_to_networkx(train_graphs)
-        else:
-            train_nx = graphs_to_networkx(graphs[:min(len(graphs), 200)])
-
-        metrics = evaluate_synthetic_graphs(
-            generated_graphs=generated,
-            reference_graphs=reference_nx,
-            train_graphs=train_nx,
-            dataset_name=dataset_name,
-            compute_emd=(dataset_name == 'comm20'),
-        )
-
-        alias_pairs = [
-            ('sampling/frac_unique', 'frac_unique'),
-            ('sampling/frac_non_iso', 'frac_non_iso'),
-            ('sampling/frac_unique_non_iso', 'frac_unique_non_iso'),
-            ('sampling/frac_unic_non_iso_valid', 'frac_unic_non_iso_valid'),
-        ]
-        for new_key, old_key in alias_pairs:
-            value = metrics.get(old_key)
-            if value is not None:
-                metrics[new_key] = value
-
-        if dataset_name == 'sbm':
-            sbm_proxy = metrics.get('sampling/frac_unique_non_iso')
-            if sbm_proxy is None:
-                sbm_proxy = metrics.get('sampling/frac_non_iso', metrics.get('frac_non_iso'))
-            if sbm_proxy is not None:
-                metrics.setdefault('sampling/frac_unique_non_iso', sbm_proxy)
-                metrics.setdefault('frac_unique_non_iso', sbm_proxy)
-                metrics.setdefault('sampling/frac_unic_non_iso_valid', sbm_proxy)
-                metrics.setdefault('frac_unic_non_iso_valid', sbm_proxy)
-                metrics.setdefault('valid', sbm_proxy)
-
-        if dataset_name == 'tree' and 'tree_acc' in metrics:
-            metrics.setdefault('valid', metrics['tree_acc'])
-        if dataset_name == 'planar' and 'planar_acc' in metrics:
-            metrics.setdefault('valid', metrics['planar_acc'])
-
-        if 'valid' in metrics:
-            metrics.setdefault('sampling/frac_unic_non_iso_valid', metrics['valid'])
-            metrics.setdefault('frac_unic_non_iso_valid', metrics['valid'])
-
-        metrics['selection_score'] = compute_selection_score(dataset_name, metrics)
-
-        fold_metrics.update(metrics)
-
-        print("\n  Evaluation Results:")
-        for k, v in metrics.items():
-            if isinstance(v, (int, float, np.floating)):
-                print(f"    {k}: {float(v):.6f}")
-            else:
-                print(f"    {k}: {v}")
-
-    if 'selection_score' not in fold_metrics:
-        fold_metrics['selection_score'] = compute_selection_score(dataset_name, fold_metrics)
-
-    return fold_metrics
-
-
 # ============================================================
 # Training Loss Wrapper
 # ============================================================
@@ -826,564 +437,8 @@ class DeFoGWithLoss(WithLoss):
                     flush=True,
                 )
 
+
         return loss
-
-
-class MultiGPUTrainer:
-    """Manual multi-GPU data parallelism using CUDA streams for parallel execution.
-
-    Creates independent copies of the model+loss_wrapper on each GPU
-    (via deepcopy), splits batches, runs forward+backward in parallel
-    on separate CUDA streams, then averages gradients on the primary GPU.
-    """
-    def __init__(self, model, loss_wrapper, loss_fn, n_gpu, lr, weight_decay):
-        self.n_gpu = n_gpu
-        self.primary = 0
-        self.models = [model]
-        self.loss_wrappers = [loss_wrapper]
-
-        # Ensure primary model is explicitly on cuda:0
-        model.to('cuda:0')
-
-        for i in range(1, n_gpu):
-            m_copy = copy.deepcopy(model)
-            m_copy.to(f'cuda:{i}')
-            lw_copy = copy.deepcopy(loss_wrapper)
-            lw_copy._backbone = m_copy
-            self.models.append(m_copy)
-            self.loss_wrappers.append(lw_copy)
-
-        self.optimizer = torch.optim.AdamW(
-            filter(lambda p: p.requires_grad, model.parameters()),
-            lr=lr, weight_decay=weight_decay, amsgrad=True,
-        )
-
-        # Pre-allocate CUDA streams for each GPU
-        self.streams = [torch.cuda.Stream(device=i) for i in range(n_gpu)]
-
-    def train_step(self, data_dict):
-        self.optimizer.zero_grad()
-
-        # Split batch across GPUs
-        X, E, y, mask = data_dict['X'], data_dict['E'], data_dict['y'], data_dict['node_mask']
-        bs = X.shape[0]
-        chunk_size = bs // self.n_gpu
-        chunks = []
-        start = 0
-        for i in range(self.n_gpu):
-            end = start + chunk_size + (1 if i < bs % self.n_gpu else 0)
-            chunks.append((
-                X[start:end].to(f'cuda:{i}', non_blocking=True),
-                E[start:end].to(f'cuda:{i}', non_blocking=True),
-                y[start:end].to(f'cuda:{i}', non_blocking=True),
-                mask[start:end].to(f'cuda:{i}', non_blocking=True),
-            ))
-            start = end
-
-        # Forward + backward on each GPU in parallel via CUDA streams
-        per_gpu_losses = [None] * self.n_gpu
-        per_gpu_grads = [None] * self.n_gpu
-        errors = [None] * self.n_gpu
-
-        def gpu_work(idx):
-            try:
-                stream = self.streams[idx]
-                with torch.cuda.device(idx), torch.cuda.stream(stream):
-                    Xi, Ei, yi, mi = chunks[idx]
-                    d = {'X': Xi, 'E': Ei, 'y': yi, 'node_mask': mi}
-                    loss = self.loss_wrappers[idx](d, None)
-                    loss.backward()
-                    per_gpu_losses[idx] = float(loss.item())
-                    # Detach grads and move to primary GPU
-                    grads = {}
-                    for name, p in self.models[idx].named_parameters():
-                        if p.grad is not None:
-                            grads[name] = p.grad.to(f'cuda:{self.primary}', non_blocking=True).detach() / self.n_gpu
-                    per_gpu_grads[idx] = grads
-            except Exception as e:
-                errors[idx] = e
-
-        # Launch all GPU work in parallel via Python threads + CUDA streams
-        threads = []
-        for i in range(self.n_gpu):
-            t = threading.Thread(target=gpu_work, args=(i,))
-            t.start()
-            threads.append(t)
-
-        # Wait for all threads to finish
-        for t in threads:
-            t.join()
-
-        # Check for errors
-        for i, err in enumerate(errors):
-            if err is not None:
-                raise RuntimeError(f"GPU {i} failed: {err}") from err
-
-        # Synchronize all streams to ensure computation is done
-        for s in self.streams:
-            s.synchronize()
-
-        # Average loss
-        avg_loss = sum(per_gpu_losses) / self.n_gpu
-
-        # Accumulate all grads onto primary model
-        torch.cuda.set_device(self.primary)
-        for gpu_grads in per_gpu_grads:
-            for name, p in self.models[self.primary].named_parameters():
-                if name in gpu_grads:
-                    if p.grad is None:
-                        p.grad = gpu_grads[name]
-                    else:
-                        p.grad.add_(gpu_grads[name])
-
-        # Optimizer step
-        self.optimizer.step()
-
-        # Sync weights to replicas
-        with torch.no_grad():
-            for i in range(1, self.n_gpu):
-                for (_, p_src), (_, p_dst) in zip(
-                    self.models[self.primary].named_parameters(),
-                    self.models[i].named_parameters()
-                ):
-                    p_dst.data.copy_(p_src.data, non_blocking=True)
-            # Synchronize weight copies
-            for i in range(1, self.n_gpu):
-                self.streams[i].synchronize()
-
-        return avg_loss
-
-
-# ============================================================
-# Apply Noise (Forward Noising Process)
-# ============================================================
-
-def apply_noise(X, E, y, node_mask, limit_dist, time_distorter):
-    r"""Apply noise to clean graph data for training.
-
-    Parameters
-    ----------
-    X : tensor
-        Clean node features ``(bs, n, dx)`` (one-hot).
-    E : tensor
-        Clean edge features ``(bs, n, n, de)`` (one-hot).
-    y : tensor
-        Global features ``(bs, dy)``.
-    node_mask : tensor
-        Boolean mask ``(bs, n)``.
-    limit_dist : PlaceHolder
-        Noise limit distribution.
-    time_distorter : TimeDistorter
-        Time distortion function.
-
-    Returns
-    -------
-    dict
-        Noisy data with keys ``'t'``, ``'X_t'``, ``'E_t'``, ``'y_t'``, ``'node_mask'``.
-    """
-    bs = X.shape[0]
-
-    # Move limit_dist to the same device as input (needed for DataParallel)
-    device = X.device if hasattr(X, 'device') else None
-    if device is not None and hasattr(limit_dist, 'X') and hasattr(limit_dist.X, 'to'):
-        if limit_dist.X.device != device:
-            limit_dist = PlaceHolder(X=limit_dist.X.to(device), E=limit_dist.E.to(device), y=limit_dist.y)
-
-    # Sample time
-    t = time_distorter.train_ft(bs)  # (bs, 1)
-
-    # Get clean integer labels
-    X_1 = tlx.argmax(X, axis=-1)   # (bs, n)
-    E_1 = tlx.argmax(E, axis=-1)   # (bs, n, n)
-
-    # Compute transition probabilities
-    prob_X, prob_E = p_xt_g_x1(X_1, E_1, t, limit_dist)
-    # prob_X: (bs, n, dx), prob_E: (bs, n, n, de)
-
-    # Sample noisy features
-    sampled = sample_discrete_features(prob_X, prob_E, node_mask)
-    X_t_int = sampled.X  # (bs, n)
-    E_t_int = sampled.E  # (bs, n, n)
-
-    dx = len(limit_dist.X)
-    de = len(limit_dist.E)
-
-    # One-hot encode
-    X_t = backend_one_hot(X_t_int, dx)  # (bs, n, dx)
-    E_t = backend_one_hot(E_t_int, de)  # (bs, n, n, de)
-
-    # Mask
-    x_mask = tlx.expand_dims(tlx.cast(node_mask, X_t.dtype), axis=-1)
-    e_mask = tlx.expand_dims(x_mask, axis=2) * tlx.expand_dims(x_mask, axis=1)
-    X_t = X_t * x_mask
-    E_t = E_t * e_mask
-
-    y_t = y if y is not None else tlx.zeros([bs, 0], dtype=tlx.float32)
-
-    return {
-        't': t,
-        'X_t': X_t,
-        'E_t': E_t,
-        'y_t': y_t,
-        'node_mask': node_mask,
-    }
-
-
-# ============================================================
-# Compute Extra Data
-# ============================================================
-
-def compute_extra_data(noisy_data, extra_features, domain_features, noise_dist):
-    r"""Compute extra features for the model input.
-
-    Parameters
-    ----------
-    noisy_data : dict
-        Noisy data from ``apply_noise()``.
-    extra_features : callable
-        Structural feature computer.
-    domain_features : callable
-        Domain-specific feature computer.
-    noise_dist : NoiseDistribution
-        Noise distribution (for removing virtual classes before feature computation).
-
-    Returns
-    -------
-    PlaceHolder
-        Extra features for X, E, y.
-    """
-    # Strip virtual classes before computing features
-    X_t = noisy_data['X_t']
-    E_t = noisy_data['E_t']
-
-    noisy_for_features = dict(noisy_data)
-    result = noise_dist.ignore_virtual_classes(X_t, E_t)
-    noisy_for_features['X_t'] = result[0]
-    noisy_for_features['E_t'] = result[1]
-
-    # Compute structural features
-    extra = extra_features(noisy_for_features)
-
-    # Compute domain features
-    domain = domain_features(noisy_for_features)
-
-    # Concatenate
-    extra_X = tlx.concat([extra.X, domain.X], axis=-1) if domain.X.shape[-1] > 0 else extra.X
-    extra_E = tlx.concat([extra.E, domain.E], axis=-1) if domain.E.shape[-1] > 0 else extra.E
-
-    # Append timestep to y
-    t = noisy_data['t']  # (bs, 1)
-    extra_y_parts = []
-    if extra.y.shape[-1] > 0:
-        extra_y_parts.append(extra.y)
-    if domain.y.shape[-1] > 0:
-        extra_y_parts.append(domain.y)
-    extra_y_parts.append(t)  # timestep always last
-
-    extra_y = tlx.concat(extra_y_parts, axis=-1) if len(extra_y_parts) > 1 else t
-
-    return PlaceHolder(X=extra_X, E=extra_E, y=extra_y)
-
-
-# ============================================================
-# Sampling
-# ============================================================
-
-def compute_step_probs(R_t_X, R_t_E, X_t, E_t, dt):
-    r"""Convert rate matrices to one-step CTMC transition probabilities.
-
-    Matches the original DeFoG logic: zero the current-state column first,
-    then write back the stay probability so rows sum to 1.
-    """
-    step_X = R_t_X * dt
-    step_E = R_t_E * dt
-
-    cur_X = tlx.argmax(X_t, axis=-1)
-    cur_E = tlx.argmax(E_t, axis=-1)
-
-    step_X_np = tlx.convert_to_numpy(step_X)
-    step_E_np = tlx.convert_to_numpy(step_E)
-    cur_X_np = tlx.convert_to_numpy(cur_X).astype(np.int64)
-    cur_E_np = tlx.convert_to_numpy(cur_E).astype(np.int64)
-
-    bs, n, dx = step_X_np.shape
-    _, n1, n2, de = step_E_np.shape
-
-    step_X_np[np.arange(bs)[:, None], np.arange(n)[None, :], cur_X_np] = 0.0
-    stay_X = np.clip(1.0 - step_X_np.sum(axis=-1, keepdims=True), a_min=0.0, a_max=None)
-    step_X_np[np.arange(bs)[:, None], np.arange(n)[None, :], cur_X_np] = stay_X[..., 0]
-
-    b_idx = np.arange(bs)[:, None, None]
-    i_idx = np.arange(n1)[None, :, None]
-    j_idx = np.arange(n2)[None, None, :]
-    step_E_np[b_idx, i_idx, j_idx, cur_E_np] = 0.0
-    stay_E = np.clip(1.0 - step_E_np.sum(axis=-1, keepdims=True), a_min=0.0, a_max=None)
-    step_E_np[b_idx, i_idx, j_idx, cur_E_np] = stay_E[..., 0]
-
-    prob_X = tlx.convert_to_tensor(step_X_np.astype(np.float32))
-    prob_E = tlx.convert_to_tensor(step_E_np.astype(np.float32))
-    return prob_X, prob_E
-
-
-def _cfg_unconditional_pred(model, X_in, E_in, extra_data, y_t, node_mask):
-    r"""Compute unconditional model predictions for classifier-free guidance."""
-    y_uncond = tlx.ones_like(y_t) * (-1.0)
-    y_in_uncond = tlx.concat([y_uncond, extra_data.y], axis=-1)
-    with torch.no_grad():
-        pred_X_u, pred_E_u, _ = model(X_in, E_in, y_in_uncond, node_mask)
-    pred_X_soft_u = tlx.softmax(pred_X_u, axis=-1)
-    pred_E_soft_u = tlx.softmax(pred_E_u, axis=-1)
-    return pred_X_soft_u, pred_E_soft_u
-
-
-def sample_batch(model, noise_dist, rate_matrix_designer, time_distorter,
-                 extra_features, domain_features, node_dist,
-                 sample_steps, batch_size, num_nodes=None,
-                 conditional=False, cond_labels=None, guidance_weight=2.0):
-    r"""Generate graphs via CTMC sampling.
-
-    Parameters
-    ----------
-    model : DeFoGModel
-        The trained denoiser model.
-    noise_dist : NoiseDistribution
-        Noise distribution.
-    rate_matrix_designer : RateMatrixDesigner
-        Rate matrix computer.
-    time_distorter : TimeDistorter
-        Time distortion for sampling.
-    extra_features : callable
-        Structural extra features.
-    domain_features : callable
-        Domain-specific extra features.
-    node_dist : ndarray
-        Distribution over number of nodes.
-    sample_steps : int
-        Number of sampling steps.
-    batch_size : int
-        Number of graphs to generate.
-    num_nodes : list, optional
-        Pre-specified number of nodes per graph.
-    conditional : bool
-        Whether to use classifier-free guidance.
-    cond_labels : tensor, optional
-        Conditional labels ``(batch_size, n_cond)`` for guided generation.
-    guidance_weight : float
-        Classifier-free guidance weight. Default 2.0.
-
-    Returns
-    -------
-    list
-        List of tuples ``(X_int, E_int)`` for each generated graph.
-    """
-    model.set_eval()
-    if tlx.BACKEND == 'torch':
-        import torch as _torch
-        no_grad = _torch.no_grad
-    else:
-        from contextlib import nullcontext
-        no_grad = nullcontext
-    limit_dist = noise_dist.get_limit_dist()
-
-    # Sample number of nodes
-    if num_nodes is None:
-        p = node_dist / node_dist.sum()
-        n_nodes = np.random.choice(len(node_dist), size=batch_size, p=p)
-    else:
-        n_nodes = np.array(num_nodes[:batch_size])
-
-    n_max = int(np.max(n_nodes))
-
-    # Build node mask
-    node_mask_np = np.zeros((batch_size, n_max), dtype=np.float32)
-    for i, n in enumerate(n_nodes):
-        node_mask_np[i, :n] = 1.0
-    node_mask = tlx.convert_to_tensor(node_mask_np.astype(bool))
-
-    # Sample initial noise from limit distribution
-    z = sample_discrete_feature_noise(limit_dist, node_mask)
-    X_t = z.X  # (bs, n_max, dx)
-    E_t = z.E  # (bs, n_max, n_max, de)
-
-    dx = len(limit_dist.X)
-    de = len(limit_dist.E)
-
-    debug_sampling = os.environ.get('DEFOG_DEBUG_SAMPLING', '0') == '1'
-    if debug_sampling:
-        node_mask_np = tlx.convert_to_numpy(node_mask).astype(bool)
-        upper_mask_np = np.triu(np.ones((n_max, n_max), dtype=bool), k=1)[None, :, :]
-        valid_edge_mask_np = (
-            node_mask_np[:, :, None] & node_mask_np[:, None, :] & upper_mask_np
-        )
-
-        def _debug_edge_probs(tag, tensor, step_idx):
-            arr = tlx.convert_to_numpy(tensor)
-            rows = arr[valid_edge_mask_np]
-            if rows.size == 0:
-                return
-            mean_probs = rows.mean(axis=0)
-            print(
-                f"[debug:sampling] step {step_idx + 1}/{sample_steps} {tag} "
-                f"edge_probs={np.array2string(mean_probs, precision=4, suppress_small=True)}",
-                flush=True,
-            )
-
-        def _debug_edge_labels(tag, tensor, step_idx):
-            arr = tlx.convert_to_numpy(tensor).astype(np.int64)
-            labels = arr[valid_edge_mask_np]
-            if labels.size == 0:
-                return
-            counts = np.bincount(labels, minlength=de)
-            print(
-                f"[debug:sampling] step {step_idx + 1}/{sample_steps} {tag} "
-                f"edge_counts={counts.tolist()}",
-                flush=True,
-            )
-
-    for step in range(sample_steps):
-        t_int = step
-        s_int = step + 1
-
-        t_norm = tlx.convert_to_tensor(
-            np.full((batch_size, 1), t_int / sample_steps, dtype=np.float32)
-        )
-        s_norm = tlx.convert_to_tensor(
-            np.full((batch_size, 1), s_int / sample_steps, dtype=np.float32)
-        )
-
-        # Avoid failure mode of absorbing transition at t=0
-        if noise_dist.transition in ('absorbing', 'absorbfirst') and t_int == 0:
-            t_norm = t_norm + 1e-6
-
-        t_dist = time_distorter.sample_ft(t_norm)
-        s_dist = time_distorter.sample_ft(s_norm)
-        dt = float(tlx.convert_to_numpy(s_dist[0, 0] - t_dist[0, 0]))
-
-        # Build noisy data dict
-        if conditional and cond_labels is not None:
-            y_t = cond_labels  # (batch_size, n_cond)
-        else:
-            y_t = tlx.zeros([batch_size, 0], dtype=tlx.float32)
-
-            # TLS half-half conditional sampling: half label=0, half label=1
-            if conditional and cond_labels is None:
-                half = batch_size // 2
-                y_t_np = np.zeros((batch_size, 1), dtype=np.float32)
-                y_t_np[half:, 0] = 1.0
-                y_t = tlx.convert_to_tensor(y_t_np)
-        noisy_data = {
-            't': t_dist,
-            'X_t': X_t,
-            'E_t': E_t,
-            'y_t': y_t,
-            'node_mask': node_mask,
-        }
-
-        # Compute extra features
-        extra_data = compute_extra_data(noisy_data, extra_features,
-                                         domain_features, noise_dist)
-
-        # Forward pass
-        X_in = tlx.concat([X_t, extra_data.X], axis=-1)
-        E_in = tlx.concat([E_t, extra_data.E], axis=-1)
-        y_in = tlx.concat([y_t, extra_data.y], axis=-1)
-
-        with no_grad():
-            pred_X, pred_E, _ = model(X_in, E_in, y_in, node_mask)
-
-        # Softmax predictions
-        pred_X_soft = tlx.softmax(pred_X, axis=-1)
-        pred_E_soft = tlx.softmax(pred_E, axis=-1)
-
-        if debug_sampling and step < 2:
-            _debug_edge_probs('pred_E_soft', pred_E_soft, step)
-
-        is_last_step = (s_int == sample_steps)
-
-        if debug_sampling and step == sample_steps - 1:
-            _debug_edge_probs('pred_E_soft', pred_E_soft, step)
-
-        if is_last_step:
-            # Final step: sample directly from predictions
-            # Apply CFG at prediction level for the final step
-            if conditional and cond_labels is not None:
-                pred_X_soft_u, pred_E_soft_u = _cfg_unconditional_pred(
-                    model, X_in, E_in, extra_data, y_t, node_mask)
-                eps_cfg = 1e-6
-                w = guidance_weight
-                pred_X_soft = tlx.softmax(
-                    (1 - w) * tlx.log(pred_X_soft_u + eps_cfg)
-                    + w * tlx.log(pred_X_soft + eps_cfg), axis=-1)
-                pred_E_soft = tlx.softmax(
-                    (1 - w) * tlx.log(pred_E_soft_u + eps_cfg)
-                    + w * tlx.log(pred_E_soft + eps_cfg), axis=-1)
-
-            sampled = sample_discrete_features(pred_X_soft, pred_E_soft, node_mask)
-            X_t = backend_one_hot(sampled.X, dx)
-            E_t = backend_one_hot(sampled.E, de)
-        else:
-            # Compute conditional rate matrix
-            R_X, R_E = rate_matrix_designer.compute_graph_rate_matrix(
-                t_dist, node_mask, (X_t, E_t), (pred_X_soft, pred_E_soft)
-            )
-
-            # Classifier-free guidance: blend rate matrices in log-space
-            if conditional and cond_labels is not None:
-                pred_X_soft_u, pred_E_soft_u = _cfg_unconditional_pred(
-                    model, X_in, E_in, extra_data, y_t, node_mask)
-                R_X_u, R_E_u = rate_matrix_designer.compute_graph_rate_matrix(
-                    t_dist, node_mask, (X_t, E_t), (pred_X_soft_u, pred_E_soft_u)
-                )
-
-                # Log-space geometric interpolation of rate matrices
-                eps_cfg = 1e-6
-                w = guidance_weight
-                R_X = tlx.exp(
-                    (1 - w) * tlx.log(R_X_u + eps_cfg)
-                    + w * tlx.log(R_X + eps_cfg)
-                )
-                R_E = tlx.exp(
-                    (1 - w) * tlx.log(R_E_u + eps_cfg)
-                    + w * tlx.log(R_E + eps_cfg)
-                )
-
-            prob_X, prob_E = compute_step_probs(R_X, R_E, X_t, E_t, dt)
-
-            if debug_sampling and step < 2:
-                _debug_edge_probs('prob_E', prob_E, step)
-
-            # Match original DeFoG sampling path: sample directly from the
-            # CTMC one-step probabilities without extra post-processing.
-            sampled = sample_discrete_features(prob_X, prob_E, node_mask)
-            if debug_sampling and step < 2:
-                _debug_edge_labels('sampled_E', sampled.E, step)
-            X_t = backend_one_hot(sampled.X, dx)
-            E_t = backend_one_hot(sampled.E, de)
-
-        # Mask
-        x_mask = tlx.expand_dims(tlx.cast(node_mask, X_t.dtype), axis=-1)
-        e_mask = tlx.expand_dims(x_mask, axis=2) * tlx.expand_dims(x_mask, axis=1)
-        X_t = X_t * x_mask
-        E_t = E_t * e_mask
-
-    # Remove virtual classes
-    result = noise_dist.ignore_virtual_classes(X_t, E_t)
-    X_final, E_final = result[0], result[1]
-
-    # Collapse to integer labels
-    X_int = tlx.argmax(X_final, axis=-1)
-    E_int = tlx.argmax(E_final, axis=-1)
-
-    # Split into individual graphs
-    graphs = []
-    for i in range(batch_size):
-        n = int(n_nodes[i])
-        xi = tlx.convert_to_numpy(X_int[i, :n])
-        ei = tlx.convert_to_numpy(E_int[i, :n, :n])
-        graphs.append((xi, ei))
-
-    return graphs
-
 
 # ============================================================
 # Dataset Utilities
@@ -1610,16 +665,16 @@ def load_real_dataset(name, root=None, conditional=False, target='mu', remove_h=
     test_ds = ds_cls(split='test', **kwargs)
     print(f"[debug:data] Test split ready", flush=True)
 
-    print(f"数据集 {name}: 训练集 {len(train_ds)}, 验证集 {len(val_ds)}, 测试集 {len(test_ds)}")
+    print(f"鏁版嵁闆?{name}: 璁粌闆?{len(train_ds)}, 楠岃瘉闆?{len(val_ds)}, 娴嬭瘯闆?{len(test_ds)}")
 
-    # Convert spectre datasets: x=ones(n,1) → one-hot node type
+    # Convert spectre datasets: x=ones(n,1) 鈫?one-hot node type
     # edge_attr=[0,1] is already 2-class one-hot (no-edge, edge)
     if convert_spectre:
         train_graphs = []
         for i in range(len(train_ds)):
             g = train_ds[i]
             n = g.x.shape[0]
-            # Node features: all same type → one-hot [1, 0] for type 0
+            # Node features: all same type 鈫?one-hot [1, 0] for type 0
             x_np = np.zeros((n, num_node_types), dtype=np.float32)
             x_np[:, 0] = 1.0
             g_new = Graph(
@@ -1902,7 +957,43 @@ def main(args):
 
     # ------- Optimizer -------
     import torch as _torch
-    optimizer = AdamW(
+
+    # AdamW wrapper: provides the tlx.optimizers interface around torch.optim.AdamW
+    # with NaN/Inf gradient sanitization.
+    class _AdamWWrapper(tlx.optimizers.Adam):
+        def __init__(self, lr, weight_decay, amsgrad, grad_clip=None):
+            self.amsgrad = amsgrad
+            super().__init__(lr=lr, weight_decay=weight_decay, grad_clip=grad_clip)
+        def gradient(self, loss, weights=None, return_grad=True):
+            if weights is None:
+                raise AttributeError("Parameter train_weights must be entered.")
+            if not self.init_optim:
+                self.optimizer_adam = _torch.optim.AdamW(
+                    params=weights, lr=self.lr,
+                    betas=(self.beta_1, self.beta_2), eps=self.eps,
+                    weight_decay=self.weight_decay, amsgrad=self.amsgrad)
+                self.init_optim = True
+            self.optimizer_adam.zero_grad()
+            if not _torch.isfinite(loss):
+                print("[warn:optim] Non-finite loss; skipping step", flush=True)
+                return [_torch.zeros_like(w) for w in weights] if return_grad else None
+            loss.backward()
+            for w in weights:
+                if w.grad is not None and not _torch.isfinite(w.grad).all():
+                    w.grad.data = _torch.nan_to_num(w.grad.data, nan=0.0, posinf=0.0, neginf=0.0)
+            if self.grad_clip is not None:
+                gn = self.grad_clip(weights)
+                if isinstance(gn, _torch.Tensor) and not _torch.isfinite(gn):
+                    for w in weights:
+                        if w.grad is not None:
+                            w.grad.zero_()
+            return [w.grad for w in weights] if return_grad else None
+        def apply_gradients(self, grads_and_vars=None, closure=None):
+            if not self.init_optim:
+                raise AttributeError("Call gradient() first.")
+            return self.optimizer_adam.step(closure) if closure else self.optimizer_adam.step()
+
+    optimizer = _AdamWWrapper(
         lr=args.lr,
         weight_decay=args.weight_decay,
         amsgrad=True,
@@ -2305,7 +1396,7 @@ if __name__ == '__main__':
     parser.add_argument('--rdb_crit', type=str, default='max_marginal')
     parser.add_argument('--num_samples', type=int, default=20)
     parser.add_argument('--num_sample_fold', type=int, default=1,
-                        help='Number of sampling folds for evaluation (reports mean±std)')
+                        help='Number of sampling folds for evaluation (reports mean卤std)')
     parser.add_argument('--sample_every_val', type=int, default=0,
                         help='Run validation sampling every N validation events (0 = disabled)')
     parser.add_argument('--check_val_every_n_epochs', type=int, default=0,

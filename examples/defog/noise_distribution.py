@@ -1,6 +1,8 @@
 import numpy as np
 import tensorlayerx as tlx
 from defog_utils import PlaceHolder, backend_one_hot
+from flow_utils import p_xt_g_x1
+from flow_matching_utils import sample_discrete_features
 
 
 class NoiseDistribution:
@@ -163,3 +165,75 @@ class NoiseDistribution:
         if y is not None:
             return X, E, y
         return X, E
+
+
+def apply_noise(X, E, y, node_mask, limit_dist, time_distorter):
+    r"""Apply noise to clean graph data for training.
+
+    Parameters
+    ----------
+    X : tensor
+        Clean node features ``(bs, n, dx)`` (one-hot).
+    E : tensor
+        Clean edge features ``(bs, n, n, de)`` (one-hot).
+    y : tensor
+        Global features ``(bs, dy)``.
+    node_mask : tensor
+        Boolean mask ``(bs, n)``.
+    limit_dist : PlaceHolder
+        Noise limit distribution.
+    time_distorter : TimeDistorter
+        Time distortion function.
+
+    Returns
+    -------
+    dict
+        Noisy data with keys ``'t'``, ``'X_t'``, ``'E_t'``, ``'y_t'``, ``'node_mask'``.
+    """
+    bs = X.shape[0]
+
+    # Move limit_dist to the same device as input (needed for DataParallel)
+    device = X.device if hasattr(X, 'device') else None
+    if device is not None and hasattr(limit_dist, 'X') and hasattr(limit_dist.X, 'to'):
+        if limit_dist.X.device != device:
+            limit_dist = PlaceHolder(X=limit_dist.X.to(device), E=limit_dist.E.to(device), y=limit_dist.y)
+
+    # Sample time
+    t = time_distorter.train_ft(bs)  # (bs, 1)
+
+    # Get clean integer labels
+    X_1 = tlx.argmax(X, axis=-1)   # (bs, n)
+    E_1 = tlx.argmax(E, axis=-1)   # (bs, n, n)
+
+    # Compute transition probabilities
+    prob_X, prob_E = p_xt_g_x1(X_1, E_1, t, limit_dist)
+    # prob_X: (bs, n, dx), prob_E: (bs, n, n, de)
+
+    # Sample noisy features
+    sampled = sample_discrete_features(prob_X, prob_E, node_mask)
+    X_t_int = sampled.X  # (bs, n)
+    E_t_int = sampled.E  # (bs, n, n)
+
+    dx = len(limit_dist.X)
+    de = len(limit_dist.E)
+
+    # One-hot encode
+    X_t = backend_one_hot(X_t_int, dx)  # (bs, n, dx)
+    E_t = backend_one_hot(E_t_int, de)  # (bs, n, n, de)
+
+    # Mask
+    x_mask = tlx.expand_dims(tlx.cast(node_mask, X_t.dtype), axis=-1)
+    e_mask = tlx.expand_dims(x_mask, axis=2) * tlx.expand_dims(x_mask, axis=1)
+    X_t = X_t * x_mask
+    E_t = E_t * e_mask
+
+    y_t = y if y is not None else tlx.zeros([bs, 0], dtype=tlx.float32)
+
+    return {
+        't': t,
+        'X_t': X_t,
+        'E_t': E_t,
+        'y_t': y_t,
+        'node_mask': node_mask,
+    }
+

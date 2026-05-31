@@ -644,3 +644,56 @@ def _extract_diagonal(rrwp_edge):
     diag_idx = np.arange(n)
     result = rrwp_np[:, diag_idx, diag_idx, :]  # (bs, n, k)
     return tlx.convert_to_tensor(result)
+
+
+def compute_extra_data(noisy_data, extra_features, domain_features, noise_dist):
+    r"""Compute extra features for the model input.
+
+    Parameters
+    ----------
+    noisy_data : dict
+        Noisy data from ``apply_noise()``.
+    extra_features : callable
+        Structural feature computer.
+    domain_features : callable
+        Domain-specific feature computer.
+    noise_dist : NoiseDistribution
+        Noise distribution (for removing virtual classes before feature computation).
+
+    Returns
+    -------
+    PlaceHolder
+        Extra features for X, E, y.
+    """
+    # Strip virtual classes before computing features
+    X_t = noisy_data['X_t']
+    E_t = noisy_data['E_t']
+
+    noisy_for_features = dict(noisy_data)
+    result = noise_dist.ignore_virtual_classes(X_t, E_t)
+    noisy_for_features['X_t'] = result[0]
+    noisy_for_features['E_t'] = result[1]
+
+    # Compute structural features
+    extra = extra_features(noisy_for_features)
+
+    # Compute domain features
+    domain = domain_features(noisy_for_features)
+
+    # Concatenate
+    extra_X = tlx.concat([extra.X, domain.X], axis=-1) if domain.X.shape[-1] > 0 else extra.X
+    extra_E = tlx.concat([extra.E, domain.E], axis=-1) if domain.E.shape[-1] > 0 else extra.E
+
+    # Append timestep to y
+    t = noisy_data['t']  # (bs, 1)
+    extra_y_parts = []
+    if extra.y.shape[-1] > 0:
+        extra_y_parts.append(extra.y)
+    if domain.y.shape[-1] > 0:
+        extra_y_parts.append(domain.y)
+    extra_y_parts.append(t)  # timestep always last
+
+    extra_y = tlx.concat(extra_y_parts, axis=-1) if len(extra_y_parts) > 1 else t
+
+    return PlaceHolder(X=extra_X, E=extra_E, y=extra_y)
+
