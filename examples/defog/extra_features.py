@@ -48,34 +48,35 @@ class RRWPFeatures:
         if k is None:
             k = self.k
 
-        E_np = tlx.convert_to_numpy(E)
-
         # Handle both 3-dim (adj) and 4-dim (one-hot edges) inputs
-        if E_np.ndim == 4:
-            adj = np.sum(E_np[:, :, :, 1:], axis=-1)  # (bs, n, n)
+        if len(E.shape) == 4:
+            adj = tlx.reduce_sum(E[:, :, :, 1:], axis=-1)  # (bs, n, n)
         else:
-            adj = E_np  # (bs, n, n)
+            adj = E  # (bs, n, n)
+            
+        # Ensure float32 for calculations
+        adj = tlx.cast(adj, tlx.float32)
 
         bs, n = adj.shape[0], adj.shape[1]
-        results = np.zeros((bs, n, n, k), dtype=np.float32)
 
-        for b in range(bs):
-            A = adj[b]  # (n, n)
-            if self.normalize:
-                deg = A.sum(axis=1, keepdims=True)
-                deg = np.where(deg == 0, 1.0, deg)
-                A_norm = A / deg
-            else:
-                A_norm = A
+        if self.normalize:
+            deg = tlx.reduce_sum(adj, axis=-1, keepdims=True)
+            deg = tlx.where(deg == 0.0, tlx.ones_like(deg), deg)
+            A_norm = adj / deg
+        else:
+            A_norm = adj
 
-            power = np.eye(n, dtype=np.float32)
-            results[b, :, :, 0] = power
+        power = tlx.eye(n, dtype=tlx.float32)
+        power = tlx.expand_dims(power, 0)
+        power = tlx.tile(power, [bs, 1, 1])
+        
+        results = [power]
 
-            for i in range(1, k):
-                power = power @ A_norm
-                results[b, :, :, i] = power
+        for i in range(1, k):
+            power = tlx.bmm(power, A_norm)
+            results.append(power)
 
-        return tlx.convert_to_tensor(results)
+        return tlx.stack(results, axis=-1)
 
 
 # ============================================================

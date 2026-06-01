@@ -241,6 +241,12 @@ def _triu_with_offset(matrix, diagonal):
     return matrix * mask
 
 
+def count_nonzero(tensor, axis=-1):
+    r"""Count nonzero elements along an axis."""
+    nonzero_mask = tlx.cast(tensor != 0, tlx.float32)
+    return tlx.reduce_sum(nonzero_mask, axis=axis)
+
+
 def gather_last_dim(tensor, index):
     r"""Gather values along the last dimension.
 
