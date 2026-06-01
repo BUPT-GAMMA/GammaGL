@@ -175,4 +175,3 @@ profiler/pubmed/*
 examples/defog/datasets/
 examples/defog/log_*.txt
 examples/defog/checkpoints_*/
-examples/defog/*.sh
