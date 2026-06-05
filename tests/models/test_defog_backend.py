@@ -13,7 +13,6 @@ def test_defog_backend_imports():
 import tensorlayerx as tlx
 from gammagl.models.defog import DeFoGModel
 from gammagl.layers.attention.defog_layer import XEyTransformerLayer
-from gammagl.transforms.dense_features import ExtraFeatures
 print("Import successful on backend:", tlx.BACKEND)
 """
     
