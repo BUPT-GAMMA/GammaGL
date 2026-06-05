@@ -67,6 +67,7 @@ from .gcil import GCILModel, LogReg
 from .sgformer import SGFormerModel
 from .adagad import PreModel, ReModel
 from .nodeid import NodeIDGNN
+from .defog import DeFoGModel
 
 __all__ = [
     'HeCo',
@@ -143,6 +144,7 @@ __all__ = [
     'PreModel',
     'ReModel'
     , 'NodeIDGNN'
+    , 'DeFoGModel'
 ]
 
 classes = __all__
