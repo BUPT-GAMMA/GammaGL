@@ -35,9 +35,11 @@ def test_defog_smoke():
         "--de", "8",
         "--dy", "16",
         "--dim_ffX", "32",
-        "--dim_ffE", "16",
         "--dim_ffy", "32",
-        "--check_val_every_n_epochs", "1"
+        "--check_val_every_n_epochs", "1",
+        "--gpu", "-1",
+        "--data_root", "./_review_data",
+        "--save_dir", "./_review_outputs"
     ]
 
     env = os.environ.copy()

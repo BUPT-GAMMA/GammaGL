@@ -159,7 +159,7 @@ If these dependencies are missing, the training will still run normally but the 
 ## Minimal CPU Smoke Test
 You can verify the model is functioning correctly without any heavy dependencies by running a minimal smoke test on a small synthetic dataset:
 ```bash
-python defog_trainer.py --dataset synthetic --n_epochs 1 --batch_size 2 --sample_steps 2 --num_graphs 4 --n_layers 2
+TL_BACKEND="torch" python defog_trainer.py --dataset synthetic --n_epochs 1 --batch_size 2 --sample_steps 2 --num_graphs 4 --n_layers 2 --gpu -1 --data_root ./_review_data --save_dir ./_review_outputs
 ```
 Expected output will show the dataset building dynamically and the loss being printed, followed by completion without crashing. Alternatively, you can run the provided smoke test script:
 ```bash
