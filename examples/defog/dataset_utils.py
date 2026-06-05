@@ -1,7 +1,7 @@
 import numpy as np
 import tensorlayerx as tlx
 from gammagl.data import Graph
-from gammagl.datasets import (
+from datasets import (
     PlanarGraphDataset, TreeGraphDataset, SBMGraphDataset, Comm20GraphDataset,
     QM9Gen, GuacaMolDataset, ZINC250kGen, MOSESDataset, TLSGraphDataset
 )
