@@ -615,55 +615,35 @@ def evaluate_synthetic_graphs(generated_graphs, reference_graphs, train_graphs,
     elif dataset_name == 'sbm':
         print("  SBM accuracy using official DiGress/DeFoG graph_tool MDL with Wald Test...")
         def is_sbm_valid_official(g, p_intra=0.3, p_inter=0.005, strict=True, refinement_steps=1000):
+            import json
+            import subprocess
+            import os
+            
+            # Extract edges from networkx graph to pass to subprocess
+            edges = list(g.edges())
+            data = {
+                'edges': edges,
+                'p_intra': p_intra,
+                'p_inter': p_inter,
+                'strict': strict,
+                'refinement_steps': refinement_steps
+            }
+            
+            script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_sbm_isolated.py")
             try:
-                import graph_tool.all as gt
-                from scipy.stats import chi2
-            except ImportError:
-                raise ImportError(
-                    "graph-tool and scipy are required for SBM evaluation. "
-                    "Please install them or run in an environment where they are available. "
-                    "See examples/defog/readme.md for details."
+                # Run the isolated script
+                result = subprocess.run(
+                    ["python", script_path],
+                    input=json.dumps(data).encode('utf-8'),
+                    capture_output=True,
+                    check=True
                 )
-
-            adj = nx.adjacency_matrix(g).toarray()
-            idx = adj.nonzero()
-            gt_g = gt.Graph()
-            gt_g.add_edge_list(np.transpose(idx))
-            try:
-                state = gt.minimize_blockmodel_dl(gt_g)
-            except ValueError:
+                output = result.stdout.decode('utf-8').strip()
+                return output == "True"
+            except subprocess.CalledProcessError as e:
+                # If there's a serious error in the script (like missing graph-tool)
+                print(f"SBM Evaluation error: {e.stderr.decode('utf-8')}", file=sys.stderr)
                 return False
-
-            # Refine using merge-split MCMC
-            for _ in range(refinement_steps):
-                state.multiflip_mcmc_sweep(beta=np.inf, niter=10)
-
-            b = gt.contiguous_map(state.get_blocks())
-            state = state.copy(b=b)
-            e = state.get_matrix()
-            n_blocks = state.get_nonempty_B()
-            node_counts = state.get_nr().get_array()[:n_blocks]
-            edge_counts = e.todense()[:n_blocks, :n_blocks]
-
-            if strict:
-                if (node_counts > 40).sum() > 0 or (node_counts < 20).sum() > 0 or n_blocks > 5 or n_blocks < 2:
-                    return False
-
-            max_intra_edges = node_counts * (node_counts - 1)
-            est_p_intra = np.diagonal(edge_counts) / (max_intra_edges + 1e-6)
-
-            max_inter_edges = node_counts.reshape((-1, 1)) @ node_counts.reshape((1, -1))
-            np.fill_diagonal(edge_counts, 0)
-            est_p_inter = edge_counts / (max_inter_edges + 1e-6)
-
-            W_p_intra = (est_p_intra - p_intra) ** 2 / (est_p_intra * (1 - est_p_intra) + 1e-6)
-            W_p_inter = (est_p_inter - p_inter) ** 2 / (est_p_inter * (1 - est_p_inter) + 1e-6)
-
-            W = W_p_inter.copy()
-            np.fill_diagonal(W, W_p_intra)
-            p = 1 - chi2.cdf(abs(W), 1)
-            p = p.mean()
-            return p > 0.9
         
         validity_func = is_sbm_valid_official
     elif dataset_name == 'comm20':
