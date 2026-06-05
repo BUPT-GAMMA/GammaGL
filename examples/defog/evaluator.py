@@ -30,6 +30,8 @@ def compute_selection_score(dataset_name, metrics):
             'valid',
             'planar_acc',
             'tree_acc',
+            'V.U.N.',
+            'tls_validity',
         ):
             if key in metrics:
                 return float(metrics[key])
@@ -131,7 +133,7 @@ def collect_train_smiles_molecular(train_graphs, atom_decoder):
 
 def evaluate_generated_graphs(generated, dataset_name, graphs, test_ds,
                               dataset_infos, reference_graphs=None,
-                              train_graphs=None, cache_dir=None):
+                              train_graphs=None, cache_dir=None, cond_labels=None):
     """Full evaluation pipeline for generated graphs.
 
     For molecular datasets: computes validity, uniqueness, novelty, FCD, etc.
@@ -276,6 +278,20 @@ def evaluate_generated_graphs(generated, dataset_name, graphs, test_ds,
                 print(f"  FCD skipped: {e}")
 
             fold_metrics['selection_score'] = compute_selection_score(dataset_name, fold_metrics)
+
+    elif dataset_name == 'tls':
+        from tls_metrics import compute_tls_metrics
+        print('\nEvaluating TLS conditional generation metrics...')
+        metrics = compute_tls_metrics(generated, cond_labels, train_graphs)
+        metrics['selection_score'] = compute_selection_score(dataset_name, metrics)
+        fold_metrics.update(metrics)
+        print('\n  TLS Evaluation Results:')
+        for k, v in metrics.items():
+            if isinstance(v, (int, float)):
+                print(f'    {k}: {v:.6f}')
+            else:
+                print(f'    {k}: {v}')
+
     else:
         from spectre_utils import evaluate_synthetic_graphs
 

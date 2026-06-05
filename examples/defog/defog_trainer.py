@@ -809,7 +809,7 @@ def main(args):
                                 sample_steps=args.sample_steps,
                                 batch_size=val_batch_size,
                                 conditional=conditional,
-                                cond_labels=cond_labels,
+                                cond_labels=batch_cond,
                                 guidance_weight=args.guidance_weight,
                             )
                         else:
@@ -848,6 +848,7 @@ def main(args):
                             reference_graphs=[val_ds[i] for i in range(min(len(val_ds), 200))] if val_ds is not None else None,
                             train_graphs=graphs,
                             cache_dir=args.save_dir,
+                            cond_labels=cond_labels,
                         )
                     finally:
                         if ema is not None:
@@ -905,7 +906,7 @@ def main(args):
                     sample_steps=args.sample_steps,
                     batch_size=args.num_samples,
                     conditional=conditional,
-                    cond_labels=cond_labels,
+                    cond_labels=batch_cond,
                     guidance_weight=args.guidance_weight,
                 )
             else:
@@ -959,6 +960,7 @@ def main(args):
                     test_ds,
                     dataset_infos,
                     cache_dir=args.save_dir,
+                    cond_labels=cond_labels,
                 )
                 all_fold_metrics.append(fold_metrics)
 
