@@ -159,8 +159,13 @@ If these dependencies are missing, the training will still run normally but the 
 ## Minimal CPU Smoke Test
 You can verify the model is functioning correctly without any heavy dependencies by running a minimal smoke test on a small synthetic dataset:
 ```bash
-python defog_trainer.py --dataset planar --epochs 1 --batch_size 2 --sample_steps 2
+python defog_trainer.py --dataset synthetic --n_epochs 1 --batch_size 2 --sample_steps 2 --num_graphs 4 --n_layers 2
 ```
+Expected output will show the dataset building dynamically and the loss being printed, followed by completion without crashing. Alternatively, you can run the provided smoke test script:
+```bash
+python tests/models/test_defog_smoke.py
+```
+This ensures that the GammaGL core layers and flow matching engine are backend-neutral and do not suffer from any hard `torch` or `rdkit` import issues.
 
 # Tree / SBM training with preset hyperparameters
 TL_BACKEND="torch" python defog_trainer.py --dataset tree --data_root ./datasets --sample --evaluate
