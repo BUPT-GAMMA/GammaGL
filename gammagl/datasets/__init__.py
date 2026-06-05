@@ -66,3 +66,16 @@ __all__ = [
 ]
 
 classes = __all__
+
+# DeFoG specific generative datasets
+from .spectre_dataset import PlanarGraphDataset, TreeGraphDataset, SBMGraphDataset, Comm20GraphDataset
+from .qm9_dataset import QM9Gen
+from .guacamol_dataset import GuacaMolDataset
+from .zinc250k_dataset import ZINC250kGen
+from .moses_dataset import MOSESDataset
+from .tls_dataset import TLSGraphDataset
+
+__all__.extend([
+    'PlanarGraphDataset', 'TreeGraphDataset', 'SBMGraphDataset', 'Comm20GraphDataset',
+    'QM9Gen', 'GuacaMolDataset', 'ZINC250kGen', 'MOSESDataset', 'TLSGraphDataset'
+])

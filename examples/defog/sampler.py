@@ -12,7 +12,7 @@ import tensorlayerx as tlx
 from defog_utils import PlaceHolder, apply_node_mask
 import torch.nn.functional as F
 from flow_matching import sample_discrete_features, sample_discrete_feature_noise
-from extra_features import compute_extra_data
+from gammagl.transforms import compute_extra_data
 
 
 def compute_step_probs(R_t_X, R_t_E, X_t, E_t, dt):

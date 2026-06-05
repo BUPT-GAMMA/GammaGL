@@ -23,3 +23,6 @@ __all__ = [
 ]
 
 classes = __all__
+
+from .dense_features import ExtraFeatures, compute_extra_data, DummyExtraFeatures, ExtraMolecularFeatures
+__all__.extend(['ExtraFeatures', 'compute_extra_data', 'DummyExtraFeatures', 'ExtraMolecularFeatures'])

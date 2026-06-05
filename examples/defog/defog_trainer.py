@@ -28,7 +28,7 @@ from defog_utils import PlaceHolder, to_dense, EMA
 
 from flow_matching import NoiseDistribution, apply_noise, RateMatrixDesigner, TimeDistorter
 
-from extra_features import ExtraFeatures, compute_extra_data, DummyExtraFeatures, ExtraMolecularFeatures
+from gammagl.transforms import ExtraFeatures, compute_extra_data, DummyExtraFeatures, ExtraMolecularFeatures
 
 from train_metrics import TrainLossDiscrete
 from sampler import sample_batch

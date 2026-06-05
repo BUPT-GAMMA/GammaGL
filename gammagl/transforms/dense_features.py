@@ -1,6 +1,11 @@
 import numpy as np
 import tensorlayerx as tlx
-from defog_utils import PlaceHolder
+class DenseFeaturePlaceHolder:
+    def __init__(self, X, E, y):
+        self.X = X
+        self.E = E
+        self.y = y
+
 
 
 class DummyExtraFeatures:
@@ -9,7 +14,7 @@ class DummyExtraFeatures:
         X_t = noisy_data['X_t']
         bs = X_t.shape[0]
         n = X_t.shape[1]
-        return PlaceHolder(
+        return DenseFeaturePlaceHolder(
             X=tlx.zeros([bs, n, 0], dtype=tlx.float32),
             E=tlx.zeros([bs, n, n, 0], dtype=tlx.float32),
             y=tlx.zeros([bs, 0], dtype=tlx.float32),
@@ -471,7 +476,7 @@ class ExtraFeatures:
 
         Returns
         -------
-        PlaceHolder
+        DenseFeaturePlaceHolder
             Extra features for X, E, and y.
         """
         E_t = noisy_data['E_t']
@@ -484,7 +489,7 @@ class ExtraFeatures:
         n_norm = n_nodes / self.max_n_nodes
 
         if self.features_type is None or self.features_type == 'none':
-            return PlaceHolder(
+            return DenseFeaturePlaceHolder(
                 X=tlx.zeros([bs, n, 0], dtype=tlx.float32),
                 E=tlx.zeros([bs, n, n, 0], dtype=tlx.float32),
                 y=tlx.zeros([bs, 0], dtype=tlx.float32),
@@ -493,7 +498,7 @@ class ExtraFeatures:
         if self.features_type == 'cycles':
             x_cycles, y_cycles = self.cycle_features(noisy_data)
             extra_y = tlx.concat([n_norm, y_cycles], axis=-1)
-            return PlaceHolder(
+            return DenseFeaturePlaceHolder(
                 X=x_cycles,
                 E=tlx.zeros([bs, n, n, 0], dtype=tlx.float32),
                 y=extra_y,
@@ -504,7 +509,7 @@ class ExtraFeatures:
             n_components, batch_eigenvalues = eigen_out
             x_cycles, y_cycles = self.cycle_features(noisy_data)
             extra_y = tlx.concat([n_norm, y_cycles, n_components, batch_eigenvalues], axis=-1)
-            return PlaceHolder(
+            return DenseFeaturePlaceHolder(
                 X=x_cycles,
                 E=tlx.zeros([bs, n, n, 0], dtype=tlx.float32),
                 y=extra_y,
@@ -523,7 +528,7 @@ class ExtraFeatures:
             x_cycles, y_cycles = self.cycle_features(noisy_data)
             extra_y = tlx.concat([n_norm, y_cycles], axis=-1)
 
-            return PlaceHolder(
+            return DenseFeaturePlaceHolder(
                 X=rrwp_node,
                 E=rrwp_edge,
                 y=extra_y,
@@ -547,7 +552,7 @@ class ExtraFeatures:
             x_cycles, y_cycles = self.cycle_features(noisy_data)
             extra_y = tlx.concat([n_norm, y_cycles], axis=-1)
 
-            return PlaceHolder(
+            return DenseFeaturePlaceHolder(
                 X=rrwp_node,
                 E=rrwp_edge,
                 y=extra_y,
@@ -559,7 +564,7 @@ class ExtraFeatures:
             rrwp_node = _extract_diagonal(rrwp_edge)
 
             # No cycle features in y (only n_norm)
-            return PlaceHolder(
+            return DenseFeaturePlaceHolder(
                 X=rrwp_node,
                 E=rrwp_edge,
                 y=n_norm,
@@ -579,7 +584,7 @@ class ExtraFeatures:
             x_cycles, y_cycles = self.cycle_features(noisy_data)
             extra_y = tlx.concat([n_norm, y_cycles], axis=-1)
 
-            return PlaceHolder(
+            return DenseFeaturePlaceHolder(
                 X=tlx.concat([rrwp_node, comp_rrwp_node], axis=-1),
                 E=tlx.concat([rrwp_edge, comp_rrwp_edge], axis=-1),
                 y=extra_y,
@@ -600,7 +605,7 @@ class ExtraFeatures:
                                   tlx.convert_to_tensor(n_components),
                                   tlx.convert_to_tensor(batch_eigenvalues)], axis=-1)
 
-            return PlaceHolder(
+            return DenseFeaturePlaceHolder(
                 X=X_feat,
                 E=tlx.zeros([bs, n, n, 0], dtype=tlx.float32),
                 y=extra_y,
@@ -666,7 +671,7 @@ def compute_extra_data(noisy_data, extra_features, domain_features, noise_dist):
 
     Returns
     -------
-    PlaceHolder
+    DenseFeaturePlaceHolder
         Extra features for X, E, y.
     """
     # Strip virtual classes before computing features
@@ -699,11 +704,16 @@ def compute_extra_data(noisy_data, extra_features, domain_features, noise_dist):
 
     extra_y = tlx.concat(extra_y_parts, axis=-1) if len(extra_y_parts) > 1 else t
 
-    return PlaceHolder(X=extra_X, E=extra_E, y=extra_y)
+    return DenseFeaturePlaceHolder(X=extra_X, E=extra_E, y=extra_y)
 
 import numpy as np
 import tensorlayerx as tlx
-from defog_utils import PlaceHolder
+class DenseFeaturePlaceHolder:
+    def __init__(self, X, E, y):
+        self.X = X
+        self.E = E
+        self.y = y
+
 
 
 class ChargeFeature:
@@ -822,7 +832,7 @@ class ExtraMolecularFeatures:
         """
         Returns
         -------
-        PlaceHolder
+        DenseFeaturePlaceHolder
             X: ``(bs, n, 2)`` (charge + valency), E: empty, y: ``(bs, 1)`` (weight).
         """
         charge = self.charge(noisy_data)    # (bs, n, 1)
@@ -832,7 +842,7 @@ class ExtraMolecularFeatures:
         bs = charge.shape[0]
         n = charge.shape[1]
 
-        return PlaceHolder(
+        return DenseFeaturePlaceHolder(
             X=tlx.concat([
                 tlx.expand_dims(charge, axis=-1),
                 tlx.expand_dims(valency, axis=-1),
