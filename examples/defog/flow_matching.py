@@ -206,9 +206,6 @@ def sample_discrete_features(probX, probE, node_mask, mask=False):
 
     # Symmetrize: keep upper triangle, mirror to lower
     E_t_int = E_t.to(torch.int64)
-    idx = torch.arange(n, device=E_t.device)
-    mask_diag = (idx.unsqueeze(0).unsqueeze(-1) == idx.unsqueeze(0).unsqueeze(1))
-    E_t_int[mask_diag] = 0
     E_t_int = torch.triu(E_t_int, diagonal=1)
 
     E_t_int = E_t_int + E_t_int.permute(*[0, 2, 1])
