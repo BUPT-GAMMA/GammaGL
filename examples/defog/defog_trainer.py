@@ -809,7 +809,7 @@ def main(args):
                                 sample_steps=args.sample_steps,
                                 batch_size=val_batch_size,
                                 conditional=conditional,
-                                cond_labels=batch_cond,
+                                cond_labels=cond_labels,
                                 guidance_weight=args.guidance_weight,
                             )
                         else:
@@ -906,7 +906,7 @@ def main(args):
                     sample_steps=args.sample_steps,
                     batch_size=args.num_samples,
                     conditional=conditional,
-                    cond_labels=batch_cond,
+                    cond_labels=cond_labels,
                     guidance_weight=args.guidance_weight,
                 )
             else:
