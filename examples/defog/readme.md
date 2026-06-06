@@ -159,7 +159,7 @@ If these dependencies are missing, the training will still run normally but the 
 ## Minimal CPU Smoke Test
 You can verify the model is functioning correctly without any heavy dependencies by running a minimal smoke test on a small synthetic dataset:
 ```bash
-TL_BACKEND="torch" python defog_trainer.py --dataset synthetic --n_epochs 1 --batch_size 2 --sample_steps 2 --num_graphs 4 --n_layers 2 --gpu -1 --data_root ./_review_data --save_dir ./_review_outputs
+TL_BACKEND="torch" python defog_trainer.py --dataset synthetic --n_epochs 1 --batch_size 2 --sample --sample_steps 2 --num_graphs 4 --n_layers 2 --gpu -1 --data_root ./_review_data --save_dir ./_review_outputs
 ```
 Expected output will show the dataset building dynamically and the loss being printed, followed by completion without crashing. Alternatively, you can run the provided smoke test script:
 ```bash
@@ -294,16 +294,20 @@ The parser-level defaults are generic. For named datasets, presets may replace t
 | --------- | -------------- | ----------- |
 | `--dataset` | `synthetic` | Dataset name |
 | `--data_root` | `None` | Root directory for real datasets |
+| `--seed` | `42` | Random seed |
+| `--use_defog_split` | off | Use DeFoG original CSV split for QM9 instead of random split |
+| `--remove_h` / `--with_h` | `None` | Use QM9 without/with hydrogens |
 | `--conditional` | off | Enable classifier-free guidance (QM9 only) |
-| `--target` | `mu` | Conditional target: `mu` / `homo` / `both` |
+| `--target` | `mu` | Conditional target: `mu` / `homo` / `both` / `k2` |
 | `--guidance_weight` | `2.0` | CFG weight |
 | `--n_layers` | `5` | Transformer depth |
 | `--batch_size` | `32` | Training batch size |
+| `--sample_batch_size` | `0` | Sampling batch size (0 = use num_samples) |
 | `--n_epochs` | `100` | Training epochs |
 | `--lr` | `2e-4` | Learning rate |
 | `--weight_decay` | `1e-12` | AdamW weight decay |
 | `--ema_decay` | `0.0` | EMA decay (`0` disables EMA) |
-| `--grad_clip_norm` | `1.0` | Gradient clipping norm |
+| `--grad_clip_norm` | `None` | Gradient clipping norm (disabled by default) |
 | `--kld` | off | Use KLD for node / edge losses |
 | `--lambda_E` | `5.0` | Edge loss weight |
 | `--lambda_y` | `0.0` | Global-property loss weight |
@@ -325,6 +329,8 @@ The parser-level defaults are generic. For named datasets, presets may replace t
 | `--rdb` | `general` | RDB design |
 | `--rdb_crit` | `max_marginal` | RDB sub-criterion |
 | `--save_dir` | `./checkpoints` | Output checkpoint directory |
+| `--resume_from` | `None` | Checkpoint directory to resume from (loads last_model.npz) |
+| `--start_epoch` | `0` | Epoch to start resuming from |
 
 ## Evaluation Outputs
 
