@@ -138,7 +138,7 @@ _DATASET_PRESETS = {
         'hidden_mlp_X': 256,
         'hidden_mlp_E': 128,
         'hidden_mlp_y': 256,
-        'de': 128,
+        'de': 64,
         'dy': 128,
         'dim_ffX': 256,
         'dim_ffE': 128,
