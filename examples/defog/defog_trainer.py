@@ -112,6 +112,8 @@ _DATASET_PRESETS = {
         'hidden_mlp_X': 128,
         'hidden_mlp_E': 64,
         'hidden_mlp_y': 128,
+        'de': 64,
+        'dy': 64,
         'dim_ffE': 64,
         'dim_ffy': 256,
         'n_epochs': 50000,
