@@ -66,6 +66,7 @@ from .rohehan import RoheHAN
 from .gcil import GCILModel, LogReg 
 from .sgformer import SGFormerModel
 from .adagad import PreModel, ReModel
+from .edgeprompt import EdgePromptGCNModel, EdgePromptNodeClassifier
 from .nodeid import NodeIDGNN
 from .coed import CoEDModel
 from .amp import AMPModel
@@ -147,6 +148,8 @@ __all__ = [
     'NodeIDGNN',
     'CoEDModel',
     'AMPModel',
+    'EdgePromptGCNModel',
+    'EdgePromptNodeClassifier',
 ]
 
 classes = __all__

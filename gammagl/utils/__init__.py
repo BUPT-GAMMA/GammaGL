@@ -10,7 +10,7 @@ from .mask import mask_to_index, index_to_mask
 from .inspector import Inspector
 from .device import set_device
 from .to_dense_batch import to_dense_batch
-from .subgraph import k_hop_subgraph
+from .subgraph import k_hop_subgraph, node_subgraph
 from .negative_sampling import negative_sampling
 from .convert import to_scipy_sparse_matrix, edge_index_to_adj_matrix
 from .read_embeddings import read_embeddings
@@ -18,7 +18,7 @@ from .homophily import homophily
 from .to_dense_adj import to_dense_adj
 from .smiles import from_smiles
 from .shortest_path import shortest_path_distance, batched_shortest_path_distance
-from .get_split import get_train_val_test_split
+from .get_split import get_train_val_test_split, get_few_shot_split
 from .get_laplacian import get_laplacian
 from .simple_path import find_all_simple_paths
 
@@ -38,6 +38,7 @@ __all__ = [
     'set_device',
     'to_dense_batch',
     'k_hop_subgraph',
+    'node_subgraph',
     'negative_sampling',
     'to_scipy_sparse_matrix',
     'read_embeddings',
@@ -47,6 +48,7 @@ __all__ = [
     'shortest_path_distance',
     'batched_shortest_path_distance',
     'get_train_val_test_split',
+    'get_few_shot_split',
     'get_laplacian',
     'find_all_simple_paths',
     'edge_index_to_adj_matrix'
