@@ -40,6 +40,15 @@ from .coed_conv import CoEDConv
 from .rgt_layers import EuclideanEncoder, ManifoldEncoder, ConstCurveLinear, ConstCurveAgg, Lorentz, Sphere, Euclidean, ProductSpace
 from .vq_euclidean import VectorQuantize_E
 from .vq_riemann import VectorQuantize_R
+from .gcn_unifews import ConvThr
+from .gat_unifews import GATv2ConvThr
+from .gat_unifews import GATv2ConvRaw
+from .gcn2_unifews import GCNIIConvRaw
+from .gcn2_unifews import GCNIIConvThr
+from .gcn_unifews import GCNConvRaw
+from .gcn_unifews import GCNConvThr
+from .gsage_unifews import SAGEConvRaw
+from .gsage_unifews import SAGEConvThr
 __all__ = [
     'MessagePassing',
     'GCNConv',
@@ -90,6 +99,15 @@ __all__ = [
     'ProductSpace',
     'VectorQuantize_E',
     'VectorQuantize_R',
+    'ConvThr',
+    'GCNConvRaw',
+    'GCNConvThr',
+    'GATv2ConvRaw',
+    'GATv2ConvThr',
+    'GCNIIConvRaw',
+    'GCNIIConvThr',
+    'SAGEConvRaw',
+    'SAGEConvThr',
 ]
 
 classes = __all__

@@ -71,6 +71,11 @@ from .nodeid import NodeIDGNN
 from .coed import CoEDModel
 from .amp import AMPModel
 from .rgt import RGT, NodeClsHead, LinkPredHead, GraphClsHead, ShotNCHead
+from .gcn2_unifews import SandwitchGCNII
+from .gcn2_unifews import SandwitchThr
+from .gnn_unifews import GNNThr
+from .gnn_unifews import GNNLPThr
+from .mlp_unifews import MLP_unifews
 __all__ = [
     'HeCo',
     'GCNModel',
@@ -155,6 +160,11 @@ __all__ = [
     'LinkPredHead',
     'GraphClsHead',
     'ShotNCHead',
+    'SandwitchGCNII',
+    'SandwitchThr',
+    'GNNThr',
+    'GNNLPThr',
+    'MLP_unifews',
 ]
 
 classes = __all__
