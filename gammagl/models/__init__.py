@@ -68,6 +68,7 @@ from .sgformer import SGFormerModel
 from .adagad import PreModel, ReModel
 from .nodeid import NodeIDGNN
 from .coed import CoEDModel
+from .amp import AMPModel
 
 __all__ = [
     'HeCo',
@@ -113,7 +114,7 @@ __all__ = [
     'HPN',
     'GMMModel',
     'HERec',
-    'MetaPath2Vec'
+    'MetaPath2Vec',
     'ieHGCNModel',
     'TADWModel',
     'MGNNI_m_MLP',
@@ -129,7 +130,7 @@ __all__ = [
     'EigenMLP',
     'SpaSpeNode',
     'FusedGATModel',
-    'hid_net',
+    'Hid_net',
     'HEAT',
     'GNNLFHFModel',
     'DHNModel',
@@ -140,11 +141,12 @@ __all__ = [
     'RoheHAN',
     'GCILModel',
     'LogReg',
-    'sgformer',
+    'SGFormerModel',
     'PreModel',
-    'ReModel'
-    , 'NodeIDGNN',
-    'CoEDModel'
+    'ReModel',
+    'NodeIDGNN',
+    'CoEDModel',
+    'AMPModel',
 ]
 
 classes = __all__
