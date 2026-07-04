@@ -36,6 +36,7 @@ from .hid_conv import Hid_conv
 from .dhn_conv import DHNConv
 from .dna_conv import DNAConv
 from .rohehan_conv import RoheHANConv
+from .coed_conv import CoEDConv
 
 __all__ = [
     'MessagePassing',
@@ -75,7 +76,8 @@ __all__ = [
     'HEATlayer',
     'DHNConv',
     'DNAConv',
-    'RoheHANConv'
+    'RoheHANConv',
+    'CoEDConv'
 ]
 
 classes = __all__
