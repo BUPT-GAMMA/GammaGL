@@ -37,7 +37,9 @@ from .dhn_conv import DHNConv
 from .dna_conv import DNAConv
 from .rohehan_conv import RoheHANConv
 from .coed_conv import CoEDConv
-
+from .rgt_layers import EuclideanEncoder, ManifoldEncoder, ConstCurveLinear, ConstCurveAgg, Lorentz, Sphere, Euclidean, ProductSpace
+from .vq_euclidean import VectorQuantize_E
+from .vq_riemann import VectorQuantize_R
 __all__ = [
     'MessagePassing',
     'GCNConv',
@@ -77,7 +79,17 @@ __all__ = [
     'DHNConv',
     'DNAConv',
     'RoheHANConv',
-    'CoEDConv'
+    'CoEDConv',
+    'EuclideanEncoder',
+    'ManifoldEncoder',
+    'ConstCurveLinear',
+    'ConstCurveAgg',
+    'Lorentz',
+    'Sphere',
+    'Euclidean',
+    'ProductSpace',
+    'VectorQuantize_E',
+    'VectorQuantize_R',
 ]
 
 classes = __all__

@@ -70,7 +70,7 @@ from .edgeprompt import EdgePromptGCNModel, EdgePromptNodeClassifier
 from .nodeid import NodeIDGNN
 from .coed import CoEDModel
 from .amp import AMPModel
-
+from .rgt import RGT, NodeClsHead, LinkPredHead, GraphClsHead, ShotNCHead
 __all__ = [
     'HeCo',
     'GCNModel',
@@ -150,6 +150,11 @@ __all__ = [
     'AMPModel',
     'EdgePromptGCNModel',
     'EdgePromptNodeClassifier',
+    'RGT',
+    'NodeClsHead',
+    'LinkPredHead',
+    'GraphClsHead',
+    'ShotNCHead',
 ]
 
 classes = __all__
