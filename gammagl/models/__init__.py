@@ -76,6 +76,7 @@ from .gcn2_unifews import SandwitchThr
 from .gnn_unifews import GNNThr
 from .gnn_unifews import GNNLPThr
 from .mlp_unifews import MLP_unifews
+from .defog import DeFoGModel
 __all__ = [
     'HeCo',
     'GCNModel',
@@ -165,6 +166,7 @@ __all__ = [
     'GNNThr',
     'GNNLPThr',
     'MLP_unifews',
+    'DeFoGModel',
 ]
 
 classes = __all__
