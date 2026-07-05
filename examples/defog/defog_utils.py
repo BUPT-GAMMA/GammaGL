@@ -83,7 +83,7 @@ def apply_node_mask(X, E, node_mask):
     """Zero-out features of padded nodes (node_mask=False)."""
     x_mask = tlx.expand_dims(tlx.cast(node_mask, X.dtype), axis=-1)
     e_mask = tlx.expand_dims(x_mask, axis=2) * tlx.expand_dims(x_mask, axis=1)
-    
+
     X_masked = X * x_mask
     E_masked = E * e_mask
     return X_masked, E_masked
@@ -94,42 +94,42 @@ def _to_dense_adj(edge_index, batch, edge_attr=None, max_num_nodes=None):
     batch_np = tlx.convert_to_numpy(batch)
     ei_np = tlx.convert_to_numpy(edge_index)
     ea_np = tlx.convert_to_numpy(edge_attr) if edge_attr is not None else None
-    
+
     bs = int(np.max(batch_np)) + 1 if len(batch_np) > 0 else 1
     if max_num_nodes is None:
         nodes_per_graph = np.bincount(batch_np, minlength=bs)
         max_num_nodes = int(np.max(nodes_per_graph))
-        
+
     de = 1 if ea_np is None else (ea_np.shape[-1] if len(ea_np.shape) > 1 else 1)
     adj = np.zeros((bs, max_num_nodes, max_num_nodes, de), dtype=np.float32)
-    
+
     # Compute node offsets within each graph
     cum_nodes = np.zeros(bs + 1, dtype=np.int64)
     nodes_per_graph = np.bincount(batch_np, minlength=bs)
     cum_nodes[1:] = np.cumsum(nodes_per_graph)
-    
+
     if len(ei_np[0]) > 0:
         graph_idx = batch_np[ei_np[0]]
         src = ei_np[0] - cum_nodes[graph_idx]
         dst = ei_np[1] - cum_nodes[graph_idx]
-        
+
         valid = (src < max_num_nodes) & (dst < max_num_nodes)
         graph_idx = graph_idx[valid]
         src = src[valid]
         dst = dst[valid]
-        
+
         if ea_np is not None:
             vals = ea_np[valid]
             if len(vals.shape) == 1:
                 vals = vals.reshape(-1, 1)
         else:
             vals = np.ones((len(src), 1), dtype=np.float32)
-            
+
         adj[graph_idx, src, dst, :] = vals
-        
+
     if ea_np is None or (len(ea_np.shape) == 1):
         adj = adj.squeeze(-1)
-        
+
     return tlx.convert_to_tensor(adj)
 
 
@@ -280,6 +280,3 @@ class EMA:
 
         for k, v in shadow_params.items():
             self.shadow_params[k] = tlx.convert_to_tensor(v)
-
-
-

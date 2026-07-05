@@ -25,7 +25,7 @@
 ---
 
 - On the Cornell dataset, under the source code and environment described in the paper, the performance on an RTX 3090 is mean: 79.46, std: 7.77. Therefore, the GammaGL version retains mean: 79.46, std: 5.57.
-- For the Ogbn-arxiv dataset, with depth=3, num-hid=64, no standard deviation data was reported in the paper. In the original paper's source code environment on an RTX 3090, the results are mean: 66.64, std: 0.62, while the GammaGL version retains mean: 60.01, std: 1.91. 
+- For the Ogbn-arxiv dataset, with depth=3, num-hid=64, no standard deviation data was reported in the paper. In the original paper's source code environment on an RTX 3090, the results are mean: 66.64, std: 0.62, while the GammaGL version retains mean: 60.01, std: 1.91.
 - When using PaddlePaddle or MindSpore as backends, due to the lack of mature and unified Neural ODE solving ecosystems, the odeint module is manually implemented, with only correctness testing performed and no performance guarantees.
 - All the data presented in the above tables are obtained only with the PyTorch backend.
 
@@ -36,7 +36,7 @@ Execute in the current directory.
 
 
 ```python
-python train.py --dataset wisconsin  
+python train.py --dataset wisconsin
 ```
 
 The dataset defaults to GPU mode; under CPU, the command is as follows. Note that the specification of CPU for different backends is case-sensitive.

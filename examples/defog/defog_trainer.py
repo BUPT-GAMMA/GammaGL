@@ -667,7 +667,7 @@ def main(args):
     from gammagl.loader.dataloader import Collater
     sampler = SeededRandomSampler(graphs, seed=args.seed)
     batch_sampler = BatchSampler(sampler, args.batch_size, drop_last=False)
-    
+
     try:
         import torch
         from torch.utils.data import DataLoader as TorchDataLoader
@@ -861,7 +861,7 @@ def main(args):
                     save_model_snapshot(model, ema, args.save_dir, ckpt_prefix, output_dims)
                     saved_checkpoints.append(ckpt_prefix)
                     print(f"  Saved checkpoint at epoch {epoch + 1}")
-                    
+
                     if len(saved_checkpoints) > max_saved_checkpoints:
                         old_prefix = saved_checkpoints.pop(0)
                         old_model_path = os.path.join(args.save_dir, f'{old_prefix}_model.npz')

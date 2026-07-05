@@ -26,10 +26,10 @@ def reset_bn_(bn_module):
         new_var = tlx.convert_to_tensor(
             tlx.initializers.Ones()(bn_module.moving_var.shape), dtype=bn_module.moving_var.dtype)
         tlx.assign(bn_module.moving_var, new_var)
-    
+
 from gammagl.layers.conv.gat_unifews import (
-    ThrInPrune, LayerNumLogger, rewind, 
-    reset_weight_, reset_bias_, 
+    ThrInPrune, LayerNumLogger, rewind,
+    reset_weight_, reset_bias_,
     add_remaining_self_loops
 )
 from gammagl.layers.conv.gcn_unifews import gcn_norm
@@ -112,7 +112,7 @@ class MLP_unifews(nn.Module):
             for _ in range(nlayer-2):
                 self.fcs.append(nn.Linear(nhidden, nhidden))
             self.fcs.append(nn.Linear(nhidden, nclass))
-        
+
         for fc in self.fcs:
             fc.logger_w = LayerNumLogger(layer)
             object.__setattr__(fc, 'act', lambda x: x)
@@ -122,7 +122,7 @@ class MLP_unifews(nn.Module):
         for lin in self.fcs:
             reset_weight_(lin.weights, lin.in_features, initializer='kaiming_uniform')
             reset_bias_(lin.biases, lin.in_features, initializer='uniform')
-            
+
     def apply_prune(self, lin, x):
         log = lin.logger_w
         log.numel_before = 1

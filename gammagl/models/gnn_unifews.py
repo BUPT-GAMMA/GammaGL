@@ -4,7 +4,7 @@ import tensorlayerx.nn as nn
 from gammagl.gglspeedup.prunes_gamma import prune, rewind, ThrInPrune, ThrProdPrune
 
 def reset_bn_(bn_module):
-    
+
     if bn_module is None:
         return
 
@@ -23,10 +23,10 @@ def reset_bn_(bn_module):
     if hasattr(bn_module, 'moving_var') and bn_module.moving_var is not None:
         new_var = tlx.initializers.Ones()(bn_module.moving_var.shape)
         bn_module.moving_var.data = new_var
-        
+
 from gammagl.layers.conv.gcn_unifews import (
-    ThrInPrune, LayerNumLogger, rewind, 
-    reset_weight_, reset_bias_, 
+    ThrInPrune, LayerNumLogger, rewind,
+    reset_weight_, reset_bias_,
     gcn_norm, add_remaining_self_loops,
     layer_dict_gcn,
     flops_modules_dict_gcn
@@ -138,7 +138,7 @@ class GNNThr(nn.Module):
         self.normalize_adj = self.kwargs.pop('normalize', False)
         self.add_self_loops = self.kwargs.pop('add_self_loops', False)
         self.cached = self.kwargs.pop('cached', False)
-      
+
         self.mid_kwargs = self.kwargs.copy()
         for k in ['improved', 'rnorm', 'diag']:
             self.mid_kwargs.pop(k, None)
@@ -155,7 +155,7 @@ class GNNThr(nn.Module):
 
         self.convs.append(Conv(nfeat, nhidden, thr_a=thr_a[0], thr_w=thr_w[0], **self.mid_kwargs))
         self.norms.append(nn.BatchNorm1d(num_features=self.feat_dim, momentum=0.1))
-        
+
         for i in range(1, nlayer-1):
             self.convs.append(Conv(nhidden, nhidden, thr_a=thr_a[i], thr_w=thr_w[i], **self.mid_kwargs))
             self.norms.append(nn.BatchNorm1d(num_features=self.feat_dim, momentum=0.1))

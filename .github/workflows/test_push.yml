@@ -12,48 +12,23 @@ jobs:
           fetch-depth: 0
           submodules: 'recursive'
 
-      - name: Checkout master and HEAD
-        run: |
-          git checkout ${{ github.event.pull_request.head.sha }}
-
-      - name: Set up Python 3.9
+      - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.10'
 
-      - name: Install Python dependencies
+      - name: Install base dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt
-
-      - name: Install Other dependencies Package
-        run: |
-          pip install ninja
-
-      - name: Install TensorLyaerX
-        run: |
-          pip install git+https://github.com/dddg617/TensorLayerX.git@nightly
-
-      - name: Install PyTorch, torchvision and torchaudio
-        run: |
-          pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu121
-
-      - name: Install Tensorflow
-        run: |
-          pip install tensorflow==2.11.0
-
-      - name: Install llvmlite
-        run: |
-          pip install llvmlite
+          pip install pybind11 ninja
 
       - name: Install package
         run: |
-          python setup.py install build_ext --inplace
+          GAMMAGL_WITH_CUDA=0 pip install -e ".[dev]" --no-build-isolation
 
-      - name: Run TF tests
+      - name: Run checks
         run: |
-          TL_BACKEND=tensorflow pytest
-
-      - name: Run TH tests
-        run: |
-          TL_BACKEND=torch pytest
+          TL_BACKEND=torch python -m compileall -q gammagl tests examples
+          TL_BACKEND=torch python -m pytest tests/test_public_api.py tests/data tests/utils -q

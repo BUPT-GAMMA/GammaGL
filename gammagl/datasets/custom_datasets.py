@@ -135,7 +135,7 @@ class CustomDataset(InMemoryDataset):
                 shape=tuple(f['attr_shape'])
             ).todense()
             x = np.asarray(x, dtype=np.float32)
-            x[x > 0.0] = 1.0  
+            x[x > 0.0] = 1.0
             adj = sp.csr_matrix(
                 (f['adj_data'], f['adj_indices'], f['adj_indptr']),
                 shape=tuple(f['adj_shape'])
@@ -180,7 +180,7 @@ class CustomDataset(InMemoryDataset):
         graph.test_mask = test_mask
         return graph
 
-   
+
     def get_idx_split(self):
         if self.name != 'ogbn-arxiv':
             raise NotImplementedError("Official split is only available for 'ogbn-arxiv'.")

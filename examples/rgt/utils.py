@@ -6,6 +6,7 @@ import time
 import warnings
 from datetime import timedelta
 
+import tensorlayerx as tlx
 from sklearn.metrics import roc_auc_score, average_precision_score, f1_score
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import eigs

@@ -43,7 +43,7 @@ from .herec import HERec
 from .metapath2vec import MetaPath2Vec
 from .iehgcn import ieHGCNModel
 from .tadw import TADWModel
-from .mgnni import MGNNI_m_MLP, MGNNI_m_att 
+from .mgnni import MGNNI_m_MLP, MGNNI_m_att
 from .magcl import NewGrace
 from .cagcn import CAGCNModel
 from .cogsl import CoGSLModel
@@ -63,19 +63,14 @@ from .dna import DNAModel
 from .dfad import DFADModel, DFADGenerator
 from .fatragnn import FatraGNNModel, Graph_Editer
 from .rohehan import RoheHAN
-from .gcil import GCILModel, LogReg 
+from .gcil import GCILModel, LogReg
 from .sgformer import SGFormerModel
 from .adagad import PreModel, ReModel
 from .edgeprompt import EdgePromptGCNModel, EdgePromptNodeClassifier
 from .nodeid import NodeIDGNN
 from .coed import CoEDModel
-from .amp import AMPModel
-from .rgt import RGT, NodeClsHead, LinkPredHead, GraphClsHead, ShotNCHead
-from .gcn2_unifews import SandwitchGCNII
-from .gcn2_unifews import SandwitchThr
-from .gnn_unifews import GNNThr
-from .gnn_unifews import GNNLPThr
-from .mlp_unifews import MLP_unifews
+from .amp import AMPModel, amp_elbo_regression_loss
+from .gnrf import GNRF, GNN
 from .defog import DeFoGModel
 __all__ = [
     'HeCo',
@@ -154,18 +149,11 @@ __all__ = [
     'NodeIDGNN',
     'CoEDModel',
     'AMPModel',
+    'amp_elbo_regression_loss',
     'EdgePromptGCNModel',
     'EdgePromptNodeClassifier',
-    'RGT',
-    'NodeClsHead',
-    'LinkPredHead',
-    'GraphClsHead',
-    'ShotNCHead',
-    'SandwitchGCNII',
-    'SandwitchThr',
-    'GNNThr',
-    'GNNLPThr',
-    'MLP_unifews',
+    'GNRF',
+    'GNN',
     'DeFoGModel',
 ]
 

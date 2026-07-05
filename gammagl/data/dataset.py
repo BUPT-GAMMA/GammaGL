@@ -159,7 +159,10 @@ class Dataset(Dataset):
                 device = 'cuda:' + str(id)
             else:
                 device = 'cpu'
-            obj = torch.load(file_name, map_location=device)
+            try:
+                obj = torch.load(file_name, map_location=device, weights_only=False)
+            except TypeError:
+                obj = torch.load(file_name, map_location=device)
         else:
             with open(file_name, 'rb') as f:
                 obj = pickle.load(f)

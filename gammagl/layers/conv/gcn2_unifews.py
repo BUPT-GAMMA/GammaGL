@@ -31,10 +31,10 @@ class GCNIIConvRaw(GCNIIConv):
         self.rnorm = rnorm
         self.diag = diag
         self.depth_inv = depth_inv
-        
+
         kwargs.pop('thr_a', None)
         kwargs.pop('thr_w', None)
-        
+
         super().__init__(
             in_channels=in_channels,
             out_channels=out_channels,
@@ -42,7 +42,7 @@ class GCNIIConvRaw(GCNIIConv):
             beta=beta,
             variant=variant
         )
-        
+
         self.logger_a = LayerNumLogger()
         self.logger_w = LayerNumLogger()
         self.logger_in = LayerNumLogger()
@@ -50,15 +50,15 @@ class GCNIIConvRaw(GCNIIConv):
 
     def forward(self, x, x_0, edge_tuple: PairTensor):
         edge_index, edge_weight = edge_tuple
-       
+
         self.logger_a.numel_after = edge_index.shape[1]
         total_w = _tensor_numel(self.linear.weights)
         if self.variant:
             total_w += _tensor_numel(self.linear0.weights)
         self.logger_w.numel_after = total_w
-        
+
         num_nodes = tlx.get_tensor_shape(x)[0]
-        return super().forward(x0=x_0, x=x, edge_index=edge_index, 
+        return super().forward(x0=x_0, x=x, edge_index=edge_index,
                                edge_weight=edge_weight, num_nodes=num_nodes)
 
     def reset_parameters(self):
@@ -85,7 +85,7 @@ class GCNIIConvThr(ConvThr, GCNIIConvRaw):
         self.prune_lst = [self.linear]
         if self.variant:
             self.prune_lst.append(self.linear0)
-        
+
         self.idx_keep = None
 
     def forward(self, x, x_0, edge_tuple, node_lock=None, verbose=False):
@@ -101,10 +101,10 @@ class GCNIIConvThr(ConvThr, GCNIIConvRaw):
             else:
                 if prune.is_pruned(self.linear): prune.remove(self.linear, 'weights')
                 if self.variant and prune.is_pruned(self.linear0): prune.remove(self.linear0, 'weights')
-            
+
             norm_node_in = tlx.sqrt(tlx.reduce_sum(tlx.square(x), axis=0))
             norm_all_in = tlx.reduce_sum(norm_node_in) / (x.shape[1] + 1e-10)
-            
+
             if norm_all_in > 1e-8:
                 threshold_wi = self.threshold_w * norm_all_in
                 ThrInPrune.apply(self.linear, 'weights', threshold_wi)
@@ -117,25 +117,25 @@ class GCNIIConvThr(ConvThr, GCNIIConvRaw):
         self.logger_a.numel_before = num_edges
         if self.idx_keep is None:
             self.idx_keep = tlx.arange(start=0, limit=num_edges, dtype=tlx.int64)
-        
+
         self.idx_keep = self.idx_keep[self.idx_keep < num_edges]
         self.idx_keep = tlx.cast(self.idx_keep, tlx.int64).squeeze()
         self.logger_a.numel_after = self.idx_keep.shape[0] if self.idx_keep.ndim > 0 else 1
-        
+
         edge_index = tlx.gather(edge_index, self.idx_keep, axis=1)
         if edge_weight is not None:
             edge_weight = tlx.gather(edge_weight, self.idx_keep)
 
         m = self.propagate(x, edge_index, edge_weight=edge_weight, num_nodes=num_nodes)
-        
+
         m = m * (1 - self.alpha)
         x_0_part = x_0[:num_nodes] * self.alpha
-        
+
         if not self.variant:
             out = m + x_0_part
             out = out * (1 - self.beta) + tlx.matmul(out, self.linear.weights) * self.beta
         else:
-            out = (m * (1 - self.beta) + tlx.matmul(m, self.linear.weights) * self.beta + 
+            out = (m * (1 - self.beta) + tlx.matmul(m, self.linear.weights) * self.beta +
                    x_0_part * (1 - self.beta) + tlx.matmul(x_0_part, self.linear0.weights) * self.beta)
 
         return out, (edge_index, edge_weight)

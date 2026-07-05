@@ -4,7 +4,7 @@ import sys
 
 def test_defog_backend_imports():
     """
-    Ensure that DeFoG core components can be parsed and imported 
+    Ensure that DeFoG core components can be parsed and imported
     without crashing under non-torch backends (e.g. tensorflow).
     This proves there are no stray `import torch` or PyG hard dependencies
     in the shared GammaGL namespace.
@@ -15,14 +15,14 @@ from gammagl.models.defog import DeFoGModel
 from gammagl.layers.attention.defog_layer import XEyTransformerLayer
 print("Import successful on backend:", tlx.BACKEND)
 """
-    
+
     env = os.environ.copy()
     # Try with tensorflow backend
     env['TL_BACKEND'] = 'tensorflow'
-    
+
     cmd = [sys.executable, "-c", script]
     result = subprocess.run(cmd, env=env, capture_output=True, text=True)
-    
+
     # If the user doesn't have tensorflow installed, it will fail with ModuleNotFoundError: No module named 'tensorflow'
     # We should only assert success if tensorflow actually loads or just consider it passed if it didn't fail due to torch
     if result.returncode != 0:

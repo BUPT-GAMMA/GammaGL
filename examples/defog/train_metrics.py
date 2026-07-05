@@ -49,7 +49,7 @@ class TrainLossDiscrete(tlx.nn.Module):
         if pred_y is not None and pred_y.shape[-1] > 0 and true_y is not None and true_y.shape[-1] > 0:
             true_y_labels = tlx.cast(tlx.argmax(true_y, axis=-1), tlx.int64)
             per_sample_loss_y = tlx.losses.softmax_cross_entropy_with_logits(pred_y, true_y_labels)
-            
+
             if len(per_sample_loss_y.shape) == 0:
                 loss_y = per_sample_loss_y
             else:
@@ -74,13 +74,13 @@ class TrainLossDiscrete(tlx.nn.Module):
         else:
             true_labels = tlx.cast(tlx.argmax(targets, axis=-1), tlx.int64)
             per_sample_loss = tlx.losses.softmax_cross_entropy_with_logits(preds, true_labels)
-            
+
             # Handling scalar vs vector reduction based on backend implementation
             if len(per_sample_loss.shape) == 0:
                 loss = per_sample_loss
             else:
                 loss = tlx.reduce_sum(per_sample_loss * mask_float) / n_valid
-        
+
         metric_val = float(tlx.convert_to_numpy(loss))
         metric_n = int(tlx.convert_to_numpy(tlx.reduce_sum(mask_float)))
         metric.update_precomputed(metric_val, metric_n)

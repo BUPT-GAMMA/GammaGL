@@ -58,7 +58,7 @@ class RRWPFeatures:
             adj = tlx.reduce_sum(E[:, :, :, 1:], axis=-1)  # (bs, n, n)
         else:
             adj = E  # (bs, n, n)
-            
+
         # Ensure float32 for calculations
         adj = tlx.cast(adj, tlx.float32)
 
@@ -74,7 +74,7 @@ class RRWPFeatures:
         power = tlx.eye(n, dtype=tlx.float32)
         power = tlx.expand_dims(power, 0)
         power = tlx.tile(power, [bs, 1, 1])
-        
+
         results = [power]
 
         for i in range(1, k):
@@ -646,7 +646,7 @@ def _extract_diagonal(rrwp_edge):
         Node features ``(bs, n, k)``.
     """
     # TODO: Performance Optimization
-    # Converting to numpy and back is inefficient. 
+    # Converting to numpy and back is inefficient.
     # Can be replaced with advanced tensor indexing or torch.diagonal equivalent.
     rrwp_np = tlx.convert_to_numpy(rrwp_edge)
     bs, n, _, k = rrwp_np.shape
@@ -705,14 +705,6 @@ def compute_extra_data(noisy_data, extra_features, domain_features, noise_dist):
     extra_y = tlx.concat(extra_y_parts, axis=-1) if len(extra_y_parts) > 1 else t
 
     return DenseFeaturePlaceHolder(X=extra_X, E=extra_E, y=extra_y)
-
-import numpy as np
-import tensorlayerx as tlx
-class DenseFeaturePlaceHolder:
-    def __init__(self, X, E, y):
-        self.X = X
-        self.E = E
-        self.y = y
 
 
 
@@ -850,6 +842,3 @@ class ExtraMolecularFeatures:
             E=tlx.zeros([bs, n, n, 0], dtype=tlx.float32),
             y=weight,
         )
-
-
-

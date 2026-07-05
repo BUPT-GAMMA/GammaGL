@@ -181,5 +181,3 @@ if __name__ == "__main__":
         tlx.set_device("CPU")
 
     main(args)
-
-

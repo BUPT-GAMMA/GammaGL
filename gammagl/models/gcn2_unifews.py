@@ -26,10 +26,10 @@ def reset_bn_(bn_module):
         new_var = tlx.convert_to_tensor(
             tlx.initializers.Ones()(bn_module.moving_var.shape), dtype=bn_module.moving_var.dtype)
         tlx.assign(bn_module.moving_var, new_var)
-    
+
 from gammagl.layers.conv.gat_unifews import (
-    ThrInPrune, LayerNumLogger, rewind, 
-    reset_weight_, reset_bias_, 
+    ThrInPrune, LayerNumLogger, rewind,
+    reset_weight_, reset_bias_,
     add_remaining_self_loops
 )
 from gammagl.layers.conv.gcn_unifews import gcn_norm
@@ -97,7 +97,7 @@ def set_attr(module, key, value):
 
 
 class SandwitchGCNII(nn.Module):
-    def __init__(self, nlayer, nfeat, nhidden, nclass, alpha, beta, 
+    def __init__(self, nlayer, nfeat, nhidden, nclass, alpha, beta,
                  thr_a=0.0, thr_w=0.0, dropout=0.0, variant=False, layer='gcn2', **kwargs):
         super().__init__()
         self.nfeat = nfeat
@@ -106,29 +106,29 @@ class SandwitchGCNII(nn.Module):
         self.act = nn.ReLU()
         self.dropout = nn.Dropout(dropout)
         self.use_bn = True
-        
+
         self.lin_in = nn.Linear(in_features=nfeat, out_features=nhidden)
         self.lin_out = nn.Linear(in_features=nhidden, out_features=nclass)
-        
+
         for lin in [self.lin_in, self.lin_out]:
             object.__setattr__(lin, 'act', lambda x: x)
 
-        Conv = layer_dict[layer] 
-        
+        Conv = layer_dict[layer]
+
         self.convs = nn.ModuleList()
         self.norms = nn.ModuleList()
-        
+
         thr_a = [thr_a] * nlayer if not isinstance(thr_a, list) else thr_a
         thr_w = [thr_w] * nlayer if not isinstance(thr_w, list) else thr_w
 
         for i in range(nlayer):
             self.convs.append(Conv(
-                in_channels=nhidden, 
-                out_channels=nhidden, 
-                alpha=alpha, 
-                beta=beta, 
+                in_channels=nhidden,
+                out_channels=nhidden,
+                alpha=alpha,
+                beta=beta,
                 variant=variant,
-                thr_a=thr_a[i], 
+                thr_a=thr_a[i],
                 thr_w=thr_w[i]
             ))
             self.norms.append(nn.BatchNorm1d(num_features=nhidden, momentum=0.1))
@@ -137,18 +137,18 @@ class SandwitchGCNII(nn.Module):
         if not hasattr(self.lin_in, 'weights'): self.lin_in.build((None, self.nfeat))
         reset_weight_(self.lin_in.weights, self.nfeat)
         reset_bias_(self.lin_in.biases, self.nfeat)
-        
+
         if not hasattr(self.lin_out, 'weights'): self.lin_out.build((None, self.nhidden))
         reset_weight_(self.lin_out.weights, self.nhidden)
         reset_bias_(self.lin_out.biases, self.nhidden)
-            
+
         for conv in self.convs:
             if hasattr(conv, 'reset_parameters'): conv.reset_parameters()
         for norm in self.norms:
             reset_bn_(norm)
 
     def forward(self, x, edge_idx, **kwargs):
-       
+
         x = self.lin_in(x)
         x = x_0 = self.act(x)
         x = self.dropout(x)
@@ -172,16 +172,16 @@ class SandwitchThr(SandwitchGCNII):
     def __init__(self, nlayer, nfeat, nhidden, nclass,
                  thr_a=0.0, thr_w=0.0, dropout: float = 0.0, layer: str = 'gcn2_unifews',
                  **kwargs):
-        
+
         alpha = kwargs.get('alpha', 0.1)
         beta = kwargs.get('beta', 0.5)
         variant = kwargs.get('variant', False)
-        
-        
-        super().__init__(nlayer=nlayer, nfeat=nfeat, nhidden=nhidden, nclass=nclass, 
-                         alpha=alpha, beta=beta, thr_a=thr_a, thr_w=thr_w, 
+
+
+        super().__init__(nlayer=nlayer, nfeat=nfeat, nhidden=nhidden, nclass=nclass,
+                         alpha=alpha, beta=beta, thr_a=thr_a, thr_w=thr_w,
                          dropout=dropout, variant=variant, layer=layer, **kwargs)
-        
+
         self.apply_thr = '_' in layer
         self.normalize_adj = kwargs.get('normalize', False)
         self.add_self_loops = kwargs.get('add_self_loops', False)
@@ -199,7 +199,7 @@ class SandwitchThr(SandwitchGCNII):
 
     def forward(self, x, edge_idx, node_lock=tlx.convert_to_tensor([]), verbose=False):
         edge_idx = self._process_graph(x, edge_idx)
-        
+
         x = self.lin_in(x)
         x = x_0 = self.act(x)
         x = self.dropout(x)
@@ -230,7 +230,7 @@ class SandwitchThr(SandwitchGCNII):
     def get_repre(self, x, edge_idx, layer=None, node_lock=tlx.convert_to_tensor([]), verbose=False):
         layer = layer or len(self.convs)
         edge_idx = self._process_graph(x, edge_idx)
-        
+
         x = self.lin_in(x)
         x = x_0 = self.act(x)
         x = self.dropout(x)
@@ -244,4 +244,3 @@ class SandwitchThr(SandwitchGCNII):
             x = self.act(x)
             x = self.dropout(x)
         return x
-

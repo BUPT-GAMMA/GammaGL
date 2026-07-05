@@ -214,18 +214,18 @@ def batched_embedding(indices, embeds):
     batch, dim = indices.shape[1], embeds.shape[-1]
     h, c, d = embeds.shape
     _, b, n = indices.shape
-    
+
     # Convert to numpy for indexing, then back to tensor
     if hasattr(indices, 'numpy'):
         indices_np = indices.numpy()
     else:
         indices_np = np.array(indices)
-    
+
     if hasattr(embeds, 'numpy'):
         embeds_np = embeds.numpy()
     else:
         embeds_np = np.array(embeds)
-    
+
     # Manual indexing
     result = np.zeros((h, b, n, d), dtype=embeds_np.dtype)
     for i in range(h):
@@ -233,7 +233,7 @@ def batched_embedding(indices, embeds):
             for k in range(n):
                 idx = int(indices_np[i, j, k])
                 result[i, j, k, :] = embeds_np[i, idx, :]
-    
+
     return tlx.convert_to_tensor(result, dtype=embeds.dtype)
 
 
@@ -851,24 +851,24 @@ class VectorQuantize_E(tlx.nn.Module):
         # PyTorch: codebook.gather(2, indices)
         b, h, n = indices.shape
         _, _, d = codebook.shape
-        
+
         if hasattr(indices, 'numpy'):
             indices_np = indices.numpy()
         else:
             indices_np = np.array(indices)
-        
+
         if hasattr(codebook, 'numpy'):
             codebook_np = codebook.numpy()
         else:
             codebook_np = np.array(codebook)
-        
+
         codes_np = np.zeros((b, h, n, d), dtype=codebook_np.dtype)
         for i in range(b):
             for j in range(h):
                 for k in range(n):
                     idx = int(indices_np[i, j, k])
                     codes_np[i, j, k, :] = codebook_np[j, idx, :]
-        
+
         codes = tlx.convert_to_tensor(codes_np, dtype=codebook.dtype)
         codes = rearrange(codes, 'b h n d -> b n (h d)')
         codes = unpack_one(codes, ps, 'b * d')

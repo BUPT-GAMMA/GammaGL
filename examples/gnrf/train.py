@@ -1,12 +1,12 @@
 import os
-os.environ['HOME'] = os.path.dirname(os.path.abspath(__file__))
-os.environ['TL_BACKEND'] = 'torch'
+EXAMPLE_DIR = os.path.dirname(os.path.abspath(__file__))
+os.environ.setdefault('TL_BACKEND', 'torch')
 import argparse
 import numpy as np
 import tensorlayerx as tlx
 from tensorlayerx.optimizers import Adam
 from tensorlayerx.model import TrainOneStep, WithLoss
-from gammagl.utils import to_undirected, remove_self_loops 
+from gammagl.utils import to_undirected, remove_self_loops
 from dataset import NodeDataset
 from gammagl.models.gnrf import GNN
 import gc
@@ -15,7 +15,7 @@ import gc
 def load_best_args(args):
     import json
     dataset = args.dataset.lower()
-    with open("args.json", 'r') as f:
+    with open(os.path.join(EXAMPLE_DIR, "args.json"), 'r') as f:
         json_data = json.load(f)
     if dataset in json_data:
         for key, value in json_data[dataset].items():
@@ -64,7 +64,7 @@ def main(args):
     tlx.set_device(args.device)
     data = NodeDataset(args.dataset)
     if (args.dataset in ["cornell", "wisconsin", "texas"]) and args.rewiring is not None:
-        rewired = np.load("Datasets/rewiring.npz")
+        rewired = np.load(os.path.join(EXAMPLE_DIR, "Datasets", "rewiring.npz"))
         edge_index = rewired[f"{args.rewiring}_{args.dataset}"]
         edge_index = tlx.convert_to_tensor(edge_index, dtype=tlx.int64)
         edge_index = to_undirected(edge_index)
@@ -80,7 +80,7 @@ def main(args):
     results = []
     for trial in range(int(args.trial)):
         tlx.set_seed(trial)
-        np.random.seed(trial) 
+        np.random.seed(trial)
         train_idx, val_idx, test_idx = data.random_split(seed=trial, p_train=0.6, p_val=0.2)
         train_idx = tlx.convert_to_tensor(train_idx, dtype=tlx.int64)
         val_idx = tlx.convert_to_tensor(val_idx, dtype=tlx.int64)
@@ -88,7 +88,7 @@ def main(args):
         train_idx = tlx.to_device(train_idx, args.device)
         val_idx = tlx.to_device(val_idx, args.device)
         test_idx = tlx.to_device(test_idx, args.device)
-    
+
         data_dict = {'x': x,'edge_index': edge_index,'train_idx': train_idx}
         model = GNN(args)
         if hasattr(model, 'to_device'):
@@ -113,20 +113,20 @@ def main(args):
                 train_loss = float(train_loss)
             val_loss = evaluate_loss(model, data_dict, y, val_idx, tlx.losses.softmax_cross_entropy_with_logits)
             test_acc = evaluate_acc(model, data_dict, y, test_idx)
-            
+
             if args.verbose:
                 print(f"[Epoch {epoch:3d}] Train Loss: {train_loss:.4f}", \
                         f"Valid Loss: {val_loss:.4f}, Test Acc: {test_acc:.4f}.")
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 final_test_acc = test_acc
-                
+
             gc.collect()
 
         if args.verbose:
             print(f"Best Test Acc: {final_test_acc:.4f}")
         results.append(final_test_acc)
-    
+
     results_np = np.array(results)
     mean, std = np.mean(results_np), np.std(results_np)
     print(f"Mean: {mean:.4f}, Std: {std:.4f}", flush=True)

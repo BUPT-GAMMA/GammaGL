@@ -11,9 +11,7 @@ import tensorlayerx as tlx
 import tensorlayerx.nn as nn
 import torch
 import torch.serialization as _torch_serialization
-from torch_geometric.data import Data as PyGData
 import numpy as np
-import gensim.downloader as api
 from tqdm import tqdm
 
 from gammagl.models.rgt import RGT, NodeClsHead, LinkPredHead, GraphClsHead, ShotNCHead
@@ -285,6 +283,8 @@ class Pretrain(object):
                         y_np = data.y.numpy()
                     else:
                         y_np = np.array(data.y)
+
+                from torch_geometric.data import Data as PyGData
 
                 pyg_data = PyGData(
                     x=x_tensor,
@@ -1487,6 +1487,8 @@ class FewShotNC:
             save_model(self.nc_model.state_dict(), path + f".pt")
 
     def load_word2vec(self, word2vec_path='glove-wiki-gigaword-100'):
+        import gensim.downloader as api
+
         self.word2vec = api.load(word2vec_path)
 
     def get_class_embedding(self, supp_sets: list, query_set: str):
@@ -1551,35 +1553,37 @@ class FewShotNC:
 # Main entry point
 # ============================================================================
 
-configs = parser.parse_args()
-if not os.path.exists(configs.checkpoints):
-    os.mkdir(configs.checkpoints)
-if not os.path.exists(configs.log_dir):
-    os.mkdir(configs.log_dir)
-if configs.pretrained_model_path is None:
-    path_str = "".join(["_" + name for name in configs.pretrain_dataset])
-    configs.pretrained_model_path = f"Pretrain{path_str}_model"
-if configs.task_model_path is None:
-    configs.task_model_path = f"{configs.task}_{configs.dataset}_model.pt"
-if configs.log_name is None:
-    configs.log_name = f"{configs.task}_{configs.dataset}.log"
+def main():
+    configs = parser.parse_args()
+    os.makedirs(configs.checkpoints, exist_ok=True)
+    os.makedirs(configs.log_dir, exist_ok=True)
+    if configs.pretrained_model_path is None:
+        path_str = "".join(["_" + name for name in configs.pretrain_dataset])
+        configs.pretrained_model_path = f"Pretrain{path_str}_model"
+    if configs.task_model_path is None:
+        configs.task_model_path = f"{configs.task}_{configs.dataset}_model.pt"
+    if configs.log_name is None:
+        configs.log_name = f"{configs.task}_{configs.dataset}.log"
 
-print(configs)
-if configs.task == 'Pretrain':
-    model_path = os.path.join(configs.checkpoints, configs.pretrained_model_path) + ".pt" if configs.pretrained_model_path else None
-    pretrain_exp = Pretrain(configs, model_path=model_path)
-    pretrain_exp.pretrain(first_load=False, start_data=None)
-elif configs.task == 'NC':
-    exp = NodeClassification(configs, load=configs.load, finetune=configs.finetune)
-    exp.train()
-elif configs.task == 'LP':
-    exp = LinkPrediction(configs, load=configs.load, finetune=configs.finetune)
-    exp.train()
-elif configs.task == 'GC':
-    exp = GraphClassification(configs, load=configs.load, finetune=configs.finetune)
-    exp.train()
-elif configs.task == 'Few-NC':
-    exp = FewShotNC(configs, load=configs.load)
-    exp.train(load_trained_model=False)
-else:
-    raise NotImplementedError
+    if configs.task == 'Pretrain':
+        model_path = os.path.join(configs.checkpoints, configs.pretrained_model_path) + ".pt" if configs.pretrained_model_path else None
+        pretrain_exp = Pretrain(configs, model_path=model_path)
+        pretrain_exp.pretrain(first_load=False, start_data=None)
+    elif configs.task == 'NC':
+        exp = NodeClassification(configs, load=configs.load, finetune=configs.finetune)
+        exp.train()
+    elif configs.task == 'LP':
+        exp = LinkPrediction(configs, load=configs.load, finetune=configs.finetune)
+        exp.train()
+    elif configs.task == 'GC':
+        exp = GraphClassification(configs, load=configs.load, finetune=configs.finetune)
+        exp.train()
+    elif configs.task == 'Few-NC':
+        exp = FewShotNC(configs, load=configs.load)
+        exp.train(load_trained_model=False)
+    else:
+        raise NotImplementedError
+
+
+if __name__ == '__main__':
+    main()

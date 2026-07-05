@@ -38,12 +38,12 @@ class TorchODEIntAdapter(ODEIntAdapter):
                 from torchdiffeq import odeint as torch_odeint
         except ImportError:
             raise ImportError("使用 PyTorch 后端需要安装 torchdiffeq: pip install torchdiffeq")
-        
+
         import torch
 
         y0_torch = y0._tensor if hasattr(y0, '_tensor') else torch.as_tensor(y0)
         t_torch = t._tensor if hasattr(t, '_tensor') else torch.as_tensor(t)
-     
+
         class TorchFuncWrapper(torch.nn.Module):
             def __init__(self, original_func):
                 super().__init__()
@@ -62,7 +62,7 @@ class TorchODEIntAdapter(ODEIntAdapter):
                             wt = torch.nn.Parameter(wt)
                         params.append(wt)
                 self.params = torch.nn.ParameterList(params)
-                
+
             def forward(self, t_val, y_val):
                 res = self.original_func(t_val, y_val)
                 if hasattr(res, '_tensor'):
@@ -70,11 +70,11 @@ class TorchODEIntAdapter(ODEIntAdapter):
                 return res
 
         torch_func = TorchFuncWrapper(func)
-        
+
         kwargs = {}
         if adjoint:
             kwargs['adjoint_params'] = tuple(torch_func.parameters())
-            
+
         res_torch = torch_odeint(
             torch_func,
             y0_torch,
@@ -207,7 +207,7 @@ class SimpleMLP(nn.Module):
         out_dims = [hidden_channels] * (num_layers - 1) + [out_channels]
         for i, o in zip(in_dims, out_dims):
             self.lins.append(tlx.nn.Linear(in_features=i, out_features=o))
-            
+
     def forward(self, x):
         for i, lin in enumerate(self.lins):
             x = self.dropout_layer(x)
@@ -220,7 +220,7 @@ class GNRF(nn.Module):
     def __init__(self, args):
         super().__init__()
         self.args = args
-        self.edge_index = None         
+        self.edge_index = None
         self.damping = args.damping
         self.edgenet = args.edgenet
         if self.edgenet:
@@ -254,12 +254,12 @@ class GNRF(nn.Module):
         self.edge_index = edge_index
 
     def curvature(self, H_i, H_j):
-        curv = tlx.concat([H_i, H_j], axis=1)           
-        curv = tlx.nn.ReLU()(self.mlp_1(curv))          
+        curv = tlx.concat([H_i, H_j], axis=1)
+        curv = tlx.nn.ReLU()(self.mlp_1(curv))
         num_nodes = int(tlx.reduce_max(self.edge_index).item() + 1) if hasattr(tlx.reduce_max(self.edge_index), 'item') else int(tlx.reduce_max(self.edge_index)) + 1
         curv = unsorted_segment_sum(curv, self.edge_index[0], num_segments=num_nodes)
-        curv = tlx.concat([tlx.gather(curv, self.edge_index[0]),tlx.gather(curv, self.edge_index[1])], axis=1)   
-        curv = self.mlp_2(curv)                         
+        curv = tlx.concat([tlx.gather(curv, self.edge_index[0]),tlx.gather(curv, self.edge_index[1])], axis=1)
+        curv = self.mlp_2(curv)
         return curv
 
     def forward(self, t, H):
@@ -275,10 +275,10 @@ class GNRF(nn.Module):
             curv = tlx.clip_by_value(self.a, eps, 1.0)
             curv = tlx.ones((H_i.shape[0], 1)) * curv
         if self.damping:
-            cos = tlx.reduce_sum(H_i * H_j, axis=1, keepdims=True)   
-            H_edge = curv * (H_j - cos * H_i)                         
+            cos = tlx.reduce_sum(H_i * H_j, axis=1, keepdims=True)
+            H_edge = curv * (H_j - cos * H_i)
         else:
-            H_edge = curv * (H_j - H_i)                           
+            H_edge = curv * (H_j - H_i)
         dH = unsorted_segment_mean(H_edge, self.edge_index[0], num_segments=H.shape[0])
         if self.damping:
              if hasattr(dH, '_tensor'): dH_t2 = dH._tensor
@@ -286,7 +286,7 @@ class GNRF(nn.Module):
              norm_dH = tlx.sqrt(tlx.reduce_sum(tlx.square(dH_t2), axis=1, keepdims=True) + eps)
              dH = dH_t2 / norm_dH
         return dH
-    
+
 
 
 class GNN(nn.Module):
@@ -294,7 +294,7 @@ class GNN(nn.Module):
         super().__init__()
         self.args = args
         if getattr(args, 'use_bn_in', False):
-            self.bn_in = tlx.nn.BatchNorm1d(num_features=args.num_hid, momentum=0.9) 
+            self.bn_in = tlx.nn.BatchNorm1d(num_features=args.num_hid, momentum=0.9)
         if getattr(args, 'use_mlp_in', False):
             self.mlp_in = SimpleMLP(
                 in_channels=args.num_hid,
@@ -304,7 +304,7 @@ class GNN(nn.Module):
                 dropout=args.dropout
             )
         self.lin_in = tlx.nn.Linear(in_features=args.num_feat, out_features=args.num_hid)
-        
+
         if getattr(args, 'use_bn_out', False):
             self.bn_out = tlx.nn.BatchNorm1d(num_features=args.num_hid, momentum=0.9)
         if getattr(args, 'use_mlp_out', False):
@@ -316,14 +316,14 @@ class GNN(nn.Module):
                 dropout=args.dropout
             )
         self.lin_out = tlx.nn.Linear(in_features=args.num_hid, out_features=args.num_class)
-       
+
         self.ODE_block = GNRF(args)
         self.t = tlx.convert_to_tensor([args.t_start, args.t_end], dtype=tlx.float32)
         self.t = tlx.to_device(self.t, args.device)
         self.solver = args.solver
         self.adjoint = args.adjoint
         self.tol_scale = args.tol_scale
-        
+
         self.dropout = tlx.nn.Dropout(p=args.dropout)
 
     def pre_transform(self, x, edge_index):
@@ -341,15 +341,15 @@ class GNN(nn.Module):
         self.ODE_block.set_edges(edge_index)
         rtol = self.tol_scale * 1e-9
         atol = self.tol_scale * 1e-7
-        
+
         trajectory = odeint(
             func=self.ODE_block,
             y0=x_0,
             t=self.t,
-            method=self.solver,          
+            method=self.solver,
             rtol=rtol,
             atol=atol,
-            adjoint=self.adjoint         
+            adjoint=self.adjoint
         )
         end_state = trajectory[-1]
         return end_state
@@ -367,6 +367,6 @@ class GNN(nn.Module):
 
     def forward(self, x, edge_index):
         x = self.pre_transform(x, edge_index)
-        x = self.solve_ODE(x, edge_index)   
+        x = self.solve_ODE(x, edge_index)
         x = self.post_transform(x, edge_index)
         return x

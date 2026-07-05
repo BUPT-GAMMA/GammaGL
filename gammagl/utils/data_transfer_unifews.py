@@ -13,8 +13,11 @@ warnings.warn(
     stacklevel=2
 )
 
-from examples.unifews.convert_data import (
-    DataProcess_OGB,
-    DataProcess_PyGFlickr,
-    DataProcess_PyG,
-)
+__all__ = ['DataProcess_OGB', 'DataProcess_PyGFlickr', 'DataProcess_PyG']  # noqa: F822
+
+
+def __getattr__(name):
+    if name not in __all__:
+        raise AttributeError(name)
+    from examples.unifews import convert_data
+    return getattr(convert_data, name)

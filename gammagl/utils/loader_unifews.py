@@ -40,7 +40,7 @@ def stochastic_blockmodel_graph(block_sizes, edge_probs, directed=False):
     return edge_index
 
 def to_scipy_sparse_matrix(edge_index, num_nodes=None):
-    
+
     if num_nodes is None:
         num_nodes = edge_index.max() + 1
     return sp.coo_matrix((np.ones(edge_index.shape[1]), (edge_index[0], edge_index[1])),
@@ -51,9 +51,6 @@ class DummySBM:
         self.edge_index = edge_index
         self.num_nodes = num_nodes
 
-from pathlib import Path
-ROOT = Path(__file__).parent.parent.parent
-sys.path.append(str(ROOT))
 from .gen_cat import gencat, feature_extraction
 from .data_processor import DataProcess, DataProcess_inductive, matstd_clip
 
@@ -70,7 +67,7 @@ def to_list(value: Any) -> Sequence:
 
 # ===================== 彻底删除废弃的GammaGL数据集继承，纯手动实现 =====================
 def sbm_mixture_of_Gaussians(n, n_features, sizes, probs, std_, means, nodes_per_mean):
-    
+
     edge_index = stochastic_blockmodel_graph(sizes, probs, directed=False)
     g_ = DummySBM(edge_index=edge_index, num_nodes=sum(sizes))
 
@@ -100,7 +97,7 @@ def sbm_mixture_of_Gaussians(n, n_features, sizes, probs, std_, means, nodes_per
 def load_csbm(datastr: str, datapath: str="./data/",
                    inductive: bool=False, multil: bool=False,
                    seed: int=0, **kwargs):
-    
+
     n = 500
     n_features = 127
     q = 0.1
@@ -112,7 +109,7 @@ def load_csbm(datastr: str, datapath: str="./data/",
     std_ = mu
     means = [100, -100]
     nodes_per_mean = [list(range(n)),list(range(n,2*n))]
-    
+
     g = sbm_mixture_of_Gaussians(n, n_features, sizes, probs, std_, means, nodes_per_mean)
 
     idx_rnd = np.random.permutation(2*n)

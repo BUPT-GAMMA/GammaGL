@@ -869,5 +869,3 @@ class RateMatrixDesigner:
         R_E = R_E * (1.0 - col_mask_E)
 
         return R_X, R_E
-
-

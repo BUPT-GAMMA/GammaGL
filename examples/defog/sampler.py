@@ -28,8 +28,8 @@ def compute_step_probs(R_t_X, R_t_E, X_t, E_t, dt):
     cur_E = tlx.argmax(E_t, axis=-1)
 
     # TODO: Performance Optimization
-    # Currently converting tensors to numpy for inplace modifications (setting current state 
-    # to 0 and writing back stay probability). Doing this entirely in pure tensors would 
+    # Currently converting tensors to numpy for inplace modifications (setting current state
+    # to 0 and writing back stay probability). Doing this entirely in pure tensors would
     # prevent CPU-GPU synchronization bottlenecks during sampling.
     step_X_np = tlx.convert_to_numpy(step_X)
     step_E_np = tlx.convert_to_numpy(step_E)
@@ -59,7 +59,7 @@ def _cfg_unconditional_pred(model, X_in, E_in, extra_data, y_t, node_mask):
     r"""Compute unconditional model predictions for classifier-free guidance."""
     y_uncond = tlx.ones_like(y_t) * (-1.0)
     y_in_uncond = tlx.concat([y_uncond, extra_data.y], axis=-1)
-    
+
     import torch
     with torch.no_grad():
         pred_X_u, pred_E_u, _ = model(X_in, E_in, y_in_uncond, node_mask)

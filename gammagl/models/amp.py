@@ -20,7 +20,7 @@ from typing import Any, Optional, Tuple, Union
 import tensorlayerx as tlx
 import tensorlayerx.nn as nn
 
-from gammagl.layers.pool.glob import global_add_pool, global_max_pool, global_mean_pool
+from gammagl.layers.pool.glob import global_max_pool, global_mean_pool, global_sum_pool
 
 
 def _erf(x: tlx.Tensor) -> tlx.Tensor:
@@ -260,7 +260,7 @@ class AMPModel(nn.Module):
         if self.global_aggregation:
             h = tlx.concat(
                 [
-                    global_add_pool(x, batch),
+                    global_sum_pool(x, batch),
                     global_max_pool(x, batch),
                     global_mean_pool(x, batch),
                 ],

@@ -1,6 +1,5 @@
 import tensorlayerx as tlx
 import numpy as np
-from gammagl.data import Graph
 from .num_nodes import maybe_num_nodes
 
 
@@ -47,7 +46,7 @@ def k_hop_subgraph(node_idx, num_hops, edge_index, relabel_nodes=False, num_node
         node_idx = tlx.convert_to_tensor(np.array([node_idx]).flatten(), dtype=edge_index.dtype)
         # node_idx = np.array([i.item() for i in node_idx]).flatten()
         # node_idx = tlx.convert_to_tensor(node_idx, dtype=tlx.int64)
-    
+
     subsets = [node_idx]
     node_mask = tlx.zeros((num_nodes,), dtype=tlx.bool)
 
@@ -64,7 +63,7 @@ def k_hop_subgraph(node_idx, num_hops, edge_index, relabel_nodes=False, num_node
     else:
         idx = tlx.convert_to_numpy(tlx.count_nonzero(node_idx+1))
     inv = inv[:idx]
-        
+
     node_mask = tlx.zeros((num_nodes,), dtype = tlx.int64)
     node_mask = tlx.scatter_update(node_mask, subset, tlx.ones_like(subset, dtype = tlx.int64))
     if tlx.BACKEND != 'paddle':
@@ -86,6 +85,8 @@ def k_hop_subgraph(node_idx, num_hops, edge_index, relabel_nodes=False, num_node
 
 def node_subgraph(graph, node_idx, num_hops=2):
     """Return a node-centered k-hop subgraph as a ``Graph`` object."""
+    from gammagl.data import Graph
+
     subset, edge_index, mapping, _ = k_hop_subgraph(
         node_idx=node_idx,
         num_hops=num_hops,

@@ -24,21 +24,21 @@ class F1Calculator(object):
 
         y_true = _to_one_hot(y_true, self.num_classes)
         y_pred = _to_one_hot(y_pred, self.num_classes)
-        
+
         self.TP += tlx.reduce_sum(y_true * y_pred, axis=0)
         self.FP += tlx.reduce_sum((1 - y_true) * y_pred, axis=0)
         self.FN += tlx.reduce_sum(y_true * (1 - y_pred), axis=0)
 
     def compute(self, average: str=None):
         eps = 1e-10
-        
+
         if isinstance(self.TP, float):
             return 0.0
-            
+
         TP = self.TP
         FP = self.FP
         FN = self.FN
-        
+
         if average == 'micro':
             f1 = 2 * tlx.reduce_sum(TP) / (2 * tlx.reduce_sum(TP) + tlx.reduce_sum(FP) + tlx.reduce_sum(FN) + eps)
             return float(f1)

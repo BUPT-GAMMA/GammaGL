@@ -160,6 +160,7 @@ Key changes from original:
 import os
 import copy
 import signal
+import sys
 import numpy as np
 import concurrent.futures
 from datetime import datetime
@@ -618,7 +619,7 @@ def evaluate_synthetic_graphs(generated_graphs, reference_graphs, train_graphs,
             import json
             import subprocess
             import os
-            
+
             # Extract edges from networkx graph to pass to subprocess
             edges = list(g.edges())
             data = {
@@ -628,7 +629,7 @@ def evaluate_synthetic_graphs(generated_graphs, reference_graphs, train_graphs,
                 'strict': strict,
                 'refinement_steps': refinement_steps
             }
-            
+
             script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_sbm_isolated.py")
             try:
                 # Run the isolated script
@@ -644,7 +645,7 @@ def evaluate_synthetic_graphs(generated_graphs, reference_graphs, train_graphs,
                 # If there's a serious error in the script (like missing graph-tool)
                 print(f"SBM Evaluation error: {e.stderr.decode('utf-8')}", file=sys.stderr)
                 return False
-        
+
         validity_func = is_sbm_valid_official
     elif dataset_name == 'comm20':
         print("  Comm20 accuracy skipped (no dedicated checker)")

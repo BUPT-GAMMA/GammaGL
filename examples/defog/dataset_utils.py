@@ -174,7 +174,7 @@ def load_real_dataset(name, root=None, conditional=False, target='mu', remove_h=
     if name in ('qm9', 'guacamol', 'zinc250k', 'moses'):
         dataset_infos = {'output_dims': {'X': num_node_types, 'E': num_edge_types, 'y': 0}}
         stats = ds_cls.STATS_REMOVE_H if name == 'qm9' and kwargs.get('remove_h') else getattr(ds_cls, 'STATS_WITH_H', getattr(ds_cls, 'STATS', None))
-        
+
         if stats:
             atom_decoder = stats.get('atom_names', getattr(ds_cls, 'ATOM_DECODER', []))
             dataset_infos['node_types'] = stats['node_types'].astype(np.float32).copy()

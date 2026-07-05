@@ -7,6 +7,39 @@ except:
     pass
 
 
+def _segment_ids_for_scatter(segment_ids, x):
+    segment_ids = segment_ids.to(device=x.device, dtype=torch.long)
+    view_shape = [segment_ids.shape[0]] + [1] * (x.dim() - 1)
+    return segment_ids.view(*view_shape).expand_as(x)
+
+
+def _segment_sum_fallback(x, segment_ids, num_segments):
+    out = torch.zeros((num_segments, *x.shape[1:]), dtype=x.dtype, device=x.device)
+    return out.scatter_add_(0, _segment_ids_for_scatter(segment_ids, x), x)
+
+
+def _segment_mean_fallback(x, segment_ids, num_segments):
+    out = _segment_sum_fallback(x, segment_ids, num_segments)
+    counts = torch.zeros((num_segments,), dtype=x.dtype, device=x.device)
+    ones = torch.ones((segment_ids.shape[0],), dtype=x.dtype, device=x.device)
+    counts.scatter_add_(0, segment_ids.to(device=x.device, dtype=torch.long), ones)
+    counts = counts.clamp_min(1)
+    return out / counts.view(num_segments, *([1] * (x.dim() - 1)))
+
+
+def _segment_max_fallback(x, segment_ids, num_segments):
+    out = torch.full((num_segments, *x.shape[1:]), -torch.inf, dtype=x.dtype, device=x.device)
+    scatter_ids = _segment_ids_for_scatter(segment_ids, x)
+    if hasattr(out, "scatter_reduce_"):
+        out.scatter_reduce_(0, scatter_ids, x, reduce="amax", include_self=True)
+    else:
+        for idx in range(num_segments):
+            values = x[segment_ids == idx]
+            if values.numel() > 0:
+                out[idx] = values.max(dim=0).values
+    return torch.where(torch.isinf(out), torch.zeros_like(out), out)
+
+
 def unsorted_segment_sum(x, segment_ids, num_segments=None):
     """
     Computes the sum along segments of a tensor.
@@ -44,10 +77,13 @@ def unsorted_segment_sum(x, segment_ids, num_segments=None):
         # `rgcn` meet an error that `segment_ids` is empty
         # assert segment_ids.max() < num_segments
 
+    if not use_ext:
+        return _segment_sum_fallback(x, segment_ids, num_segments)
+
     try:
         return c_segment_sum(x, segment_ids, num_segments)
-    except Exception as e:
-        raise e
+    except Exception:
+        return _segment_sum_fallback(x, segment_ids, num_segments)
 
     # if len(segment_ids.shape) == 1:
     #     s = torch.prod(torch.tensor(x.shape[1:], device=x.device)).to(torch.int64)
@@ -97,10 +133,13 @@ def unsorted_segment_mean(x, segment_ids, num_segments=None):
     # `rgcn` meet an error that `segment_ids` is empty
     # assert segment_ids.max() < num_segments
 
+    if not use_ext:
+        return _segment_mean_fallback(x, segment_ids, num_segments)
+
     try:
         return c_segment_mean(x, segment_ids, num_segments)
-    except Exception as e:
-        raise e
+    except Exception:
+        return _segment_mean_fallback(x, segment_ids, num_segments)
 
     # if len(segment_ids.shape) == 1:
     #     s = torch.prod(torch.tensor(x.shape[1:], device=x.device)).to(torch.int64)
@@ -154,10 +193,13 @@ def unsorted_segment_max(x, segment_ids, num_segments=None):
     # assert segment_ids.max() < num_segments
 
     assert x.shape[0] == segment_ids.shape[0], "the length of segment_ids should be equal to data.shape[0]."
+    if not use_ext:
+        return _segment_max_fallback(x, segment_ids, num_segments)
+
     try:
         return c_segment_max(x, segment_ids, num_segments)
-    except Exception as e:
-        raise e
+    except Exception:
+        return _segment_max_fallback(x, segment_ids, num_segments)
     # res = []
     # for i in range(num_segments):
     #     res.append(torch.max(x[segment_ids == i], dim=0)[0])
@@ -288,7 +330,17 @@ def gspmm(index, weight=None, x=None, reduce='sum'):
         [ 4.,  4.,  4.,  4.,  4.,  4.,  4.,  4.]])
     """
     if weight == None:
-        weight = torch.ones(size=(index.shape[1], ), dtype=torch.float32)
+        weight = torch.ones(size=(index.shape[1], ), dtype=torch.float32, device=index.device)
+    if not use_ext:
+        src, dst = index[0], index[1]
+        messages = x[src] * weight.to(device=x.device, dtype=x.dtype).view(-1, *([1] * (x.dim() - 1)))
+        if reduce == 'sum':
+            return _segment_sum_fallback(messages, dst, x.shape[0])
+        if reduce == 'mean':
+            return _segment_mean_fallback(messages, dst, x.shape[0])
+        if reduce == 'max':
+            return _segment_max_fallback(messages, dst, x.shape[0])
+        raise Exception("Unsupported reduce type, please choose from ['sum', 'mean', 'max'].")
     if reduce == 'sum':
         return c_spmm_sum(index, weight, x)
     elif reduce == 'mean':

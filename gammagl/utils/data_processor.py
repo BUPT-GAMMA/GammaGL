@@ -346,7 +346,7 @@ class DataProcess(object):
                 # assert self.adj_matrix.diagonal().sum() == 0, "adj_matrix error"
             elif key == 'deg':
                 #self.deg = dict(np.load(self.degree_path))['arr_0']
-              
+
                 data = np.load(self.degree_path, allow_pickle=True)
                 self.deg = data[next(iter(data.keys()))]
             elif key == 'labels':
@@ -502,4 +502,3 @@ if __name__ == '__main__':
     dp.calculate(['deg', 'idx_train'])
     dp.output(['deg', 'query'])
     print(dp)
-

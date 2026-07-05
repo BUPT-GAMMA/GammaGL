@@ -1,2 +1,5 @@
 include MANIFEST.in
 recursive-include gammagl *.json
+recursive-include gammagl *.cpp *.cc *.cxx *.h *.hpp *.cu
+recursive-include third_party/parallel_hashmap/parallel_hashmap *.h
+global-exclude *.so *.pyd *.dll *.dylib

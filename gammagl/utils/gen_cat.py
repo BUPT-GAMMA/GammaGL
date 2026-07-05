@@ -5,7 +5,6 @@ from scipy import sparse
 import random
 import copy
 import sys
-import powerlaw
 
 import warnings
 warnings.simplefilter('ignore')
@@ -122,6 +121,8 @@ def calc_attr_cor(X, Label):
 
 
 def node_deg(n,m,max_deg,p=3.):
+    import powerlaw
+
     simulated_data = [0]
     while sum(simulated_data)/2 < m:
         theoretical_distribution = powerlaw.Power_Law(xmin = 1., parameters = [p])

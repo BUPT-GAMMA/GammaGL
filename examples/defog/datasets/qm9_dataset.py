@@ -297,7 +297,7 @@ class QM9Gen(InMemoryDataset):
                 data_list.append(data)
                 continue  # skip the else clause of the for loop
             # If an atom was not recognized, skip this molecule
-            
+
         # Perform dynamic random split (seed=42) after filtering dirty data
         n_clean_samples = len(data_list)
         n_train = min(100000, n_clean_samples)
@@ -306,11 +306,11 @@ class QM9Gen(InMemoryDataset):
 
         rng = np.random.RandomState(42)
         indices = rng.permutation(n_clean_samples)
-        
+
         train_data = [data_list[i] for i in indices[:n_train]]
         val_data = [data_list[i] for i in indices[n_train:n_train + n_val]]
         test_data = [data_list[i] for i in indices[n_train + n_val:]]
-        
+
         split_data = {'train': train_data, 'val': val_data, 'test': test_data}
 
         # Save each split

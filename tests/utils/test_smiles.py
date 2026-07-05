@@ -1,7 +1,8 @@
-from typing import List, Dict, Any
+import pytest
 import tensorlayerx as tlx
-from rdkit import Chem, RDLogger
-from gammagl.data import Graph
+
+pytest.importorskip("rdkit")
+
 from gammagl.utils.smiles import from_smiles
 
 

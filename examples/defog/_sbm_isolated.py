@@ -20,7 +20,7 @@ def main():
     gt_g = gt.Graph()
     if edges:
         gt_g.add_edge_list(edges)
-        
+
     try:
         state = gt.minimize_blockmodel_dl(gt_g)
     except ValueError:
@@ -57,7 +57,7 @@ def main():
     np.fill_diagonal(W, W_p_intra)
     p = 1 - chi2.cdf(abs(W), 1)
     p = p.mean()
-    
+
     if p > 0.9:
         print("True")
     else:

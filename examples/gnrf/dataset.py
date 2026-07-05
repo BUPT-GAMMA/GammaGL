@@ -15,10 +15,10 @@ class NodeDataset:
 
         if self.dataset_name in ['pubmed']:
             dataset = Planetoid(root=self.file_root, name=self.dataset_name, force_reload=True)
-            data = dataset[0] 
+            data = dataset[0]
         elif self.dataset_name in ['cornell', 'texas', 'wisconsin']:
             dataset = WebKB(root=self.file_root, name=self.dataset_name, force_reload=True)
-            data = dataset[0] 
+            data = dataset[0]
         else:
             data = self._load_custom_dataset()
 
@@ -51,14 +51,12 @@ class NodeDataset:
         self.x = self.x / rowsum
 
     def random_split(self, seed: int, p_train: float = 0.6, p_val: float = 0.2):
-        tlx.set_seed(seed)  
-        np.random.seed(seed)  
+        tlx.set_seed(seed)
+        np.random.seed(seed)
         n_train = int(self.nnode * p_train)
         n_val = int(self.nnode * p_val)
-        full_idx = np.random.permutation(self.nnode) 
+        full_idx = np.random.permutation(self.nnode)
         train_idx = full_idx[:n_train]
         val_idx = full_idx[n_train+1:n_train + n_val]
         test_idx = full_idx[n_train + n_val+1:]
         return train_idx, val_idx, test_idx
-
-   

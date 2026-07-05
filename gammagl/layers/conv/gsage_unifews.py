@@ -29,23 +29,23 @@ class SAGEConvRaw(SAGEConv):
         self.depth_inv = depth_inv
         kwargs.pop('thr_a', None)
         kwargs.pop('thr_w', None)
-        kwargs.pop('root_weight', None)  
-        kwargs.pop('project', None)      
+        kwargs.pop('root_weight', None)
+        kwargs.pop('project', None)
         kwargs.pop('bias',None)
         super().__init__(in_channels, out_channels, *args, **kwargs)
-        
+
         self.logger_a = LayerNumLogger()
         self.logger_w = LayerNumLogger()
         self.logger_in = LayerNumLogger()
         self.logger_msg = LayerNumLogger()
         self.reset_parameters()
 
-  
+
     def reset_parameters(self):
         reset_weight_(self.fc_neigh.weights, self.in_feat, initializer='kaiming_uniform')
         if self.aggr != 'gcn':
             reset_weight_(self.fc_self.weights, self.in_feat, initializer='kaiming_uniform')
-        
+
     def forward(self, x, edge_tuple: PairTensor, **kwargs):
         (edge_index, edge_weight) = edge_tuple
         self.logger_a.numel_after = edge_index.shape[1]
@@ -68,7 +68,7 @@ class SAGEConvRaw(SAGEConv):
 class SAGEConvThr(ConvThr, SAGEConvRaw):
     def __init__(self, *args, thr_a, thr_w, **kwargs):
         super().__init__(*args, thr_a=thr_a, thr_w=thr_w, **kwargs)
-      
+
         self.prune_lst = [self.fc_neigh]
         if self.aggr != 'gcn':
             self.prune_lst.append(self.fc_self)
@@ -79,7 +79,7 @@ class SAGEConvThr(ConvThr, SAGEConvRaw):
         num_edges = msg_tensor.shape[0]
 
         if self.scheme_a in ['pruneall', 'pruneinc']:
-            
+
             norm_feat_msg = tlx.sqrt(tlx.reduce_sum(tlx.square(msg_tensor), axis=1))
             norm_all_msg = tlx.reduce_sum(tlx.abs(norm_feat_msg)) / num_edges
             mask_prune = norm_feat_msg < (self.threshold_a * 0.1 * norm_all_msg)
@@ -95,7 +95,7 @@ class SAGEConvThr(ConvThr, SAGEConvRaw):
             if self.idx_keep is not None:
                 indices_to_save = self.idx_keep[self.idx_keep < num_edges]
                 keep_mask = tlx.scatter_update(keep_mask, indices_to_save, tlx.ones_like(indices_to_save, dtype=tlx.bool))
-            
+
             msg_tensor = tlx.where(tlx.expand_dims(keep_mask, 1), msg_tensor, tlx.zeros_like(msg_tensor))
 
         return (msg_tensor,) + output[1:] if isinstance(output, (list, tuple)) else msg_tensor
@@ -139,14 +139,14 @@ class SAGEConvThr(ConvThr, SAGEConvRaw):
         if self.add_bias:
             out += self.bias
 
-        self.idx_lock = None 
+        self.idx_lock = None
         if self.scheme_a in ['pruneall', 'pruneinc', 'keep']:
             num_edges = edge_index.shape[1]
             self.logger_a.numel_before = num_edges
-        
+
             if self.idx_keep is None:
                 self.idx_keep = tlx.arange(start=0, limit=num_edges, dtype=tlx.int64)
-        
+
             self.idx_keep = self.idx_keep[self.idx_keep < num_edges]
             self.idx_keep = tlx.cast(self.idx_keep, tlx.int64).squeeze()
             self.logger_a.numel_after = self.idx_keep.shape[0]

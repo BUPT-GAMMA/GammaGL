@@ -45,7 +45,7 @@ This directory contains the GammaGL reproduction of DeFoG. The current implement
 
 ## Preset Behavior
 
-For named datasets (`planar`, `tree`, `sbm`, `qm9`, `guacamol`, `zinc250k`, `moses`), `defog_trainer.py` and `defog_sample_only.py` automatically apply DeFoG-aligned dataset presets through `apply_dataset_preset()`.
+For named datasets (`planar`, `tree`, `sbm`, `qm9`, `guacamol`, `zinc250k`, `moses`), `defog_trainer.py` automatically applies DeFoG-aligned dataset presets through `apply_dataset_preset()`.
 
 - Presets set dataset-specific values such as `n_layers`, `batch_size`, `sample_steps`, validation cadence, and sampling distortion.
 - Explicit CLI flags override the preset values.
@@ -104,13 +104,13 @@ TL_BACKEND="torch" python defog_trainer.py \
   --gpu -1
 
 # 再基于刚保存的 checkpoint 做最小采样验证
-TL_BACKEND="torch" python defog_sample_only.py \
+TL_BACKEND="torch" python defog_trainer.py --sample \
   --dataset synthetic \
   --n_layers 1 \
   --sample_steps 2 \
   --num_samples 2 \
   --gpu -1 \
-  --model_path checkpoints/last_model.npz
+  --resume_from checkpoints
 ```
 
 ## Advanced Examples
@@ -185,14 +185,14 @@ TL_BACKEND="torch" python defog_trainer.py \
   --evaluate
 
 # Sampling only from an existing checkpoint directory
-TL_BACKEND="torch" python defog_sample_only.py \
+TL_BACKEND="torch" python defog_trainer.py --sample \
   --dataset planar \
   --data_root ./datasets \
   --save_dir ./checkpoints_planar \
   --evaluate
 
 # EMA + multi-fold sampling evaluation
-TL_BACKEND="torch" python defog_sample_only.py \
+TL_BACKEND="torch" python defog_trainer.py --sample \
   --dataset qm9 \
   --data_root ./datasets \
   --save_dir ./checkpoints_qm9 \
@@ -358,5 +358,5 @@ Typical outputs include:
 
 ## Notes
 
-- `defog_sample_only.py` must use model hyperparameters compatible with the saved checkpoint. If you rely on dataset presets, keep the dataset name consistent with the training run.
+- Sampling mode must use model hyperparameters compatible with the saved checkpoint. If you rely on dataset presets, keep the dataset name consistent with the training run.
 - For reproducibility checks, prefer evaluating checkpoints produced by the current training code rather than mixing in older checkpoints created before the validation / checkpoint / metric-key fixes.

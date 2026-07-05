@@ -28,7 +28,7 @@ def norm(x, p=2, axis=None, keepdims=False):
     """
     # Ensure we are working with absolute values for the norm calculation
     x_abs = tlx.abs(x)
-    
+
     if p == 1:
         return tlx.reduce_sum(x_abs, axis=axis, keepdims=keepdims)
     elif p == 2:
@@ -116,20 +116,20 @@ def add_remaining_self_loops(edge_index, edge_weight=None, fill_value=1.0, num_n
     num_nodes = maybe_num_nodes(edge_index, num_nodes)
     row, col = edge_index[0], edge_index[1]
     mask = row != col
-    
+
     if edge_weight is not None:
         edge_weight = edge_weight[mask]
     edge_index = edge_index[:, mask]
-    
+
     loop_index = tlx.convert_to_tensor(np.arange(num_nodes), dtype=edge_index.dtype)
     loop_index = tlx.stack([loop_index, loop_index], axis=0)
-    
+
     edge_index = tlx.concat([edge_index, loop_index], axis=1)
-    
+
     if edge_weight is not None:
         loop_weight = tlx.ones((num_nodes,), dtype=edge_weight.dtype) * fill_value
         edge_weight = tlx.concat([edge_weight, loop_weight], axis=0)
-        
+
     return edge_index, edge_weight
 
 def pow_with_pinv(x, p: float):
@@ -214,20 +214,20 @@ class ConvThr(nn.Module):
             idx_lock = tlx.concat((idx_lock, tlx.cast(batch_idx, tlx.int64)), axis=0)
         diag_mask = edge_index[0] == edge_index[1]
         idx_diag = tlx.arange(0, edge_index.shape[1])[diag_mask]
-    
+
         idx_lock = tlx.concat((idx_lock, tlx.cast(idx_diag, tlx.int64)), axis=0)
         return tlx.unique(idx_lock)
 
 class GCNConvRaw(GCNConv):
-    
-    def __init__(self, in_channels, out_channels, 
+
+    def __init__(self, in_channels, out_channels,
                  rnorm=None, diag=1., depth_inv=False, *args, **kwargs):
         self.rnorm = rnorm
         self.diag = diag
         self.depth_inv = depth_inv
         kwargs.pop('thr_a', None)
         kwargs.pop('thr_w', None)
-        
+
         super().__init__(in_channels, out_channels, *args, **kwargs)
         self.logger_a = LayerNumLogger()
         self.logger_w = LayerNumLogger()
@@ -269,7 +269,7 @@ class GCNConvThr(ConvThr, GCNConvRaw):
         num_edges = msg_tensor.shape[0]
 
         if self.scheme_a in ['pruneall', 'pruneinc']:
-           
+
             norm_feat_msg = tlx.sqrt(tlx.reduce_sum(tlx.square(msg_tensor), axis=1))
             norm_all_msg = tlx.reduce_sum(tlx.abs(norm_feat_msg)) / num_edges
             mask_prune = norm_feat_msg < (self.threshold_a * 0.1 * norm_all_msg)
@@ -285,14 +285,14 @@ class GCNConvThr(ConvThr, GCNConvRaw):
             if self.idx_keep is not None:
                 indices_to_save = self.idx_keep[self.idx_keep < num_edges]
                 keep_mask = tlx.scatter_update(keep_mask, indices_to_save, tlx.ones_like(indices_to_save, dtype=tlx.bool))
-            
+
             msg_tensor = tlx.where(tlx.expand_dims(keep_mask, 1), msg_tensor, tlx.zeros_like(msg_tensor))
 
         return (msg_tensor,) + output[1:] if isinstance(output, (list, tuple)) else msg_tensor
 
     def forward(self, x, edge_tuple: PairTensor, node_lock: OptTensor = None, verbose: bool = False):
         (edge_index, edge_weight) = edge_tuple
-        
+
         if self.scheme_w in ['pruneall', 'pruneinc']:
             if self.scheme_w == 'pruneall':
                 if prune.is_pruned(self.linear):
@@ -300,42 +300,42 @@ class GCNConvThr(ConvThr, GCNConvRaw):
             else:
                 if prune.is_pruned(self.linear):
                     prune.remove(self.linear, 'weights')
-            
+
             norm_node_in = tlx.sqrt(tlx.reduce_sum(tlx.square(x), axis=0))
             norm_all_in = tlx.reduce_sum(norm_node_in) / x.shape[1]
             if norm_all_in > 1e-8:
                 threshold_wi = self.threshold_w * norm_all_in
                 ThrInPrune.apply(self.linear, 'weights', threshold_wi, dim=0)
-            
+
             x = self.linear(x)
 
         elif self.scheme_w == 'keep':
             x = self.linear(x)
         elif self.scheme_w == 'full':
             raise NotImplementedError()
-        
+
         self.logger_w.numel_before = _tensor_numel(self.linear.weights)
         self.logger_w.numel_after = int(tlx.convert_to_numpy(tlx.reduce_sum(tlx.cast(self.linear.weights != 0, tlx.float32))))
 
         self.idx_lock = None
-        
-        
+
+
         out = self.propagate(x, edge_index, edge_weight=edge_weight, num_nodes=tlx.get_tensor_shape(x)[0])
         if self.bias is not None:
             out = out + self.bias
-        
+
 
         if self.scheme_a in ['pruneall', 'pruneinc', 'keep']:
             num_edges = edge_index.shape[1]
             self.logger_a.numel_before = edge_index.shape[1]
-            
+
             if self.idx_keep is None:
                 self.idx_keep = tlx.arange(start=0, limit=num_edges, dtype=tlx.int64)
-            
+
             self.idx_keep = self.idx_keep[self.idx_keep < num_edges]
             self.idx_keep = tlx.cast(self.idx_keep, tlx.int64).squeeze()
             self.logger_a.numel_after = self.idx_keep.shape[0]
-            
+
             edge_index = edge_index[:, self.idx_keep]
             if edge_weight is not None:
                 edge_weight = edge_weight[self.idx_keep]
@@ -350,7 +350,7 @@ class GCNConvThr(ConvThr, GCNConvRaw):
         n, m = x_in.shape[0], edge_index.shape[1]
         flops_bias = f_out if module.bias is not None else 0
         module.__flops__ += int((f_in * f_out * module.logger_w.ratio + flops_bias) * n)
-        module.__flops__ += f_in * (m - n)  
+        module.__flops__ += f_in * (m - n)
 
 def Linear_cnt_flops(module, input, output):
     input = input[0]

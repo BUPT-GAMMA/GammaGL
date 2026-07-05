@@ -25,7 +25,7 @@ from .gcn_unifews import identity_n_norm, gcn_norm, softmax, leaky_relu, scatter
 class GATv2ConvRaw(GATV2Conv):
     def __init__(self, in_channels: int, out_channels: int, depth: int,
                  rnorm=None, diag=1., depth_inv=False, heads: int = 1, concat: bool = True, **kwargs):
-        
+
         self.rnorm = rnorm
         self.diag = diag
         self.depth_inv = depth_inv
@@ -36,24 +36,24 @@ class GATv2ConvRaw(GATV2Conv):
             heads = 1
             concat = False
         else:
-           
+
             final_out = out_channels
             heads = heads
             concat = concat
 
         super().__init__(in_channels, final_out, heads, concat,** kwargs)
-        
+
         self.logger_a = LayerNumLogger()
         self.logger_w = LayerNumLogger()
         self.logger_in = LayerNumLogger()
         self.logger_msg = LayerNumLogger()
         self.reset_parameters()
 
-    
+
     def reset_parameters(self):
-       
+
         reset_weight_(self.linear.weights, self.in_channels, initializer='glorot')
-      
+
         reset_weight_(self.att_src, self.out_channels, initializer='glorot')
         reset_weight_(self.att_dst, self.out_channels, initializer='glorot')
 
@@ -65,10 +65,10 @@ class GATv2ConvRaw(GATV2Conv):
 
 
     def forward(self, x, edge_index, edge_weight=None):
-        
+
         if isinstance(edge_index, (tuple,list)):
             edge_index, edge_weight = edge_index
-            
+
         self.logger_a.numel_after = edge_index.shape[1]
         self.logger_w.numel_after = _tensor_numel(self.linear.weights)
         return super().forward(x, edge_index, edge_weight)
@@ -82,7 +82,7 @@ class GATv2ConvRaw(GATV2Conv):
         module.__flops__ += flops_lin
         flops_attn  = (2 * f_c + 2) * m * f_h
         module.__flops__ += flops_attn
-        if module.bias is not None: 
+        if module.bias is not None:
             module.__flops__ += (f_h * f_c if module.concat else f_c + 1) * n
 
 class GATv2ConvThr(ConvThr, GATv2ConvRaw):
@@ -90,15 +90,15 @@ class GATv2ConvThr(ConvThr, GATv2ConvRaw):
         super().__init__(*args, thr_a=thr_a, thr_w=thr_w, **kwargs)
         self.prune_lst = [self.linear]
         self.idx_keep = None
-       
+
         self.register_forward_hook(self.prune_on_msg)
 
     def prune_on_msg(self, module, inputs, output):
         msg_tensor = output[0] if isinstance(output, (list, tuple)) else output
-      
+
         if len(tlx.get_tensor_shape(msg_tensor)) == 3:
             msg_tensor = tlx.reduce_mean(msg_tensor, dim=1)
-            
+
         num_edges = msg_tensor.shape[0]
 
         if self.scheme_a in ['pruneall', 'pruneinc']:
@@ -118,14 +118,14 @@ class GATv2ConvThr(ConvThr, GATv2ConvRaw):
             if self.idx_keep is not None:
                 indices_to_save = self.idx_keep[self.idx_keep < num_edges]
                 keep_mask = tlx.scatter_update(keep_mask, indices_to_save, tlx.ones_like(indices_to_save, dtype=tlx.bool))
-            
+
             msg_tensor = tlx.where(tlx.expand_dims(keep_mask, 1), msg_tensor, tlx.zeros_like(msg_tensor))
 
         return (msg_tensor,) + output[1:] if isinstance(output, (list, tuple)) else msg_tensor
 
     def forward(self, x, edge_tuple: PairTensor, node_lock: OptTensor = None, verbose: bool = False):
         (edge_index, edge_weight) = edge_tuple
-        H, C = self.heads, self.out_channels  
+        H, C = self.heads, self.out_channels
 
         if self.scheme_w in ['pruneall', 'pruneinc']:
             if self.scheme_w == 'pruneall':
@@ -134,53 +134,53 @@ class GATv2ConvThr(ConvThr, GATv2ConvRaw):
             else:
                 if prune.is_pruned(self.linear):
                     prune.remove(self.linear, 'weights')
-            
+
             norm_node_in = tlx.sqrt(tlx.reduce_sum(tlx.square(x), axis=0))
             norm_all_in = tlx.reduce_sum(norm_node_in) / x.shape[1]
             if norm_all_in > 1e-8:
                 threshold_wi = self.threshold_w * norm_all_in
                 ThrInPrune.apply(self.linear, 'weights', threshold_wi)
-            
+
             x = self.linear(x)
-        
+
             x = tlx.reshape(x, (-1, H, C))
 
         elif self.scheme_w == 'keep':
             x = self.linear(x)
-          
+
             x = tlx.reshape(x, (-1, H, C))
-        else: 
+        else:
             raise NotImplementedError()
-        
+
 
         self.logger_w.numel_before = _tensor_numel(self.linear.weights)
         self.logger_w.numel_after = int(tlx.convert_to_numpy(tlx.reduce_sum(tlx.cast(self.linear.weights != 0, tlx.float32))))
 
-     
+
         #self.idx_lock = None
 
         out = self.propagate(x, edge_index, edge_weight=edge_weight, num_nodes=tlx.get_tensor_shape(x)[0])
-        
+
 
         if self.concat:
             out = tlx.reshape(out, (-1, self.heads * self.out_channels))
         else:
             out = tlx.reduce_mean(out, axis=1)
-            
+
         if self.bias is not None:
             out = out + self.bias
-        
+
         if self.scheme_a in ['pruneall', 'pruneinc', 'keep']:
             num_edges = edge_index.shape[1]
             self.logger_a.numel_before = edge_index.shape[1]
-            
+
             if self.idx_keep is None:
                 self.idx_keep = tlx.arange(start=0, limit=num_edges, dtype=tlx.int64)
-            
+
             self.idx_keep = self.idx_keep[self.idx_keep < num_edges]
             self.idx_keep = tlx.cast(self.idx_keep, tlx.int64).squeeze()
             self.logger_a.numel_after = self.idx_keep.shape[0]
-            
+
             edge_index = edge_index[:, self.idx_keep]
             if edge_weight is not None:
                 edge_weight = edge_weight[self.idx_keep]

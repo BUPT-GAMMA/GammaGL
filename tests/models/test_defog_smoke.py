@@ -47,9 +47,9 @@ def test_defog_smoke():
 
     print("Running DeFoG smoke test...")
     result = subprocess.run(cmd, env=env, capture_output=True, text=True)
-    
+
     if result.returncode != 0:
         print("Stdout:\n", result.stdout)
         print("Stderr:\n", result.stderr)
-        
+
     assert result.returncode == 0, f"DeFoG smoke test failed with return code {result.returncode}"

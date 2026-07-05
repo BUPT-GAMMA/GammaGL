@@ -2,14 +2,49 @@
 # -*- coding: utf-8 -*-
 import os
 import os.path as osp
+import shutil
 from setuptools import setup, find_packages
 # from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtension
 # from ggl_build_extension import PyCudaExtension, PyCPUExtension
-from tensorlayerx.utils import PyCppExtension, PyCUDAExtension, PyBuildExtension
+try:
+    from tensorlayerx.utils import PyCppExtension, PyCUDAExtension, PyBuildExtension
+except ImportError as exc:
+    raise RuntimeError(
+        "GammaGL source builds require PyTorch and the GAMMA Lab TensorLayerX "
+        "branch first. Install a backend, TensorLayerX, and build prerequisites: "
+        "pip install git+https://github.com/dddg617/tensorlayerx.git@nightly "
+        "pybind11 ninja"
+    ) from exc
 
-# TODO will depend on different host
-WITH_CUDA = True
-# WITH_CUDA = True
+VERSION = "0.6.0"
+TLX_NIGHTLY = "tensorlayerx @ git+https://github.com/dddg617/tensorlayerx.git@nightly"
+
+
+def _has_cuda_toolkit():
+    cuda_home = os.environ.get("CUDA_HOME") or os.environ.get("CUDA_PATH")
+    if cuda_home:
+        nvcc_path = osp.join(cuda_home, "bin", "nvcc")
+        cuda_header = osp.join(cuda_home, "include", "cuda.h")
+        if osp.exists(nvcc_path) or osp.exists(cuda_header):
+            return True
+    return shutil.which("nvcc") is not None
+
+
+def _resolve_with_cuda():
+    value = os.environ.get("GAMMAGL_WITH_CUDA", "auto").strip().lower()
+    if value in {"1", "true", "yes", "on"}:
+        if not _has_cuda_toolkit():
+            print("GAMMAGL_WITH_CUDA=1 was set, but nvcc/CUDA headers were not detected.")
+        return True
+    if value in {"0", "false", "no", "off"}:
+        return False
+    if value == "auto":
+        return _has_cuda_toolkit()
+    raise ValueError("GAMMAGL_WITH_CUDA must be one of 0, 1, or auto")
+
+
+WITH_CUDA = _resolve_with_cuda()
+print(f"GammaGL extension build: GAMMAGL_WITH_CUDA={'1' if WITH_CUDA else '0'}")
 
 cuda_macro = ('COMPILE_WITH_CUDA', True)
 omp_macro = ('COMPLIE_WITH_OMP', True)  # Note: OpenMP needs gcc>4.2.0
@@ -18,8 +53,7 @@ compile_args = {
 }
 
 def is_src_file(filename: str):
-    return filename.endswith("cpp") \
-           or filename.endswith("cu")
+    return filename.endswith((".cpp", ".cu"))
 
 def load_mpops_extensions():
     mpops_list = ["torch_ext"]
@@ -118,8 +152,59 @@ def load_extensions():
 
     return extensions
 
-install_requires = ['numpy==1.24', 'pandas', 'numba==0.59.0', 'scipy', 'protobuf', 'pyparsing', 'rdkit',
-                    'tensorboardx', 'pytest', 'tensorlayerx', 'rich', 'tqdm', 'pybind11', 'panda', 'ninja==1.11.1.1']
+install_requires = [
+    'numpy>=1.24,<2.0',
+    'pandas',
+    'numba>=0.59.0',
+    'scipy',
+    'protobuf',
+    'pyparsing',
+    'tensorboardX',
+    'rich',
+    'tqdm',
+    TLX_NIGHTLY,
+]
+
+build_requires = [
+    'pybind11>=2.10',
+    'ninja>=1.11',
+]
+
+llm_gfm_requires = [
+    'torch>=2.1',
+    'transformers>=4.31',
+    'sentence-transformers',
+    'huggingface-hub',
+    'accelerate',
+    'peft',
+    'openai>=1.0',
+    'torch-geometric',
+]
+
+extras_require = {
+    'build': build_requires,
+    'dev': build_requires + ['pytest', 'ruff'],
+    'docs': [
+        'sphinx',
+        'sphinx-rtd-theme',
+        'sphinx-markdown-tables',
+        'sphinx-intl',
+        'recommonmark',
+        'sphinx-copybutton==0.4.0',
+        'nbsphinx',
+    ],
+    'defog': ['rdkit', 'networkx'],
+    'llm': [
+        'torch>=2.1',
+        'transformers>=4.31',
+        'sentence-transformers',
+        'huggingface-hub',
+        'accelerate',
+        'peft',
+    ],
+    'gfm': llm_gfm_requires,
+    'llm-gfm': llm_gfm_requires,
+}
 
 classifiers = [
     'Development Status :: 3 - Alpha',
@@ -135,7 +220,7 @@ def readme():
 
 setup(
     name="gammagl",
-    version="0.6.0",
+    version=VERSION,
     author="BUPT-GAMMA LAB",
     author_email="tyzhao@bupt.edu.cn",
     maintainer="Tianyu Zhao",
@@ -144,17 +229,16 @@ setup(
     ext_modules=load_extensions(),
     description=" ",
     long_description=readme(),
+    long_description_content_type="text/markdown",
     url="https://github.com/BUPT-GAMMA/GammaGL",
     download_url="https://github.com/BUPT-GAMMA/GammaGL",
-    python_requires='>=3.8',
+    python_requires='>=3.9',
     packages=find_packages(),
     install_requires=install_requires,
+    extras_require=extras_require,
     classifiers=classifiers,
     include_package_data=True
 )
-
-# python setup.py build_ext --inplace
-# python setup.py install
 
 # clang-format -style=file -i ***.cpp
 # find ./ -type f \( -name '*.h' -or -name '*.hpp' -or -name '*.cpp' -or -name '*.c' -or -name '*.cc' -or -name '*.cu' \) -print | xargs clang-format -style=file -i
