@@ -5,9 +5,15 @@
 ![GitHub](https://img.shields.io/github/license/BUPT-GAMMA/GammaGL)
 ![visitors](https://visitor-badge.laobi.icu/badge?page_id=BUPT-GAMMA.GammaGL)
 ![GitHub all releases](https://img.shields.io/github/downloads/BUPT-GAMMA/GammaGL/total)
-![Total lines](https://img.shields.io/tokei/lines/github/BUPT-GAMMA/GammaGL?color=red)
+![Code size](https://img.shields.io/github/languages/code-size/BUPT-GAMMA/GammaGL?color=red)
 
-**[Documentation](https://gammagl.readthedocs.io/en/latest/)** |**[启智社区](https://git.openi.org.cn/GAMMALab/GammaGL)**
+**[Documentation](https://gammagl.readthedocs.io/en/latest/)** |
+**[Get Started](#get-started)** |
+**[Quick Tour](#quick-tour-for-new-users)** |
+**[Supported Models](#supported-models)** |
+**[Examples](./examples)** |
+**[Contributing](./CONTRIBUTING.md)** |
+**[启智社区](https://git.openi.org.cn/GAMMALab/GammaGL)**
 
 GammaGL is a multi-backend graph learning library based on [TensorLayerX](https://github.com/tensorlayer/TensorLayerX), which supports TensorFlow, PyTorch, PaddlePaddle, MindSpore as the backends.
 
@@ -24,11 +30,29 @@ GammaGL supports multiple deep learning backends, such as TensorFlow, PyTorch, P
 Following [PyTorch Geometric(PyG)](https://github.com/pyg-team/pytorch_geometric), GammaGL utilizes a tensor-centric API. If you are familiar with PyG, it will be friendly and maybe a TensorFlow Geometric, Paddle Geometric, or MindSpore Geometric to you.
 
 ## News
+<details open>
+<summary>2026-07-05 release v0.6.0
+</summary>
+</br>
+We release GammaGL v0.6.0.
+
+- Use one `gammagl` package for CPU and GPU environments, with source builds
+  selected by `GAMMAGL_WITH_CUDA=0/1/auto`.
+- Use the GAMMA Lab maintained TensorLayerX nightly branch for source builds.
+- Keep LLM and graph foundation model dependencies optional through `llm`,
+  `gfm`, and `llm-gfm` extras.
+- Improve public API exports for common layers, datasets, transforms, loaders,
+  models and utilities.
+- Update installation guidance and release package metadata for Python 3.9+
+  Linux environments.
+
+</details>
+
 <details>
 <summary>2024-07-29 release v0.5
 </summary>
 </br>
-We release the latest version v0.5
+We release version v0.5.
 
 - 70 GNN models
 - More fused operators
@@ -41,7 +65,7 @@ We release the latest version v0.5
 <summary>2024-01-24 release v0.4
 </summary>
 </br>
-We release the latest version v0.4.
+We release version v0.4.
 
 - 60 GNN models
 - More fused operators and users can truly use these operators
@@ -54,7 +78,7 @@ We release the latest version v0.4.
 <summary>2023-07-12 release v0.3
 </summary>
 </br>
-We release the latest version v0.3.
+We release version v0.3.
 
 - 50 GNN models
 - Efficient message passing operators and fused operator
@@ -99,7 +123,7 @@ GammaGL荣获启智社区优秀孵化项⽬奖！详细链接：https://mp.weixi
 <summary>2023-01-17 release v0.2
 </summary>
 </br>
-We release the latest version v0.2.
+We release version v0.2.
 
 - 40 GNN models
 - 20 datasets
@@ -112,7 +136,7 @@ We release the latest version v0.2.
 <summary>2022-06-20 release v0.1
 </summary>
 </br>
-We release the latest version v0.1.
+We release version v0.1.
 
 - Framework-agnostic design
 - PyG-like
@@ -127,6 +151,25 @@ GammaGL 0.6.0 requires **Python >= 3.9** and is supported on **Linux**. Use the
 same `gammagl` package for CPU and GPU; choose the backend wheel and extension
 build mode during installation.
 
+### Install from pip
+
+For the released package, install a backend first, then install GammaGL:
+
+```bash
+pip install torch torchvision torchaudio
+pip install gammagl
+```
+
+For CPU-only PyTorch:
+
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+pip install gammagl
+```
+
+For the latest source build, use the GAMMA Lab maintained TensorLayerX branch
+and the source installation commands below.
+
 ### CPU Quick Start
 
 ```bash
@@ -137,7 +180,7 @@ pip install git+https://github.com/dddg617/tensorlayerx.git@nightly
 git clone --recursive https://github.com/BUPT-GAMMA/GammaGL.git
 cd GammaGL
 pip install pybind11 ninja
-GAMMAGL_WITH_CUDA=0 pip install -e ".[build]" --no-build-isolation
+GAMMAGL_WITH_CUDA=0 TL_BACKEND=torch pip install -e ".[build]" --no-build-isolation
 TL_BACKEND=torch python examples/gcn/gcn_trainer.py --dataset cora --n_epoch 1 --gpu -1
 ```
 
@@ -154,7 +197,7 @@ pip install git+https://github.com/dddg617/tensorlayerx.git@nightly
 git clone --recursive https://github.com/BUPT-GAMMA/GammaGL.git
 cd GammaGL
 pip install pybind11 ninja
-GAMMAGL_WITH_CUDA=auto pip install -e ".[build]" --no-build-isolation
+GAMMAGL_WITH_CUDA=auto TL_BACKEND=torch pip install -e ".[build]" --no-build-isolation
 TL_BACKEND=torch python examples/gcn/gcn_trainer.py --dataset cora --n_epoch 1 --gpu 0
 ```
 
@@ -177,9 +220,17 @@ TensorLayerX is maintained by the **BUPT GAMMA Lab Team**.
 GraphGPT, LLaGA, LLMRec, WalkLM, NLGraph and related LLM/GFM utilities require
 additional heavy dependencies. Install them only when using those features:
 
+For the released package:
+
+```bash
+pip install "gammagl[llm-gfm]"
+```
+
+For a source checkout:
+
 ```bash
 pip install pybind11 ninja
-pip install -e ".[llm-gfm]" --no-build-isolation
+GAMMAGL_WITH_CUDA=auto TL_BACKEND=torch pip install -e ".[build,llm-gfm]" --no-build-isolation
 ```
 
 Core GammaGL installation does not require `transformers`, `torch_geometric`,
@@ -199,145 +250,53 @@ In this quick tour, we highlight the ease of creating and training a GNN model w
 ### Train your own GNN model
 
 In the first glimpse of GammaGL, we implement the training of a GNN for classifying papers in a citation graph.
-For this, we load the [Cora](https://gammagl.readthedocs.io/en/latest/api/gammagl.datasets.html#gammagl.datasets.Planetoid) dataset, and create a simple 2-layer GCN model using the pre-defined [`GCNConv`](https://github.com/BUPT-GAMMA/GammaGL/blob/main/gammagl/layers/conv/gcn_conv.py):
+For this, we load the [Cora](https://gammagl.readthedocs.io/en/latest/api/gammagl.datasets.html#gammagl.datasets.Planetoid) dataset and train a 2-layer GCN with TensorLayerX's backend-neutral training API. The full version is available in [`examples/gcn/gcn_trainer.py`](./examples/gcn/gcn_trainer.py).
 
 ```python
 import tensorlayerx as tlx
-from gammagl.layers.conv import GCNConv
 from gammagl.datasets import Planetoid
+from tensorlayerx.model import TrainOneStep, WithLoss
+from gammagl.models import GCNModel
+from gammagl.utils import add_self_loops, mask_to_index
 
-dataset = Planetoid(root='.', name='Cora')
+class SemiSpvzLoss(WithLoss):
+    def forward(self, data, y):
+        logits = self.backbone_network(
+            data["x"], data["edge_index"], None, data["num_nodes"]
+        )
+        train_logits = tlx.gather(logits, data["train_idx"])
+        train_y = tlx.gather(data["y"], data["train_idx"])
+        return self._loss_fn(train_logits, train_y)
 
-class GCN(tlx.nn.Module):
-    def __init__(self, in_channels, hidden_channels, out_channels):
-        super().__init__()
-        self.conv1 = GCNConv(in_channels, hidden_channels)
-        self.conv2 = GCNConv(hidden_channels, out_channels)
-        self.relu = tlx.ReLU()
+dataset = Planetoid(root="./data", name="cora")
+graph = dataset[0]
+edge_index, _ = add_self_loops(graph.edge_index, num_nodes=graph.num_nodes)
 
-    def forward(self, x, edge_index):
-        # x: Node feature matrix of shape [num_nodes, in_channels]
-        # edge_index: Graph connectivity matrix of shape [2, num_edges]
-        x = self.conv1(x, edge_index)
-        x = self.relu(x)
-        x = self.conv2(x, edge_index)
-        return x
-
-model = GCN(dataset.num_features, 16, dataset.num_classes)
-```
-
-<details>
-<summary>
-We can now optimize the model in a training loop, similar to the <a href="https://tensorlayerx.readthedocs.io/en/latest/modules/model.html#trainonestep">standard TensorLayerX training procedure</a>.</summary>
-
-```python
-import tensorlayerx as tlx
-data = dataset[0]
-loss_fn = tlx.losses.softmax_cross_entropy_with_logits
-optimizer = tlx.optimizers.Adam(learning_rate=1e-3)
-net_with_loss = tlx.model.WithLoss(model, loss_fn)
-train_one_step = tlx.model.TrainOneStep(net_with_loss, optimizer, train_weights)
-
-for epoch in range(200):
-    loss = train_one_step(data.x, data.y)
-```
-
-</details>
-
-<details>
-<summary>We can now optimize the model in a training loop, similar to the <a href="https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html#full-implementation">standard PyTorch training procedure</a>.</summary>
-
-```python
-import torch.nn.functional as F
-
-data = dataset[0]
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+model = GCNModel(
+    feature_dim=dataset.num_node_features,
+    hidden_dim=16,
+    num_class=dataset.num_classes,
+    drop_rate=0.5,
+    num_layers=2,
+)
+optimizer = tlx.optimizers.Adam(lr=0.01, weight_decay=5e-4)
+train_one_step = TrainOneStep(
+    SemiSpvzLoss(model, tlx.losses.softmax_cross_entropy_with_logits),
+    optimizer,
+    model.trainable_weights,
+)
+data = {
+    "x": graph.x,
+    "y": graph.y,
+    "edge_index": edge_index,
+    "train_idx": mask_to_index(graph.train_mask),
+    "num_nodes": graph.num_nodes,
+}
 
 for epoch in range(200):
-    pred = model(data.x, data.edge_index)
-    loss = F.cross_entropy(pred[data.train_mask], data.y[data.train_mask])
-
-    # Backpropagation
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
+    model.set_train()
+    loss = train_one_step(data, graph.y)
 ```
-
-</details>
-
-<details>
-<summary>We can now optimize the model in a training loop, similar to the <a href="https://tensorflow.google.cn/tutorials/quickstart/advanced">standard TensorFlow training procedure</a>.</summary>
-
-```python
-import tensorflow as tf
-
-optimizer = tf.keras.optimizers.Adam()
-loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-for epoch in range(200):
-    with tf.GradientTape() as tape:
-        predictions = model(images, training=True)
-        loss = loss_fn(labels, predictions)
-    gradients = tape.gradient(loss, model.trainable_variables)
-    optimizer.apply_gradients(zip(gradients, model.trainable_variables))
-```
-
-</details>
-
-<details>
-<summary>We can now optimize the model in a training loop, similar to the <a href="https://www.paddlepaddle.org.cn/documentation/docs/zh/guides/beginner/train_eval_predict_cn.html#api">standard PaddlePaddle training procedure</a>.</summary>
-
-```python
-import paddle
-
-data = dataset[0]
-optim = paddle.optimizer.Adam(parameters=model.parameters())
-loss_fn = paddle.nn.CrossEntropyLoss()
-
-model.train()
-for epoch in range(200):
-    predicts = model(data.x, data.edge_index)
-    loss = loss_fn(predicts, y_data)
-
-    # Backpropagation
-    loss.backward()
-    optim.step()
-    optim.clear_grad()
-```
-
-</details>
-
-<details>
-<summary>We can now optimize the model in a training loop, similar to the <a href="https://www.mindspore.cn/tutorials/zh-CN/r1.7/advanced/train/train_eval.html#%E8%87%AA%E5%AE%9A%E4%B9%89%E8%AE%AD%E7%BB%83%E5%92%8C%E8%AF%84%E4%BC%B0">standard MindSpore training procedure</a>.</summary>
-
-```python
-# 1. Generate training dataset
-train_dataset = create_dataset(num_data=160, batch_size=16)
-
-# 2.Build a model and define the loss function
-net = LinearNet()
-loss = nn.MSELoss()
-
-# 3.Connect the network with loss function, and define the optimizer
-net_with_loss = nn.WithLossCell(net, loss)
-opt = nn.Momentum(net.trainable_params(), learning_rate=0.005, momentum=0.9)
-
-# 4.Define the training network
-train_net = nn.TrainOneStepCell(net_with_loss, opt)
-
-# 5.Set the model as training mode
-train_net.set_train()
-
-# 6.Training procedure
-for epoch in range(200):
-    for d in train_dataset.create_dict_iterator():
-        result = train_net(d['data'], d['label'])
-        print(f"Epoch: [{epoch} / {epochs}], "
-              f"step: [{step} / {steps}], "
-              f"loss: {result}")
-        step = step + 1
-```
-
-</details>
 
 More information about evaluating final model performance can be found in the corresponding [example](https://github.com/BUPT-GAMMA/GammaGL/tree/main/examples/gcn).
 
@@ -380,26 +339,35 @@ class EdgeConv(MessagePassing):
 Take [GCN](./examples/gcn) as an example:
 
 ```bash
-# cd ./examples/gcn
-# set parameters if necessary
-python gcn_trainer.py --dataset cora --lr 0.01
+cd examples/gcn
+TL_BACKEND=torch python gcn_trainer.py --dataset cora --lr 0.01 --n_epoch 200 --gpu 0
 ```
 
-If you want to use specific `backend` or `GPU`, just set environment variable like:
+For CPU:
 
 ```bash
-CUDA_VISIBLE_DEVICES="1" TL_BACKEND="paddle" python gcn_trainer.py
+TL_BACKEND=torch python gcn_trainer.py --dataset cora --n_epoch 200 --gpu -1
+```
+
+For a specific GPU:
+
+```bash
+CUDA_VISIBLE_DEVICES=1 TL_BACKEND=torch python gcn_trainer.py --dataset cora --gpu 0
+```
+
+For another backend, install that backend first and set `TL_BACKEND` explicitly:
+
+```bash
+TL_BACKEND=paddle python gcn_trainer.py --dataset cora --gpu 0
 ```
 
 > Note
 > 
-> The DEFAULT backend is  `torch` and GPU is `0`. 
+> When `TL_BACKEND` is not set, GammaGL uses `torch` by default.
 >
-> The backend TensorFlow will take up all GPU left memory by default.
+> Use `--gpu -1` for CPU execution.
 > 
 > The CANDIDATE backends are `tensorflow`, `paddle`, `torch` and `mindspore`.
-> 
-> Set `CUDA_VISIBLE_DEVICES=" "` if you want to run it in CPU.
 
 ## Supported Models
 
