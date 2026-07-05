@@ -2,6 +2,8 @@ from typing import Optional
 
 import tensorlayerx as tlx
 
+from gammagl.mpops import unsorted_segment_sum
+from .check import check_is_numpy
 from .num_nodes import maybe_num_nodes
 
 
@@ -31,4 +33,8 @@ def degree(index, num_nodes: Optional[int] = None, dtype=None):
     else:
         out = tlx.zeros((N,), dtype=dtype)
     one = tlx.ones((index.shape[0], ), dtype=out.dtype)
-    return tlx.unsorted_segment_sum(one, index, N)
+    if check_is_numpy(index):
+        return tlx.unsorted_segment_sum(one, index, N)
+    if hasattr(index, "device") and hasattr(one, "to"):
+        one = one.to(index.device)
+    return unsorted_segment_sum(one, index, N)

@@ -1,0 +1,13 @@
+# Core Optional Dependencies for DeFoG Example
+# These are required for generating features or evaluating molecular/graph properties.
+
+# RDKit is strictly required for evaluating generated molecular validity (qm9, zinc)
+rdkit
+
+# Graph-Tool is strictly required for SBM structural community validation
+# (Note: graph-tool installation via conda is recommended due to C++ compilation requirements)
+# conda install -c conda-forge graph-tool
+graph-tool
+
+# NetworkX is used across many heuristic verifications
+networkx

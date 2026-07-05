@@ -9,8 +9,7 @@ __all__ = [
     'global_min_pool',
     'global_mean_pool',
     'global_sum_pool',
-    'global_sort_pool'
-
+    'global_sort_pool',
 ]
 
 classes = __all__

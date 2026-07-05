@@ -1,5 +1,3 @@
-import os
-os.environ['TL_BACKEND'] = 'torch'
 import tensorlayerx as tlx
 from gammagl.layers.conv import GATConv
 from tensorlayerx.nn import ModuleList

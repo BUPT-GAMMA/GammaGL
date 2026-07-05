@@ -3,7 +3,7 @@
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/BUPT-GAMMA/GammaGL)
 [![Documentation Status](https://readthedocs.org/projects/gammagl/badge/?version=latest)](https://gammagl.readthedocs.io/en/latest/?badge=latest)
 ![GitHub](https://img.shields.io/github/license/BUPT-GAMMA/GammaGL)
-![visitors](https://visitor-badge.glitch.me/badge?page_id=BUPT-GAMMA.GammaGL)
+![visitors](https://visitor-badge.laobi.icu/badge?page_id=BUPT-GAMMA.GammaGL)
 ![GitHub all releases](https://img.shields.io/github/downloads/BUPT-GAMMA/GammaGL/total)
 ![Total lines](https://img.shields.io/tokei/lines/github/BUPT-GAMMA/GammaGL?color=red)
 
@@ -123,71 +123,74 @@ We release the latest version v0.1.
 
 ## Get Started
 
-Currently, GammaGL requires **Python Version >= 3.9** and is only supported on **Linux** operating systems.
+GammaGL 0.6.0 requires **Python >= 3.9** and is supported on **Linux**. Use the
+same `gammagl` package for CPU and GPU; choose the backend wheel and extension
+build mode during installation.
 
+### CPU Quick Start
 
-1. **Python environment** (Optional): We recommend using Conda package manager
-   
-   ```bash
-   $ conda create -n ggl python=3.9
-   $ source activate ggl
-   ```
+```bash
+conda create -n gammagl-cpu python=3.10
+conda activate gammagl-cpu
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+pip install git+https://github.com/dddg617/tensorlayerx.git@nightly
+git clone --recursive https://github.com/BUPT-GAMMA/GammaGL.git
+cd GammaGL
+pip install pybind11 ninja
+GAMMAGL_WITH_CUDA=0 pip install -e ".[build]" --no-build-isolation
+TL_BACKEND=torch python examples/gcn/gcn_trainer.py --dataset cora --n_epoch 1 --gpu -1
+```
 
-2. **Install Backend**
-   
-   ```bash
-   # For tensorflow
-   $ pip install tensorflow-gpu # GPU version
-   $ pip install tensorflow # CPU version
-   
-   # For torch, version 2.1+cuda 11.8
-   # https://pytorch.org/get-started/locally/
-   $ pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
-   
-   # For paddle, any latest stable version
-   # https://www.paddlepaddle.org.cn/
-   $ python -m pip install paddlepaddle-gpu
-   
-   # For mindspore, GammaGL supports version 2.2.0, GPU-CUDA 11.6
-   # https://www.mindspore.cn/install
-   $ pip install https://ms-release.obs.cn-north-4.myhuaweicloud.com/2.2.0/MindSpore/unified/x86_64/mindspore-2.2.0-cp39-cp39-linux_x86_64.whl --trusted-host ms-release.obs.cn-north-4.myhuaweicloud.com -i https://pypi.tuna.tsinghua.edu.cn/simple
-   ```
-   
-   For other backend with specific version, [please check whether TLX supports](https://tensorlayerx.readthedocs.io/en/latest/user/installation.html#install-backend).
-   
-   Install TensorLayerX
-   
-   ```bash
-   pip install git+https://github.com/dddg617/tensorlayerx.git@nightly 
-   ```
+### GPU Quick Start
 
+Choose the PyTorch CUDA wheel that matches your driver and CUDA runtime. For
+example, with CUDA 12.1 wheels:
 
-   **Note**:
-   > - PyTorch is necessary when installing TensorLayerX.
-   > - This TensorLayerX is supported by **BUPT GAMMA Lab Team**.
+```bash
+conda create -n gammagl-cu python=3.10
+conda activate gammagl-cu
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip install git+https://github.com/dddg617/tensorlayerx.git@nightly
+git clone --recursive https://github.com/BUPT-GAMMA/GammaGL.git
+cd GammaGL
+pip install pybind11 ninja
+GAMMAGL_WITH_CUDA=auto pip install -e ".[build]" --no-build-isolation
+TL_BACKEND=torch python examples/gcn/gcn_trainer.py --dataset cora --n_epoch 1 --gpu 0
+```
 
-3. **Download GammaGL**
+`GAMMAGL_WITH_CUDA` accepts `0`, `1`, or `auto`. CPU-only installs should use
+`0`; CUDA builds can use `auto` or `1` when CUDA headers and `nvcc` are
+available.
 
-    You may download the nightly version through the following commands:
+For other backends, install the backend first, then install the GAMMA Lab
+TensorLayerX branch:
 
-   ```bash
-   $ git clone --recursive https://github.com/BUPT-GAMMA/GammaGL.git
-   $ pip install pybind11 pyparsing
-   $ python setup.py install
-   ```
+```bash
+pip install git+https://github.com/dddg617/tensorlayerx.git@nightly
+```
 
-   > 大陆用户如果遇到网络问题，推荐从启智社区安装
-   > 
-   > Try to git clone from OpenI
-   > 
-   > `git clone --recursive https://git.openi.org.cn/GAMMALab/GammaGL.git`
-   
-   **Note**:
-   > "--recursive" is necessary, if you forgot, you can run command below in GammaGL root dir:
-   > 
-   > `git submodule update --init`
+PyTorch must be installed before installing this TensorLayerX branch. This
+TensorLayerX is maintained by the **BUPT GAMMA Lab Team**.
 
-    You may also download the stable version refer to our [document](https://gammagl.readthedocs.io/en/latest/notes/installation.html).
+### Optional LLM/GFM Extension
+
+GraphGPT, LLaGA, LLMRec, WalkLM, NLGraph and related LLM/GFM utilities require
+additional heavy dependencies. Install them only when using those features:
+
+```bash
+pip install pybind11 ninja
+pip install -e ".[llm-gfm]" --no-build-isolation
+```
+
+Core GammaGL installation does not require `transformers`, `torch_geometric`,
+`openai`, or `sentence_transformers`.
+
+> 大陆用户如果遇到网络问题，推荐从启智社区安装：
+>
+> `git clone --recursive https://git.openi.org.cn/GAMMALab/GammaGL.git`
+>
+> If `--recursive` was omitted, run `git submodule update --init` in the
+> GammaGL root directory.
 
 ## Quick Tour for New Users
 

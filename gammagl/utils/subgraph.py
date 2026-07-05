@@ -2,6 +2,7 @@ import tensorlayerx as tlx
 import numpy as np
 from .num_nodes import maybe_num_nodes
 
+
 def k_hop_subgraph(node_idx, num_hops, edge_index, relabel_nodes=False, num_nodes=None, reverse=False):
     r"""
         Computes the induced subgraph of :obj:`edge_index` around all nodes in
@@ -45,7 +46,7 @@ def k_hop_subgraph(node_idx, num_hops, edge_index, relabel_nodes=False, num_node
         node_idx = tlx.convert_to_tensor(np.array([node_idx]).flatten(), dtype=edge_index.dtype)
         # node_idx = np.array([i.item() for i in node_idx]).flatten()
         # node_idx = tlx.convert_to_tensor(node_idx, dtype=tlx.int64)
-    
+
     subsets = [node_idx]
     node_mask = tlx.zeros((num_nodes,), dtype=tlx.bool)
 
@@ -62,7 +63,7 @@ def k_hop_subgraph(node_idx, num_hops, edge_index, relabel_nodes=False, num_node
     else:
         idx = tlx.convert_to_numpy(tlx.count_nonzero(node_idx+1))
     inv = inv[:idx]
-        
+
     node_mask = tlx.zeros((num_nodes,), dtype = tlx.int64)
     node_mask = tlx.scatter_update(node_mask, subset, tlx.ones_like(subset, dtype = tlx.int64))
     if tlx.BACKEND != 'paddle':
@@ -80,3 +81,27 @@ def k_hop_subgraph(node_idx, num_hops, edge_index, relabel_nodes=False, num_node
         else:
             edge_index = tlx.gather(node_idx, edge_index)
     return subset, edge_index, inv, edge_mask
+
+
+def node_subgraph(graph, node_idx, num_hops=2):
+    """Return a node-centered k-hop subgraph as a ``Graph`` object."""
+    from gammagl.data import Graph
+
+    subset, edge_index, mapping, _ = k_hop_subgraph(
+        node_idx=node_idx,
+        num_hops=num_hops,
+        edge_index=graph.edge_index,
+        relabel_nodes=True,
+        num_nodes=graph.num_nodes,
+    )
+    if tlx.is_tensor(mapping):
+        mapping_np = tlx.convert_to_numpy(mapping)
+    else:
+        mapping_np = np.asarray(mapping)
+    target_node = int(np.asarray(mapping_np).reshape(-1)[0])
+    return Graph(
+        x=tlx.gather(graph.x, subset),
+        edge_index=edge_index,
+        target_node=tlx.convert_to_tensor([target_node], dtype=tlx.int64),
+        num_nodes=int(tlx.get_tensor_shape(subset)[0]),
+    )

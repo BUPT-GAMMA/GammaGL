@@ -24,6 +24,7 @@ from transformers.modeling_outputs import BaseModelOutputWithPast, CausalLMOutpu
 from transformers.configuration_utils import PretrainedConfig
 from torch_geometric.data import Data
 import json
+import os
 import os.path as osp
 import glob
 from gammagl.models.simple_tokenizer import SimpleTokenizer as _Tokenizer
@@ -40,7 +41,20 @@ import torch.nn.functional as F
 import torch
 import math
 
-_tokenizer = _Tokenizer("/home/yy3/graph-text-align/GraphGPT/graphgpt/model/graph_layers/bpe_simple_vocab_16e6.txt.gz") # the path of this file, should be found in GraphGPT project
+_tokenizer = None
+
+
+def _get_tokenizer():
+    global _tokenizer
+    if _tokenizer is None:
+        vocab_path = os.environ.get("GAMMAGL_GRAPHGPT_BPE_PATH")
+        if not vocab_path:
+            raise FileNotFoundError(
+                "GraphGPT tokenization requires a BPE vocabulary file. "
+                "Set GAMMAGL_GRAPHGPT_BPE_PATH to bpe_simple_vocab_16e6.txt.gz."
+            )
+        _tokenizer = _Tokenizer(vocab_path)
+    return _tokenizer
 
 
 class LayerNorm(nn.LayerNorm):
@@ -319,9 +333,10 @@ def tokenize(texts: Union[str, List[str]], context_length: int = 128, truncate: 
     if isinstance(texts, str):
         texts = [texts]
 
-    sot_token = _tokenizer.encoder["<|startoftext|>"]
-    eot_token = _tokenizer.encoder["<|endoftext|>"]
-    all_tokens = [[sot_token] + _tokenizer.encode(text) + [eot_token] for text in texts]
+    tokenizer = _get_tokenizer()
+    sot_token = tokenizer.encoder["<|startoftext|>"]
+    eot_token = tokenizer.encoder["<|endoftext|>"]
+    all_tokens = [[sot_token] + tokenizer.encode(text) + [eot_token] for text in texts]
     result = torch.zeros(len(all_tokens), context_length, dtype=tlx.int64)
 
     for i, tokens in enumerate(all_tokens):
