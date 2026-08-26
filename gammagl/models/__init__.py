@@ -72,6 +72,7 @@ from .coed import CoEDModel
 from .amp import AMPModel, amp_elbo_regression_loss
 from .gnrf import GNRF, GNN
 from .defog import DeFoGModel
+from .gp2f import GP2FModel
 __all__ = [
     'HeCo',
     'GCNModel',
@@ -155,6 +156,7 @@ __all__ = [
     'GNRF',
     'GNN',
     'DeFoGModel',
+    'GP2FModel',
 ]
 
 classes = __all__
