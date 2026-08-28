@@ -20,6 +20,9 @@ from .polblogs import PolBlogs
 from .wikics import WikiCS
 from .blogcatalog import BlogCatalog
 from .molecule_net import MoleculeNet
+from .qm9 import QM9
+from .ogbg_molhiv import OGBGMolHIV
+from .peptides_struct import PeptidesStruct
 from .facebook import FacebookPagePage
 from .acm4heco import ACM4HeCo
 from .yelp import Yelp
@@ -53,6 +56,9 @@ __all__ = [
     'PolBlogs',
     'WikiCS',
     'MoleculeNet',
+    'QM9',
+    'OGBGMolHIV',
+    'PeptidesStruct',
     'FacebookPagePage',
     'NGSIM_US_101',
     'Yelp',
