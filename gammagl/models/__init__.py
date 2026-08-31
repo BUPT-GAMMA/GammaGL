@@ -72,6 +72,8 @@ from .coed import CoEDModel
 from .amp import AMPModel, amp_elbo_regression_loss
 from .gnrf import GNRF, GNN
 from .defog import DeFoGModel
+from .graph_bert import GraphBERT, GraphTokenTransformer
+from .graph_gte import GraphGTE
 __all__ = [
     'HeCo',
     'GCNModel',
@@ -155,6 +157,9 @@ __all__ = [
     'GNRF',
     'GNN',
     'DeFoGModel',
+    'GraphTokenTransformer',
+    'GraphBERT',
+    'GraphGTE',
 ]
 
 classes = __all__

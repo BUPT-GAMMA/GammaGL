@@ -1,0 +1,8 @@
+# GraphTokenizer paper-mode dependencies; install GammaGL itself separately.
+# The paper protocol verifies the exact runtime versions before a formal run.
+torch==2.1.2
+dgl==2.4.0
+torch-geometric==2.4.0
+ogb>=1.3.6
+huggingface-hub>=0.20
+safetensors>=0.4

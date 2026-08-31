@@ -1,6 +1,12 @@
 name: Build and Test
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # Official GTE alignment is expensive; keep it exercised outside ordinary PRs.
+    - cron: '0 4 * * 0'
 
 jobs:
   build-and-test:
@@ -22,7 +28,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt
-          pip install pybind11 ninja
+          pip install pybind11 ninja huggingface-hub safetensors
 
       - name: Install package
         run: |
@@ -32,3 +38,76 @@ jobs:
         run: |
           TL_BACKEND=torch python -m compileall -q gammagl tests examples
           TL_BACKEND=torch python -m pytest tests/test_public_api.py tests/data tests/utils -q
+
+      - name: Run GraphTokenizer regressions
+        run: |
+          TL_BACKEND=torch python -m pytest -q \
+            tests/transforms/test_graph_tokenizer.py \
+            tests/transforms/test_graph_bpe_cpp_install.py \
+            tests/datasets/test_graph_tokenizer_dataset_download.py \
+            tests/models/test_graph_transformer.py \
+            tests/models/test_graph_tokenizer_paper_protocol.py \
+            tests/models/test_graph_gte_pretrained.py::test_sha256_file_is_content_hash_and_detects_mismatch \
+            tests/models/test_graph_gte_pretrained.py::test_download_rejects_checkpoint_sha256_mismatch \
+            tests/models/test_graph_gte_pretrained.py::test_explicit_converter_has_full_coverage_and_parameter_equality \
+            tests/models/test_graph_gte_pretrained.py::test_converter_rejects_shape_mismatch
+
+  graph-gte-official-integration:
+    # The full checkpoint is roughly 610 MB.  It is intentionally scheduled or
+    # manually dispatched, with a cache, rather than downloaded on every PR.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Restore official GTE checkpoint cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/huggingface/hub
+          key: gte-multilingual-base-9bbca17d9273fd0d03d5725c7a4b0f6b45142062-f5a35a10faa54da7717870af1517c9b41e9bd8e3880bc5a8e9363d4c3c63e9b0
+
+      - name: Install integration dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+          pip install pybind11 ninja huggingface-hub safetensors transformers
+          GAMMAGL_WITH_CUDA=0 pip install -e ".[dev]" --no-build-isolation
+
+      - name: Download fixed official GTE checkpoint
+        run: |
+          python - <<'PY'
+          from huggingface_hub import snapshot_download
+
+          snapshot_download(
+              repo_id="Alibaba-NLP/gte-multilingual-base",
+              revision="9bbca17d9273fd0d03d5725c7a4b0f6b45142062",
+              allow_patterns=["*.json", "*.py", "model.safetensors"],
+          )
+          PY
+
+      - name: Run official GTE encoder regression
+        run: |
+          GTE_CHECKPOINT_PATH="$(python - <<'PY'
+          from huggingface_hub import hf_hub_download
+
+          print(hf_hub_download(
+              repo_id="Alibaba-NLP/gte-multilingual-base",
+              filename="model.safetensors",
+              revision="9bbca17d9273fd0d03d5725c7a4b0f6b45142062",
+              local_files_only=True,
+          ))
+          PY
+          )"
+          export GTE_CHECKPOINT_PATH
+          TL_BACKEND=torch python -m pytest -q \
+            tests/models/test_graph_gte_pretrained.py::test_official_checkpoint_converter_and_hf_encoder_equivalence \
+            tests/models/test_graph_gte_pretrained.py::test_official_from_pretrained_smoke_updates_encoder

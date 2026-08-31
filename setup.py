@@ -149,6 +149,18 @@ def load_ops_extensions():
 # Start to include cuda ops, if no cuda found, will only compile cpu ops
 def load_extensions():
     extensions = load_mpops_extensions() + load_ops_extensions()
+    try:
+        import pybind11
+    except ImportError:
+        # The rest of GammaGL remains installable without the optional BPE
+        # accelerator; GraphBPE auto mode uses its canonical Python path.
+        return extensions
+    extensions.append(PyCppExtension(
+        name='third_party.graph_bpe_cpp._graph_bpe',
+        sources=[osp.join('third_party', 'graph_bpe_cpp', '_graph_bpe.cpp')],
+        include_dirs=[pybind11.get_include()],
+        extra_compile_args=['-std=c++17'],
+    ))
 
     return extensions
 
@@ -194,6 +206,16 @@ extras_require = {
         'nbsphinx',
     ],
     'defog': ['rdkit', 'networkx'],
+    'graph-tokenizer-paper': [
+        # Paper protocol runtime; not a GammaGL core dependency.
+        'torch>=2.1',
+        'dgl>=2.4',
+        'torch-geometric>=2.4',
+        'ogb>=1.3.6',
+        # Pinned GTE checkpoint/config acquisition and safetensors conversion.
+        'huggingface-hub>=0.20',
+        'safetensors>=0.4',
+    ],
     'llm': [
         'torch>=2.1',
         'transformers>=4.31',
