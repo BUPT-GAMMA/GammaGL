@@ -1,6 +1,9 @@
 name: Build and Test
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   build-and-test:
@@ -22,7 +25,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt
-          pip install pybind11 ninja
+          pip install pybind11 ninja huggingface-hub safetensors
 
       - name: Install package
         run: |
@@ -32,3 +35,14 @@ jobs:
         run: |
           TL_BACKEND=torch python -m compileall -q gammagl tests examples
           TL_BACKEND=torch python -m pytest tests/test_public_api.py tests/data tests/utils -q
+
+      - name: Run GraphTokenizer regressions
+        run: |
+          TL_BACKEND=torch python -m pytest -q \
+            tests/transforms/test_graph_tokenizer.py \
+            tests/transforms/test_graph_bpe_cpp_install.py \
+            tests/datasets/test_graph_tokenizer_dataset_download.py \
+            tests/datasets/test_molecule_benchmark_datasets.py \
+            tests/models/test_graph_transformer.py \
+            tests/models/test_graph_tokenizer_paper_protocol.py \
+            tests/models/test_graph_gte_pretrained.py
