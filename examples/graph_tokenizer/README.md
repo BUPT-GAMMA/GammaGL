@@ -13,19 +13,41 @@ BPE／标签归一化，在完整训练集上进行 MLM，再微调、验证、�
 
 ## 正式 benchmark 与结果
 
-GammaGL reproduction 为五个 seed 的最终测试结果，报告 `mean ± std`（样本标准差，`ddof=1`）。
+按本次提供的实验确认，以下六组 GammaGL reproduction 为最新版代码完成的五 seed 最终测试
+结果，继续作为当前复现实验成绩展示。报告 `mean ± std`，跨 seed 标准差使用样本标准差
+（`ddof=1`）。论文／官方参考成绩独立列出，不作为 GammaGL 的实验记录。
 
-| 数据集 | Encoder | 论文／官方结果 | GammaGL reproduction |
-| :-- | :-- | :-- | :-- |
-| Mutagenicity | BERT | 87.5 ± 0.9 Accuracy | 0.7673 ± 0.0175 |
-| Mutagenicity | GTE | 90.1 ± 0.7 Accuracy | 0.6811 ± 0.0588 |
-| DBLP_v1 | BERT | 93.2 ± 0.1 Accuracy | 0.9225 ± 0.0128 |
-| DBLP_v1 | GTE | 93.6 ± 0.1 Accuracy | 0.9214 ± 0.0045 |
-| AQSOL | BERT | 0.648 ± 0.008 MAE | 0.7395 ± 0.0072 |
-| AQSOL | GTE | 0.609 ± 0.016 MAE | 0.7077 ± 0.0069 |
+| 数据集 | Encoder | 指标 | 论文／官方参考 | 当前 GammaGL reproduction |
+| :-- | :-- | :-- | :-- | :-- |
+| Mutagenicity | BERT | Accuracy (%) ↑ | 87.5 ± 0.9 | 76.73 ± 1.75 |
+| Mutagenicity | GTE | Accuracy (%) ↑ | 90.1 ± 0.7 | 68.11 ± 5.88 |
+| DBLP_v1 | BERT | Accuracy (%) ↑ | 93.2 ± 0.1 | 92.25 ± 1.28 |
+| DBLP_v1 | GTE | Accuracy (%) ↑ | 93.6 ± 0.1 | 92.14 ± 0.45 |
+| AQSOL | BERT | 原尺度 MAE ↓ | 0.648 ± 0.008 | 0.7395 ± 0.0072 |
+| AQSOL | GTE | 原尺度 MAE ↓ | 0.609 ± 0.016 | 0.7077 ± 0.0069 |
 
-Trainer 接受 `mutag` 和 `muta` 作为 Mutagenicity 的 aliases。`dblp` 对应
-**DBLP_v1 graph-classification** benchmark，数据集类为 `GraphTokenizerDBLP`。
+Accuracy 的均值用百分数表示，`±` 后的标准差单位为**百分点**；相对于 trainer 输出的
+0–1 Accuracy，均值和标准差均乘以 100，显示两位小数。AQSOL 的 MAE 保持原标签尺度，
+显示四位小数，不做百分数转换。
+
+### 实验记录与可追溯性
+
+2026-10-16 审计找到了六组各五个 seed（42–46）的本地 summary 和训练日志；逐 seed 指标、
+日志完成行与汇总相符，重新计算 mean 和样本 std 后均与表中的显示值一致。
+[实验审计记录](EXPERIMENT_AUDIT.md)列出实际路径、配置证据及归属冲突，
+[审计数据](experiment_records/audit_2026-10-16.json)保存原精度 seed 指标和来源文件 SHA-256。
+这些外部本地路径不是随仓库发布的实验附件。
+
+当前结果归属按本次实验确认保留，但**最新版运行的精确 commit／代码快照及协议归属尚不能
+由现有本地材料独立验证**：数值匹配的本地记录所引用的现存缓存为 tokenizer schema 2，
+且其下游 checkpoint 没有 schema 字段，与当前 schema 4 存在冲突；AQSOL 缓存统计量也与
+当前按唯一训练图统计的规则不同。这批材料能核实数值，不能充当最新版重跑的版本凭据。
+仍需补入最新版运行的代码快照、完整生效配置、数据／split 摘要及 tokenizer／checkpoint
+对应关系；这项记录缺口不用于将当前六组成绩整体改标为旧协议结果。
+
+Trainer 接受 `mutag` 和 `muta` 作为 **Mutagenicity** 的 aliases，不指 188-graph `MUTAG`。
+`dblp` 对应 **DBLP_v1 graph-classification** benchmark，数据集类为 `GraphTokenizerDBLP`，
+与异构节点分类数据集 `DBLP` 区分。
 
 ## 支持的图范围
 
@@ -56,6 +78,30 @@ Feuler 的节点引用 token 使用最终组件顺序及遍历中的首次访问
 四环与三角形中的节点还可具有相同的结构签名，却属于不同拓扑的组件；不能仅凭签名相同
 视为可互换。等长度的路径组件与三角形组件也可在组件排序键上打平。
 
+### 输入协议与产物兼容性
+
+当前实现快照为 `18f6ebf6c94d9738ea0b51b1ccd42d16ae4e2722`，serializer protocol 为 **4**、
+tokenizer schema 为 **4**、预处理缓存格式为 **5**。这是本次审计的代码基线，不等同于
+六组实验已经核实的运行 commit。
+
+旧 protocol 2 把原始节点编号写入引用 token；`21d93d7` 引入 protocol／schema 3，改为
+遍历局部引用并修复 AQSOL 按 serialization 数量加权的归一化。`18f6ebf` 再将缺少节点特征
+的默认标签从原始编号改为全零，并修复缓存对实际 processed 数据来源的跟踪。
+显式整数节点标签仍按输入保留；benchmark Dataset 要求提供节点特征，`x=None` 的默认行为
+是通用 serializer 的接口约定。
+
+| 产物 | 当前代码实际执行的检查与处理 |
+| :-- | :-- |
+| 已拟合 tokenizer | 编码／解码前检查 `schema_version == 4`；旧版本或缺失字段会抛出 `RuntimeError`，需重新 fit。`original_token_ids` 缺失也会被拒绝。 |
+| 完整 serializer／tokenizer result | 反序列化检查 metadata 中的 protocol／schema，不匹配会抛出 `ValueError`。裸 token 列表没有版本 metadata，无法据此自动识别旧协议，应从原图重新生成。 |
+| 预处理缓存 | 键包含数据／split 内容摘要、输入协议和预处理配置；加载时再检查缓存格式 5 与 tokenizer schema 4。旧键不命中，旧格式 payload 不复用，重新预处理；通过临时文件和 `os.replace` 原子写入。 |
+| 下游微调 checkpoint | `restore_checkpoint()` 在载入模型权重前检查 `tokenizer_schema_version == 4`，缺失或不一致会抛出 `ValueError`。相同 embedding 形状不能替代协议与词表对应关系。 |
+
+不存在旧词表、缓存或下游 checkpoint 的自动迁移。`GraphBPE.load_codebook()` 只加载 BPE
+规则，不校验 tokenizer 协议；下游 checkpoint 的 schema 检查也不验证具体词表或数据摘要。
+同一 schema 的产物仍须与其拟合 tokenizer、配置和数据配套使用。正式 GTE 来源 checkpoint
+是独立的预训练编码器初始化，其 revision／SHA-256／架构／tensor shape／覆盖率校验见下文。
+
 ## 固定的六组实验 preset
 
 `PAPER_CONFIGS` 基于固定的
@@ -63,6 +109,8 @@ Feuler 的节点引用 token 使用最终组件顺序及遍历中的首次访问
 `98343a6b025a48fbb6859cd812a12b81ec3ac3cc`](https://github.com/BUPT-GAMMA/Graph-Tokenization-for-Bridging-Graphs-and-Transformers/tree/98343a6b025a48fbb6859cd812a12b81ec3ac3cc)
 整理为六组 benchmark presets。训练使用统一的 serializer/tokenization pipeline，默认使用
 Python BPE，`cpp` 是可选 backend。
+下表描述当前代码默认配置，不能替代每次运行的完整配置记录；本地审计确认的 batch／梯度
+累积覆盖见[实验审计记录](EXPERIMENT_AUDIT.md)。
 
 所有 preset 均使用 `max_length=8096`、BPE `2000` merges / 最小频率 `2`、100 次序列化、
 MLM mask 概率 `0.09`、warm-up `0.12 / 0.025`、梯度裁剪 `2.0 / 0.5`、默认 seeds `42–46`，
@@ -164,6 +212,8 @@ python examples/graph_tokenizer/graph_tokenizer_trainer.py \
 Mutagenicity 和 DBLP_v1 使用两个 logits 的 CrossEntropy，并在每个图的多次 serialization
 logits 平均后取 `argmax` 计算 Accuracy。AQSOL 使用 MSE 训练；其标签归一化只用 train split
 中每个唯一 graph_id 的标签统计一次，评估将预测和标签恢复到原始尺度后计算 MAE。
+标签归一化使用训练标签的总体标准差（除以训练图数），与五 seed 指标汇总的样本标准差
+（`ddof=1`）区分。
 
 常用覆盖参数包括 `--pretrain-batch-size`、`--finetune-batch-size`、
 `--pretrain-learning-rate`、`--learning-rate`、
@@ -175,6 +225,10 @@ logits 平均后取 `argmax` 计算 Accuracy。AQSOL 使用 MSE 训练；其标�
 每次运行将 checkpoint 与 summary 写入 `run_01_seed_42/`、`run_02_seed_43/` 等目录；父级
 `summary.json` 保存聚合结果。early stopping 的方向由 dataset metadata 驱动：Accuracy 取最大值，
 MAE 取最小值。
+当前 summary 会保存 seed、指标、阶段 history、checkpoint 路径及 GTE 初始化信息；不会自动
+保存 Git commit、dirty diff、完整 CLI、生效配置或数据／split 内容摘要。正式记录需要另行
+归档这些信息，并绑定该次 tokenizer、缓存及 checkpoint；[审计记录](EXPERIMENT_AUDIT.md)
+给出了需要补齐的字段，不代表当前 trainer 已实现自动归档。
 
 ## 极小 smoke 测试
 
