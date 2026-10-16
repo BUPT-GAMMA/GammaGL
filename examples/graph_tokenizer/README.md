@@ -34,9 +34,11 @@ Accuracy 的均值用百分数表示，`±` 后的标准差单位为**百分点*
 
 2026-10-16 审计找到了六组各五个 seed（42–46）的本地 summary 和训练日志；逐 seed 指标、
 日志完成行与汇总相符，重新计算 mean 和样本 std 后均与表中的显示值一致。
-[实验审计记录](EXPERIMENT_AUDIT.md)列出实际路径、配置证据及归属冲突，
-[审计数据](experiment_records/audit_2026-10-16.json)保存原精度 seed 指标和来源文件 SHA-256。
-这些外部本地路径不是随仓库发布的实验附件。
+Mutagenicity BERT 与 DBLP_v1 BERT 的匹配记录位于本地目录
+`/local/wrq/graph-tokenizer-pr263-formal-20260922`，其余四组位于
+`/local/wrq/graph-tokenizer-pr263-formal-20260923-retry`。各实验的 `数据集/encoder/`
+子目录包含汇总及 `run_01_seed_42/` 至 `run_05_seed_46/summary.json`，日志位于 `logs/`。
+这些路径只用于定位审计环境中的记录，原始实验文件不随仓库发布。
 
 当前结果归属按本次实验确认保留，但**最新版运行的精确 commit／代码快照及协议归属尚不能
 由现有本地材料独立验证**：数值匹配的本地记录所引用的现存缓存为 tokenizer schema 2，
@@ -109,8 +111,9 @@ tokenizer schema 为 **4**、预处理缓存格式为 **5**。这是本次审计
 `98343a6b025a48fbb6859cd812a12b81ec3ac3cc`](https://github.com/BUPT-GAMMA/Graph-Tokenization-for-Bridging-Graphs-and-Transformers/tree/98343a6b025a48fbb6859cd812a12b81ec3ac3cc)
 整理为六组 benchmark presets。训练使用统一的 serializer/tokenization pipeline，默认使用
 Python BPE，`cpp` 是可选 backend。
-下表描述当前代码默认配置，不能替代每次运行的完整配置记录；本地审计确认的 batch／梯度
-累积覆盖见[实验审计记录](EXPERIMENT_AUDIT.md)。
+下表描述当前代码默认配置，不能替代每次运行的完整配置记录。数值匹配的本地 retry 日志中，
+AQSOL BERT 的预训练／微调 batch 为 `8/8`、梯度累积为 `4`，三组 GTE 为 `2/2`、梯度累积
+为 `16`；两组分类 BERT 缺少完整 CLI。最新版重跑的完整生效配置仍需配套运行记录确认。
 
 所有 preset 均使用 `max_length=8096`、BPE `2000` merges / 最小频率 `2`、100 次序列化、
 MLM mask 概率 `0.09`、warm-up `0.12 / 0.025`、梯度裁剪 `2.0 / 0.5`、默认 seeds `42–46`，
@@ -227,8 +230,8 @@ logits 平均后取 `argmax` 计算 Accuracy。AQSOL 使用 MSE 训练；其标�
 MAE 取最小值。
 当前 summary 会保存 seed、指标、阶段 history、checkpoint 路径及 GTE 初始化信息；不会自动
 保存 Git commit、dirty diff、完整 CLI、生效配置或数据／split 内容摘要。正式记录需要另行
-归档这些信息，并绑定该次 tokenizer、缓存及 checkpoint；[审计记录](EXPERIMENT_AUDIT.md)
-给出了需要补齐的字段，不代表当前 trainer 已实现自动归档。
+归档这些信息，并绑定该次 tokenizer、缓存及 checkpoint。这些是记录归档要求，
+不代表当前 trainer 已实现自动归档。
 
 ## 极小 smoke 测试
 
