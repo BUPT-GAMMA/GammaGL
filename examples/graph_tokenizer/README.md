@@ -43,6 +43,8 @@ Feuler 的节点引用 token 使用最终组件顺序及遍历中的首次访问
 重复访问同一节点复用引用，不同组件共享一套局部编号。token stream 单独可恢复同构的带标签图；
 完整 serializer/tokenizer result 中的 `local_to_original` metadata 可恢复原始节点编号。
 原始编号只在该 provenance metadata 中，训练 `input_ids` 不含原始编号。
+缺少节点特征（`x=None`）的图使用统一的零节点标签；反序列化后的 `x` 也是零标签，
+不表示恢复了原本不存在的特征。
 若 held-out 图出现未见标签，模型 `input_ids` 可能含 `UNK`，不能单独逆转；完整 result
 保留未损失的 `serialized_token_ids`，可结合 metadata 恢复。
 
@@ -134,6 +136,9 @@ python examples/graph_tokenizer/graph_tokenizer_trainer.py \
 训练时已拟合的 tokenizer 与编码后的 train/val/test records 会缓存到
 `DATA_ROOT/.graph_tokenizer_preprocessing_cache/`；同一配置的后续 seed 可复用该缓存，
 `--preprocessing-cache-dir PATH` 可改变位置。
+缓存键对 Dataset 实际读取的 processed 图数据与 split 文件计算 SHA-256 内容摘要；首次
+处理时先读取 raw，待 processed 生成后按 processed 内容写入缓存。因此仅改动 raw 而未重新
+生成 processed 时，训练输入与缓存均仍以现有 processed 数据为准。
 
 ## 训练与评估
 

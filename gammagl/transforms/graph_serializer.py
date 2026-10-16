@@ -6,7 +6,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from gammagl.data import Graph
 
 
-SERIALIZER_PROTOCOL_VERSION = 3
+SERIALIZER_PROTOCOL_VERSION = 4
 
 
 def validate_undirected_graph_semantics(graph: Any) -> None:
@@ -51,6 +51,8 @@ class FrequencyGuidedEulerianSerializer:
     by ``component_sep_token_id``. Node labels, edge labels, and node
     references occupy disjoint integer domains. The stream recovers an
     isomorphic labeled graph; result metadata restores original node IDs.
+    Graphs without ``x`` use zero as every node label, including in the
+    reconstructed ``x``; absent original features cannot be recovered.
     """
 
     def __init__(
@@ -346,7 +348,7 @@ class FrequencyGuidedEulerianSerializer:
 
     def _node_labels(self, x: Any, num_nodes: int) -> List[int]:
         if x is None:
-            return list(range(num_nodes))
+            return [0] * num_nodes
         values = self._to_list(x)
         if len(values) != num_nodes:
             raise ValueError(

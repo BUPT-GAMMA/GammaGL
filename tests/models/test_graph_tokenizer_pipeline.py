@@ -2,8 +2,10 @@ import importlib.util
 import io
 import json
 import math
+import os
 import pickle
 import random
+import shutil
 import sys
 import tarfile
 from pathlib import Path
@@ -32,6 +34,33 @@ def _aqsol_graphs(trainer, count, offset=0):
         [[0, 1], [1, 2]], [index % 4 + 1, 2, 3], [1, 2],
         [float(index)])
         for index in range(offset, offset + count)]
+
+
+def _preprocessing_args(root, cache):
+    return SimpleNamespace(
+        dataset="aqsol", encoder="bert", data_root=str(root),
+        preprocessing_cache_dir=str(cache), bpe_merges=2,
+        bpe_min_frequency=2, bpe_backend="python", num_serializations=1,
+        max_length=64)
+
+
+def _write_preprocessing_raw(root, first_feature=1, first_label=0.0):
+    raw = root / "aqsol" / "raw"
+    raw.mkdir(parents=True)
+    samples = [
+        ({"edge_index": [[0], [1]], "x": [first_feature if index == 0 else index + 1, 2],
+          "edge_attr": [1]}, first_label if index == 0 else float(index))
+        for index in range(5)
+    ]
+    with (raw / "data.pkl").open("wb") as handle:
+        pickle.dump(samples, handle)
+    for name, indices in (("train", [0, 1, 2]), ("val", [3]), ("test", [4])):
+        (raw / f"{name}_index.json").write_text(json.dumps(indices), encoding="utf-8")
+
+
+def _cache_events(capsys):
+    return [json.loads(line)["status"] for line in capsys.readouterr().out.splitlines()
+            if '"event": "preprocessing_cache"' in line]
 
 
 def _record(graph_id, labels):
@@ -334,6 +363,124 @@ def test_preprocessing_cache_reuses_fitted_tokenizer_and_encoded_splits(
     assert len(list((tmp_path / "cache").glob("*.pickle"))) == 1
 
 
+def test_first_processing_then_same_processed_content_hits_cache(
+        trainer, tmp_path, monkeypatch, capsys):
+    root = tmp_path / "data"
+    _write_preprocessing_raw(root)
+    args = _preprocessing_args(root, tmp_path / "shared-cache")
+    spec = trainer.resolve_dataset("aqsol")
+
+    first = trainer.load_or_prepare_preprocessing(args, spec)
+    assert _cache_events(capsys) == ["created"]
+    assert (root / "aqsol" / "processed" / "split_indices_v2.json").exists()
+    assert first[2]["mean"] == [1.0]
+    monkeypatch.setattr(trainer, "load_dataset_splits",
+                        lambda *_: pytest.fail("cache hit must skip dataset loading"))
+
+    second = trainer.load_or_prepare_preprocessing(args, spec)
+    assert _cache_events(capsys) == ["hit"]
+    assert second[1] == first[1]
+    assert second[2] == first[2]
+    (root / "aqsol" / "raw" / "train_index.json").write_text("[1, 2, 3]", encoding="utf-8")
+    args.seed = 99
+    assert trainer.load_or_prepare_preprocessing(args, spec)[1] == first[1]
+    assert _cache_events(capsys) == ["hit"]
+    assert len(list((tmp_path / "shared-cache").glob("*.pickle"))) == 1
+
+
+@pytest.mark.parametrize("changed", ("graph", "label"))
+def test_processed_only_content_change_rebuilds_preprocessing(
+        trainer, tmp_path, capsys, changed):
+    from gammagl.datasets import AQSOL
+    import tensorlayerx as tlx
+
+    root = tmp_path / "data"
+    _write_preprocessing_raw(root)
+    args = _preprocessing_args(root, tmp_path / "shared-cache")
+    spec = trainer.resolve_dataset("aqsol")
+    first = trainer.load_or_prepare_preprocessing(args, spec)
+    assert _cache_events(capsys) == ["created"]
+    shutil.rmtree(root / "aqsol" / "raw")
+    assert trainer.load_or_prepare_preprocessing(args, spec)[1] == first[1]
+    assert _cache_events(capsys) == ["hit"]
+    dataset = AQSOL(root=str(root))
+    graphs = [dataset[index] for index in range(len(dataset))]
+    if changed == "graph":
+        graphs[0].x = tlx.convert_to_tensor([9, 2], dtype=tlx.int64)
+    else:
+        graphs[0].y = tlx.convert_to_tensor([[10.0]], dtype=tlx.float32)
+    dataset.save_data(dataset.collate(graphs), dataset.processed_paths[0])
+
+    second = trainer.load_or_prepare_preprocessing(args, spec)
+    assert _cache_events(capsys) == ["created"]
+    if changed == "graph":
+        assert second[1]["train"][0]["serialized_token_ids"] != (
+            first[1]["train"][0]["serialized_token_ids"])
+        assert second[2] == first[2]
+    else:
+        assert (second[1]["train"][0]["labels"][0] * second[2]["std"][0]
+                + second[2]["mean"][0]) == pytest.approx(10.0)
+        assert second[2]["mean"] == pytest.approx([13.0 / 3.0])
+
+
+def test_processed_split_change_rebuilds_training_statistics(trainer, tmp_path, capsys):
+    root = tmp_path / "data"
+    _write_preprocessing_raw(root)
+    args = _preprocessing_args(root, tmp_path / "shared-cache")
+    spec = trainer.resolve_dataset("aqsol")
+    first = trainer.load_or_prepare_preprocessing(args, spec)
+    assert _cache_events(capsys) == ["created"]
+    split_path = root / "aqsol" / "processed" / "split_indices_v2.json"
+    old_stat = split_path.stat()
+    split_path.write_text(json.dumps({"train": [1, 2, 3], "val": [0], "test": [4]}),
+                          encoding="utf-8")
+    assert split_path.stat().st_size == old_stat.st_size
+    os.utime(split_path, ns=(old_stat.st_atime_ns, old_stat.st_mtime_ns))
+
+    second = trainer.load_or_prepare_preprocessing(args, spec)
+    assert _cache_events(capsys) == ["created"]
+    assert first[2]["mean"] == [1.0]
+    assert second[2]["mean"] == [2.0]
+    assert (second[1]["val"][0]["labels"][0] * second[2]["std"][0]
+            + second[2]["mean"][0]) == pytest.approx(0.0)
+
+
+def test_shared_cache_distinguishes_data_roots_by_content(trainer, tmp_path, capsys):
+    cache = tmp_path / "shared-cache"
+    root_a, root_b = tmp_path / "a", tmp_path / "b"
+    _write_preprocessing_raw(root_a)
+    _write_preprocessing_raw(root_b, first_feature=9, first_label=10.0)
+    spec = trainer.resolve_dataset("aqsol")
+    first = trainer.load_or_prepare_preprocessing(_preprocessing_args(root_a, cache), spec)
+    second = trainer.load_or_prepare_preprocessing(_preprocessing_args(root_b, cache), spec)
+
+    assert _cache_events(capsys) == ["created", "created"]
+    assert first[2]["mean"] == [1.0]
+    assert second[2]["mean"] == pytest.approx([13.0 / 3.0])
+    assert first[1]["train"][0]["serialized_token_ids"] != (
+        second[1]["train"][0]["serialized_token_ids"])
+
+
+def test_old_preprocessing_payload_rebuilds_current_data(trainer, tmp_path, capsys):
+    root = tmp_path / "data"
+    _write_preprocessing_raw(root)
+    args = _preprocessing_args(root, tmp_path / "shared-cache")
+    spec = trainer.resolve_dataset("aqsol")
+    trainer.load_or_prepare_preprocessing(args, spec)
+    assert _cache_events(capsys) == ["created"]
+    path = trainer.preprocessing_cache_path(args, spec)
+    with path.open("wb") as handle:
+        pickle.dump({"preprocessing_cache_version": trainer.PREPROCESSING_CACHE_VERSION - 1,
+                     "tokenizer": "old", "encoded": "old", "normalizer": "old",
+                     "output_dim": "old"}, handle)
+
+    rebuilt = trainer.load_or_prepare_preprocessing(args, spec)
+    assert _cache_events(capsys) == ["created"]
+    assert (rebuilt[1]["train"][0]["labels"][0] * rebuilt[2]["std"][0]
+            + rebuilt[2]["mean"][0]) == pytest.approx(0.0)
+    assert rebuilt[2]["mean"] == [1.0]
+
+
 def test_preprocessing_cache_does_not_reuse_records_from_the_previous_schema(
         trainer, tmp_path, monkeypatch):
     args = SimpleNamespace(
@@ -346,8 +493,8 @@ def test_preprocessing_cache_does_not_reuse_records_from_the_previous_schema(
               "val": _aqsol_graphs(trainer, 1, offset=3),
               "test": _aqsol_graphs(trainer, 1, offset=4)}
     current_cache_version = trainer.PREPROCESSING_CACHE_VERSION
-    assert current_cache_version > 3
-    monkeypatch.setattr(trainer, "PREPROCESSING_CACHE_VERSION", 3)
+    assert current_cache_version > 4
+    monkeypatch.setattr(trainer, "PREPROCESSING_CACHE_VERSION", current_cache_version - 1)
     stale_path = trainer.preprocessing_cache_path(args, spec)
     stale_path.parent.mkdir(parents=True, exist_ok=True)
     with stale_path.open("wb") as handle:

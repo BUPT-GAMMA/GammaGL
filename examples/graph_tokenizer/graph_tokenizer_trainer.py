@@ -53,7 +53,7 @@ DATASETS = (
 )
 
 DEFAULT_SEEDS = (42, 43, 44, 45, 46)
-PREPROCESSING_CACHE_VERSION = 4
+PREPROCESSING_CACHE_VERSION = 5
 
 
 # GammaGL presets derived from the pinned official GraphTokenizer implementation.
@@ -311,23 +311,42 @@ def synthetic_splits(spec: DatasetSpec) -> Dict[str, List[GraphRecord]]:
 
 
 def preprocessing_cache_path(args, spec: DatasetSpec) -> Path:
+    import tensorlayerx as tlx
+
+    from gammagl.datasets._graph_tokenizer_download import sha256_file
+    from gammagl.transforms.graph_serializer import SERIALIZER_PROTOCOL_VERSION
+    from gammagl.transforms.graph_tokenizer import TOKENIZER_SCHEMA_VERSION
+
     cache_root = Path(getattr(args, "preprocessing_cache_dir", None)
                       or Path(args.data_root) / ".graph_tokenizer_preprocessing_cache")
     raw_dir = Path(args.data_root) / spec.storage_name / "raw"
-    source_files = []
-    if raw_dir.exists():
-        for path in sorted(item for item in raw_dir.rglob("*") if item.is_file()):
-            stat = path.stat()
-            source_files.append((str(path.relative_to(raw_dir)), stat.st_size, stat.st_mtime_ns))
+    processed_dir = Path(args.data_root) / spec.storage_name / "processed"
+    processed_files = [processed_dir / f"{tlx.BACKEND}_data_v2.pt",
+                       processed_dir / "split_indices_v2.json"]
+    if all(path.is_file() for path in processed_files):
+        source_kind, paths = "processed", processed_files
+    else:
+        data_file = next((raw_dir / name for name in ("data.pkl", "data.pkl.gz")
+                          if (raw_dir / name).is_file()), None)
+        source_kind = "raw"
+        paths = ([data_file] if data_file is not None else []) + [
+            raw_dir / f"{split}_index.json" for split in ("train", "val", "test")]
+    # Dataset loads processed files whenever both exist. Hash the exact inputs
+    # it will consume; timestamps can miss in-place replacements of equal size.
+    source_files = [(path.name, sha256_file(path)) for path in paths if path.is_file()]
     signature = {
         "version": PREPROCESSING_CACHE_VERSION,
         "dataset": spec.name,
+        "dataset_spec": spec.__dict__,
         "encoder": args.encoder,
+        "serializer_protocol": SERIALIZER_PROTOCOL_VERSION,
+        "tokenizer_schema": TOKENIZER_SCHEMA_VERSION,
         "bpe_merges": args.bpe_merges,
         "bpe_min_frequency": args.bpe_min_frequency,
         "bpe_backend": args.bpe_backend,
         "num_serializations": args.num_serializations,
         "max_length": args.max_length,
+        "source_kind": source_kind,
         "source_files": source_files,
     }
     digest = hashlib.sha256(json.dumps(signature, sort_keys=True).encode("utf-8")).hexdigest()
@@ -359,6 +378,9 @@ def load_or_prepare_preprocessing(args, spec: DatasetSpec):
                 cached["output_dim"])
 
     splits = load_dataset_splits(args.data_root, spec)
+    # A first load can generate processed files. Store under their fingerprint
+    # so the next call reaches this cache instead of rebuilding indefinitely.
+    cache_path = preprocessing_cache_path(args, spec)
     tokenizer = make_tokenizer(args, splits["train"])
     encoded = encode_splits(tokenizer, splits, args)
     normalizer, output_dim = normalize_labels(encoded, spec)

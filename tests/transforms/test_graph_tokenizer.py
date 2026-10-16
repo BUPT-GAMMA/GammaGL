@@ -94,6 +94,48 @@ def test_serializer_permutation_regression():
     _round_trip(relabeled)
 
 
+def test_missing_node_features_match_explicit_zero_labels_in_full_input():
+    unlabeled = SimpleGraph([[0, 1], [1, 2]], None, [4, 5], num_nodes=3)
+    zero_labeled = SimpleGraph([[0, 1], [1, 2]], [0, 0, 0], [4, 5])
+    relabeled = SimpleGraph([[2, 0], [0, 1]], None, [4, 5], num_nodes=3)
+    tokenizer = GraphTokenizer(bpe=GraphBPE(num_merges=2, min_frequency=2)).fit(
+        [zero_labeled])
+
+    original = tokenizer.encode_graph(unlabeled)
+    for graph in (zero_labeled, relabeled):
+        encoded = tokenizer.encode_graph(graph)
+        assert encoded.serialized_token_ids == original.serialized_token_ids
+        assert encoded.input_ids == original.input_ids
+    assert tokenizer.decode_graph(original)["x"] == [0, 0, 0]
+    assert tokenizer.decode_graph(original.input_ids)["x"] == [0, 0, 0]
+    assert original.metadata["serializer"]["local_to_original"] != (
+        tokenizer.encode_graph(relabeled).metadata["serializer"]["local_to_original"])
+
+
+@pytest.mark.parametrize("edge_index,num_nodes,expected_edges", [
+    ([[0], [1]], 3, [(0, 1, 0)]),
+    ([[], []], 0, []),
+], ids=("isolated_node", "empty_graph"))
+def test_missing_node_features_restore_default_labels_and_structure(
+        edge_index, num_nodes, expected_edges):
+    graph = SimpleGraph(edge_index, None, num_nodes=num_nodes)
+    tokenizer = GraphTokenizer().fit([graph])
+    encoded = tokenizer.encode_graph(graph)
+
+    for restored in (tokenizer.decode_graph(encoded),
+                     tokenizer.decode_graph(encoded.input_ids)):
+        assert restored["num_nodes"] == num_nodes
+        assert restored["x"] == [0] * num_nodes
+        assert _edges(restored["edge_index"], restored["edge_attr"]) == expected_edges
+
+
+def test_explicit_integer_node_labels_are_preserved():
+    graph = SimpleGraph([[0], [1]], [7, -2], [3])
+    tokenizer = GraphTokenizer().fit([graph])
+
+    assert tokenizer.decode_graph(tokenizer.encode_graph(graph))["x"] == [7, -2]
+
+
 @pytest.mark.parametrize("graph,permutation", [
     (SimpleGraph([[0, 1], [1, 2]], [10, 20, 30], [1, 2]), {0: 2, 1: 1, 2: 0}),
     (SimpleGraph([[0, 1, 2], [1, 2, 3]], [11, 22, 33, 44], [1, 2, 3]),
@@ -231,6 +273,15 @@ def test_old_pickled_tokenizer_and_result_are_rejected():
     serialized.metadata["protocol_version"] = 2
     with pytest.raises(ValueError, match="protocol"):
         tokenizer.serializer.deserialize(serialized)
+
+
+def test_previous_unlabeled_tokenizer_schema_cannot_encode_new_default_labels():
+    graph = SimpleGraph([[0], [1]], None, num_nodes=2)
+    old = pickle.loads(pickle.dumps(GraphTokenizer().fit([graph])))
+    old.schema_version = 3
+
+    with pytest.raises(RuntimeError, match="protocol|schema"):
+        old.encode_graph(graph)
 
 
 def test_signature_tie_can_leave_full_input_dependent_on_numbering():

@@ -11,7 +11,7 @@ from .graph_serializer import (FrequencyGuidedEulerianSerializer,
                                GraphSerializationResult, SERIALIZER_PROTOCOL_VERSION)
 
 
-TOKENIZER_SCHEMA_VERSION = 3
+TOKENIZER_SCHEMA_VERSION = 4
 
 
 @dataclass(frozen=True)
