@@ -128,8 +128,12 @@ MLM mask 概率 `0.09`、warm-up `0.12 / 0.025`、梯度裁剪 `2.0 / 0.5`、默
 | AQSOL + BERT | 32 / 32 | `1e-4 / 1e-5` | 200 / 200 | `0.1 / 0.1` | 20 | 8096 | 512 隐藏维、4 层、4 头、2048 FFN |
 | AQSOL + GTE | 32 / 32 | `1e-4 / 1e-5` | 200 / 200 | `0.1 / 0.1` | 20 | 8192 | 768 隐藏维、12 层、12 头、3072 FFN、RoPE |
 
-`--gradient-accumulation-steps` 仍是通用 CLI 功能；每个完整或最后的 partial accumulation
-window 都使用其实际 window size 作为相同 divisor，optimizer 与 scheduler 的 step 数保持一致。
+`--gradient-accumulation-steps` 仍是通用 CLI 功能；完整窗口与不足步数的尾窗口都逐批对
+loss sum 反向传播，在窗口结束时按实际目标总数归一化梯度，再做梯度裁剪和更新。
+分类按样本数、回归 MSE 按参与 loss 的元素数、MLM 按 `labels != -100` 的 token 数
+归一化；训练 loss 日志也使用相同计数口径。MLM 中没有有效目标的 microbatch 不稀释
+其他批次的梯度；整个窗口没有有效目标时清空梯度，跳过 optimizer 与 scheduler 更新。
+两者实际 step 数保持一致，全空 epoch 的训练 loss 记为 0。
 
 ### 序列长度与位置容量
 

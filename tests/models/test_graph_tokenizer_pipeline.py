@@ -652,109 +652,180 @@ def test_phase_training_accumulates_gradients_before_optimizer_step(trainer, mon
     assert scheduler.steps == 2
 
 
-@pytest.mark.parametrize(
-    ("batch_count", "accumulation_steps", "expected"),
-    [
-        (6, 4, [4, 4, 4, 4, 2, 2]),
-        (8, 4, [4, 4, 4, 4, 4, 4, 4, 4]),
-        (3, 1, [1, 1, 1]),
-        (3, 4, [3, 3, 3]),
-    ],
-)
-def test_gradient_accumulation_window_size_uses_the_full_window(
-        trainer, batch_count, accumulation_steps, expected):
-    assert [
-        trainer.gradient_accumulation_window_size(
-            batch_index, batch_count, accumulation_steps)
-        for batch_index in range(batch_count)
-    ] == expected
+class AccumulationModel(torch.nn.Module):
+    """Fixed scalar model: no dropout, augmentation, or noise."""
+
+    def __init__(self, path, width=1):
+        super().__init__()
+        self.weight = torch.nn.Parameter(torch.tensor(1.0))
+        self.path, self.width = path, width
+
+    def forward(self, input_ids, attention=None, task=None):
+        values = self.weight * input_ids.float()
+        if self.path == "mlm":
+            return values.unsqueeze(-1) * torch.tensor([1.0, -1.0, 0.5])
+        if self.path == "classification":
+            return torch.cat((values, -values), dim=-1)
+        return values * torch.arange(1, self.width + 1).float()
 
 
-def _accumulated_gradients(trainer, monkeypatch, path, batch_gradients, accumulation_steps):
-    class CountingScheduler:
-        def __init__(self):
-            self.steps = 0
-
-        def step(self):
-            self.steps += 1
-
-    class ScalarModel(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.scale = torch.nn.Parameter(torch.tensor(1.0))
-
-    model = ScalarModel()
-    loader = [
-        (torch.tensor([[gradient]]), torch.ones((1, 1), dtype=torch.long),
-         torch.tensor([[0.0]]), torch.tensor([batch_index]))
-        for batch_index, gradient in enumerate(batch_gradients)
-    ]
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.0)
-    gradients = []
-    original_step = optimizer.step
-
-    def capture_gradient_then_step():
-        gradients.append(float(model.scale.grad))
-        original_step()
-
-    monkeypatch.setattr(optimizer, "step", capture_gradient_then_step)
-    scheduler = CountingScheduler()
+def _accumulation_case(path, batch_sizes, width=1, mlm_labels=None):
+    size = sum(batch_sizes)
     if path == "mlm":
-        tokenizer = SimpleNamespace(special_tokens=SimpleNamespace(
-            pad_token_id=0, cls_token_id=3, sep_token_id=4,
-            component_sep_token_id=5, mask_token_id=6), vocabulary={7: 7})
-
-        def known_mlm_loss(_torch, _model, input_ids, *_args):
-            return model.scale * input_ids[0, 0].float()
-
-        monkeypatch.setattr(trainer, "mlm_loss", known_mlm_loss)
-        epoch_loss = trainer.train_mlm_epoch(
-            torch, model, loader, optimizer, scheduler, tokenizer,
-            SimpleNamespace(mask_probability=1.0, pretrain_max_grad_norm=1e6,
-                            gradient_accumulation_steps=accumulation_steps),
-            torch.device("cpu"), seed=7)
+        # Already corrupted inputs and predetermined labels, shared by both runs.
+        inputs = torch.tensor([[i + 1, 2, 3] for i in range(size)])
+        labels = torch.tensor(
+            mlm_labels if mlm_labels is not None else
+            [[0, -100, -100] if i % 2 == 0 else [1, 2, 1] for i in range(size)])
     else:
-        def known_logits(_torch, _model, input_ids, *_args):
-            return model.scale * input_ids[:, 0].float()
-
-        monkeypatch.setattr(trainer, "supervised_logits", known_logits)
-        monkeypatch.setattr(trainer, "supervised_loss", lambda _torch, logits, *_args: logits.mean())
-        epoch_loss = trainer.train_downstream_epoch(
-            torch, model, loader, optimizer, scheduler, trainer.resolve_dataset("aqsol"),
-            SimpleNamespace(finetune_max_grad_norm=1e6, finetune_noise_probability=0.0,
-                            finetune_noise_std=0.0,
-                            gradient_accumulation_steps=accumulation_steps),
-            torch.device("cpu"))
-    return gradients, scheduler.steps, epoch_loss
-
-
-@pytest.mark.parametrize("path", ("mlm", "downstream"))
-def test_training_accumulation_averages_each_partial_window(
-        trainer, monkeypatch, path):
-    gradients, scheduler_steps, epoch_loss = _accumulated_gradients(
-        trainer, monkeypatch, path, [1, 2, 3, 4, 5, 6], accumulation_steps=4)
-
-    assert gradients == pytest.approx([2.5, 5.5])
-    assert scheduler_steps == 2
-    assert epoch_loss == pytest.approx(3.5)
+        inputs = torch.tensor([1, 1, 3, 2, 4, 1, 3, 5][:size]).reshape(-1, 1)
+        labels = (torch.arange(size).remainder(2).reshape(-1, 1) if path == "classification"
+                  else torch.zeros(size, width))
+    batches = []
+    offset = 0
+    for batch_size in batch_sizes:
+        end = offset + batch_size
+        batches.append((inputs[offset:end], torch.ones_like(inputs[offset:end]),
+                        labels[offset:end], torch.arange(offset, end)))
+        offset = end
+    return batches, labels
 
 
-@pytest.mark.parametrize(
-    ("batch_gradients", "accumulation_steps", "expected_gradients"),
-    [
-        ([1, 2, 3, 4, 5, 6, 7, 8], 4, [2.5, 6.5]),
-        ([1, 2, 3], 1, [1.0, 2.0, 3.0]),
-        ([1, 2, 3], 4, [2.0]),
-    ],
-)
-@pytest.mark.parametrize("path", ("mlm", "downstream"))
-def test_training_accumulation_matches_complete_and_short_windows(
-        trainer, monkeypatch, path, batch_gradients, accumulation_steps, expected_gradients):
-    gradients, scheduler_steps, _ = _accumulated_gradients(
-        trainer, monkeypatch, path, batch_gradients, accumulation_steps)
+def _run_accumulation(trainer, monkeypatch, path, batches, labels, steps,
+                      width=1, max_norm=1e6, lr=0.05):
+    model = AccumulationModel(path, width)
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr, weight_decay=0.1)
+    events, gradients, clipped_gradients = [], [], []
+    original_clip = torch.nn.utils.clip_grad_norm_
+    original_step, original_zero = optimizer.step, optimizer.zero_grad
 
-    assert gradients == pytest.approx(expected_gradients)
-    assert scheduler_steps == len(expected_gradients)
+    def clip(parameters, limit):
+        parameters = list(parameters)
+        events.append("clip")
+        gradients.append(float(model.weight.grad))
+        result = original_clip(parameters, limit)
+        clipped_gradients.append(float(model.weight.grad))
+        return result
+
+    def step():
+        events.append("optimizer")
+        assert float(model.weight.grad) == clipped_gradients[-1]
+        return original_step()
+
+    def zero(*args, **kwargs):
+        events.append("zero")
+        return original_zero(*args, **kwargs)
+
+    def fixed_mask(_torch, input_ids, *_args):
+        return input_ids.clone(), labels[input_ids[:, 0].long() - 1].clone()
+
+    scheduler = SimpleNamespace(step=lambda: events.append("scheduler"))
+    args = SimpleNamespace(
+        gradient_accumulation_steps=steps, mask_probability=0.0,
+        pretrain_max_grad_norm=max_norm, finetune_max_grad_norm=max_norm,
+        finetune_noise_probability=0.0, finetune_noise_std=0.0)
+    with monkeypatch.context() as patch:
+        patch.setattr(torch.nn.utils, "clip_grad_norm_", clip)
+        patch.setattr(optimizer, "step", step)
+        patch.setattr(optimizer, "zero_grad", zero)
+        patch.setattr(trainer, "mask_for_mlm", fixed_mask)
+        if path == "mlm":
+            loss = trainer.train_mlm_epoch(
+                torch, model, batches, optimizer, scheduler, None, args,
+                torch.device("cpu"), seed=7)
+        else:
+            spec = trainer.resolve_dataset("mutagenicity" if path == "classification" else "aqsol")
+            loss = trainer.train_downstream_epoch(
+                torch, model, batches, optimizer, scheduler, spec, args,
+                torch.device("cpu"), seed=7)
+    assert model.weight.grad is None
+    return gradients, clipped_gradients, loss, float(model.weight.detach()), events
+
+
+def _merged_accumulation_reference(path, batches, steps, width=1, max_norm=1e6, lr=0.05):
+    # Independent oracle: real mean loss on each concatenated CPU window.
+    model = AccumulationModel(path, width)
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr, weight_decay=0.1)
+    gradients, clipped_gradients, events = [], [], ["zero"]
+    total, count = 0.0, 0
+    for start in range(0, len(batches), steps):
+        window = batches[start:start + steps]
+        inputs = torch.cat([batch[0] for batch in window])
+        labels = torch.cat([batch[2] for batch in window])
+        target_count = int(labels.ne(-100).sum()) if path == "mlm" else labels.numel()
+        if target_count:
+            logits = model(inputs)
+            if path == "mlm":
+                loss = torch.nn.functional.cross_entropy(
+                    logits.reshape(-1, 3), labels.reshape(-1), ignore_index=-100)
+            elif path == "classification":
+                loss = torch.nn.functional.cross_entropy(logits, labels.reshape(-1))
+            else:
+                loss = torch.nn.functional.mse_loss(logits, labels)
+            total += float(loss.detach()) * target_count
+            count += target_count
+            loss.backward()
+            gradients.append(float(model.weight.grad))
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
+            clipped_gradients.append(float(model.weight.grad))
+            optimizer.step()
+            events.extend(["clip", "optimizer", "scheduler"])
+        optimizer.zero_grad(set_to_none=True)
+        events.append("zero")
+    return gradients, clipped_gradients, total / max(count, 1), float(model.weight.detach()), events
+
+
+def test_mse_accumulation_weights_samples_instead_of_microbatches(trainer, monkeypatch):
+    batches, labels = _accumulation_case("regression", [2, 1])
+    gradients, _, loss, _, _ = _run_accumulation(
+        trainer, monkeypatch, "regression", batches, labels, steps=2, lr=0.0)
+
+    assert gradients == pytest.approx([22 / 3])
+    assert loss == pytest.approx(11 / 3)
+
+
+@pytest.mark.parametrize("path,width", [
+    ("regression", 1), ("regression", 2), ("classification", 1), ("mlm", 1),
+])
+@pytest.mark.parametrize("batch_sizes,steps", [
+    ([2, 1], 1),              # unchanged single-batch update semantics
+    ([2, 1], 2),              # unequal batch sizes / masked token counts
+    ([2, 1], 4),              # short window
+    ([2, 1, 2, 1], 2),        # multiple full windows
+    ([2, 1, 2, 1], 3),        # full window followed by a short window
+    ([1, 1, 1, 1, 1, 1], 4),  # original equal-sized partial-window coverage
+])
+@pytest.mark.parametrize("max_norm", [1e6, 0.2])
+def test_accumulation_matches_merged_loss_gradients_updates_and_logging(
+        trainer, monkeypatch, path, width, batch_sizes, steps, max_norm):
+    batches, labels = _accumulation_case(path, batch_sizes, width)
+    actual = _run_accumulation(trainer, monkeypatch, path, batches, labels, steps, width, max_norm)
+    expected = _merged_accumulation_reference(path, batches, steps, width, max_norm)
+
+    for observed, reference in zip(actual[:4], expected[:4]):
+        assert observed == pytest.approx(reference, rel=2e-6, abs=1e-6)
+    assert actual[4] == expected[4]  # normalize -> clip -> optimizer -> scheduler -> zero
+
+
+@pytest.mark.parametrize("mlm_labels,steps", [
+    ([[0, -100, -100], [-100, -100, -100]], 2),
+    ([[-100, -100, -100], [1, 2, 1]], 2),
+    ([[-100, -100, -100], [-100, -100, -100]], 1),
+    ([[-100, -100, -100], [-100, -100, -100]], 2),
+    ([[-100, -100, -100], [-100, -100, -100]], 4),
+    ([[-100, -100, -100], [-100, -100, -100], [1, 2, 1]], 2),
+    ([[0, -100, -100], [1, 2, 1], [-100, -100, -100]], 2),
+])
+def test_mlm_accumulation_ignores_empty_microbatches_and_skips_empty_windows(
+        trainer, monkeypatch, mlm_labels, steps):
+    batches, labels = _accumulation_case("mlm", [1] * len(mlm_labels), mlm_labels=mlm_labels)
+    actual = _run_accumulation(trainer, monkeypatch, "mlm", batches, labels, steps)
+    expected = _merged_accumulation_reference("mlm", batches, steps)
+
+    for observed, reference in zip(actual[:4], expected[:4]):
+        assert observed == pytest.approx(reference, rel=2e-6, abs=1e-6)
+    assert math.isfinite(actual[2])
+    assert actual[4] == expected[4]
 
 
 def test_set_seed_controls_python_numpy_torch_cuda_and_cudnn(trainer, monkeypatch):

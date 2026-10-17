@@ -669,12 +669,13 @@ def mask_for_mlm(torch, input_ids, attention, tokenizer, probability, generator)
 
 
 def mlm_loss(torch, model, input_ids, attention, tokenizer, probability, generator):
+    """Return the loss sum and valid token count, including for empty batches."""
     masked, labels = mask_for_mlm(torch, input_ids, attention, tokenizer, probability, generator)
     logits = model(masked, attention, task="mlm")
     loss = torch.nn.functional.cross_entropy(
         logits.reshape(-1, logits.shape[-1]), labels.reshape(-1), ignore_index=-100,
         reduction="sum")
-    return loss / labels.ne(-100).sum().clamp(min=1)
+    return loss, int(labels.ne(-100).sum())
 
 
 def supervised_logits(torch, model, input_ids, attention, noise_probability, noise_std, generator):
@@ -687,10 +688,11 @@ def supervised_logits(torch, model, input_ids, attention, noise_probability, noi
     return model._task_logits(pooled)
 
 
-def supervised_loss(torch, logits, labels, spec: DatasetSpec):
+def supervised_loss(torch, logits, labels, spec: DatasetSpec, reduction="mean"):
     if spec.num_classes:
-        return torch.nn.functional.cross_entropy(logits, labels.reshape(-1).long())
-    return torch.nn.functional.mse_loss(logits, labels)
+        return torch.nn.functional.cross_entropy(
+            logits, labels.reshape(-1).long(), reduction=reduction)
+    return torch.nn.functional.mse_loss(logits, labels, reduction=reduction)
 
 
 def save_checkpoint(torch, path: Path, model, epoch: int, score: float) -> None:
@@ -729,10 +731,17 @@ def optimizer_steps_per_epoch(loader, args) -> int:
     return math.ceil(len(loader) / gradient_accumulation_steps(args))
 
 
-def gradient_accumulation_window_size(batch_index: int, batch_count: int,
-                                      accumulation_steps: int) -> int:
-    window_start = (batch_index // accumulation_steps) * accumulation_steps
-    return min(accumulation_steps, batch_count - window_start)
+def step_accumulated_gradients(torch, model, optimizer, scheduler, target_count, max_grad_norm):
+    # Normalize by targets before clipping; an empty MLM window makes no update
+    # (including weight decay) and must not advance the learning-rate schedule.
+    if target_count:
+        for parameter in model.parameters():
+            if parameter.grad is not None:
+                parameter.grad.div_(target_count)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
+        optimizer.step()
+        scheduler.step()
+    optimizer.zero_grad(set_to_none=True)
 
 
 def train_mlm_epoch(torch, model, loader, optimizer, scheduler, tokenizer, args, device, seed):
@@ -741,21 +750,21 @@ def train_mlm_epoch(torch, model, loader, optimizer, scheduler, tokenizer, args,
     total, count = 0.0, 0
     accumulation_steps = gradient_accumulation_steps(args)
     batch_count = len(loader)
+    window_count = 0
     optimizer.zero_grad(set_to_none=True)
     for batch_index, (input_ids, attention, _, _) in enumerate(loader):
         input_ids, attention = input_ids.to(device), attention.to(device)
-        loss = mlm_loss(torch, model, input_ids, attention, tokenizer,
-                        args.mask_probability, generator)
-        window_size = gradient_accumulation_window_size(
-            batch_index, batch_count, accumulation_steps)
-        (loss / window_size).backward()
+        loss, target_count = mlm_loss(torch, model, input_ids, attention, tokenizer,
+                                     args.mask_probability, generator)
+        if target_count:
+            loss.backward()
+        window_count += target_count
         if (batch_index + 1) % accumulation_steps == 0 or batch_index + 1 == batch_count:
-            torch.nn.utils.clip_grad_norm_(model.parameters(), args.pretrain_max_grad_norm)
-            optimizer.step()
-            scheduler.step()
-            optimizer.zero_grad(set_to_none=True)
-        total += float(loss.detach()) * len(input_ids)
-        count += len(input_ids)
+            step_accumulated_gradients(
+                torch, model, optimizer, scheduler, window_count, args.pretrain_max_grad_norm)
+            window_count = 0
+        total += float(loss.detach())
+        count += target_count
     return total / max(count, 1)
 
 
@@ -816,23 +825,24 @@ def train_downstream_epoch(torch, model, loader, optimizer, scheduler, spec, arg
     total, count = 0.0, 0
     accumulation_steps = gradient_accumulation_steps(args)
     batch_count = len(loader)
+    window_count = 0
     optimizer.zero_grad(set_to_none=True)
     for batch_index, (input_ids, attention, labels, _) in enumerate(loader):
         input_ids, attention, labels = input_ids.to(device), attention.to(device), labels.to(device)
-        loss = supervised_loss(
-            torch, supervised_logits(
-                torch, model, input_ids, attention, args.finetune_noise_probability,
-                args.finetune_noise_std, generator), labels, spec)
-        window_size = gradient_accumulation_window_size(
-            batch_index, batch_count, accumulation_steps)
-        (loss / window_size).backward()
+        logits = supervised_logits(
+            torch, model, input_ids, attention, args.finetune_noise_probability,
+            args.finetune_noise_std, generator)
+        loss = supervised_loss(torch, logits, labels, spec, reduction="sum")
+        target_count = (labels.numel() if spec.num_classes else
+                        torch.broadcast_tensors(logits, labels)[0].numel())
+        loss.backward()
+        window_count += target_count
         if (batch_index + 1) % accumulation_steps == 0 or batch_index + 1 == batch_count:
-            torch.nn.utils.clip_grad_norm_(model.parameters(), args.finetune_max_grad_norm)
-            optimizer.step()
-            scheduler.step()
-            optimizer.zero_grad(set_to_none=True)
-        total += float(loss.detach()) * len(input_ids)
-        count += len(input_ids)
+            step_accumulated_gradients(
+                torch, model, optimizer, scheduler, window_count, args.finetune_max_grad_norm)
+            window_count = 0
+        total += float(loss.detach())
+        count += target_count
     return total / max(count, 1)
 
 
