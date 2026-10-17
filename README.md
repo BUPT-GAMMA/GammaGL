@@ -170,6 +170,12 @@ pip install gammagl
 For the latest source build, use the GAMMA Lab maintained TensorLayerX branch
 and the source installation commands below.
 
+For the **GraphTokenizer paper environment**, use the complete
+[GraphTokenizer installation and CPU verification recipe](examples/graph_tokenizer/README.md#安装)
+instead of the unpinned quick starts below. It fixes Python 3.10, PyTorch 2.1.2,
+torchvision 0.16.2, torchaudio 2.1.2, DGL 2.1.0, and torchdata 0.7.1, and installs
+the TLX/build prerequisites before `.[graph-tokenizer-paper]`.
+
 ### CPU Quick Start
 
 ```bash

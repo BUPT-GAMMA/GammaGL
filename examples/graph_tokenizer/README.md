@@ -13,9 +13,9 @@ BPE／标签归一化，在完整训练集上进行 MLM，再微调、验证、�
 
 ## 正式 benchmark 与结果
 
-按本次提供的实验确认，以下六组 GammaGL reproduction 为最新版代码完成的五 seed 最终测试
-结果，继续作为当前复现实验成绩展示。报告 `mean ± std`，跨 seed 标准差使用样本标准差
-（`ddof=1`）。论文／官方参考成绩独立列出，不作为 GammaGL 的实验记录。
+以下六组 GammaGL reproduction 按用户确认，保留为此前报告的最新版五 seed 最终测试
+成绩。本次安装验证和梯度累积修复没有重新运行这六组正式训练。报告 `mean ± std`，
+跨 seed 标准差使用样本标准差（`ddof=1`）。论文／官方参考成绩独立列出，不作为 GammaGL 的实验记录。
 
 | 数据集 | Encoder | 指标 | 论文／官方参考 | 当前 GammaGL reproduction |
 | :-- | :-- | :-- | :-- | :-- |
@@ -32,20 +32,9 @@ Accuracy 的均值用百分数表示，`±` 后的标准差单位为**百分点*
 
 ### 实验记录与可追溯性
 
-2026-10-16 审计找到了六组各五个 seed（42–46）的本地 summary 和训练日志；逐 seed 指标、
-日志完成行与汇总相符，重新计算 mean 和样本 std 后均与表中的显示值一致。
-Mutagenicity BERT 与 DBLP_v1 BERT 的匹配记录位于本地目录
-`/local/wrq/graph-tokenizer-pr263-formal-20260922`，其余四组位于
-`/local/wrq/graph-tokenizer-pr263-formal-20260923-retry`。各实验的 `数据集/encoder/`
-子目录包含汇总及 `run_01_seed_42/` 至 `run_05_seed_46/summary.json`，日志位于 `logs/`。
-这些路径只用于定位审计环境中的记录，原始实验文件不随仓库发布。
-
-当前结果归属按本次实验确认保留，但**最新版运行的精确 commit／代码快照及协议归属尚不能
-由现有本地材料独立验证**：数值匹配的本地记录所引用的现存缓存为 tokenizer schema 2，
-且其下游 checkpoint 没有 schema 字段，与当前 schema 4 存在冲突；AQSOL 缓存统计量也与
-当前按唯一训练图统计的规则不同。这批材料能核实数值，不能充当最新版重跑的版本凭据。
-仍需补入最新版运行的代码快照、完整生效配置、数据／split 摘要及 tokenizer／checkpoint
-对应关系；这项记录缺口不用于将当前六组成绩整体改标为旧协议结果。
+本次没有建立这六组成绩与精确运行 commit、完整生效配置、五个 seed 原始指标、日志及
+checkpoint 的对应关系，不把本次 smoke 或单元测试作为这些成绩的运行凭据，也不据此
+将成绩改标为旧协议结果。后续补充版本追溯时应提供可核实的原始记录。
 
 Trainer 接受 `mutag` 和 `muta` 作为 **Mutagenicity** 的 aliases，不指 188-graph `MUTAG`。
 `dblp` 对应 **DBLP_v1 graph-classification** benchmark，数据集类为 `GraphTokenizerDBLP`，
@@ -82,8 +71,8 @@ Feuler 的节点引用 token 使用最终组件顺序及遍历中的首次访问
 
 ### 输入协议与产物兼容性
 
-当前实现快照为 `18f6ebf6c94d9738ea0b51b1ccd42d16ae4e2722`，serializer protocol 为 **4**、
-tokenizer schema 为 **4**、预处理缓存格式为 **5**。这是本次审计的代码基线，不等同于
+协议审计基线为 `18f6ebf6c94d9738ea0b51b1ccd42d16ae4e2722`；当前 serializer protocol 为 **4**、
+tokenizer schema 为 **4**、预处理缓存格式为 **5**。这个代码基线不等同于
 六组实验已经核实的运行 commit。
 
 旧 protocol 2 把原始节点编号写入引用 token；`21d93d7` 引入 protocol／schema 3，改为
@@ -111,9 +100,7 @@ tokenizer schema 为 **4**、预处理缓存格式为 **5**。这是本次审计
 `98343a6b025a48fbb6859cd812a12b81ec3ac3cc`](https://github.com/BUPT-GAMMA/Graph-Tokenization-for-Bridging-Graphs-and-Transformers/tree/98343a6b025a48fbb6859cd812a12b81ec3ac3cc)
 整理为六组 benchmark presets。训练使用统一的 serializer/tokenization pipeline，默认使用
 Python BPE，`cpp` 是可选 backend。
-下表描述当前代码默认配置，不能替代每次运行的完整配置记录。数值匹配的本地 retry 日志中，
-AQSOL BERT 的预训练／微调 batch 为 `8/8`、梯度累积为 `4`，三组 GTE 为 `2/2`、梯度累积
-为 `16`；两组分类 BERT 缺少完整 CLI。最新版重跑的完整生效配置仍需配套运行记录确认。
+下表描述当前代码默认配置，不能替代每次运行的完整生效配置及配套记录。
 
 所有 preset 均使用 `max_length=8096`、BPE `2000` merges / 最小频率 `2`、100 次序列化、
 MLM mask 概率 `0.09`、warm-up `0.12 / 0.025`、梯度裁剪 `2.0 / 0.5`、默认 seeds `42–46`，
@@ -160,19 +147,117 @@ parameter coverage 和 tensor shape；任一校验失败都会停止运行。`--
 
 ## 安装
 
-正式论文运行时固定使用 Python 3.10、PyTorch 2.1.2、DGL 2.1.0 和
-torchdata 0.7.1。DGL 2.1 的 GraphBolt 动态库按 PyTorch 版本构建，不能将这里的
-PyTorch 升级到其他版本。先按 CPU 或 CUDA 环境安装对应的 PyTorch 2.1.2 wheel，再安装 extra；
-例如 CPU 环境：
+本安装流程固定使用 **Python 3.10、PyTorch 2.1.2、torchvision 0.16.2、
+torchaudio 2.1.2、DGL 2.1.0、torchdata 0.7.1**。不要用主 README 中未固定版本的
+通用安装命令替代本节；DGL 2.1 的 GraphBolt 动态库与 PyTorch 版本绑定。
+
+### CPU：从新环境安装
+
+需要 Git、支持 C++17／OpenMP 的 GCC/G++（例如 Ubuntu 的 `build-essential`），以及
+Python 3.10 的开发头文件和 `venv`。先安装这些系统工具；下列命令从仓库外开始执行。
+也可以先用 `conda create -n graph-tokenizer-paper python=3.10 pip` 和
+`conda activate graph-tokenizer-paper` 创建环境，替代前两行 venv 命令。
 
 ```bash
-python --version  # Python 3.10.x
-pip install torch==2.1.2 --index-url https://download.pytorch.org/whl/cpu
-pip install -e ".[graph-tokenizer-paper]"
+python3.10 -m venv .venv-graph-tokenizer
+source .venv-graph-tokenizer/bin/activate
+python -c 'import sys; print(sys.version); assert sys.version_info[:2] == (3, 10)'
+export TL_BACKEND=torch
+export DGLBACKEND=pytorch
+
+# torch 2.1.2 的构建工具使用 pkg_resources.packaging；保留 setuptools 69.5.1。
+# NumPy 与仓库要求一致，避免升级至 2.x。
+python -m pip install --upgrade pip
+python -m pip install setuptools==69.5.1 wheel "numpy>=1.24,<2" "pybind11>=2.10" "ninja>=1.11"
+python -m pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 \
+  --index-url https://download.pytorch.org/whl/cpu
+python -m pip install "numpy>=1.24,<2" \
+  "tensorlayerx @ git+https://github.com/dddg617/tensorlayerx.git@nightly"
+
+# 验证本 PR 时检出其现有源分支；必须取得 parallel_hashmap 子模块。
+git clone --recursive --branch pr/graphtokenizer-paper-8-29-2 https://github.com/baihchou8787/GammaGL.git
+cd GammaGL
+git submodule update --init --recursive
+GAMMAGL_WITH_CUDA=0 python -m pip install -e ".[graph-tokenizer-paper]" --no-build-isolation
+python -m pip install pytest
 ```
 
-该 extra 同时固定 DGL／torchdata 兼容组合，并包含 `huggingface-hub`、`safetensors`；
-正式 GTE 初始化需要它们来获取并转换固定 checkpoint。
+`setup.py` 在解析 extra 的依赖前就会导入 GAMMA Lab TLX 的
+`PyCppExtension`、`PyCUDAExtension` 和 `PyBuildExtension`，所以 **TLX 和 pybind11 等
+构建依赖必须提前安装**，仅写 `pip install -e ".[graph-tokenizer-paper]"` 不够。
+`--no-build-isolation` 让构建使用当前环境中的 backend／TLX／构建依赖。
+TLX 会导入 torchvision；这里同时安装与仓库 CI 一致的匹配 torchaudio。
+extra 固定 DGL／torchdata，并包含 GraphBolt 所需的 `pydantic`、`PyYAML` 以及正式
+GTE checkpoint 获取／转换所需的 `huggingface-hub`、`safetensors`。
+`requirements.txt` 是核心运行依赖列表，不能替代以上 backend、构建前置步骤及 paper extra。
+
+若默认 PyPI 下载超时，可给 PyPI 安装命令追加
+`--index-url https://mirrors.aliyun.com/pypi/simple`；PyTorch CPU 三件套仍使用上面的官方
+CPU index。也可预下载同版本 wheels，但应核对官方索引的 SHA-256；本次验证的
+PyTorch 三件套和 llvmlite 预下载文件均做了该校验。GitHub 的 TLX 源码获取独立于 PyPI 镜像。
+
+### CUDA 使用
+
+上面的安装和下方验证命令以 CPU 为准。CUDA 环境应在安装 TLX／GammaGL **之前**，按
+[PyTorch 官方历史版本说明](https://pytorch.org/get-started/previous-versions/#v212)
+选择匹配驱动的 **2.1.2 / 0.16.2 / 2.1.2** CUDA wheels，并从
+[DGL 2.1 官方安装说明](https://www.dgl.ai/dgl_docs/en/2.1.x/install/index.html)选择
+同时匹配 PyTorch 2.1 与该 CUDA 版本的 DGL 2.1.0 构建。
+这里不提供未经本次验证的 CUDA wheel 地址。
+
+编译 GammaGL CUDA 扩展还需要匹配的本地 CUDA toolkit、`nvcc` 和 headers；仅安装
+CUDA runtime wheel 不足以编译。工具链齐备后，在同一环境和仓库根目录执行：
+
+```bash
+export TL_BACKEND=torch
+export DGLBACKEND=pytorch
+GAMMAGL_WITH_CUDA=auto python -m pip install -e ".[graph-tokenizer-paper]" --no-build-isolation
+python -c "import torch, torchvision, tensorlayerx, dgl, dgl.graphbolt, torchdata"
+```
+
+`GAMMAGL_WITH_CUDA=0` 明确构建 CPU 扩展；`auto` 根据本地 toolkit 决定；`1` 强制
+构建 CUDA 扩展。CUDA 构建和正式 GPU 训练不属于下方 CPU smoke 的验证结论。
+
+### CPU 安装验证
+
+在已激活的 Python 3.10 环境和仓库根目录执行：
+
+```bash
+export TL_BACKEND=torch
+export DGLBACKEND=pytorch
+python -c "import torch, torchvision, torchaudio, tensorlayerx, dgl, dgl.graphbolt, torchdata"
+python tests/datasets/graph_tokenizer_dgl_smoke.py
+python -m pytest -q -rs \
+  tests/transforms/test_graph_tokenizer.py \
+  tests/datasets/test_graph_tokenizer_datasets.py \
+  tests/models/test_graph_tokenizer_models.py \
+  tests/models/test_graph_tokenizer_dataset_metadata.py \
+  tests/models/test_graph_tokenizer_pipeline.py
+python -m pytest -q -rs tests/transforms/test_graph_tokenizer.py -k cpp
+```
+
+最后一条检查已构建的可选 Python/C++ BPE 一致性；扩展缺失会显式 skip。
+真实 release bundle 测试需要设置 `GAMMAGL_GRAPH_TOKENIZER_DATA_BUNDLE`，否则显式 skip，
+不能记为真实数据验证通过。下文给出无需真实数据或正式 GTE checkpoint 的 tiny smoke 命令。
+
+### 2026-10-17 CPU 验证记录
+
+在独立 Python 3.10.20 venv 和独立源码副本中，按上述顺序安装；源码验证基线为
+`dde429584e993ec3837e97f6f38d7f083f0fb078`（已包含梯度累积修复）。本阶段仅更新
+安装文档和 CI，不改变模型、输入协议、数据划分或六组 preset。
+
+- PyTorch `2.1.2+cpu`、torchvision `0.16.2+cpu`、torchaudio `2.1.2+cpu`、DGL `2.1.0`、torchdata `0.7.1`。
+- GAMMA Lab TLX nightly revision `8fbe30d0588a5e58673d9cfad77b111af93182bb`；包元数据版本 `0.5.9`，运行时 `tlx.__version__` 为 `0.5.8`。
+- NumPy `1.26.4`、setuptools `69.5.1`、wheel `0.48.0`、pybind11 `3.1.0`、ninja `1.13.2`、pytest `9.1.1`；Linux x86_64、GCC/G++ `13.3.0`，`TL_BACKEND=torch`、`DGLBACKEND=pytorch`、`GAMMAGL_WITH_CUDA=0`。
+- paper extra editable 安装及原生扩展构建完成；上述依赖和 GraphBolt 均可导入，`pip check` 无依赖冲突，DGL pickle smoke 通过。
+- 五个回归测试文件：**253 passed、1 skipped**。唯一 skip 为未配置真实 release bundle；另有一条 PyTorch 使用 `pkg_resources` 的弃用警告。
+- 已构建 C++ BPE，对照测试：**2 passed、57 deselected**，同一条弃用警告；没有以扩展缺失的 skip 代替通过。
+- tiny BERT 和显式 `--allow-random-gte-init` 的 tiny GTE smoke 均完成；GTE summary 明确为 `pretrained: false`、`reproduction: false`、`mode: random_development`。
+- `git diff --check` 通过。CUDA 构建／GPU 运行、真实 release bundle 和正式预训练 GTE checkpoint 初始化未验证；没有重跑六组正式 benchmark。
+
+下载曾遇到官方 CPU CDN 读取超时、GitHub 连接失败和 PyPI 连接中断；最终复用本次获取的
+同 revision TLX 源码对象缓存及同版本 wheel 缓存／镜像完成安装。没有用其他 Python／
+PyTorch／DGL 组合的测试结果替代本记录，也没有升级或卸载正在训练的环境依赖。
 
 ## 数据准备
 
@@ -244,7 +329,12 @@ export TL_BACKEND=torch
 python examples/graph_tokenizer/graph_tokenizer_trainer.py \
   --smoke --dataset aqsol --encoder bert --device cpu \
   --seeds 42 \
-  --output-dir /tmp/graph-tokenizer-smoke
+  --output-dir /tmp/graph-tokenizer-bert-smoke
+
+python examples/graph_tokenizer/graph_tokenizer_trainer.py \
+  --smoke --dataset aqsol --encoder gte --allow-random-gte-init --device cpu \
+  --seeds 42 \
+  --output-dir /tmp/graph-tokenizer-gte-smoke
 ```
 
 BERT 的 `--smoke` 使用 tiny architecture。GTE 的 tiny smoke 必须显式加入
