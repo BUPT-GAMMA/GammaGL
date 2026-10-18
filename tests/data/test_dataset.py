@@ -5,6 +5,7 @@
 import os
 
 import pytest
+import tensorlayerx as tlx
 
 from gammagl.datasets.ppi import PPI
 from gammagl.data.dataset import Dataset
@@ -25,6 +26,7 @@ def test_dataset():
     assert len(dataset2) == 20
 
 
+@pytest.mark.skipif(tlx.BACKEND != "torch", reason="tests the torch dataset loader")
 def test_torch_dataset_loader_restores_graph_objects(monkeypatch):
     torch = __import__('torch')
     observed = {}

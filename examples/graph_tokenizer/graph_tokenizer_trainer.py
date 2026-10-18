@@ -18,9 +18,13 @@ import pickle
 import random
 import statistics
 import sys
+from contextlib import nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Sequence
+
+import numpy as np
+import tensorlayerx as tlx
 
 
 @dataclass(frozen=True)
@@ -135,18 +139,35 @@ def resolve_dataset(name: str) -> DatasetSpec:
     raise ValueError(f"dataset must be one of: {choices}")
 
 
-def ensure_torch_backend():
-    if os.environ.get("TL_BACKEND", "torch").lower() != "torch":
-        raise RuntimeError("GraphTokenizer training requires TL_BACKEND=torch.")
-    import tensorlayerx as tlx
-    import torch
+def ensure_tlx_backend():
+    if tlx.BACKEND not in ("torch", "tensorflow"):
+        raise RuntimeError("GraphTokenizer training supports TLX torch and TensorFlow eager backends.")
+    if tlx.BACKEND == "tensorflow":
+        import tensorflow as tf
+        if not tf.executing_eagerly():
+            raise RuntimeError("GraphTokenizer TensorFlow training requires eager execution.")
+    return tlx
 
-    if str(tlx.BACKEND).lower() != "torch":
-        raise RuntimeError("GraphTokenizer training requires TensorLayerX's torch backend.")
-    return torch
+
+def training_helpers():
+    ensure_repo_on_path()
+    from examples.graph_tokenizer import tlx_training
+    return tlx_training
 
 
-def set_seed(torch, seed: int) -> None:
+def move_tensor(value, device):
+    if tlx.BACKEND == "torch":
+        return value.to(device)
+    return value
+
+
+def make_optimizer(lr, weight_decay):
+    optimizer = tlx.optimizers.Adam(lr=lr, eps=1e-8)
+    optimizer.graph_tokenizer_weight_decay = weight_decay
+    return optimizer
+
+
+def set_seed(backend, seed: int) -> None:
     random.seed(seed)
     try:
         import numpy as np
@@ -154,17 +175,22 @@ def set_seed(torch, seed: int) -> None:
         np.random.seed(seed)
     except ImportError:
         pass
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
-    cudnn = getattr(getattr(torch, "backends", None), "cudnn", None)
+    if backend is tlx:
+        tlx.set_seed(seed)
+        if tlx.BACKEND != "torch":
+            return
+        import torch as backend
+    backend.manual_seed(seed)
+    if backend.cuda.is_available():
+        backend.cuda.manual_seed_all(seed)
+    cudnn = getattr(getattr(backend, "backends", None), "cudnn", None)
     if cudnn is not None:
         cudnn.deterministic = True
         cudnn.benchmark = False
 
 
 def build_warmup_cosine_scheduler(
-        torch, optimizer, total_steps: int, warmup_ratio: float, min_lr_ratio: float = 0.01):
+        backend, optimizer, total_steps: int, warmup_ratio: float, min_lr_ratio: float = 0.01):
     if total_steps <= 0:
         raise ValueError("total_steps must be positive.")
     if not 0.0 <= warmup_ratio < 1.0:
@@ -181,15 +207,17 @@ def build_warmup_cosine_scheduler(
         cosine = 0.5 * (1.0 + math.cos(math.pi * progress))
         return min_lr_ratio + (1.0 - min_lr_ratio) * cosine
 
-    return torch.optim.lr_scheduler.LambdaLR(optimizer, multiplier)
+    if hasattr(optimizer, "apply_gradients"):
+        return training_helpers().WarmupCosineScheduler(optimizer, multiplier)
+    return backend.optim.lr_scheduler.LambdaLR(optimizer, multiplier)
 
 
 def emit_event(event: str, **fields: Any) -> None:
     print(json.dumps({"event": event, **fields}, allow_nan=False), flush=True)
 
 
-def require_finite_tensor(torch, value, context):
-    if not torch.isfinite(value.detach()).all().item():
+def require_finite_tensor(backend, value, context):
+    if not np.isfinite(tlx.convert_to_numpy(value)).all():
         raise FloatingPointError(f"Non-finite {context}")
 
 
@@ -578,7 +606,7 @@ def augmentation_config(args, phase):
 
 
 def make_loader(
-        torch, records, batch_size, pad_token_id, shuffle, choose_variant, tokenizer=None,
+        backend, records, batch_size, pad_token_id, shuffle, choose_variant, tokenizer=None,
         augmentation=None, max_length=None, seed=0):
     data = group_records(records) if choose_variant else list(records)
     rng = random.Random(int(seed))
@@ -599,18 +627,18 @@ def make_loader(
                 tokenizer, item["input_ids"], item["serialized_token_ids"],
                 mlm_special_token_ids(tokenizer), config, max_length, rng))
         length = max(len(sequence) for sequence in sequences)
-        input_ids = torch.full((len(items), length), int(pad_token_id), dtype=torch.long)
-        attention = torch.zeros_like(input_ids)
+        input_ids = np.full((len(items), length), int(pad_token_id), dtype=np.int64)
+        attention = np.zeros_like(input_ids)
         for row, tokens in enumerate(sequences):
-            tokens = torch.as_tensor(tokens, dtype=torch.long)
             input_ids[row, :len(tokens)] = tokens
             attention[row, :len(tokens)] = 1
-        return (input_ids, attention,
-                torch.as_tensor([item["labels"] for item in items], dtype=torch.float32),
-                torch.as_tensor([item["graph_id"] for item in items], dtype=torch.long))
+        return (tlx.convert_to_tensor(input_ids, dtype=tlx.int64),
+                tlx.convert_to_tensor(attention, dtype=tlx.int64),
+                tlx.convert_to_tensor([item["labels"] for item in items], dtype=tlx.float32),
+                tlx.convert_to_tensor([item["graph_id"] for item in items], dtype=tlx.int64))
 
-    return torch.utils.data.DataLoader(data, batch_size=max(1, int(batch_size)),
-                                      shuffle=bool(shuffle), collate_fn=collate)
+    return tlx.dataflow.DataLoader(data, batch_size=max(1, int(batch_size)),
+                                   shuffle=bool(shuffle), collate_fn=collate)
 
 
 def set_model_mode(model, training: bool) -> None:
@@ -671,79 +699,123 @@ def mlm_random_token_ids(tokenizer) -> List[int]:
     return token_ids
 
 
-def mask_for_mlm(torch, input_ids, attention, tokenizer, probability, generator):
+def mask_for_mlm(backend, input_ids, attention, tokenizer, probability, generator):
+    if backend is tlx:
+        ids = tlx.convert_to_numpy(input_ids)
+        valid = tlx.convert_to_numpy(attention).astype(bool)
+        for token in mlm_special_token_ids(tokenizer):
+            valid &= ids != token
+        selected = (generator.random(ids.shape) < probability) & valid
+        labels, masked = ids.copy(), ids.copy()
+        labels[~selected] = -100
+        corruption = generator.random(ids.shape)
+        masked[selected & (corruption < 0.8)] = int(tokenizer.special_tokens.mask_token_id)
+        random_replaced = selected & (corruption >= 0.8) & (corruption < 0.9)
+        if random_replaced.any():
+            masked[random_replaced] = generator.choice(mlm_random_token_ids(tokenizer), size=int(random_replaced.sum()))
+        return (move_tensor(tlx.convert_to_tensor(masked, dtype=tlx.int64), getattr(input_ids, "device", None)),
+                move_tensor(tlx.convert_to_tensor(labels, dtype=tlx.int64), getattr(input_ids, "device", None)))
     labels = input_ids.clone()
     blocked = ~attention.bool()
     for token in mlm_special_token_ids(tokenizer):
         blocked |= input_ids.eq(int(token))
-    selected = torch.rand(input_ids.shape, generator=generator, device=input_ids.device) < probability
+    selected = backend.rand(input_ids.shape, generator=generator, device=input_ids.device) < probability
     selected &= ~blocked
     labels[~selected] = -100
     masked = input_ids.clone()
-    corruption = torch.rand(input_ids.shape, generator=generator, device=input_ids.device)
+    corruption = backend.rand(input_ids.shape, generator=generator, device=input_ids.device)
     mask_replaced = selected & (corruption < 0.8)
     random_replaced = selected & (corruption >= 0.8) & (corruption < 0.9)
     masked[mask_replaced] = int(tokenizer.special_tokens.mask_token_id)
     if random_replaced.any():
-        candidates = torch.as_tensor(mlm_random_token_ids(tokenizer), dtype=torch.long,
+        candidates = backend.as_tensor(mlm_random_token_ids(tokenizer), dtype=backend.long,
                                      device=input_ids.device)
-        random_indices = torch.randint(len(candidates), input_ids.shape, generator=generator,
+        random_indices = backend.randint(len(candidates), input_ids.shape, generator=generator,
                                        device=input_ids.device)
         masked[random_replaced] = candidates[random_indices[random_replaced]]
     return masked, labels
 
 
-def mlm_loss(torch, model, input_ids, attention, tokenizer, probability, generator, context="pretrain"):
+def mlm_loss(backend, model, input_ids, attention, tokenizer, probability, generator, context="pretrain"):
     """Return the loss sum and valid token count, including for empty batches."""
-    masked, labels = mask_for_mlm(torch, input_ids, attention, tokenizer, probability, generator)
+    masked, labels = mask_for_mlm(backend, input_ids, attention, tokenizer, probability, generator)
     logits = model(masked, attention, task="mlm")
-    require_finite_tensor(torch, logits, f"{context} logits")
-    loss = torch.nn.functional.cross_entropy(
-        logits.reshape(-1, logits.shape[-1]), labels.reshape(-1), ignore_index=-100,
-        reduction="sum")
-    return loss, int(labels.ne(-100).sum())
+    require_finite_tensor(backend, logits, f"{context} logits")
+    valid_indices = np.flatnonzero(tlx.convert_to_numpy(labels).reshape(-1) != -100)
+    if not len(valid_indices):
+        return tlx.reduce_sum(logits * 0.0), 0
+    indices = move_tensor(tlx.convert_to_tensor(valid_indices, dtype=tlx.int64), getattr(logits, "device", None))
+    selected_logits = tlx.gather(tlx.reshape(logits, [-1, logits.shape[-1]]), indices)
+    selected_labels = tlx.gather(tlx.reshape(labels, [-1]), indices)
+    loss = tlx.losses.softmax_cross_entropy_with_logits(selected_logits, selected_labels, reduction="sum")
+    return loss, len(valid_indices)
 
 
-def supervised_logits(torch, model, input_ids, attention, noise_probability, noise_std, generator):
+def supervised_logits(backend, model, input_ids, attention, noise_probability, noise_std, generator):
     if noise_probability <= 0.0 or not callable(getattr(model, "_task_logits", None)):
         return model(input_ids, attention, task="supervised")
     pooled = model(input_ids, attention, task="pooled")
-    if torch.rand((), generator=generator, device=pooled.device) < float(noise_probability):
-        pooled = pooled + torch.randn(
+    if backend is tlx:
+        if generator.random() < float(noise_probability):
+            noise = tlx.convert_to_tensor(generator.normal(0.0, float(noise_std), tuple(pooled.shape)), dtype=pooled.dtype)
+            pooled = pooled + move_tensor(noise, getattr(pooled, "device", None))
+        return model._task_logits(pooled)
+    if backend.rand((), generator=generator, device=pooled.device) < float(noise_probability):
+        pooled = pooled + backend.randn(
             pooled.shape, generator=generator, dtype=pooled.dtype, device=pooled.device) * float(noise_std)
     return model._task_logits(pooled)
 
 
-def supervised_loss(torch, logits, labels, spec: DatasetSpec, reduction="mean"):
+def supervised_loss(backend, logits, labels, spec: DatasetSpec, reduction="mean"):
     if spec.num_classes:
-        return torch.nn.functional.cross_entropy(
-            logits, labels.reshape(-1).long(), reduction=reduction)
-    return torch.nn.functional.mse_loss(logits, labels, reduction=reduction)
+        return tlx.losses.softmax_cross_entropy_with_logits(
+            logits, tlx.cast(tlx.reshape(labels, [-1]), tlx.int64), reduction=reduction)
+    return tlx.losses.mean_squared_error(logits, labels, reduction=reduction)
 
 
-def save_checkpoint(torch, path: Path, model, epoch: int, score: float) -> None:
+def save_checkpoint(backend, path: Path, model, epoch: int, score: float) -> None:
     require_finite_metrics(score, f"checkpoint epoch={epoch} score")
     ensure_repo_on_path()
     from gammagl.transforms.graph_tokenizer import TOKENIZER_SCHEMA_VERSION
 
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp-{os.getpid()}")
-    torch.save({"model": model.state_dict(), "epoch": int(epoch), "score": float(score),
-                "tokenizer_schema_version": TOKENIZER_SCHEMA_VERSION}, temporary)
+    state = {"epoch": int(epoch), "score": float(score),
+             "tokenizer_schema_version": TOKENIZER_SCHEMA_VERSION}
+    if tlx.BACKEND == "tensorflow":
+        arrays = {str(index): tlx.convert_to_numpy(weight)
+                  for index, weight in enumerate(model.all_weights)}
+        with temporary.open("wb") as handle:
+            np.savez(handle, metadata=json.dumps(state, allow_nan=False), **arrays)
+    else:
+        import torch as torch_backend
+        torch_backend.save({"model": model.state_dict(), **state}, temporary)
     os.replace(temporary, path)
 
 
-def restore_checkpoint(torch, path: Path, model, device):
+def restore_checkpoint(backend, path: Path, model, device):
     ensure_repo_on_path()
     from gammagl.transforms.graph_tokenizer import TOKENIZER_SCHEMA_VERSION
 
-    try:
-        state = torch.load(path, map_location=device, weights_only=False)
-    except TypeError:
-        state = torch.load(path, map_location=device)
+    if tlx.BACKEND == "tensorflow":
+        with np.load(path, allow_pickle=False) as archive:
+            state = json.loads(str(archive["metadata"]))
+            weights = [archive[str(index)] for index in range(len(archive.files) - 1)]
+    else:
+        import torch as torch_backend
+        try:
+            state = torch_backend.load(path, map_location=device, weights_only=False)
+        except TypeError:
+            state = torch_backend.load(path, map_location=device)
     if state.get("tokenizer_schema_version") != TOKENIZER_SCHEMA_VERSION:
         raise ValueError("Incompatible checkpoint input protocol; retrain with the current tokenizer schema.")
-    model.load_state_dict(state["model"])
+    if tlx.BACKEND == "tensorflow":
+        if len(weights) != len(model.all_weights) or any(
+                tuple(value.shape) != tuple(weight.shape) for value, weight in zip(weights, model.all_weights)):
+            raise ValueError("Checkpoint model weights do not match the current model.")
+        tlx.files.assign_weights(weights, model)
+    else:
+        model.load_state_dict(state["model"])
     return state
 
 
@@ -758,7 +830,7 @@ def optimizer_steps_per_epoch(loader, args) -> int:
     return math.ceil(len(loader) / gradient_accumulation_steps(args))
 
 
-def step_accumulated_gradients(torch, model, optimizer, scheduler, target_count, max_grad_norm,
+def step_accumulated_gradients(backend, model, optimizer, scheduler, target_count, max_grad_norm,
                               context="training"):
     # Normalize by targets before clipping; an empty MLM window makes no update
     # (including weight decay) and must not advance the learning-rate schedule.
@@ -766,57 +838,90 @@ def step_accumulated_gradients(torch, model, optimizer, scheduler, target_count,
         for name, parameter in model.named_parameters():
             if parameter.grad is not None:
                 parameter.grad.div_(target_count)
-                require_finite_tensor(torch, parameter.grad, f"{context} gradient {name}")
-        norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
+                require_finite_tensor(backend, parameter.grad, f"{context} gradient {name}")
+        norm = backend.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
         # The total norm can overflow even when every gradient element is finite.
         if norm is not None:
-            require_finite_tensor(torch, norm, f"{context} gradient norm")
+            require_finite_tensor(backend, norm, f"{context} gradient norm")
         for name, parameter in model.named_parameters():
             if parameter.grad is not None:
-                require_finite_tensor(torch, parameter.grad, f"{context} clipped gradient {name}")
+                require_finite_tensor(backend, parameter.grad, f"{context} clipped gradient {name}")
         optimizer.step()
         scheduler.step()
     optimizer.zero_grad(set_to_none=True)
 
 
-def train_mlm_epoch(torch, model, loader, optimizer, scheduler, tokenizer, args, device, seed, epoch=None):
+def train_epoch(backend, model, loader, optimizer, scheduler, args, device, seed, epoch,
+                phase, tokenizer=None, spec=None):
     set_model_mode(model, True)
-    generator = torch.Generator(device=device).manual_seed(seed)
-    total, count = 0.0, 0
+    helpers = training_helpers()
+    native = hasattr(optimizer, "apply_gradients")
+    accumulator = helpers.GradientAccumulator(model, optimizer, require_finite_tensor) if native else None
+    generator = (np.random.default_rng(seed) if backend is tlx else
+                 backend.Generator(device=device).manual_seed(seed))
+    total, count, window_count = 0.0, 0, 0
     accumulation_steps = gradient_accumulation_steps(args)
-    batch_count = len(loader)
-    window_count = 0
-    optimizer.zero_grad(set_to_none=True)
-    for batch_index, (input_ids, attention, _, _) in enumerate(loader):
-        context = f"pretrain epoch={epoch} batch={batch_index + 1}"
-        input_ids, attention = input_ids.to(device), attention.to(device)
-        loss, target_count = mlm_loss(torch, model, input_ids, attention, tokenizer,
-                                     args.mask_probability, generator, context)
-        require_finite_tensor(torch, loss, f"{context} loss")
+    max_norm = args.pretrain_max_grad_norm if phase == "pretrain" else args.finetune_max_grad_norm
+    if not native:
+        optimizer.zero_grad(set_to_none=True)
+
+    def compute(data, labels):
+        input_ids, attention = data
+        if phase == "pretrain":
+            loss, target_count = mlm_loss(backend, model, input_ids, attention, tokenizer,
+                                         args.mask_probability, generator, context)
+        else:
+            logits = supervised_logits(backend, model, input_ids, attention,
+                args.finetune_noise_probability, args.finetune_noise_std, generator)
+            require_finite_tensor(backend, logits, f"{context} logits")
+            loss = supervised_loss(backend, logits, labels, spec, reduction="sum")
+            target_count = (math.prod(labels.shape) if spec.num_classes else
+                            math.prod(np.broadcast_shapes(tuple(logits.shape), tuple(labels.shape))))
+        require_finite_tensor(backend, loss, f"{context} loss")
+        return loss, target_count
+
+    loss_network = helpers.GraphTokenLoss(model, compute)
+    for batch_index, (input_ids, attention, labels, _) in enumerate(loader):
+        context = f"{phase} epoch={epoch} batch={batch_index + 1}"
+        input_ids, attention, labels = (move_tensor(value, device) for value in (input_ids, attention, labels))
+        with helpers.gradient_context() as tape:
+            loss = loss_network((input_ids, attention), labels)
+        target_count = loss_network.target_count
         if target_count:
-            loss.backward()
+            if native:
+                accumulator.collect(loss, tape)
+            else:
+                # Accept raw torch optimizers for callers comparing native autograd
+                # against the TLX accumulation path; normal runs use TLX optimizers.
+                loss.backward()
         window_count += target_count
-        if (batch_index + 1) % accumulation_steps == 0 or batch_index + 1 == batch_count:
-            step_accumulated_gradients(
-                torch, model, optimizer, scheduler, window_count, args.pretrain_max_grad_norm, context)
+        if (batch_index + 1) % accumulation_steps == 0 or batch_index + 1 == len(loader):
+            if native:
+                accumulator.step(window_count, max_norm, scheduler, context)
+            else:
+                step_accumulated_gradients(backend, model, optimizer, scheduler, window_count, max_norm, context)
             window_count = 0
-        total += float(loss.detach())
+        total += float(tlx.convert_to_numpy(loss))
         count += target_count
     train_loss = total / max(count, 1)
-    require_finite_metrics(train_loss, f"pretrain epoch={epoch} train_loss")
+    require_finite_metrics(train_loss, f"{phase} epoch={epoch} train_loss")
     return train_loss
 
 
-def run_mlm(torch, model, train_loader, tokenizer, args, device):
-    optimizer = torch.optim.AdamW(
-        model.parameters(), lr=args.pretrain_learning_rate,
-        weight_decay=getattr(args, "pretrain_weight_decay", getattr(args, "weight_decay", 0.0)))
+def train_mlm_epoch(backend, model, loader, optimizer, scheduler, tokenizer, args, device, seed, epoch=None):
+    return train_epoch(backend, model, loader, optimizer, scheduler, args, device, seed, epoch,
+                       "pretrain", tokenizer=tokenizer)
+
+
+def run_mlm(backend, model, train_loader, tokenizer, args, device):
+    optimizer = make_optimizer(args.pretrain_learning_rate,
+        getattr(args, "pretrain_weight_decay", getattr(args, "weight_decay", 0.0)))
     scheduler = build_warmup_cosine_scheduler(
-        torch, optimizer, total_steps=optimizer_steps_per_epoch(train_loader, args) * args.pretrain_epochs,
+        backend, optimizer, total_steps=optimizer_steps_per_epoch(train_loader, args) * args.pretrain_epochs,
         warmup_ratio=args.pretrain_warmup_ratio)
     history = []
     for epoch in range(1, args.pretrain_epochs + 1):
-        train_loss = train_mlm_epoch(torch, model, train_loader, optimizer, scheduler, tokenizer,
+        train_loss = train_mlm_epoch(backend, model, train_loader, optimizer, scheduler, tokenizer,
                                      args, device, args.seed + epoch, epoch)
         require_finite_metrics(train_loss, f"pretrain epoch={epoch} train_loss")
         history.append({"epoch": epoch, "train_loss": train_loss})
@@ -825,39 +930,47 @@ def run_mlm(torch, model, train_loader, tokenizer, args, device):
             "history": history}
 
 
-def denormalize(torch, values, normalizer):
+def denormalize(backend, values, normalizer):
     if normalizer is None:
         return values
-    mean = torch.as_tensor(normalizer["mean"], dtype=values.dtype, device=values.device)
-    std = torch.as_tensor(normalizer["std"], dtype=values.dtype, device=values.device)
+    mean = move_tensor(tlx.convert_to_tensor(normalizer["mean"], dtype=values.dtype), getattr(values, "device", None))
+    std = move_tensor(tlx.convert_to_tensor(normalizer["std"], dtype=values.dtype), getattr(values, "device", None))
     return values * std + mean
 
 
-def evaluate_downstream(torch, model, loader, spec, normalizer, device, phase="evaluation", epoch=None):
+def evaluate_downstream(backend, model, loader, spec, normalizer, device, phase="evaluation", epoch=None):
     set_model_mode(model, False)
     total_loss, count, grouped = 0.0, 0, {}
-    with torch.no_grad():
+    if tlx.BACKEND == "torch":
+        import torch as torch_backend
+        evaluation_context = torch_backend.no_grad()
+    else:
+        evaluation_context = nullcontext()
+    with evaluation_context:
         for batch_index, (input_ids, attention, labels, graph_ids) in enumerate(loader):
             context = f"{phase} epoch={epoch} batch={batch_index + 1}"
-            input_ids, attention, labels = input_ids.to(device), attention.to(device), labels.to(device)
+            input_ids, attention, labels = (move_tensor(value, device) for value in (input_ids, attention, labels))
             logits = model(input_ids, attention, task="supervised")
-            require_finite_tensor(torch, logits, f"{context} logits")
-            loss = supervised_loss(torch, logits, labels, spec)
-            require_finite_tensor(torch, loss, f"{context} loss")
-            total_loss += float(loss) * len(input_ids)
+            require_finite_tensor(backend, logits, f"{context} logits")
+            loss = supervised_loss(backend, logits, labels, spec)
+            require_finite_tensor(backend, loss, f"{context} loss")
+            total_loss += float(tlx.convert_to_numpy(loss)) * len(input_ids)
             count += len(input_ids)
-            for graph_id, label, prediction in zip(graph_ids.tolist(), labels.cpu(), logits.cpu()):
+            for graph_id, label, prediction in zip(tlx.convert_to_numpy(graph_ids).tolist(),
+                    tlx.convert_to_numpy(labels), tlx.convert_to_numpy(logits)):
                 grouped.setdefault(graph_id, {"label": label, "predictions": []})["predictions"].append(prediction)
-    labels = torch.stack([item["label"] for item in grouped.values()])
-    predictions = torch.stack([torch.stack(item["predictions"]).mean(0) for item in grouped.values()])
-    require_finite_tensor(torch, predictions, f"{phase} epoch={epoch} grouped logits")
+    labels = np.stack([item["label"] for item in grouped.values()])
+    predictions = np.stack([np.stack(item["predictions"]).mean(0) for item in grouped.values()])
+    if not np.isfinite(predictions).all():
+        raise FloatingPointError(f"Non-finite {phase} epoch={epoch} grouped logits")
     if spec.num_classes:
-        metric = float((predictions.argmax(dim=-1) == labels.reshape(-1).long()).float().mean())
+        metric = float((predictions.argmax(axis=-1) == labels.reshape(-1).astype(int)).mean())
         detail = {spec.metric.lower(): metric, "metric_space": "class_label"}
     else:
-        raw_labels = denormalize(torch, labels, normalizer)
-        raw_predictions = denormalize(torch, predictions, normalizer)
-        metric = float(torch.abs(raw_labels - raw_predictions).mean())
+        if normalizer is not None:
+            mean, std = np.asarray(normalizer["mean"]), np.asarray(normalizer["std"])
+            labels, predictions = labels * std + mean, predictions * std + mean
+        metric = float(np.abs(labels - predictions).mean())
         detail = {spec.metric.lower(): metric, "metric_space": "raw_label"}
     result = {"loss": total_loss / max(count, 1), "metric": metric,
               "num_graphs": len(grouped), **detail}
@@ -865,52 +978,24 @@ def evaluate_downstream(torch, model, loader, spec, normalizer, device, phase="e
     return result
 
 
-def train_downstream_epoch(torch, model, loader, optimizer, scheduler, spec, args, device, seed=0, epoch=None):
-    set_model_mode(model, True)
-    generator = torch.Generator(device=device).manual_seed(seed)
-    total, count = 0.0, 0
-    accumulation_steps = gradient_accumulation_steps(args)
-    batch_count = len(loader)
-    window_count = 0
-    optimizer.zero_grad(set_to_none=True)
-    for batch_index, (input_ids, attention, labels, _) in enumerate(loader):
-        context = f"finetune epoch={epoch} batch={batch_index + 1}"
-        input_ids, attention, labels = input_ids.to(device), attention.to(device), labels.to(device)
-        logits = supervised_logits(
-            torch, model, input_ids, attention, args.finetune_noise_probability,
-            args.finetune_noise_std, generator)
-        require_finite_tensor(torch, logits, f"{context} logits")
-        loss = supervised_loss(torch, logits, labels, spec, reduction="sum")
-        require_finite_tensor(torch, loss, f"{context} loss")
-        target_count = (labels.numel() if spec.num_classes else
-                        torch.broadcast_tensors(logits, labels)[0].numel())
-        loss.backward()
-        window_count += target_count
-        if (batch_index + 1) % accumulation_steps == 0 or batch_index + 1 == batch_count:
-            step_accumulated_gradients(
-                torch, model, optimizer, scheduler, window_count, args.finetune_max_grad_norm, context)
-            window_count = 0
-        total += float(loss.detach())
-        count += target_count
-    train_loss = total / max(count, 1)
-    require_finite_metrics(train_loss, f"finetune epoch={epoch} train_loss")
-    return train_loss
+def train_downstream_epoch(backend, model, loader, optimizer, scheduler, spec, args, device, seed=0, epoch=None):
+    return train_epoch(backend, model, loader, optimizer, scheduler, args, device, seed, epoch,
+                       "finetune", spec=spec)
 
 
-def run_finetuning(torch, model, train_loader, val_loader, test_loader, spec, normalizer, args, device, checkpoint):
-    optimizer = torch.optim.AdamW(
-        model.parameters(), lr=args.learning_rate,
-        weight_decay=getattr(args, "finetune_weight_decay", getattr(args, "weight_decay", 0.0)))
+def run_finetuning(backend, model, train_loader, val_loader, test_loader, spec, normalizer, args, device, checkpoint):
+    optimizer = make_optimizer(args.learning_rate,
+        getattr(args, "finetune_weight_decay", getattr(args, "weight_decay", 0.0)))
     scheduler = build_warmup_cosine_scheduler(
-        torch, optimizer, total_steps=optimizer_steps_per_epoch(train_loader, args) * args.finetune_epochs,
+        backend, optimizer, total_steps=optimizer_steps_per_epoch(train_loader, args) * args.finetune_epochs,
         warmup_ratio=args.finetune_warmup_ratio)
     best, stale, history = None, 0, []
     higher_is_better = spec.higher_is_better
     for epoch in range(1, args.finetune_epochs + 1):
         train_loss = train_downstream_epoch(
-            torch, model, train_loader, optimizer, scheduler, spec, args, device, args.seed + epoch, epoch)
+            backend, model, train_loader, optimizer, scheduler, spec, args, device, args.seed + epoch, epoch)
         require_finite_metrics(train_loss, f"finetune epoch={epoch} train_loss")
-        validation = evaluate_downstream(torch, model, val_loader, spec, normalizer, device, "validation", epoch)
+        validation = evaluate_downstream(backend, model, val_loader, spec, normalizer, device, "validation", epoch)
         require_finite_metrics(validation, f"validation epoch={epoch}")
         score = validation["metric"]
         history.append({"epoch": epoch, "train_loss": train_loss, "validation": validation})
@@ -919,14 +1004,14 @@ def run_finetuning(torch, model, train_loader, val_loader, test_loader, spec, no
         improved = best is None or (score > best if higher_is_better else score < best)
         if improved:
             best, stale = score, 0
-            save_checkpoint(torch, checkpoint, model, epoch, score)
+            save_checkpoint(backend, checkpoint, model, epoch, score)
         else:
             stale += 1
             if stale >= args.early_stopping_patience:
                 break
-    state = restore_checkpoint(torch, checkpoint, model, device)
+    state = restore_checkpoint(backend, checkpoint, model, device)
     # This is the only downstream test evaluation.
-    test = evaluate_downstream(torch, model, test_loader, spec, normalizer, device, "test", state["epoch"])
+    test = evaluate_downstream(backend, model, test_loader, spec, normalizer, device, "test", state["epoch"])
     require_finite_metrics(test, f"test epoch={state['epoch']}")
     return {"best_epoch": state["epoch"], "best_validation_metric": state["score"],
             "history": history, "test": test}
@@ -964,8 +1049,8 @@ def run_output_directory(args, spec, run_index, seed):
 def run_single_experiment(args, config, seed, run_index=0):
     args = apply_preset(argparse.Namespace(**vars(args)), config)
     args.seed = int(seed)
-    torch = ensure_torch_backend()
-    set_seed(torch, args.seed)
+    backend = ensure_tlx_backend()
+    set_seed(backend, args.seed)
     spec = resolve_dataset(args.dataset)
     emit_event("stage", stage="tokenizer_fit", status="started")
     if args.smoke:
@@ -979,9 +1064,13 @@ def run_single_experiment(args, config, seed, run_index=0):
     emit_event("stage", stage="encoding", status="started")
     emit_event("stage", stage="encoding", status="completed")
     tokenizer.validate_model_vocab(tokenizer.max_token_id + 1)
-    device = torch.device(args.device)
-    model = make_model(args, tokenizer.max_token_id + 1, tokenizer.special_tokens.pad_token_id, output_dim).to(device)
-    loader_args = {"torch": torch, "pad_token_id": tokenizer.special_tokens.pad_token_id}
+    device = args.device
+    if tlx.BACKEND == "tensorflow":
+        tlx.set_device("CPU" if args.device == "cpu" else "GPU", 0)
+    model = make_model(args, tokenizer.max_token_id + 1, tokenizer.special_tokens.pad_token_id, output_dim)
+    if tlx.BACKEND == "torch":
+        model = model.to(device)
+    loader_args = {"backend": backend, "pad_token_id": tokenizer.special_tokens.pad_token_id}
     pretrain_loader = make_loader(
         **loader_args, batch_size=args.pretrain_batch_size, records=encoded["train"], shuffle=True, choose_variant=True,
         tokenizer=tokenizer, augmentation=augmentation_config(args, "pretrain"),
@@ -995,15 +1084,16 @@ def run_single_experiment(args, config, seed, run_index=0):
     test_loader = make_loader(**loader_args, batch_size=args.finetune_batch_size, records=encoded["test"],
                               shuffle=False, choose_variant=False)
     directory = run_output_directory(args, spec, run_index, args.seed)
-    mlm = run_mlm(torch, model, pretrain_loader, tokenizer, args, device)
-    finetune = run_finetuning(torch, model, train_loader, val_loader, test_loader, spec, normalizer,
-                              args, device, directory / "best_finetune.pt")
+    checkpoint = directory / ("best_finetune.npz" if tlx.BACKEND == "tensorflow" else "best_finetune.pt")
+    mlm = run_mlm(backend, model, pretrain_loader, tokenizer, args, device)
+    finetune = run_finetuning(backend, model, train_loader, val_loader, test_loader, spec, normalizer,
+                              args, device, checkpoint)
     summary = {"dataset": spec.name, "encoder": args.encoder, "seed": args.seed,
             "run_index": run_index, "metric_name": metric_name_for_dataset(spec),
             "metric": finetune["test"]["metric"],
             "tokenizer_fit_split": "train", "normalization_fit_split": "train",
             "mlm": mlm, "finetune": finetune,
-            "checkpoints": {"finetune": str(directory / "best_finetune.pt")}}
+            "checkpoints": {"finetune": str(checkpoint)}}
     if args.encoder == "gte":
         summary["gte_initialization"] = gte_initialization_summary(model, args)
     return summary

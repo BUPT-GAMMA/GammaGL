@@ -3,6 +3,8 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
+import tensorlayerx as tlx
+
 from gammagl.data import Graph
 
 
@@ -556,6 +558,8 @@ class FrequencyGuidedEulerianSerializer:
 
     @staticmethod
     def _to_list(value: Any):
+        if tlx.is_tensor(value):
+            return tlx.convert_to_numpy(value).tolist()
         if hasattr(value, "tolist"):
             return value.tolist()
         return value

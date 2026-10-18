@@ -51,10 +51,11 @@ def load_official_gte_config(cache_dir=None):
 
 
 def _assign_tensor(target, value, key, transpose=False):
-    """Assign one semantically mapped PyTorch tensor to its TLX variable."""
+    """Assign one semantically mapped NumPy array or TLX tensor to a variable."""
     import tensorlayerx as tlx
 
-    value = value.detach().cpu().numpy()
+    if tlx.is_tensor(value):
+        value = tlx.convert_to_numpy(value)
     if transpose:
         if value.ndim != 2:
             raise ValueError(f"Only matrix mappings may transpose: {key}.")
@@ -74,7 +75,7 @@ def load_pretrained_encoder(model, checkpoint_path):
     """Load the explicitly mapped official encoder tensors into ``GraphGTE``."""
     from safetensors import safe_open
 
-    with safe_open(str(checkpoint_path), framework="pt", device="cpu") as handle:
+    with safe_open(str(checkpoint_path), framework="np", device="cpu") as handle:
         source = {key: handle.get_tensor(key) for key in handle.keys()}
     ignored = {
         "new.embeddings.word_embeddings.weight":
@@ -83,9 +84,9 @@ def load_pretrained_encoder(model, checkpoint_path):
         "classifier.bias": "official classification head is not a GraphTokenizer task head",
     }
     # Every entry is a source-key-to-TLX-variable semantic mapping.  The
-    # official NewModel and TLX torch backend both store Linear kernels as
-    # [out_features, in_features], hence transpose=False is deliberate rather
-    # than inferred from shape.
+    # official NewModel and GAMMA TLX (including torch and TensorFlow) store
+    # Linear kernels as [out_features, in_features], hence transpose=False
+    # is deliberate rather than inferred from shape.
     mapping = {
         "new.embeddings.token_type_embeddings.weight": (model.token_type_embeddings.embeddings, False, "embedding"),
         "new.embeddings.LayerNorm.weight": (model.embedding_norm.gamma, False, "layer_norm_gamma"),

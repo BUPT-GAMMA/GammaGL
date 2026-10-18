@@ -340,3 +340,29 @@ python examples/graph_tokenizer/graph_tokenizer_trainer.py \
 BERT 的 `--smoke` 使用 tiny architecture。GTE 的 tiny smoke 必须显式加入
 `--allow-random-gte-init`；该随机初始化模式仅用于开发／pipeline 检查，不能作为正式
 reproduced result。
+
+### TLX 后端与训练接口
+
+训练入口支持 `TL_BACKEND=torch` 和 `TL_BACKEND=tensorflow` 的 eager 模式。
+上面的两条 tiny 命令也可在安装 GAMMA Lab TLX nightly 和 TensorFlow 的独立环境中，
+设置 `TL_BACKEND=tensorflow` 后运行；普通 BERT／随机 GTE 训练不需要安装 PyTorch、
+DGL 或 Hugging Face 模型。真实 release 数据的 DGL pickle 读取和正式 GTE checkpoint
+下载仍有各自的可选依赖。这里未声明 Paddle、MindSpore、Jittor 或 TensorFlow graph 模式
+的训练支持，也未验证 GPU。
+
+模型计算继续使用原生 TLX 层；数据使用 TLX DataLoader，损失使用 TLX losses，
+优化使用 TLX Adam 加独立 weight decay，保留此前 AdamW 的更新语义。
+损失通过 `WithLoss` 组织。当前 GAMMA TLX nightly 的 `WithGrad` 没有 torch 分支，
+`TrainOneStep` 会逐 microbatch 立即更新，torch 的 `ClipByGlobalNorm` 未实现，
+因此 `tlx_training.py` 在这些边界单独适配：torch 使用 TLX optimizer 的梯度接口，
+TensorFlow 使用与 TLX `TrainOneStep` 相同的 eager `GradientTape`；累积后的梯度按目标数
+归一化，检查有限性，再用 TLX ops 计算全局范数和裁剪，最后调用 TLX optimizer 更新。
+torch optimizer 对 `parameter.grad` 的读取也局限在该适配中。
+
+torch 最佳 checkpoint 保持原有 `.pt` 格式；TensorFlow 使用不含 pickle 的 `.npz`
+权重和 schema／epoch／score metadata，并通过 TLX 恢复权重。两种 checkpoint 不跨后端互载。
+成功结果仍使用相同 JSON 字段，非有限训练／评估结果会使运行失败。
+
+公共 CI 继续使用原有 torch 后端，负责核心安装与公共测试；新增 paper 环境在独立 job
+安装固定版本及 `graph-tokenizer-paper` extra、运行 DGL smoke 与 GraphTokenizer 回归。
+两个 job 相互独立，公共检查不以 paper extra 安装成功为前提。
