@@ -1077,7 +1077,7 @@ def test_tiny_pipeline_writes_summary_file(trainer, tmp_path):
 
     saved = tmp_path / "aqsol" / "bert" / "summary.json"
     assert saved.is_file()
-    assert saved.read_text() == json.dumps(summary, indent=2, allow_nan=True)
+    assert saved.read_text() == json.dumps(summary, indent=2, allow_nan=False)
 
 
 def test_tiny_pipeline_emits_preprocessing_and_training_progress(trainer, tmp_path, capsys):
@@ -1348,3 +1348,255 @@ def test_finetune_early_stopping_restores_best_before_test(trainer, monkeypatch,
     assert result["test"]["metric"] == 2.0
     assert test_weights == [2.0]
     assert scheduler_arguments == [(5, 0.025)]
+
+
+class NumericalFaultModel(torch.nn.Module):
+    """Exercise actual losses/autograd, including singular finite forwards."""
+
+    def __init__(self, path, fault):
+        super().__init__()
+        self.weight = torch.nn.Parameter(torch.tensor(0.0))
+        self.path, self.fault = path, fault
+
+    def forward(self, input_ids, attention=None, task=None):
+        value = self.weight
+        if self.fault == "gradient_inf":
+            value = value.sqrt()  # finite forward, infinite derivative at zero
+        elif self.fault == "gradient_nan":
+            value = value.sqrt() * 0 + 1  # 0 * inf in backward
+        elif self.fault.startswith("logits_"):
+            value = value + float(self.fault.removeprefix("logits_"))
+        if self.path == "mlm":
+            return torch.stack((value + 1, -value, value * 0)).expand(*input_ids.shape, 3)
+        return value.expand(len(input_ids), 1)
+
+
+@pytest.mark.parametrize("path", ["mlm", "regression"])
+@pytest.mark.parametrize("fault", ["logits_nan", "logits_inf", "gradient_nan", "gradient_inf", "loss"])
+def test_training_rejects_nonfinite_before_update(trainer, monkeypatch, path, fault):
+    batches, labels = _accumulation_case(path, [1])
+    if fault == "loss":
+        if path == "mlm":
+            # Finite logits but cross entropy overflows to an infinite loss.
+            class OverflowMLM(NumericalFaultModel):
+                def forward(self, input_ids, attention=None, task=None):
+                    return (self.weight + torch.tensor([-3e38, 3e38, 0.0])).expand(*input_ids.shape, 3)
+            model = OverflowMLM(path, fault)
+        else:
+            batches[0][2].fill_(float("nan"))  # real MSE returns NaN
+            model = NumericalFaultModel(path, fault)
+    else:
+        model = NumericalFaultModel(path, fault)
+    if path == "mlm":
+        monkeypatch.setattr(trainer, "mask_for_mlm", lambda _t, inputs, *_a: (inputs, labels))
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    updates, backwards = [], []
+    monkeypatch.setattr(optimizer, "step", lambda: updates.append("optimizer"))
+    scheduler = SimpleNamespace(step=lambda: updates.append("scheduler"))
+    model.weight.register_hook(lambda grad: backwards.append(grad.clone()))
+    args = SimpleNamespace(
+        mask_probability=1.0, pretrain_max_grad_norm=1.0, finetune_max_grad_norm=1.0,
+        finetune_noise_probability=0.0, finetune_noise_std=0.0)
+    if fault.startswith("gradient"):
+        logits = model(batches[0][0])
+        loss = (torch.nn.functional.cross_entropy(logits.reshape(-1, 3), labels.reshape(-1))
+                if path == "mlm" else torch.nn.functional.mse_loss(logits, batches[0][2]))
+        assert torch.isfinite(logits).all() and torch.isfinite(loss)
+    call = trainer.train_mlm_epoch if path == "mlm" else trainer.train_downstream_epoch
+    phase_arg = None if path == "mlm" else trainer.resolve_dataset("aqsol")
+    with pytest.raises(FloatingPointError, match=r"(pretrain|finetune).*batch=1.*(logits|loss|gradient)"):
+        call(torch, model, batches, optimizer, scheduler, phase_arg, args, torch.device("cpu"), seed=7)
+    assert updates == []
+    assert len(backwards) == (1 if fault.startswith("gradient") else 0)
+    assert model.weight.item() == 0.0
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), -float("inf")])
+@pytest.mark.parametrize("dataset", ["aqsol", "mutagenicity"])
+def test_evaluation_rejects_nonfinite_logits_even_for_all_zero_labels(trainer, bad, dataset):
+    # argmax([NaN, 0]) would otherwise produce class 0 and perfect accuracy.
+    logits = [[bad, 0.0]] if dataset == "mutagenicity" else [[bad]]
+    loader = trainer.make_loader(torch, [_record(0, [0.0])], 1, 0, False, False)
+    with pytest.raises(FloatingPointError, match=r"evaluation.*batch=1.*logits"):
+        trainer.evaluate_downstream(torch, FixedLogits(logits), loader,
+                                    trainer.resolve_dataset(dataset), None, torch.device("cpu"))
+
+
+def test_evaluation_rejects_nan_loss_with_finite_logits(trainer):
+    loader = trainer.make_loader(torch, [_record(0, [float("nan")])], 1, 0, False, False)
+    with pytest.raises(FloatingPointError, match=r"evaluation.*batch=1.*loss"):
+        trainer.evaluate_downstream(torch, FixedLogits([[0.0]]), loader,
+                                    trainer.resolve_dataset("aqsol"), None, torch.device("cpu"))
+
+
+def test_evaluation_checks_raw_metric_after_denormalization(trainer):
+    loader = trainer.make_loader(torch, [_record(0, [0.0])], 1, 0, False, False)
+    with pytest.raises(FloatingPointError, match=r"evaluation.*metric"):
+        trainer.evaluate_downstream(torch, FixedLogits([[1.0]]), loader,
+                                    trainer.resolve_dataset("aqsol"), {"mean": [0.0], "std": [float("inf")]},
+                                    torch.device("cpu"))
+
+
+@pytest.mark.parametrize("bad_field", ["loss", "metric", "mae"])
+@pytest.mark.parametrize("existing_best", [False, True])
+def test_invalid_validation_does_not_save_or_overwrite_best(
+        trainer, monkeypatch, tmp_path, bad_field, existing_best):
+    batches, _ = _accumulation_case("regression", [1])
+    model = AccumulationModel("regression")
+    args = SimpleNamespace(learning_rate=0.01, weight_decay=0.0, finetune_epochs=2,
+                           finetune_warmup_ratio=0.0, early_stopping_patience=1, seed=7,
+                           finetune_max_grad_norm=1.0, finetune_noise_probability=0.0,
+                           finetune_noise_std=0.0)
+    checkpoint = tmp_path / "best.pt"
+    original_save = trainer.save_checkpoint
+    saved = []
+
+    def save(*args):
+        original_save(*args)
+        saved.append(checkpoint.read_bytes())
+
+    results = [{"loss": 0.1, "metric": 0.2, "mae": 0.2}] if existing_best else []
+    results.append({"loss": 0.1, "metric": 0.1, "mae": 0.1, bad_field: float("nan")})
+    monkeypatch.setattr(trainer, "evaluate_downstream", lambda *_args: results.pop(0))
+    monkeypatch.setattr(trainer, "save_checkpoint", save)
+    with pytest.raises(FloatingPointError, match=rf"validation.*epoch={2 if existing_best else 1}.*{bad_field}"):
+        trainer.run_finetuning(torch, model, batches, batches, batches, trainer.resolve_dataset("aqsol"),
+                               None, args, torch.device("cpu"), checkpoint)
+    assert len(saved) == int(existing_best)
+    if existing_best:
+        assert checkpoint.read_bytes() == saved[0]
+    else:
+        assert not checkpoint.exists()
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), -float("inf")])
+@pytest.mark.parametrize("count", [1, 3])
+def test_aggregate_rejects_nonfinite_run_metrics(trainer, bad, count):
+    results = [_run_result(42 + i, i, 1.0) for i in range(count)]
+    results[-1]["metric"] = bad
+    with pytest.raises(FloatingPointError, match=r"seed=.*metric"):
+        trainer.aggregate_run_results(results)
+
+
+@pytest.mark.parametrize("failure", [{"complete": False}, {"success": False},
+                                     {"status": "failed"}, {"error": "training failed"}])
+def test_aggregate_rejects_explicitly_failed_runs(trainer, failure):
+    with pytest.raises(ValueError, match="failed"):
+        trainer.aggregate_run_results([{**_run_result(42, 0, 1.0), **failure}])
+
+
+@pytest.mark.parametrize("field", ["metric", "nested"])
+def test_main_keeps_only_successful_seeds_when_result_is_nonfinite(trainer, monkeypatch, tmp_path, field):
+    def run(_args, _config, seed, run_index):
+        result = _run_result(seed, run_index, 1.0)
+        if seed == 43:
+            if field == "metric":
+                result["metric"] = float("nan")
+            else:
+                result["finetune"] = {"test": {"loss": float("inf")}}
+        return result
+
+    monkeypatch.setattr(trainer, "run_single_experiment", run)
+    with pytest.raises(FloatingPointError):
+        trainer.main(["--smoke", "--dataset", "aqsol", "--seeds", "42", "43", "--output-dir", str(tmp_path)])
+    directory = tmp_path / "aqsol" / "bert"
+    partial = json.loads((directory / "summary.json").read_text(), parse_constant=lambda s: pytest.fail(s))
+    assert partial["complete"] is False
+    assert partial["run_metrics"] == [1.0]
+    assert (directory / "run_01_seed_42" / "summary.json").is_file()
+    assert not (directory / "run_02_seed_43" / "summary.json").exists()
+
+
+@pytest.mark.parametrize("phase", ["pretrain", "finetune", "validation", "test"])
+def test_numerical_failure_flows_through_main_without_best_or_success_summary(
+        trainer, monkeypatch, tmp_path, phase):
+    class FaultyPipelineModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.weight = torch.nn.Parameter(torch.tensor(0.0))
+            self.evaluations = 0
+
+        def forward(self, inputs, attention=None, task=None):
+            value = self.weight
+            if not self.training:
+                self.evaluations += 1
+            if ((phase == "pretrain" and task == "mlm") or
+                    (phase == "finetune" and task == "supervised" and self.training) or
+                    (phase == "validation" and not self.training) or
+                    (phase == "test" and self.evaluations == 3)):
+                value = value + float("nan")
+            if task == "mlm":
+                return value.expand(*inputs.shape, 64)
+            return value.expand(len(inputs), 1)
+
+    monkeypatch.setattr(trainer, "make_model", lambda *_args: FaultyPipelineModel())
+    with pytest.raises(FloatingPointError, match=rf"{phase}.*epoch=[12].*batch=1.*logits"):
+        trainer.main(["--smoke", "--dataset", "aqsol", "--seeds", "42", "--output-dir", str(tmp_path)])
+    directory = tmp_path / "aqsol" / "bert"
+    partial = json.loads((directory / "summary.json").read_text(), parse_constant=lambda s: pytest.fail(s))
+    assert partial["complete"] is False
+    assert partial["run_metrics"] == []
+    checkpoint = directory / "run_01_seed_42" / "best_finetune.pt"
+    if phase == "test":
+        state = torch.load(checkpoint, weights_only=False)
+        assert math.isfinite(state["score"])
+        assert all(torch.isfinite(value).all() for value in state["model"].values())
+    else:
+        assert not checkpoint.exists()
+    assert not (directory / "run_01_seed_42" / "summary.json").exists()
+
+
+def test_finite_gradients_with_overflowing_clip_norm_do_not_update(trainer, monkeypatch):
+    model = torch.nn.Linear(2, 1, bias=False)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    before = model.weight.detach().clone()
+    (model.weight * 1e20).sum().backward()
+    assert torch.isfinite(model.weight.grad).all()
+    updates = []
+    monkeypatch.setattr(optimizer, "step", lambda: updates.append("optimizer"))
+    scheduler = SimpleNamespace(step=lambda: updates.append("scheduler"))
+    with pytest.raises(FloatingPointError, match="gradient norm"):
+        trainer.step_accumulated_gradients(torch, model, optimizer, scheduler, 1, 1.0)
+    assert updates == []
+    assert torch.equal(model.weight, before)
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf")])
+def test_empty_mlm_window_still_rejects_nonfinite_logits(trainer, monkeypatch, bad):
+    batches, labels = _accumulation_case("mlm", [1], mlm_labels=[[-100, -100, -100]])
+    monkeypatch.setattr(trainer, "mask_for_mlm", lambda _t, inputs, *_a: (inputs, labels))
+    model = NumericalFaultModel("mlm", f"logits_{bad}")
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    with pytest.raises(FloatingPointError, match="pretrain.*logits"):
+        trainer.train_mlm_epoch(torch, model, batches, optimizer, SimpleNamespace(step=lambda: None),
+                                None, SimpleNamespace(mask_probability=0.0, pretrain_max_grad_norm=1.0),
+                                torch.device("cpu"), seed=7)
+
+
+def test_evaluation_rejects_overflow_when_grouping_finite_class_logits(trainer):
+    loader = trainer.make_loader(torch, [_record(0, [0.0]), _record(0, [0.0])], 2, 0, False, False)
+    with pytest.raises(FloatingPointError, match="evaluation.*logits"):
+        trainer.evaluate_downstream(torch, FixedLogits([[3e38, 0.0], [3e38, 0.0]]), loader,
+                                    trainer.resolve_dataset("mutagenicity"), None, torch.device("cpu"))
+
+
+def test_main_does_not_mark_explicitly_failed_run_complete(trainer, monkeypatch, tmp_path):
+    monkeypatch.setattr(trainer, "run_single_experiment", lambda _a, _c, seed, run_index:
+                        {**_run_result(seed, run_index, 1.0), "complete": False})
+    with pytest.raises(ValueError, match="failed"):
+        trainer.main(["--smoke", "--dataset", "aqsol", "--seeds", "42", "--output-dir", str(tmp_path)])
+    directory = tmp_path / "aqsol" / "bert"
+    assert json.loads((directory / "summary.json").read_text())["complete"] is False
+    assert not (directory / "run_01_seed_42" / "summary.json").exists()
+
+
+def test_main_marks_aggregate_failure_incomplete(trainer, monkeypatch, tmp_path):
+    monkeypatch.setattr(trainer, "run_single_experiment", lambda _a, _c, seed, run_index:
+                        _run_result(seed, run_index, 1.7e308 if seed == 42 else -1.7e308))
+    with pytest.raises(FloatingPointError, match="aggregate.*std"):
+        trainer.main(["--smoke", "--dataset", "aqsol", "--seeds", "42", "43", "--output-dir", str(tmp_path)])
+    partial = json.loads((tmp_path / "aqsol" / "bert" / "summary.json").read_text(),
+                         parse_constant=lambda s: pytest.fail(s))
+    assert partial["complete"] is False
+    assert partial["run_metrics"] == [1.7e308, -1.7e308]
+    assert "mean" not in partial and "std" not in partial

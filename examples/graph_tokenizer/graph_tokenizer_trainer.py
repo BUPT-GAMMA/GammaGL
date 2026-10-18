@@ -185,7 +185,32 @@ def build_warmup_cosine_scheduler(
 
 
 def emit_event(event: str, **fields: Any) -> None:
-    print(json.dumps({"event": event, **fields}, allow_nan=True), flush=True)
+    print(json.dumps({"event": event, **fields}, allow_nan=False), flush=True)
+
+
+def require_finite_tensor(torch, value, context):
+    if not torch.isfinite(value.detach()).all().item():
+        raise FloatingPointError(f"Non-finite {context}")
+
+
+def require_finite_metrics(value, context):
+    """Validate numeric result fields without changing their values."""
+    if isinstance(value, dict):
+        for key, item in value.items():
+            require_finite_metrics(item, f"{context}.{key}")
+    elif isinstance(value, (list, tuple)):
+        for index, item in enumerate(value):
+            require_finite_metrics(item, f"{context}[{index}]")
+    elif isinstance(value, (int, float)) and not math.isfinite(value):
+        raise FloatingPointError(f"Non-finite {context}: {value}")
+
+
+def validate_run_result(result):
+    context = f"run seed={result.get('seed')} run_index={result.get('run_index')}"
+    if (result.get("complete") is False or result.get("success") is False
+            or result.get("status") in ("failed", "error") or result.get("error")):
+        raise ValueError(f"Cannot aggregate failed {context}")
+    require_finite_metrics(result, context)
 
 
 def to_list(value):
@@ -668,10 +693,11 @@ def mask_for_mlm(torch, input_ids, attention, tokenizer, probability, generator)
     return masked, labels
 
 
-def mlm_loss(torch, model, input_ids, attention, tokenizer, probability, generator):
+def mlm_loss(torch, model, input_ids, attention, tokenizer, probability, generator, context="pretrain"):
     """Return the loss sum and valid token count, including for empty batches."""
     masked, labels = mask_for_mlm(torch, input_ids, attention, tokenizer, probability, generator)
     logits = model(masked, attention, task="mlm")
+    require_finite_tensor(torch, logits, f"{context} logits")
     loss = torch.nn.functional.cross_entropy(
         logits.reshape(-1, logits.shape[-1]), labels.reshape(-1), ignore_index=-100,
         reduction="sum")
@@ -696,6 +722,7 @@ def supervised_loss(torch, logits, labels, spec: DatasetSpec, reduction="mean"):
 
 
 def save_checkpoint(torch, path: Path, model, epoch: int, score: float) -> None:
+    require_finite_metrics(score, f"checkpoint epoch={epoch} score")
     ensure_repo_on_path()
     from gammagl.transforms.graph_tokenizer import TOKENIZER_SCHEMA_VERSION
 
@@ -731,20 +758,28 @@ def optimizer_steps_per_epoch(loader, args) -> int:
     return math.ceil(len(loader) / gradient_accumulation_steps(args))
 
 
-def step_accumulated_gradients(torch, model, optimizer, scheduler, target_count, max_grad_norm):
+def step_accumulated_gradients(torch, model, optimizer, scheduler, target_count, max_grad_norm,
+                              context="training"):
     # Normalize by targets before clipping; an empty MLM window makes no update
     # (including weight decay) and must not advance the learning-rate schedule.
     if target_count:
-        for parameter in model.parameters():
+        for name, parameter in model.named_parameters():
             if parameter.grad is not None:
                 parameter.grad.div_(target_count)
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
+                require_finite_tensor(torch, parameter.grad, f"{context} gradient {name}")
+        norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
+        # The total norm can overflow even when every gradient element is finite.
+        if norm is not None:
+            require_finite_tensor(torch, norm, f"{context} gradient norm")
+        for name, parameter in model.named_parameters():
+            if parameter.grad is not None:
+                require_finite_tensor(torch, parameter.grad, f"{context} clipped gradient {name}")
         optimizer.step()
         scheduler.step()
     optimizer.zero_grad(set_to_none=True)
 
 
-def train_mlm_epoch(torch, model, loader, optimizer, scheduler, tokenizer, args, device, seed):
+def train_mlm_epoch(torch, model, loader, optimizer, scheduler, tokenizer, args, device, seed, epoch=None):
     set_model_mode(model, True)
     generator = torch.Generator(device=device).manual_seed(seed)
     total, count = 0.0, 0
@@ -753,19 +788,23 @@ def train_mlm_epoch(torch, model, loader, optimizer, scheduler, tokenizer, args,
     window_count = 0
     optimizer.zero_grad(set_to_none=True)
     for batch_index, (input_ids, attention, _, _) in enumerate(loader):
+        context = f"pretrain epoch={epoch} batch={batch_index + 1}"
         input_ids, attention = input_ids.to(device), attention.to(device)
         loss, target_count = mlm_loss(torch, model, input_ids, attention, tokenizer,
-                                     args.mask_probability, generator)
+                                     args.mask_probability, generator, context)
+        require_finite_tensor(torch, loss, f"{context} loss")
         if target_count:
             loss.backward()
         window_count += target_count
         if (batch_index + 1) % accumulation_steps == 0 or batch_index + 1 == batch_count:
             step_accumulated_gradients(
-                torch, model, optimizer, scheduler, window_count, args.pretrain_max_grad_norm)
+                torch, model, optimizer, scheduler, window_count, args.pretrain_max_grad_norm, context)
             window_count = 0
         total += float(loss.detach())
         count += target_count
-    return total / max(count, 1)
+    train_loss = total / max(count, 1)
+    require_finite_metrics(train_loss, f"pretrain epoch={epoch} train_loss")
+    return train_loss
 
 
 def run_mlm(torch, model, train_loader, tokenizer, args, device):
@@ -778,7 +817,8 @@ def run_mlm(torch, model, train_loader, tokenizer, args, device):
     history = []
     for epoch in range(1, args.pretrain_epochs + 1):
         train_loss = train_mlm_epoch(torch, model, train_loader, optimizer, scheduler, tokenizer,
-                                     args, device, args.seed + epoch)
+                                     args, device, args.seed + epoch, epoch)
+        require_finite_metrics(train_loss, f"pretrain epoch={epoch} train_loss")
         history.append({"epoch": epoch, "train_loss": train_loss})
         emit_event("epoch", phase="pretrain", epoch=epoch, train_loss=train_loss)
     return {"epochs_completed": len(history), "final_loss": history[-1]["train_loss"],
@@ -793,20 +833,24 @@ def denormalize(torch, values, normalizer):
     return values * std + mean
 
 
-def evaluate_downstream(torch, model, loader, spec, normalizer, device):
+def evaluate_downstream(torch, model, loader, spec, normalizer, device, phase="evaluation", epoch=None):
     set_model_mode(model, False)
     total_loss, count, grouped = 0.0, 0, {}
     with torch.no_grad():
-        for input_ids, attention, labels, graph_ids in loader:
+        for batch_index, (input_ids, attention, labels, graph_ids) in enumerate(loader):
+            context = f"{phase} epoch={epoch} batch={batch_index + 1}"
             input_ids, attention, labels = input_ids.to(device), attention.to(device), labels.to(device)
             logits = model(input_ids, attention, task="supervised")
+            require_finite_tensor(torch, logits, f"{context} logits")
             loss = supervised_loss(torch, logits, labels, spec)
+            require_finite_tensor(torch, loss, f"{context} loss")
             total_loss += float(loss) * len(input_ids)
             count += len(input_ids)
             for graph_id, label, prediction in zip(graph_ids.tolist(), labels.cpu(), logits.cpu()):
                 grouped.setdefault(graph_id, {"label": label, "predictions": []})["predictions"].append(prediction)
     labels = torch.stack([item["label"] for item in grouped.values()])
     predictions = torch.stack([torch.stack(item["predictions"]).mean(0) for item in grouped.values()])
+    require_finite_tensor(torch, predictions, f"{phase} epoch={epoch} grouped logits")
     if spec.num_classes:
         metric = float((predictions.argmax(dim=-1) == labels.reshape(-1).long()).float().mean())
         detail = {spec.metric.lower(): metric, "metric_space": "class_label"}
@@ -815,11 +859,13 @@ def evaluate_downstream(torch, model, loader, spec, normalizer, device):
         raw_predictions = denormalize(torch, predictions, normalizer)
         metric = float(torch.abs(raw_labels - raw_predictions).mean())
         detail = {spec.metric.lower(): metric, "metric_space": "raw_label"}
-    return {"loss": total_loss / max(count, 1), "metric": metric,
-            "num_graphs": len(grouped), **detail}
+    result = {"loss": total_loss / max(count, 1), "metric": metric,
+              "num_graphs": len(grouped), **detail}
+    require_finite_metrics(result, f"{phase} epoch={epoch}")
+    return result
 
 
-def train_downstream_epoch(torch, model, loader, optimizer, scheduler, spec, args, device, seed=0):
+def train_downstream_epoch(torch, model, loader, optimizer, scheduler, spec, args, device, seed=0, epoch=None):
     set_model_mode(model, True)
     generator = torch.Generator(device=device).manual_seed(seed)
     total, count = 0.0, 0
@@ -828,22 +874,27 @@ def train_downstream_epoch(torch, model, loader, optimizer, scheduler, spec, arg
     window_count = 0
     optimizer.zero_grad(set_to_none=True)
     for batch_index, (input_ids, attention, labels, _) in enumerate(loader):
+        context = f"finetune epoch={epoch} batch={batch_index + 1}"
         input_ids, attention, labels = input_ids.to(device), attention.to(device), labels.to(device)
         logits = supervised_logits(
             torch, model, input_ids, attention, args.finetune_noise_probability,
             args.finetune_noise_std, generator)
+        require_finite_tensor(torch, logits, f"{context} logits")
         loss = supervised_loss(torch, logits, labels, spec, reduction="sum")
+        require_finite_tensor(torch, loss, f"{context} loss")
         target_count = (labels.numel() if spec.num_classes else
                         torch.broadcast_tensors(logits, labels)[0].numel())
         loss.backward()
         window_count += target_count
         if (batch_index + 1) % accumulation_steps == 0 or batch_index + 1 == batch_count:
             step_accumulated_gradients(
-                torch, model, optimizer, scheduler, window_count, args.finetune_max_grad_norm)
+                torch, model, optimizer, scheduler, window_count, args.finetune_max_grad_norm, context)
             window_count = 0
         total += float(loss.detach())
         count += target_count
-    return total / max(count, 1)
+    train_loss = total / max(count, 1)
+    require_finite_metrics(train_loss, f"finetune epoch={epoch} train_loss")
+    return train_loss
 
 
 def run_finetuning(torch, model, train_loader, val_loader, test_loader, spec, normalizer, args, device, checkpoint):
@@ -857,8 +908,10 @@ def run_finetuning(torch, model, train_loader, val_loader, test_loader, spec, no
     higher_is_better = spec.higher_is_better
     for epoch in range(1, args.finetune_epochs + 1):
         train_loss = train_downstream_epoch(
-            torch, model, train_loader, optimizer, scheduler, spec, args, device, args.seed + epoch)
-        validation = evaluate_downstream(torch, model, val_loader, spec, normalizer, device)
+            torch, model, train_loader, optimizer, scheduler, spec, args, device, args.seed + epoch, epoch)
+        require_finite_metrics(train_loss, f"finetune epoch={epoch} train_loss")
+        validation = evaluate_downstream(torch, model, val_loader, spec, normalizer, device, "validation", epoch)
+        require_finite_metrics(validation, f"validation epoch={epoch}")
         score = validation["metric"]
         history.append({"epoch": epoch, "train_loss": train_loss, "validation": validation})
         emit_event("epoch", phase="finetune", epoch=epoch, train_loss=train_loss,
@@ -873,7 +926,8 @@ def run_finetuning(torch, model, train_loader, val_loader, test_loader, spec, no
                 break
     state = restore_checkpoint(torch, checkpoint, model, device)
     # This is the only downstream test evaluation.
-    test = evaluate_downstream(torch, model, test_loader, spec, normalizer, device)
+    test = evaluate_downstream(torch, model, test_loader, spec, normalizer, device, "test", state["epoch"])
+    require_finite_metrics(test, f"test epoch={state['epoch']}")
     return {"best_epoch": state["epoch"], "best_validation_metric": state["score"],
             "history": history, "test": test}
 
@@ -958,9 +1012,15 @@ def run_single_experiment(args, config, seed, run_index=0):
 def aggregate_run_results(results):
     if not results:
         raise ValueError("Cannot aggregate zero GraphTokenizer runs")
+    for result in results:
+        validate_run_result(result)
     metrics = [result["metric"] for result in results]
     mean = statistics.mean(metrics)
-    std = statistics.stdev(metrics) if len(metrics) > 1 else 0.0
+    try:
+        std = statistics.stdev(metrics) if len(metrics) > 1 else 0.0
+    except OverflowError as error:
+        raise FloatingPointError("Non-finite aggregate std: overflow") from error
+    require_finite_metrics({"mean": mean, "std": std}, "aggregate")
     first = results[0]
     return {"dataset": first["dataset"], "encoder": first["encoder"],
             "seeds": [result["seed"] for result in results], "num_runs": len(results),
@@ -1060,13 +1120,17 @@ def main(argv=None):
         for run_index, seed in enumerate(args.seeds):
             print(f"=== Run {run_index + 1}/{len(args.seeds)} | seed={seed} ===", flush=True)
             result = run_single_experiment(args, config, seed, run_index=run_index)
-            results.append(result)
+            validate_run_result(result)
+            serialized_result = json.dumps(result, indent=2, allow_nan=False)
             directory = run_output_directory(args, spec, run_index, seed)
             directory.mkdir(parents=True, exist_ok=True)
             (directory / "summary.json").write_text(
-                json.dumps(result, indent=2, allow_nan=True), encoding="utf-8")
+                serialized_result, encoding="utf-8")
+            results.append(result)
             print(f"=== Run {run_index + 1}/{len(args.seeds)} completed ===\n"
                   f"{result['metric_name']}: {result['metric']}", flush=True)
+        summary = aggregate_run_results(results)
+        serialized = json.dumps(summary, indent=2, allow_nan=False)
     except Exception:
         partial = {"dataset": spec.name, "encoder": args.encoder,
                    "seeds": list(args.seeds), "num_runs": len(args.seeds),
@@ -1074,10 +1138,10 @@ def main(argv=None):
                    "run_metrics": [result["metric"] for result in results],
                    "complete": False}
         summary_path.parent.mkdir(parents=True, exist_ok=True)
-        summary_path.write_text(json.dumps(partial, indent=2, allow_nan=True), encoding="utf-8")
+        # Only fully validated successful runs enter results. Do not serialize
+        # the rejected result (which may itself contain NaN/Inf) on this path.
+        summary_path.write_text(json.dumps(partial, indent=2, allow_nan=False), encoding="utf-8")
         raise
-    summary = aggregate_run_results(results)
-    serialized = json.dumps(summary, indent=2, allow_nan=True)
     summary_path.write_text(serialized, encoding="utf-8")
     print(serialized, flush=True)
     return summary
