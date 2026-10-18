@@ -36,31 +36,93 @@ def validate_undirected_graph_semantics(graph: Any) -> None:
 
 @dataclass
 class GraphSerializationResult:
-    """Container for serialized graph tokens and lightweight metadata."""
+    r"""Serialized tokens and provenance returned by a graph serializer.
+
+    Parameters
+    ----------
+    token_ids: list[int]
+        One unpadded sequence of length S, before GraphTokenizer vocabulary
+        encoding. Its grammar depends on metadata["protocol"].
+    metadata: dict
+        Fresh empty dict by default. Serializer results include method,
+        protocol version, graph counts and start_node. local_refs also
+        carries local_to_original; official results have no identity map.
+        Metadata does not make the official label stream reversible.
+    """
 
     token_ids: List[int]
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 class FrequencyGuidedEulerianSerializer:
-    """Feuler for simple undirected graphs, with two explicit input protocols.
+    r"""Frequency-guided graph serialization with an explicit token protocol.
 
-    ``official`` follows the pinned source's traversal and loader token rules.
-    It has no node identity tokens and cannot reconstruct a graph. ``local_refs``
-    is the optional reversible GammaGL protocol described below.
+    Follows the actual serializer / loader chain in the `fixed official source
+    <https://github.com/BUPT-GAMMA/Graph-Tokenization-for-Bridging-Graphs-and-Transformers/tree/98343a6b025a48fbb6859cd812a12b81ec3ac3cc>`_
+    for `"Graph Tokenization for Bridging Graphs and Transformers"
+    <https://arxiv.org/abs/2603.11099>`_. The default official stream contains
+    no node-reference tokens and cannot reconstruct a complete graph.
 
-    ``edge_index`` may contain one or both directions of an undirected edge,
-    but every direction must carry the same edge label. Directed graphs,
-    parallel edges, and self-loops are not representable by this serializer.
+    Parameters
+    ----------
+    name: str
+        Method identifier. Use :class:`EulerianSerializer` for the official
+        non-frequency-guided traversal. (default: ``"feuler"``)
+    include_edge_tokens: bool
+        Include retained edge labels. official always omits the loader's
+        common edge type. local_refs graph recovery requires True.
+        (default: :obj:`True`)
+    component_sep_token_id: int
+        None selects 7 for official or -1 for local_refs. local_refs requires
+        a negative separator. The formal official presets use 7.
+        (default: :obj:`None`)
+    protocol: str
+        "official" preserves input COO arcs, sorts by directional triplet
+        frequency then neighbor ID, and resets starts in disconnected
+        components. "local_refs" uses GammaGL's separate reversible grammar,
+        with structural sorting and first-visit node references.
+        (default: ``"official"``)
+    dataset: str
+        "mutagenicity" or "dblp" applies the official TU bulk getter rules
+        (2*x+1, 2*edge_attr), with singleton node x unchanged and edge type 0
+        omitted. "aqsol" expects already encoded atomic / bond tokens and
+        omits token 2 (SINGLE). None uses supplied token IDs and omits edge
+        token 0. Intended for use with the corresponding dataset adapter.
+        (default: :obj:`None`)
 
-    The ``local_refs`` grammar is self-describing: a component starts with a node-label
-    token and a node-reference token, then contains repeated
-    ``edge-label, node-label, node-reference`` triples. Components are joined
-    by ``component_sep_token_id``. Node labels, edge labels, and node
-    references occupy disjoint integer domains. The stream recovers an
-    isomorphic labeled graph; result metadata restores original node IDs.
-    Graphs without ``x`` use zero as every node label, including in the
-    reconstructed ``x``; absent original features cannot be recovered.
+    Notes
+    -----
+    Graph, mapping or attribute object with edge_index (2, E) or edge pairs
+    (E, 2), scalar integer x (N,) or (N, 1), and scalar edge_attr (E,) or
+    (E, 1). num_nodes is optional if inferable. Missing x / edge_attr use
+    zero labels; this does not recover absent features. Python sequences,
+    NumPy arrays and TLX tensors are accepted. Result token_ids has length S.
+    A (2, 2) edge array is always interpreted as two COO rows, not two
+    endpoint pairs; prefer unambiguous (2, E) input.
+
+    Supports simple undirected semantics, disconnected components and
+    isolated nodes. Explicit directed metadata, loops, parallel edges,
+    conflicting labels, and multidimensional features are rejected.
+    official requires non-negative tokens and nonempty graphs; it preserves
+    supplied COO arcs, so one-way and symmetric COO need not agree. It is
+    not an isomorphism canonicalizer. local_refs normalizes undirected COO
+    and supports empty graphs / signed labels; raw streams reconstruct only
+    a labeled isomorphic graph, while metadata restores original node IDs.
+
+    Raises
+    ------
+    ValueError
+        If configuration, graph domain, scalar labels, endpoints or start
+        node are invalid, or an official traversal requires a missing edge.
+
+    Examples
+    --------
+    >>> from gammagl.transforms import FrequencyGuidedEulerianSerializer
+    >>> graph = dict(edge_index=[[0, 1], [1, 0]], x=[11, 13],
+    ...              edge_attr=[0, 0], num_nodes=2)
+    >>> serializer = FrequencyGuidedEulerianSerializer().fit([graph])
+    >>> serializer.serialize(graph).token_ids
+    [11, 13, 11]
     """
 
     def __init__(
@@ -88,12 +150,25 @@ class FrequencyGuidedEulerianSerializer:
         self.frequency_map: Dict[Any, int] = {}
 
     def configuration(self):
+        r"""Return the method, protocol, dataset and pinned-source configuration dict.
+
+        This describes the algorithm; fitted frequency statistics are separate.
+        """
         return dict(method=self.name, protocol=self.protocol, dataset=self.dataset,
                     include_edge_tokens=self.include_edge_tokens,
                     component_sep_token_id=self.component_sep_token_id,
                     official_revision=OFFICIAL_REVISION)
 
     def fit(self, graphs: Sequence[Any]):
+        r"""Collect triplet frequencies from the supplied graph corpus and return self.
+
+        graphs is a sequence of graph inputs with the shapes described in the
+        class documentation. official counts input arcs directionally;
+        local_refs counts canonical undirected edge patterns. Fit only training
+        graphs when using the train-only reproduction pipeline. Graph validation
+        failures raise ValueError. Serializing before fit uses an empty table
+        and deterministic tie-breaking rather than raising an unfitted error.
+        """
         counts: Dict[Tuple[int, int, int], int] = defaultdict(int)
         for graph in graphs:
             graph_view = self._read_graph(graph)
@@ -110,6 +185,28 @@ class FrequencyGuidedEulerianSerializer:
     def serialize(
             self, graph: Any, start_node: Optional[int] = None
     ) -> GraphSerializationResult:
+        r"""Serialize one graph into a GraphSerializationResult.
+
+        Parameters
+        ----------
+        graph: Graph or dict or object
+            Input with the node / edge shapes described in the class contract.
+        start_node: int
+            Original node index. None uses 0 for a connected official graph or
+            structural selection for local_refs. Disconnected official graphs
+            reset each component's start to its local node 0.
+            (default: :obj:`None`)
+
+        Returns
+        -------
+        gammagl.transforms.graph_serializer.GraphSerializationResult
+            Unpadded integer tokens and protocol / traversal metadata.
+
+        Raises
+        ------
+        ValueError
+            If the graph or start is outside the supported domain.
+        """
         graph_view = self._read_graph(graph)
         if start_node is not None:
             start_node = int(start_node)
@@ -235,7 +332,15 @@ class FrequencyGuidedEulerianSerializer:
             num_edges_traversed=sum(len(path) - 1 for path in paths)))
 
     def restore_input_metadata(self, result: GraphSerializationResult) -> Dict[str, List[int]]:
-        """Restore original node IDs from a full result and its provenance map."""
+        r"""Restore original node IDs from a complete local_refs result.
+
+        result must be a GraphSerializationResult with the current protocol and
+        a valid local_to_original permutation. Returns a dict with edge_index
+        (2, M), x (N,), edge_attr (M,), num_nodes; M counts canonical undirected
+        edges, not doubled COO arcs. Values are Python lists / integers.
+        Raises ValueError for missing / incompatible metadata and
+        NotImplementedError for official protocol.
+        """
         if not isinstance(result, GraphSerializationResult):
             raise ValueError("Original node IDs require a full serializer result with metadata.")
         local = self.deserialize(result)
@@ -258,7 +363,29 @@ class FrequencyGuidedEulerianSerializer:
         }
 
     def deserialize(self, result: GraphSerializationResult) -> Dict[str, List[int]]:
-        """Reconstruct a graph from a Feuler token stream without metadata."""
+        r"""Recover a labeled graph only from the explicit local_refs protocol.
+
+        Parameters
+        ----------
+        result: GraphSerializationResult or list[int]
+            Versioned result or a bare local_refs token stream. Bare streams
+            have no version provenance and cannot detect legacy protocol IDs.
+
+        Returns
+        -------
+        dict
+            edge_index (2, M), x (N,), edge_attr (M,) and num_nodes. Node IDs
+            follow first-visit reference order. Use restore_input_metadata with
+            the full result for original IDs. Absent input features become zeros.
+
+        Raises
+        ------
+        NotImplementedError
+            For official, which omits node identities and common edge tokens.
+        ValueError
+            For incompatible version / method / grammar, or when edge tokens
+            are disabled. This operation does not invent missing graph structure.
+        """
         if self.protocol == "official":
             raise NotImplementedError(
                 "Official tokens omit node identity and common edge tokens; cannot reconstruct a graph.")
@@ -319,14 +446,29 @@ class FrequencyGuidedEulerianSerializer:
 
     @staticmethod
     def node_token(label: int) -> int:
+        r"""Encode one signed integer node label in the local_refs label domain.
+
+        These helpers define only the optional local_refs grammar; official
+        token construction uses the dataset loader rules instead.
+        """
         return 3 * FrequencyGuidedEulerianSerializer._encode_integer(label)
 
     @staticmethod
     def edge_token(label: int) -> int:
+        r"""Encode one signed integer edge label in the local_refs edge domain.
+
+        These helpers define only the optional local_refs grammar; official
+        token construction uses the dataset loader rules instead.
+        """
         return 3 * FrequencyGuidedEulerianSerializer._encode_integer(label) + 1
 
     @staticmethod
     def node_reference_token(node_id: int) -> int:
+        r"""Encode a non-negative local node reference; negative IDs raise ValueError.
+
+        These helpers define only the optional local_refs grammar; official
+        token construction uses the dataset loader rules instead.
+        """
         if int(node_id) < 0:
             raise ValueError("Feuler node references must be non-negative.")
         return 3 * int(node_id) + 2
@@ -708,7 +850,27 @@ class FrequencyGuidedEulerianSerializer:
 
 
 class EulerianSerializer(FrequencyGuidedEulerianSerializer):
-    """Eulerian traversal without corpus frequency guidance (same protocols)."""
+    r"""Eulerian serializer without fitted frequency guidance.
+
+    All graph inputs, shapes, protocol choices, defaults and recovery limits
+    are documented in :class:`FrequencyGuidedEulerianSerializer`; this class
+    has the same constructor parameters except name, which is fixed to
+    "eulerian". fit returns self with an empty frequency map.
+
+    In official mode, neighbors are sorted by local node ID ascending and
+    consumed from the end. Arcs are copied in both directions only when
+    the official total in/out-degree test finds an odd degree. A required
+    edge absent from the original COO raises ValueError. This differs from
+    merely disabling Feuler frequencies or unconditionally doubling edges.
+
+    Examples
+    --------
+    >>> from gammagl.transforms import EulerianSerializer
+    >>> graph = dict(edge_index=[[0, 1, 0, 2], [1, 0, 2, 0]],
+    ...              x=[11, 13, 17], edge_attr=[0, 0, 0, 0], num_nodes=3)
+    >>> EulerianSerializer().serialize(graph).token_ids
+    [11, 17, 11, 13, 11]
+    """
 
     def __init__(self, include_edge_tokens: bool = True, component_sep_token_id: Optional[int] = None,
                  protocol: str = "official", dataset: Optional[str] = None):
@@ -720,6 +882,10 @@ class EulerianSerializer(FrequencyGuidedEulerianSerializer):
         )
 
     def fit(self, graphs: Sequence[Any]):
+        r"""Return self with no frequency statistics; graphs is accepted for API parity.
+
+        Graph inputs are validated by serialize, not this no-op fitting method.
+        """
         self.frequency_map = {}
         return self
 

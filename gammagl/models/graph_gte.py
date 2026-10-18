@@ -6,22 +6,13 @@ import math
 
 import tensorlayerx as tlx
 
-try:
-    from .graph_bert import (
-        _linear,
-        _parameter_count,
-        _truncated_normal,
-        additive_attention_bias,
-        masked_mean,
-    )
-except ImportError:  # Allows direct file loading in focused tests.
-    from graph_bert import (
-        _linear,
-        _parameter_count,
-        _truncated_normal,
-        additive_attention_bias,
-        masked_mean,
-    )
+from .graph_bert import (
+    _linear,
+    _parameter_count,
+    _truncated_normal,
+    additive_attention_bias,
+    masked_mean,
+)
 
 
 def rotate_half(value):
@@ -218,7 +209,80 @@ class GraphGTELayer(tlx.nn.Module):
 
 
 class GraphGTE(tlx.nn.Module):
-    """Native TLX GTE encoder; ``from_pretrained`` loads its GTE encoder."""
+    r"""GTE graph token encoder with packed QKV, rotary positions and gated GELU.
+
+    Used in `"Graph Tokenization for Bridging Graphs and Transformers"
+    <https://arxiv.org/abs/2603.11099>`_. The native TLX implementation follows
+    the `pinned official GTE source
+    <https://huggingface.co/Alibaba-NLP/gte-multilingual-base/tree/9bbca17d9273fd0d03d5725c7a4b0f6b45142062>`_.
+    Supports the TLX torch and TensorFlow eager training paths. Construction
+    is random initialization; use :meth:`from_pretrained` for official
+    encoder weights. Graph embeddings, MLM head and graph head remain new.
+
+    Parameters
+    ----------
+    vocab_size: int
+        Graph model vocabulary size, including special tokens.
+    output_dim: int
+        Number of regression targets or classes.
+    hidden_size: int
+        Encoder width. (default: ``768``)
+    num_hidden_layers: int
+        Number of encoder blocks. (default: ``12``)
+    num_attention_heads: int
+        Must divide hidden_size and give an even head width for RoPE.
+        (default: ``12``)
+    intermediate_size: int
+        Gated feed-forward width. (default: ``3072``)
+    max_position_embeddings: int
+        Maximum sequence length including special tokens.
+        (default: ``8192``)
+    dropout_rate: float
+        Embedding and hidden dropout. (default: ``0.1``)
+    attention_dropout_rate: float
+        None uses dropout_rate; from_pretrained uses the pinned config's
+        attention dropout (0.0). (default: :obj:`None`)
+    layer_norm_eps: float
+        Layer normalization epsilon. (default: ``1e-12``)
+    pad_token_id: int
+        Model metadata; attention_mask controls padding visibility. The
+        pinned pretrained config uses 1. (default: ``0``)
+    type_vocab_size: int
+        Token-type embedding vocabulary; inputs use type 0.
+        (default: ``1``)
+    task_type: str
+        Task metadata; outputs remain raw scores. (default: ``"regression"``)
+    pooling: str
+        "mean" or "cls", as in :class:`GraphTokenTransformer`.
+        (default: ``"mean"``)
+    task_dropout: float
+        Graph task head dropout. (default: ``0.1``)
+    rope_theta: float
+        Rotary frequency base. (default: ``20000.0``)
+    rope_scaling_factor: float
+        Positive official NTK scaling factor. (default: ``8.0``)
+    name: str
+        TensorLayerX module name. (default: :obj:`None`)
+
+    Raises
+    ------
+    ValueError
+        If pooling, attention dimensions or rotary scaling are
+        invalid. Oversized sequences also raise ValueError on forward.
+
+    Examples
+    --------
+    A small random model for an offline shape check (not a paper run):
+
+    >>> import tensorlayerx as tlx
+    >>> from gammagl.models import GraphGTE
+    >>> model = GraphGTE(32, 1, hidden_size=16, num_hidden_layers=1,
+    ...     num_attention_heads=4, intermediate_size=32)
+    >>> model.set_eval()
+    >>> ids = tlx.convert_to_tensor([[3, 8, 4]], dtype=tlx.int64)
+    >>> tuple(model(ids, tlx.ones_like(ids), task="supervised").shape)
+    (1, 1)
+    """
 
     encoder_type = "gte"
     model_name = "gte-base"
@@ -315,7 +379,43 @@ class GraphGTE(tlx.nn.Module):
 
     @classmethod
     def from_pretrained(cls, vocab_size: int, output_dim: int, cache_dir=None, **kwargs):
-        """Build native TLX GraphGTE with official encoder weights only."""
+        r"""Load the pinned official encoder into a native TLX GraphGTE.
+
+        Parameters
+        ----------
+        vocab_size: int
+            Size of the newly initialized graph embedding / MLM vocabulary.
+        output_dim: int
+            Width of the newly initialized graph task head.
+        cache_dir: str or ``path-like``
+            Hugging Face download cache. Missing config and safetensors files
+            are downloaded. (default: :obj:`None`)
+        **kwargs
+            Constructor options. Architecture fields must exactly match the
+            pinned official configuration; task_type, pooling, task_dropout and
+            name may configure the graph task.
+
+        Returns
+        -------
+        GraphGTE
+            Native model with pretrained_manifest recording revision, SHA-256
+            and complete encoder tensor coverage. Graph vocabulary embeddings,
+            MLM head and task head are randomly initialized.
+
+        Raises
+        ------
+        RuntimeError
+            If the config / requested architecture or checkpoint hash differs,
+            or required encoder tensors are missing, unexpected or incompatible.
+        ImportError
+            If optional huggingface-hub or safetensors dependencies are absent.
+
+        Notes
+        -----
+        Uses Alibaba-NLP/gte-multilingual-base revision
+        ``9bbca17d9273fd0d03d5725c7a4b0f6b45142062``. This initializes the encoder;
+        it is not a compatible replacement for a fine-tuned graph checkpoint.
+        """
         from .graph_gte_pretrained import (
             GTE_CHECKPOINT, GTE_MODEL_ID, GTE_REVISION,
             download_official_gte_checkpoint, load_official_gte_config,
@@ -389,7 +489,29 @@ class GraphGTE(tlx.nn.Module):
 
     def encode_embeddings(self, inputs_embeds, attention_mask=None,
                           return_hidden_states=False):
-        """Run the native encoder from raw embeddings for reference testing."""
+        r"""Run the encoder from raw embeddings, primarily for reference comparisons.
+
+        Parameters
+        ----------
+        inputs_embeds: ``Tensor``
+            Raw floating embeddings of shape (B, L, hidden_size). Token-type
+            embeddings and embedding normalization / dropout are still applied.
+        attention_mask: ``Tensor``
+            Visible-token mask (B, L). (default: :obj:`None`)
+        return_hidden_states: bool
+            Also return every layer's states. (default: :obj:`False`)
+
+        Returns
+        -------
+        ``Tensor`` or tuple
+            Last hidden state (B, L, hidden_size), or a pair of that tensor and
+            a tuple of num_hidden_layers + 1 tensors, including embedding output.
+
+        Raises
+        ------
+        ValueError
+            If L exceeds the configured position capacity.
+        """
         hidden_states = self._embed_inputs(inputs_embeds)
         hidden_states_list = [hidden_states]
         rope_embeddings = self.rotary_embedding(hidden_states)
@@ -411,6 +533,13 @@ class GraphGTE(tlx.nn.Module):
         return self.task_head_out(hidden)
 
     def forward(self, input_ids, attention_mask=None, task: str | None = None):
+        r"""Encode model IDs using the task modes and output shapes documented in
+        :meth:`GraphTokenTransformer.forward`.
+
+        input_ids has shape (B, L), attention_mask is optional with shape (B, L),
+        and task defaults to None. Returns raw scores; aggregation is performed
+        by the trainer. Raises ValueError for unsupported task or excessive L.
+        """
         if task not in {None, "mlm", "supervised", "pooled"}:
             raise ValueError(
                 "task must be None, 'mlm', 'supervised', or 'pooled'.")
@@ -435,6 +564,12 @@ class GraphGTE(tlx.nn.Module):
         }
 
     def manifest(self):
+        r"""Return architecture, parameter counts and initialization provenance.
+
+        The returned dict distinguishes random initialization from an official
+        encoder load, including its revision, hash and coverage report when
+        available. It does not identify a fitted tokenizer or downstream run.
+        """
         manifest = {
             "encoder_type": self.encoder_type,
             "model_name": self.model_name,

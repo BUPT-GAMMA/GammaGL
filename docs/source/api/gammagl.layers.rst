@@ -109,3 +109,6 @@ Model
     gammagl.models.Specformer
     gammagl.models.PreModel
     gammagl.models.ReModel
+    GraphTokenTransformer
+    GraphBERT
+    GraphGTE

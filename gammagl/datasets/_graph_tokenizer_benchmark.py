@@ -35,17 +35,52 @@ def validate_graph_tokenizer_splits(num_samples: int, split_indices: Dict[str, L
 
 
 class PreprocessedGraphBenchmark(InMemoryDataset):
-    r"""Base class for GraphTokenizer benchmark datasets stored as preprocessed
-    graph pickle files plus train/validation/test split indices.
+    r"""Shared interface for the preprocessed GraphTokenizer benchmark datasets.
 
-    The expected raw layout is:
+    Parameters
+    ----------
+    root: str
+        Dataset root. Each subclass reads root/name/raw/data.pkl (or .pkl.gz)
+        and train_index.json, val_index.json, test_index.json. Files may be
+        materialized from GAMMAGL_GRAPH_TOKENIZER_DATA_BUNDLE or an already
+        prepared shared release cache. Construction does not download the
+        official bundle; see :doc:`/notes/graph_tokenizer` for preparation.
+    transform: ``callable``
+        Transform a Graph on every access. (default: :obj:`None`)
+    pre_transform: ``callable``
+        Transform a Graph before saving processed data. Must preserve the
+        required discrete tokens and official graph ordering.
+        (default: :obj:`None`)
+    pre_filter: ``callable``
+        Must be None; filtering would invalidate fixed split indices.
+        (default: :obj:`None`)
+    force_reload: bool
+        Reprocess existing raw data. (default: :obj:`False`)
 
-    .. code-block:: text
+    Raises
+    ------
+    FileNotFoundError
+        If required raw files or the prepared release bundle are unavailable.
+    ValueError
+        If split indices overlap or are out of range, required scalar
+        features / labels are missing or invalid, direction metadata is
+        explicitly directed, or pre_filter is not None.
 
-        root/name/raw/data.pkl or data.pkl.gz
-        root/name/raw/train_index.json
-        root/name/raw/val_index.json
-        root/name/raw/test_index.json
+    Notes
+    -----
+    Each item is a :class:`~gammagl.data.Graph` with scalar integer node IDs
+    x of shape (N,), edge_index (2, E), scalar edge IDs edge_attr (E,), and
+    floating y (1, num_tasks). These IDs are dataset token features; the
+    configured serializer still applies its loader-specific rules. Explicit
+    node_token_ids / edge_token_ids are preserved; raw feature IDs are
+    encoded as 2*node_type+1 / 2*edge_type. Labels are not standardized here.
+
+    Pickles must come from a trusted source. DGL-formatted release objects
+    require the optional graph-tokenizer-paper dependencies for unpickling.
+    Dataset loading does not itself validate every serializer constraint;
+    the official tokenizer subsequently rejects loops and parallel edges.
+    Processed graph files are backend-specific and are separate from the
+    versioned tokenizer preprocessing cache.
     """
 
     name: str = ""
@@ -151,9 +186,33 @@ class PreprocessedGraphBenchmark(InMemoryDataset):
             json.dump(split_indices, f)
 
     def get_idx_split(self) -> Dict[str, List[int]]:
+        r"""Return a copy of the official train / val / test graph-index lists.
+
+        Returns
+        -------
+        dict
+            Keys "train", "val", "test" map to lists of integer graph indices.
+        """
         return {key: list(value) for key, value in self.split_indices.items()}
 
     def get_split(self, split: str):
+        r"""Select the graphs belonging to one official split.
+
+        Parameters
+        ----------
+        split: str
+            "train", "val", or "test".
+
+        Returns
+        -------
+        Dataset
+            An indexed dataset view, preserving access-time transforms.
+
+        Raises
+        ------
+        ValueError
+            If split is not one of the three official split names.
+        """
         if split not in self.split_indices:
             expected = ', '.join(sorted(self.split_indices))
             raise ValueError(f"Unknown split '{split}'. Expected one of: {expected}.")

@@ -17,6 +17,7 @@ Welcome to gammagl's documentation!
    notes/create_dataset
    notes/create_gnn
    notes/batching
+   notes/graph_tokenizer
 
 .. toctree::
    :maxdepth: 4

@@ -147,7 +147,74 @@ class GraphTokenTransformerLayer(tlx.nn.Module):
 
 
 class GraphTokenTransformer(tlx.nn.Module):
-    """BERT-Small encoder with MLM and graph-level task heads."""
+    r"""BERT-Small encoder for graph token sequences, with MLM and graph task heads.
+
+    Implements the BERT encoder used in `"Graph Tokenization for Bridging
+    Graphs and Transformers" <https://arxiv.org/abs/2603.11099>`_. See the
+    :doc:`GraphTokenizer guide </notes/graph_tokenizer>` for the pinned
+    official implementation and the supported TLX torch / TensorFlow eager
+    training paths. This constructor initializes weights randomly.
+
+    Parameters
+    ----------
+    vocab_size: int
+        Number of model token IDs. Must exceed every input ID; use
+        :meth:`gammagl.transforms.GraphTokenizer.validate_model_vocab`.
+    output_dim: int
+        Number of graph targets, or number of classes for classification.
+    hidden_size: int
+        Token embedding and encoder width. (default: ``512``)
+    num_hidden_layers: int
+        Number of encoder blocks. (default: ``4``)
+    num_attention_heads: int
+        Attention heads; must divide hidden_size. (default: ``4``)
+    intermediate_size: int
+        Feed-forward hidden width. (default: ``2048``)
+    max_position_embeddings: int
+        Maximum input length including special tokens. This API default is
+        distinct from the trainer's 8096-token preset. (default: ``768``)
+    dropout_rate: float
+        Embedding and encoder hidden dropout. (default: ``0.1``)
+    attention_dropout_rate: float
+        Attention probability dropout; None uses dropout_rate.
+        (default: :obj:`None`)
+    layer_norm_eps: float
+        Layer normalization epsilon. (default: ``1e-12``)
+    pad_token_id: int
+        Padding ID recorded in model metadata. Supply attention_mask to
+        exclude padding from attention and mean pooling. (default: ``0``)
+    type_vocab_size: int
+        Token-type embedding vocabulary; all inputs use type 0.
+        (default: ``2``)
+    task_type: str
+        Task metadata, usually "regression" or "classification"; it does
+        not select a loss or apply softmax. (default: ``"regression"``)
+    pooling: str
+        "mean" for masked mean pooling or "cls" for the first token.
+        (default: ``"mean"``)
+    task_dropout: float
+        Graph task head dropout. (default: ``0.1``)
+    name: str
+        TensorLayerX module name. (default: :obj:`None`)
+
+    Raises
+    ------
+    ValueError
+        If pooling is unsupported, position capacity is nonpositive, or
+        hidden_size is not divisible by the attention head count.
+
+    Examples
+    --------
+    >>> import tensorlayerx as tlx
+    >>> from gammagl.models import GraphTokenTransformer
+    >>> model = GraphTokenTransformer(32, 2, hidden_size=16,
+    ...     num_hidden_layers=1, num_attention_heads=4, intermediate_size=32)
+    >>> model.set_eval()
+    >>> ids = tlx.convert_to_tensor([[3, 8, 4]], dtype=tlx.int64)
+    >>> logits = model(ids, tlx.ones_like(ids), task="supervised")
+    >>> tuple(logits.shape)
+    (1, 2)
+    """
 
     encoder_type = "bert"
     model_name = "bert-small"
@@ -264,6 +331,40 @@ class GraphTokenTransformer(tlx.nn.Module):
         return self.task_head_out(hidden)
 
     def forward(self, input_ids, attention_mask=None, task: str | None = None):
+        r"""Encode a batch and select the requested prediction head.
+
+        Parameters
+        ----------
+        input_ids: ``Tensor``
+            Integer model IDs of shape (B, L), in [0, vocab_size).
+            The model consumes sequences, not edge_index or raw node features.
+        attention_mask: ``Tensor``
+            Shape (B, L); 1 marks visible tokens and 0 padding. None makes all
+            positions visible. (default: :obj:`None`)
+        task: str
+            "mlm", "supervised", "pooled", or None. (default: :obj:`None`)
+
+        Returns
+        -------
+        ``Tensor`` or dict
+            "mlm": logits (B, L, vocab_size); "supervised": raw graph outputs
+            (B, output_dim); "pooled": representations (B, hidden_size).
+            None returns a dict with logits, mlm_logits, pooled_output, and
+            last_hidden_state (B, L, hidden_size). No mode applies softmax.
+
+        Raises
+        ------
+        ValueError
+            If task is unsupported or L exceeds max_position_embeddings.
+
+        Notes
+        -----
+        Classification aggregation belongs to the example trainer: softmax
+        each serialization's logits, average probabilities by graph_id, then
+        argmax. Regression averages predictions and reports raw-scale MAE.
+        The trainer raises FloatingPointError on non-finite numerical results;
+        this forward method itself does not perform those training checks.
+        """
         if task not in {None, "mlm", "supervised", "pooled"}:
             raise ValueError(
                 "task must be None, 'mlm', 'supervised', or 'pooled'.")
@@ -287,6 +388,11 @@ class GraphTokenTransformer(tlx.nn.Module):
         }
 
     def manifest(self):
+        r"""Return a dict of architecture, backend and parameter-count metadata.
+
+        Counts refer to the model's current all_weights and trainable_weights.
+        This manifest does not bind a tokenizer or validate checkpoint compatibility.
+        """
         return {
             "encoder_type": self.encoder_type,
             "model_name": self.model_name,
@@ -309,4 +415,12 @@ class GraphTokenTransformer(tlx.nn.Module):
 
 
 class GraphBERT(GraphTokenTransformer):
-    """Strict BERT-Small GraphTokenizer encoder."""
+    r"""BERT-Small graph token encoder from the `GraphTokenizer paper
+    <https://arxiv.org/abs/2603.11099>`_.
+
+    Inherits all parameters, defaults, forward modes, shapes and exceptions
+    from :class:`GraphTokenTransformer`. Uses learned absolute positions,
+    GELU blocks and randomly initialized MLM / graph task heads. The
+    constructor does not load a text BERT checkpoint. See the parent class
+    for a minimal executable example.
+    """

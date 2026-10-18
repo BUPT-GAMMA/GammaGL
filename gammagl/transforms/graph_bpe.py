@@ -10,7 +10,20 @@ MergeRule = Tuple[int, int, int]
 
 @dataclass
 class BPECodebook:
-    """Serializable BPE merge table."""
+    r"""Serializable BPE rules and vocabulary metadata.
+
+    Parameters
+    ----------
+    merge_rules: list[tuple[int, int, int]]
+        Ordered (left, right, merged) rules. Fresh empty list by default.
+    vocab_size: int
+        Exclusive token ID upper bound, including gaps; not the number of
+        observed token types or the final model vocabulary size.
+        (default: ``0``)
+    metadata: dict
+        Fresh empty dict by default; fitted codebooks record backend and
+        merge counts. This metadata alone does not bind a graph protocol.
+    """
 
     merge_rules: List[MergeRule] = field(default_factory=list)
     vocab_size: int = 0
@@ -18,7 +31,57 @@ class BPECodebook:
 
 
 class GraphBPE:
-    """Minimal public interface for graph-token BPE training and encoding."""
+    r"""Byte Pair Encoding for integer graph-token sequences.
+
+    Implements deterministic pair-frequency merging used by the `official
+    GraphTokenizer compression code
+    <https://github.com/BUPT-GAMMA/Graph-Tokenization-for-Bridging-Graphs-and-Transformers/tree/98343a6b025a48fbb6859cd812a12b81ec3ac3cc/src/algorithms/compression>`_.
+    See :class:`GraphTokenizer` for graph construction and model vocabulary
+    mapping; BPE inversion alone does not reconstruct a graph.
+
+    Parameters
+    ----------
+    num_merges: int
+        Maximum number of pair merges. (default: ``2000``)
+    min_frequency: int
+        Minimum corpus pair count; stop when no pair qualifies.
+        (default: ``2``)
+    backend: str
+        "python", "cpp" or "auto". cpp requires the optional native extension;
+        auto uses it when available. Pair-count ties choose lexicographically
+        smallest pairs in both implementations. (default: ``"python"``)
+    protected_token_ids: ``iterable[int]``
+        IDs never merged or crossed during training / encoding. None means
+        no protection. These are BPE alphabet IDs, not model vocabulary IDs.
+        (default: :obj:`None`)
+    merge_id_offset: int
+        Extra reserved IDs before assigning merged IDs. The official
+        GraphTokenizer sets 1 to reserve max(base)+1 as a virtual separator;
+        standalone BPE defaults to 0. (default: ``0``)
+
+    Notes
+    -----
+    fit / batch_encode take a ragged sequence of integer sequences (S_i,).
+    encode / decode take one sequence (S,) and return a list[int] of variable
+    length. No padding, graph_id grouping or model special tokens are added.
+
+    Raises
+    ------
+    ValueError
+        If fit receives an unsupported backend or decode encounters cyclic
+        merge rules. Invalid codebook suffixes also raise ValueError.
+    ImportError
+        If cpp is requested but the native extension is unavailable.
+
+    Examples
+    --------
+    >>> from gammagl.transforms import GraphBPE
+    >>> bpe = GraphBPE(num_merges=1).fit([[8, 9, 8, 9]])
+    >>> bpe.encode([8, 9, 8, 9])
+    [10, 10]
+    >>> bpe.decode([10, 10])
+    [8, 9, 8, 9]
+    """
 
     def __init__(
         self,
@@ -37,6 +100,12 @@ class GraphBPE:
         self.codebook = BPECodebook()
 
     def fit(self, token_sequences):
+        r"""Fit a codebook on ragged integer token_sequences and return self.
+
+        Adjacent pairs are counted within sequences and protected-token segments;
+        no pair spans two graphs. Replaces any existing codebook. Raises
+        ValueError for an unsupported backend and ImportError for unavailable cpp.
+        """
         sequences = [self._as_int_list(sequence) for sequence in token_sequences]
         training_sequences = self._training_segments(sequences)
         if self.backend == "cpp":
@@ -82,6 +151,13 @@ class GraphBPE:
         return self
 
     def encode(self, token_sequence):
+        r"""Merge one integer token_sequence and return a list[int].
+
+        Applies the current codebook in rule order, respecting protected IDs.
+        With an empty codebook this is an identity operation; no fitting guard
+        or unknown-token mapping is performed here. GraphTokenizer owns OOV
+        handling and the final model vocabulary.
+        """
         bridge = self._native_bridge()
         pieces = self._split_on_protected(self._as_int_list(token_sequence))
         encoded = []
@@ -97,13 +173,22 @@ class GraphBPE:
         return encoded
 
     def batch_encode(self, token_sequences):
+        r"""Encode ragged token_sequences and return one integer list per input.
+
+        Equivalent to encode on each sequence; padding is not added.
+        """
         bridge = self._native_bridge()
         if not self.protected_token_ids and bridge is not None and self.codebook.merge_rules:
             return bridge.batch_encode(token_sequences, self.codebook.merge_rules)
         return [self.encode(sequence) for sequence in token_sequences]
 
     def decode(self, token_sequence):
-        """Expand BPE merge tokens back to the original token sequence."""
+        r"""Expand an integer sequence to base tokens using the current codebook.
+
+        Returns a list[int]. Unmerged IDs pass through unchanged. Cyclic merge
+        rules raise ValueError. This restores a token sequence, not graph node
+        identities or omitted edge labels.
+        """
         expansions = {
             int(merged): (int(left), int(right))
             for left, right, merged in self.codebook.merge_rules
@@ -139,6 +224,11 @@ class GraphBPE:
         return None
 
     def save_codebook(self, path) -> None:
+        r"""Save rules, vocab_size and metadata to path (.json, .pkl or .pickle).
+
+        Unsupported suffixes raise ValueError. This does not save the tokenizer,
+        protected IDs, merge offset, graph protocol or model vocabulary binding.
+        """
         path = Path(path)
         data = {
             "merge_rules": [list(rule) for rule in self.codebook.merge_rules],
@@ -157,6 +247,15 @@ class GraphBPE:
 
     @classmethod
     def load_codebook(cls, path, backend: str = "python") -> "GraphBPE":
+        r"""Load a rule table from path and return a GraphBPE.
+
+        path accepts .json, .pkl or .pickle; pickle inputs must be trusted.
+        backend defaults to "python". Retained codebook backend metadata can
+        still enable native encoding when the extension is available. Protection
+        and merge offset retain constructor defaults. No graph tokenizer or
+        schema validation is implied. Invalid suffixes raise ValueError;
+        file / parse errors propagate.
+        """
         path = Path(path)
         if path.suffix.lower() in {".pkl", ".pickle"}:
             with path.open("rb") as handle:

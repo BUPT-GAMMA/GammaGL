@@ -27,3 +27,14 @@ gammagl.datasets
    gammagl.datasets.PolBlogs
    gammagl.datasets.WikiCS
    gammagl.datasets.ADDataset
+   Mutagenicity
+   GraphTokenizerDBLP
+   AQSOL
+
+Shared GraphTokenizer Dataset Interface
+---------------------------------------
+
+.. autoclass:: gammagl.datasets._graph_tokenizer_benchmark.PreprocessedGraphBenchmark
+   :members: get_idx_split, get_split
+
+See :doc:`../notes/graph_tokenizer` for release preparation and tokenization.

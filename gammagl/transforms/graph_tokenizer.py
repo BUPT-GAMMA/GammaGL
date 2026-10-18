@@ -17,6 +17,36 @@ TOKENIZER_SCHEMA_VERSION = 5
 
 @dataclass(frozen=True)
 class GraphTokenizerSpecialTokens:
+    r"""Model vocabulary special IDs (not the raw serializer / BPE alphabet).
+
+    Parameters
+    ----------
+    pad_token_id: int
+        Padding ID. (default: ``0``)
+    unk_token_id: int
+        Unknown model token ID. (default: ``1``)
+    mask_token_id: int
+        MLM replacement ID. (default: ``2``)
+    cls_token_id: int
+        Sequence start ID. (default: ``3``)
+    sep_token_id: int
+        Sequence end ID. (default: ``4``)
+    node_start_token_id: int
+        Reserved node-start ID; not inserted by the default serializer.
+        (default: ``5``)
+    node_end_token_id: int
+        Reserved node-end ID; not inserted by the default serializer.
+        (default: ``6``)
+    component_sep_token_id: int
+        Reserved model ID; official raw component token 7 passes through
+        BPE / vocabulary mapping as an ordinary token. (default: ``7``)
+
+    Notes
+    -----
+    This dataclass is immutable. The GTE trainer swaps PAD / UNK to 1 / 0.
+    official preserves the pinned VocabManager's ordinary raw 0 / PAD alias;
+    it is not an additional node-reference or graph-recovery mechanism.
+    """
     pad_token_id: int = 0
     unk_token_id: int = 1
     mask_token_id: int = 2
@@ -29,7 +59,23 @@ class GraphTokenizerSpecialTokens:
 
 @dataclass
 class GraphTokenizationResult:
-    """Tokenized graph sequence and lightweight provenance."""
+    r"""One unpadded model input and its serialization provenance.
+
+    Parameters
+    ----------
+    input_ids: list[int]
+        Model vocabulary IDs of length L, including CLS / SEP if enabled.
+    attention_mask: list[int]
+        L ones; padding is added by separate batch helpers.
+    serialized_token_ids: list[int]
+        Length S before BPE and model vocabulary mapping. official keeps
+        the raw loader stream; local_refs stores its normalized stream.
+        Retains unseen raw labels even when input_ids maps them to UNK.
+    metadata: dict
+        Serializer metadata, BPE counts, required model vocabulary size,
+        special-token flag, tokenizer schema and fit graph-ID hash.
+        Retaining this metadata does not make official streams reversible.
+    """
 
     input_ids: List[int]
     attention_mask: List[int]
@@ -39,7 +85,21 @@ class GraphTokenizationResult:
 
 @dataclass
 class GraphTokenizerMLMBatch:
-    """Padded masked-token batch for MLM pretraining."""
+    r"""Padded Python-list batch returned by GraphTokenizer's MLM helpers.
+
+    Parameters
+    ----------
+    input_ids: list[list[int]]
+        Masked model IDs of shape (B, max_length).
+    attention_mask: list[list[int]]
+        Shape (B, max_length); 1 for original tokens, 0 for padding.
+    labels: list[list[int]]
+        Shape (B, max_length); original token IDs at prediction targets and
+        -100 elsewhere (ignored by the trainer loss).
+    metadata: dict
+        mask_prob, max_length, num_graphs and num_mlm_labels. The batch is
+        not a TLX tensor; convert lists to backend tensors before modeling.
+    """
 
     input_ids: List[List[int]]
     attention_mask: List[List[int]]
@@ -48,11 +108,74 @@ class GraphTokenizerMLMBatch:
 
 
 class GraphTokenizer(BaseTransform):
-    """Composes graph serialization and BPE into token ids.
+    r"""Compose graph serialization, BPE and a fitted model vocabulary.
 
-    With the default Feuler serializer, inputs are limited to simple
-    undirected graphs without self-loops or parallel edges.  A custom
-    serializer owns any broader graph-domain contract.
+    Based on `"Graph Tokenization for Bridging Graphs and Transformers"
+    <https://arxiv.org/abs/2603.11099>`_ and the `pinned official code
+    <https://github.com/BUPT-GAMMA/Graph-Tokenization-for-Bridging-Graphs-and-Transformers/tree/98343a6b025a48fbb6859cd812a12b81ec3ac3cc>`_.
+    The default official protocol has no node-reference tokens and does not
+    support graph recovery. See :doc:`/notes/graph_tokenizer` for presets,
+    evaluation aggregation and artifact compatibility.
+
+    Parameters
+    ----------
+    serializer: FrequencyGuidedEulerianSerializer
+        None creates the official Feuler serializer with dataset=None. Use
+        its dataset argument to apply a benchmark's actual loader rules, or
+        explicitly select protocol="local_refs" for GammaGL graph recovery.
+        See the serializer for graph domains and input shapes.
+        (default: :obj:`None`)
+    bpe: GraphBPE
+        None creates GraphBPE with 2000 merges, minimum frequency 2, Python
+        backend. official sets merge_id_offset=1; local_refs protects model
+        special IDs in its normalized stream. (default: :obj:`None`)
+    special_tokens: GraphTokenizerSpecialTokens
+        None uses the standard eight model IDs. (default: :obj:`None`)
+    add_special_tokens: bool
+        Add CLS / SEP after vocabulary encoding. (default: :obj:`True`)
+    bpe_encode_mode: str
+        "all" applies learned rules; "none" sends base tokens through the
+        vocabulary unchanged. Both modes fit BPE and cover its rule IDs in
+        the model vocabulary. (default: ``"all"``)
+
+    Raises
+    ------
+    ValueError
+        If the encoding mode, fit corpus / realization count, graph inputs,
+        model vocabulary size, sequence limit or result versions are invalid.
+    RuntimeError
+        If encoding / decoding is attempted before fit, or a tokenizer has
+        an obsolete schema or modified serializer configuration.
+    NotImplementedError
+        If decode_graph is requested for official protocol.
+    ImportError
+        If the selected BPE backend requires an unavailable native extension.
+
+    Notes
+    -----
+    Each encode_graph returns a :class:`GraphTokenizationResult` with
+    input_ids and attention_mask of length L, plus S serialization tokens.
+    Batch encoding is ragged; pad_token_sequences creates (B, max_length)
+    lists without truncation. Calling this transform mutates the input
+    graph / dict with these fields and returns the same object.
+
+    Fit only on training graphs. New labels map to UNK without learning
+    evaluation data; ordinary raw token 0 always aliases PAD in official
+    mode. A bare BPE codebook or equal model embedding shape does not prove
+    tokenizer compatibility. Current schema / serializer protocol is 5;
+    formal trainer caches use format 6 and checkpoints bind fingerprint().
+
+    Examples
+    --------
+    >>> from gammagl.transforms import GraphTokenizer
+    >>> graph = dict(edge_index=[[0, 1], [1, 0]], x=[11, 13],
+    ...              edge_attr=[0, 0], num_nodes=2)
+    >>> tokenizer = GraphTokenizer().fit([graph])
+    >>> result = tokenizer.encode_graph(graph)
+    >>> result.input_ids
+    [3, 8, 9, 8, 4]
+    >>> result.serialized_token_ids
+    [11, 13, 11]
     """
 
     def __init__(
@@ -83,6 +206,26 @@ class GraphTokenizer(BaseTransform):
         self.schema_version = TOKENIZER_SCHEMA_VERSION
 
     def fit(self, graphs, graph_ids=None, num_realizations: int = 1):
+        r"""Fit serializer statistics, BPE and vocabulary on graphs, returning self.
+
+        Parameters
+        ----------
+        graphs: ``iterable``
+            Nonempty training graph corpus in the serializer's supported domain.
+        graph_ids: ``iterable``
+            One provenance ID per graph; stored as a hash, not as input tokens.
+            (default: :obj:`None`)
+        num_realizations: int
+            Positive number of requested starts per graph, capped at its node
+            count; see realization_start_nodes. (default: ``1``)
+
+        Raises
+        ------
+        ValueError
+            If the corpus is empty, counts / ID alignment are invalid, or graph
+            validation fails. Refit rebuilds the vocabulary and invalidates old
+            tokenizer-bound downstream checkpoints.
+        """
         self.schema_version = TOKENIZER_SCHEMA_VERSION
         graphs = list(graphs)
         if not graphs:
@@ -139,7 +282,13 @@ class GraphTokenizer(BaseTransform):
                     protected_token_ids=sorted(self.bpe.protected_token_ids))
 
     def fingerprint(self):
-        """Bind artifacts to the actual protocol, fitted statistics, BPE and vocabulary."""
+        r"""Return a SHA-256 string binding configuration and fitted token state.
+
+        Covers serializer / protocol, source revision, fitted frequencies, BPE
+        rules, original IDs, model vocabulary, special IDs and fit provenance.
+        Raises RuntimeError for unfitted / incompatible tokenizer state. It is
+        used for artifact matching, not as an authentication mechanism.
+        """
         self._require_fitted()
         payload = dict(configuration=self._configuration(), schema=self.schema_version,
                        frequencies=sorted(self.serializer.frequency_map.items()),
@@ -151,6 +300,13 @@ class GraphTokenizer(BaseTransform):
         return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
     def encode_tokens(self, token_ids: List[int]) -> List[int]:
+        r"""Encode a pre-BPE serialized token list, returning model IDs of length L.
+
+        token_ids must be in the same alphabet as encode_graph's
+        serialized_token_ids (raw official, normalized local_refs). Uses the
+        fitted rules / OOV mapping and adds CLS / SEP if configured. Raises
+        RuntimeError if the tokenizer is unfitted or incompatible.
+        """
         encoded = self._encode_token_sequences([token_ids])[0]
         if not self.add_special_tokens:
             return encoded
@@ -158,6 +314,10 @@ class GraphTokenizer(BaseTransform):
 
     @property
     def max_token_id(self) -> int:
+        r"""Largest currently assigned model token ID, including reserved IDs.
+
+        Model vocab_size must be at least max_token_id + 1 after fitting.
+        """
         return max(
             max(self.vocabulary.values(), default=self._reserved_token_count() - 1),
             self.special_tokens.pad_token_id,
@@ -171,6 +331,11 @@ class GraphTokenizer(BaseTransform):
         )
 
     def validate_model_vocab(self, vocab_size: int) -> None:
+        r"""Raise ValueError if vocab_size cannot represent the current model IDs.
+
+        vocab_size is an integer embedding / output vocabulary capacity. Returns
+        None on success; call after fit for the final vocabulary requirement.
+        """
         required_vocab_size = self.max_token_id + 1
         if int(vocab_size) < required_vocab_size:
             raise ValueError(
@@ -180,6 +345,13 @@ class GraphTokenizer(BaseTransform):
     def encode_graph(
             self, graph: Any, start_node: int | None = None
     ) -> GraphTokenizationResult:
+        r"""Encode one graph as a GraphTokenizationResult without padding.
+
+        graph and optional start_node follow the serializer's contract; None
+        selects its default start. Returns full serialization provenance and
+        final model IDs. Raises RuntimeError for unfitted / incompatible state
+        and ValueError for unsupported graph inputs or invalid starts.
+        """
         self._require_fitted()
         serialized = self.serializer.serialize(graph, start_node=start_node)
         serialized_token_ids = self._normalize_serialized_tokens(serialized.token_ids)
@@ -202,7 +374,13 @@ class GraphTokenizer(BaseTransform):
         )
 
     def realization_start_nodes(self, graph: Any, num_realizations: int):
-        """Space starts over first-visit order for the default serializer."""
+        r"""Return at most num_realizations start nodes for graph.
+
+        official uses evenly spaced original IDs starting at 0. local_refs uses
+        first-visit order (or [None] for a single realization). Returns a list of
+        node IDs / None. Nonpositive counts and empty official graphs raise
+        ValueError. Disconnected official serialization resets component starts.
+        """
         num_realizations = int(num_realizations)
         if num_realizations <= 0:
             raise ValueError("num_realizations must be positive.")
@@ -231,7 +409,31 @@ class GraphTokenizer(BaseTransform):
         return [order[(index * step) % total_nodes] for index in range(actual_samples)]
 
     def decode_graph(self, encoding) -> Dict[str, Any]:
-        """Reconstruct only local_refs; official streams have no node identity."""
+        r"""Recover a graph only with an explicitly selected local_refs serializer.
+
+        Parameters
+        ----------
+        encoding: GraphTokenizationResult or list[int]
+            A complete result restores original node IDs from provenance and
+            retains raw labels even if the model saw UNK. Bare model IDs can
+            only restore first-visit node IDs and cannot invert OOV information.
+
+        Returns
+        -------
+        dict
+            edge_index (2, M), x (N,), edge_attr (M,), num_nodes, as Python
+            lists / integers. M counts undirected canonical edges.
+
+        Raises
+        ------
+        NotImplementedError
+            For official protocol, even when a full result is supplied.
+        RuntimeError
+            For an unfitted or incompatible tokenizer.
+        ValueError
+            For incompatible result versions, missing special tokens or invalid
+            local_refs grammar / provenance. Bare lists have no version metadata.
+        """
         self._require_fitted()
         if isinstance(encoding, GraphTokenizationResult):
             serializer_metadata = encoding.metadata.get("serializer", {})
@@ -267,6 +469,11 @@ class GraphTokenizer(BaseTransform):
         return self.serializer.deserialize(token_ids)
 
     def batch_encode_graphs(self, graphs) -> List[GraphTokenizationResult]:
+        r"""Encode graphs into a ragged list of GraphTokenizationResult objects.
+
+        Uses each serializer's default start, without padding or per-graph
+        aggregation. Same graph / fitting exceptions as encode_graph apply.
+        """
         self._require_fitted()
         graphs = list(graphs)
         serialized_results = [
@@ -397,6 +604,13 @@ class GraphTokenizer(BaseTransform):
         mask_prob: float = 0.15,
         seed: int = 0,
     ) -> GraphTokenizerMLMBatch:
+        r"""Encode graphs and create a padded GraphTokenizerMLMBatch.
+
+        max_length is the positive final sequence length, including CLS / SEP;
+        overlength graphs raise ValueError and are never truncated. mask_prob
+        defaults to 0.15 and seed to 0. Delegates to
+        build_mlm_batch_from_token_sequences; see that method for mask semantics.
+        """
         return self.build_mlm_batch_from_token_sequences(
             [self.encode_graph(graph).input_ids for graph in graphs],
             max_length=max_length,
@@ -405,6 +619,11 @@ class GraphTokenizer(BaseTransform):
         )
 
     def validate_token_sequences(self, token_sequences, max_length: int) -> None:
+        r"""Validate a positive max_length and all final token sequence lengths.
+
+        Raises ValueError if any sequence exceeds the limit. Returns None on
+        success; this check does not validate token domains or truncate inputs.
+        """
         if max_length <= 0:
             raise ValueError("max_length must be positive.")
         if any(len(sequence) > max_length for sequence in token_sequences):
@@ -412,6 +631,12 @@ class GraphTokenizer(BaseTransform):
                 "Token sequence exceeds max_length; truncation would discard graph structure.")
 
     def pad_token_sequences(self, token_sequences, max_length: int):
+        r"""Right-pad ragged model token_sequences to max_length.
+
+        Returns (input_ids, attention_mask), two Python lists of shape
+        (B, max_length); padding uses pad_token_id and mask 0. Raises ValueError
+        for nonpositive limits or overlength sequences; no truncation occurs.
+        """
         self.validate_token_sequences(token_sequences, max_length=max_length)
         input_ids = [
             [int(token) for token in sequence]
@@ -434,6 +659,29 @@ class GraphTokenizer(BaseTransform):
         mask_prob: float = 0.15,
         seed: int = 0,
     ) -> GraphTokenizerMLMBatch:
+        r"""Build a padded MLM batch from already encoded model token sequences.
+
+        Parameters
+        ----------
+        token_sequences: ``iterable[list[int]]``
+            Ragged final vocabulary IDs, including any CLS / SEP tokens.
+        max_length: int
+            Positive padded sequence length; oversized inputs raise ValueError.
+        mask_prob: float
+            Selection probability for eligible positions. (default: ``0.15``)
+        seed: int
+            Python masking RNG seed. (default: ``0``)
+
+        Returns
+        -------
+        GraphTokenizerMLMBatch
+            Lists of shape (B, max_length). Selected tokens are replaced by MASK;
+            labels retain their IDs, with -100 at other positions. PAD, CLS, SEP
+            and the reserved component ID are excluded. Positive mask_prob
+            forces one eligible target if none was selected. All-special batches
+            can still have zero targets. This helper is separate from the example
+            trainer's 80/10/10 MLM corruption policy.
+        """
         padded_ids, attention_mask = self.pad_token_sequences(
             token_sequences, max_length=max_length)
         masked_ids, labels = self.mask_token_sequences(
@@ -453,6 +701,13 @@ class GraphTokenizer(BaseTransform):
 
     def mask_token_sequences(
         self, input_ids: List[List[int]], mask_prob: float, seed: int):
+        r"""Mask model input_ids using mask_prob and the given Python RNG seed.
+
+        input_ids is a list of integer lists (B, L_i). Returns two lists of the
+        same shapes: masked IDs and labels (-100 except at targets). Uses the
+        exclusion / forced-target semantics of build_mlm_batch_from_token_sequences.
+        This operates on final model IDs, not raw graph tokens.
+        """
         rng = random.Random(seed)
         special_ids = {
             self.special_tokens.pad_token_id,
@@ -503,6 +758,12 @@ class GraphTokenizer(BaseTransform):
             raise RuntimeError("Incompatible tokenizer protocol or serializer configuration; re-fit.")
 
     def __call__(self, data: Any):
+        r"""Encode data in place and return it.
+
+        data is a supported graph / dict. Adds input_ids, attention_mask,
+        serialized_token_ids and graph_tokenizer_metadata. The lists are
+        unpadded; exceptions are those of encode_graph.
+        """
         encoding = self.encode_graph(data)
         if isinstance(data, dict):
             data["input_ids"] = encoding.input_ids
