@@ -122,6 +122,10 @@ random weights. :meth:`~gammagl.models.GraphGTE.from_pretrained` loads the
 checks its configuration, checkpoint SHA-256, tensor shapes and complete
 coverage, and leaves graph embeddings / MLM / graph heads newly initialized.
 The API signature's random-model defaults differ from some pretrained values.
+The pinned official default also sets ``encoder.reset_weights=true``, which
+reaches AQSOL / GTE's random encoder construction. GammaGL's formal GTE path
+loads pretrained encoder weights for all three datasets; this initialization
+difference is outside the input-protocol fixture comparison.
 
 The example trainer validates single-label classification by softmaxing each
 serialization's logits, averaging probabilities per ``graph_id``, then taking
@@ -135,7 +139,7 @@ successful summaries. These are trainer checks, not guarantees of model forward.
 Artifacts and data preparation
 ------------------------------
 
-Tokenizer schema and serializer protocol are 5; preprocessing cache format is 6.
+Tokenizer schema and serializer protocol are 5; preprocessing cache format is 7.
 Rebuild obsolete tokenizers and caches. Formal checkpoints bind the actual
 tokenizer's :meth:`~gammagl.transforms.GraphTokenizer.fingerprint`, including
 protocol, serializer, rules, vocabulary and fitted statistics. Loading checks

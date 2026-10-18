@@ -26,7 +26,7 @@ fixtures 记录了这些源码文件与配置文件的 SHA-256。
 | 分类 avg | 每个 serialization softmax，按 graph_id 平均概率，再 argmax | 平均 logits | 验证选优、最终测试共用概率平均 |
 | 回归 | 平均标准化预测后还原原尺度并计算 MAE | 已正确 | 保持，覆盖不等变体数量及 batch 边界 |
 | 图恢复 | 官方 base deserialize 抛 NotImplementedError；标签流没有节点身份 | 声称默认流可完整恢复 | official 的三个恢复接口明确拒绝；可逆引用仅为显式 local_refs 协议 |
-| 产物兼容 | 本地移植须绑定其输入约定 | protocol/schema 4、cache 5；checkpoint 只检查 schema | protocol/schema 5、cache 6；缓存配置和指纹复检；正式 checkpoint 在载权重前检查具体 tokenizer 指纹 |
+| 产物兼容 | 本地移植须绑定其输入约定 | protocol/schema 4、cache 5；checkpoint 只检查 schema | protocol/schema 5、cache 7；缓存配置和指纹复检；正式 checkpoint 在载权重前检查具体 tokenizer 指纹；cache 7 同时废弃旧 TensorFlow 标签转换结果 |
 
 ## 离线参考输出
 
@@ -83,6 +83,11 @@ TL_BACKEND=tensorflow python -m pytest -q -rs \
 GTE 显式加 `--allow-random-gte-init`；这些是开发 smoke，不是正式 GTE 权重或 benchmark 验证。
 
 ## 剩余差异与验证边界
+
+- GTE 初始化仍有训练设定差异：官方默认 YAML 的 `encoder.reset_weights=true`
+  经 `src/training/model_builder.py` 传至 `src/models/unified_encoder.py`，使
+  AQSOL/GTE 随机构造编码器；本地正式 GTE 路径统一加载预训练编码器。
+  本轮不修改该训练设定；输入 fixtures 不能证明六组训练初始化等价。
 
 - GammaGL 保留仅训练 split 拟合频率／BPE／词表；官方 UDI／prepare 链会收集全部数据。
   fixtures 显式给两边相同小语料，证明相同语料下协议相等，不能据此声称真实 benchmark

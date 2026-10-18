@@ -6,7 +6,10 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
+import tensorlayerx as tlx
 
+if tlx.BACKEND != "torch":
+    pytest.skip("Native torch protocol integration checks require TLX torch", allow_module_level=True)
 from test_graph_tokenizer_pipeline import trainer, _record, _preprocessing_args, _write_preprocessing_raw
 
 

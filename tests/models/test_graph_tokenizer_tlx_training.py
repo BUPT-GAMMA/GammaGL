@@ -253,9 +253,15 @@ def test_tlx_classification_averages_probabilities_across_batches(trainer, batch
         assert result["accuracy"] == 1.
 
 
-@pytest.mark.parametrize("phase", ["pretrain", "finetune", "validation"])
+@pytest.mark.parametrize("phase", ["pretrain", "finetune", "validation", "weight"])
 def test_tlx_main_numerical_failure_keeps_summary_incomplete(trainer, monkeypatch, tmp_path, phase):
     class PipelineFault(ScalarModel):
+        def __init__(self):
+            super().__init__()
+            if phase == "weight":
+                self.unused = self._get_weights(
+                    "unused", shape=(1,), init=tlx.initializers.Constant(float("nan")))
+
         def forward(self, inputs, attention=None, task=None):
             value = self.weight
             if ((phase == "pretrain" and task == "mlm") or
@@ -267,10 +273,79 @@ def test_tlx_main_numerical_failure_keeps_summary_incomplete(trainer, monkeypatc
             return tlx.ones((len(inputs), 1)) * value
 
     monkeypatch.setattr(trainer, "make_model", lambda *_args: PipelineFault())
-    with pytest.raises(FloatingPointError, match=rf"{phase}.*epoch=1.*batch=1.*logits"):
+    context = "pretrain.*epoch=1.*batch=1.*weight" if phase == "weight" else rf"{phase}.*epoch=1.*batch=1.*logits"
+    with pytest.raises(FloatingPointError, match=context):
         trainer.main(["--smoke", "--dataset", "aqsol", "--seeds", "42", "--output-dir", str(tmp_path)])
     directory = tmp_path / "aqsol" / "bert"
     partial = json.loads((directory / "summary.json").read_text(), parse_constant=lambda s: pytest.fail(s))
     assert partial["complete"] is False and partial["run_metrics"] == []
     assert not list(directory.rglob("best_finetune.*"))
     assert not (directory / "run_01_seed_42" / "summary.json").exists()
+
+
+def test_tlx_decay_overflow_fails_before_any_update(trainer):
+    model = ScalarModel()
+    optimizer = trainer.make_optimizer(0.1, 1e308)
+    optimizer.apply_gradients = lambda _pairs: pytest.fail("unsafe optimizer update")
+    with pytest.raises(FloatingPointError, match="finetune.*weight decay"):
+        trainer.train_downstream_epoch(
+            tlx, model, batches(), optimizer,
+            SimpleNamespace(step=lambda: pytest.fail("scheduler advanced")),
+            trainer.resolve_dataset("aqsol"), args(), "cpu", 7, 1)
+    np.testing.assert_array_equal(tlx.convert_to_numpy(model.weight), [1.0])
+
+
+def test_tlx_updated_weight_failure_prevents_scheduler(trainer):
+    model = ScalarModel()
+    optimizer = trainer.make_optimizer(0.1, 0.0)
+
+    def invalid_update(_pairs):
+        trainer.training_helpers().assign(model.weight, model.weight * float("inf"))
+
+    optimizer.apply_gradients = invalid_update
+    with pytest.raises(FloatingPointError, match="finetune.*updated weight"):
+        trainer.train_downstream_epoch(
+            tlx, model, batches(), optimizer,
+            SimpleNamespace(step=lambda: pytest.fail("scheduler advanced")),
+            trainer.resolve_dataset("aqsol"), args(), "cpu", 7, 1)
+
+
+def test_tlx_checkpoint_rejects_unused_nonfinite_weight_before_writing(trainer, tmp_path):
+    model = ScalarModel()
+    model.unused = model._get_weights("unused", shape=(1,), init=tlx.initializers.Constant(1.0))
+    checkpoint = tmp_path / "best"
+    trainer.save_checkpoint(tlx, checkpoint, model, 1, 0.25)
+    previous = checkpoint.read_bytes()
+    trainer.training_helpers().assign(model.unused, model.unused * float("nan"))
+    # The active task does not read this parameter, so finite evaluation alone
+    # cannot establish that the model is safe to persist.
+    assert trainer.evaluate_downstream(tlx, model, batches(), trainer.resolve_dataset("aqsol"),
+                                      None, "cpu")["metric"] == pytest.approx(1.5)
+    with pytest.raises(FloatingPointError, match="checkpoint.*weight"):
+        trainer.save_checkpoint(tlx, checkpoint, model, 2, 0.1)
+    assert checkpoint.read_bytes() == previous
+    assert list(tmp_path.iterdir()) == [checkpoint]
+
+
+@pytest.mark.parametrize("fault", ["nan", "cast_overflow"])
+def test_tlx_checkpoint_rejects_nonfinite_payload_before_assigning(trainer, tmp_path, fault):
+    model = ScalarModel()
+    checkpoint = tmp_path / "best"
+    trainer.save_checkpoint(tlx, checkpoint, model, 1, 0.25)
+    if tlx.BACKEND == "tensorflow":
+        with np.load(checkpoint, allow_pickle=False) as archive:
+            payload = {key: archive[key] for key in archive.files}
+        payload["0"] = np.full(payload["0"].shape,
+                               float("nan") if fault == "nan" else 1e300, dtype=np.float64)
+        with checkpoint.open("wb") as handle:
+            np.savez(handle, **payload)
+    else:
+        import torch
+        payload = torch.load(checkpoint, weights_only=False)
+        payload["model"] = {name: torch.full(value.shape,
+                             float("nan") if fault == "nan" else 1e300, dtype=torch.float64)
+                            for name, value in payload["model"].items()}
+        torch.save(payload, checkpoint)
+    with pytest.raises(FloatingPointError, match="checkpoint.*weight"):
+        trainer.restore_checkpoint(tlx, checkpoint, model, "cpu")
+    np.testing.assert_array_equal(tlx.convert_to_numpy(model.weight), [1.0])

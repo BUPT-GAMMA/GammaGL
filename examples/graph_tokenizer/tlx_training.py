@@ -80,18 +80,26 @@ class GradientAccumulator:
             pairs = [(gradient * scale, weight) for gradient, weight in pairs]
             for index, (gradient, _) in enumerate(pairs):
                 self.check_finite(tlx, gradient, f"{context} clipped gradient weight[{index}]")
+            for index, weight in enumerate(self.weights):
+                self.check_finite(tlx, weight, f"{context} weight[{index}]")
             decay = getattr(self.optimizer, "graph_tokenizer_weight_decay", 0.0)
             if decay:
                 # TLX Adam's weight_decay is coupled L2; retain the trainer's
                 # existing AdamW semantics with decoupled decay on active weights.
-                for _, weight in pairs:
-                    assign(weight, weight * (1.0 - float(self.optimizer.lr) * decay))
+                decayed = [(weight, weight * (1.0 - float(self.optimizer.lr) * decay))
+                           for _, weight in pairs]
+                for index, (_, value) in enumerate(decayed):
+                    self.check_finite(tlx, value, f"{context} weight decay weight[{index}]")
+                for weight, value in decayed:
+                    assign(weight, value)
             if tlx.BACKEND == "torch":
                 for weight in self.weights:
                     weight.grad = None
                 for gradient, weight in pairs:
                     weight.grad = gradient
             self.optimizer.apply_gradients(pairs)
+            for index, weight in enumerate(self.weights):
+                self.check_finite(tlx, weight, f"{context} updated weight[{index}]")
             scheduler.step()
         self.gradients = [None] * len(self.weights)
         if tlx.BACKEND == "torch":

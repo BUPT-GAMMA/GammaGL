@@ -57,7 +57,7 @@ DATASETS = (
 )
 
 DEFAULT_SEEDS = (42, 43, 44, 45, 46)
-PREPROCESSING_CACHE_VERSION = 6
+PREPROCESSING_CACHE_VERSION = 7
 
 
 # GammaGL presets derived from the pinned official GraphTokenizer implementation.
@@ -221,7 +221,8 @@ def emit_event(event: str, **fields: Any) -> None:
 
 
 def require_finite_tensor(backend, value, context):
-    if not np.isfinite(tlx.convert_to_numpy(value)).all():
+    array = value if isinstance(value, np.ndarray) else tlx.convert_to_numpy(value)
+    if not np.isfinite(array).all():
         raise FloatingPointError(f"Non-finite {context}")
 
 
@@ -810,19 +811,24 @@ def save_checkpoint(backend, path: Path, model, epoch: int, score: float) -> Non
     ensure_repo_on_path()
     from gammagl.transforms.graph_tokenizer import TOKENIZER_SCHEMA_VERSION
 
+    if tlx.BACKEND == "tensorflow":
+        weights = {str(index): weight for index, weight in enumerate(model.all_weights)}
+    else:
+        weights = model.state_dict()
+    for name, weight in weights.items():
+        require_finite_tensor(backend, weight, f"checkpoint epoch={epoch} weight {name}")
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp-{os.getpid()}")
     state = {"epoch": int(epoch), "score": float(score),
              "tokenizer_schema_version": TOKENIZER_SCHEMA_VERSION,
              "tokenizer_fingerprint": getattr(model, "tokenizer_fingerprint", None)}
     if tlx.BACKEND == "tensorflow":
-        arrays = {str(index): tlx.convert_to_numpy(weight)
-                  for index, weight in enumerate(model.all_weights)}
+        arrays = {name: tlx.convert_to_numpy(weight) for name, weight in weights.items()}
         with temporary.open("wb") as handle:
             np.savez(handle, metadata=json.dumps(state, allow_nan=False), **arrays)
     else:
         import torch as torch_backend
-        torch_backend.save({"model": model.state_dict(), **state}, temporary)
+        torch_backend.save({"model": weights, **state}, temporary)
     os.replace(temporary, path)
 
 
@@ -845,12 +851,24 @@ def restore_checkpoint(backend, path: Path, model, device):
     if ("tokenizer_fingerprint" not in state
             or state["tokenizer_fingerprint"] != getattr(model, "tokenizer_fingerprint", None)):
         raise ValueError("Incompatible checkpoint tokenizer fingerprint; protocol, serializer or vocabulary differ.")
+    require_finite_metrics(state["score"], "checkpoint score")
+    values = enumerate(weights) if tlx.BACKEND == "tensorflow" else state["model"].items()
+    for name, weight in values:
+        require_finite_tensor(backend, weight, f"checkpoint weight {name}")
     if tlx.BACKEND == "tensorflow":
         if len(weights) != len(model.all_weights) or any(
                 tuple(value.shape) != tuple(weight.shape) for value, weight in zip(weights, model.all_weights)):
             raise ValueError("Checkpoint model weights do not match the current model.")
+        weights = [tlx.cast(tlx.convert_to_tensor(value), weight.dtype)
+                   for value, weight in zip(weights, model.all_weights)]
+        for index, weight in enumerate(weights):
+            require_finite_tensor(backend, weight, f"checkpoint converted weight {index}")
         tlx.files.assign_weights(weights, model)
     else:
+        for name, target in model.state_dict().items():
+            if name in state["model"]:
+                converted = state["model"][name].to(dtype=target.dtype)
+                require_finite_tensor(backend, converted, f"checkpoint converted weight {name}")
         model.load_state_dict(state["model"])
     return state
 
@@ -882,7 +900,10 @@ def step_accumulated_gradients(backend, model, optimizer, scheduler, target_coun
         for name, parameter in model.named_parameters():
             if parameter.grad is not None:
                 require_finite_tensor(backend, parameter.grad, f"{context} clipped gradient {name}")
+            require_finite_tensor(backend, parameter, f"{context} weight {name}")
         optimizer.step()
+        for name, parameter in model.named_parameters():
+            require_finite_tensor(backend, parameter, f"{context} updated weight {name}")
         scheduler.step()
     optimizer.zero_grad(set_to_none=True)
 

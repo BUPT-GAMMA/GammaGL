@@ -4,8 +4,11 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import tensorlayerx as tlx
 
 
+if tlx.BACKEND != "torch":
+    pytest.skip("Native torch metadata checks require TLX torch", allow_module_level=True)
 torch = pytest.importorskip("torch")
 ROOT = Path(__file__).resolve().parents[2]
 

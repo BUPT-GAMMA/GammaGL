@@ -7,6 +7,7 @@ import pickle
 from collections.abc import Iterable
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
+import numpy as np
 import tensorlayerx as tlx
 
 from gammagl.data import Graph, InMemoryDataset, download_url
@@ -139,6 +140,18 @@ class PreprocessedGraphBenchmark(InMemoryDataset):
             if osp.exists(path):
                 return path
         return None
+
+    def load_data(self, file_name):
+        if tlx.BACKEND != 'tensorflow':
+            return super().load_data(file_name)
+        # Dataset.load_data uses Graph.tensor's classification defaults, which
+        # cast y to int64 and token features to float32. Preserve the actual
+        # stored dtypes for these scalar-token / regression datasets instead.
+        with open(file_name, 'rb') as handle:
+            data, slices = pickle.load(handle)
+        data.apply(lambda value: tlx.convert_to_tensor(value, dtype=value.dtype)
+                   if isinstance(value, np.ndarray) else value)
+        return data, slices
 
     def download(self) -> None:
         if self.url is None:

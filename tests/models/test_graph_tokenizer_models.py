@@ -4,6 +4,8 @@ import numpy as np
 import pytest
 import tensorlayerx as tlx
 
+if tlx.BACKEND != "torch":
+    pytest.skip("Native torch model checks require TLX torch", allow_module_level=True)
 torch = pytest.importorskip("torch")
 
 from gammagl.models.graph_bert import GraphBERT

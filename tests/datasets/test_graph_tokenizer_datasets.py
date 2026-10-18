@@ -103,6 +103,29 @@ def test_graph_tokenizer_dblp_loads_official_split_and_default_edge_token(tmp_pa
     assert float(tlx.convert_to_numpy(graph.y)[0, 0]) == 0.0
 
 
+@pytest.mark.parametrize("dataset_class,name,labels", [
+    (Mutagenicity, "mutagenicity", [0., 1.]),
+    (GraphTokenizerDBLP, "dblp", [1., 0.]),
+    (AQSOL, "aqsol", [0.37, -1.42]),
+])
+def test_processed_reload_preserves_integer_tokens_and_float_targets(tmp_path, dataset_class, name, labels):
+    # This ID also detects an intermediate float32 conversion / rounding.
+    token_id = 2 ** 25 + 1
+    raw_graph = {"edge_index": [[0, 1], [1, 0]],
+                 "node_token_ids": [token_id, 9], "edge_token_ids": [2, 2]}
+    _write_raw(tmp_path, name, [(raw_graph, label) for label in labels],
+               {"train": [0], "val": [1], "test": []})
+    for dataset in [dataset_class(root=str(tmp_path)), dataset_class(root=str(tmp_path))]:
+        for index, label in enumerate(labels):
+            graph = dataset[index]
+            for field in [graph.x, graph.edge_attr, graph.edge_index]:
+                assert tlx.convert_to_numpy(field).dtype.kind == "i"
+            assert tlx.convert_to_numpy(graph.x).tolist() == [token_id, 9]
+            target = tlx.convert_to_numpy(graph.y)
+            assert target.dtype.kind == "f"
+            assert float(target[0, 0]) == pytest.approx(label)
+
+
 @pytest.mark.parametrize("graph_data", [
     {"edge_index": [[0], [1]], "node_token_ids": [5, 9], "directed": True},
     Graph(edge_index=[[0], [1]], x=[5, 9], directed=True),
