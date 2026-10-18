@@ -1,6 +1,6 @@
 # GraphTokenizer 训练
 
-`graph_tokenizer_trainer.py` 是训练入口。它使用 GammaGL 的 Feuler 序列化器、Graph BPE、
+`graph_tokenizer_trainer.py` 是训练入口。它使用 GammaGL 的 Eulerian／Feuler 序列化器、Graph BPE、
 tokenizer、数据集以及原生 TensorLayerX `GraphBERT` / `GraphGTE`。
 
 正式路径默认以种子 `42 43 44 45 46` 完成五次彼此独立的完整训练：仅在训练集拟合
@@ -40,67 +40,74 @@ Trainer 接受 `mutag` 和 `muta` 作为 **Mutagenicity** 的 aliases，不指 1
 `dblp` 对应 **DBLP_v1 graph-classification** benchmark，数据集类为 `GraphTokenizerDBLP`，
 与异构节点分类数据集 `DBLP` 区分。
 
-## 支持的图范围
+## 输入协议与支持的图范围
 
-`FrequencyGuidedEulerianSerializer` 面向简单无向图，覆盖这三个 GraphTokenizer
-benchmark 的图结构。它支持非连通图、孤立节点及标量节点/边标签；空节点图会保留为零节点
-图。显式声明有向语义的图对象会被拒绝；单向 COO 仅可表示一条无向边的存储形式。原生
-GammaGL `Graph.is_directed()` 根据 COO 对称性推断存储方向，不等同于显式有向声明；
-无方向声明的单向或对称 COO 均可使用，显式 `directed=True` 或 `is_directed=True` 则会被拒绝。
+正式默认使用 `official` 协议，具体 serializer 由六组 preset 显式选择。
+它复现固定官方源码的实际 token 流，不添加节点引用，不进行结构签名排序，也不保证
+任意节点重编号后的序列相同。它支持标量标签的简单无向图、非连通图及孤立节点，拒绝
+空图、显式有向语义、自环及并行边。COO 弧按输入保留；正式数据应保留 release 的双向弧，
+单向 COO 不保证与双向 COO 等价。Eulerian 在官方度数条件下复制弧，随后若路径需要
+不存在的输入边，会明确报错，不静默生成错误结构。
 
-有向图语义、自环和并行边／多重图均不支持，会 fail fast 而不会静默转换。
+官方批量 getter、单节点 getter、常见边省略、组件排序、起点和 BPE 规则的逐项依据、
+本地参考 fixtures 及剩余差异见 [协议审计](PROTOCOL_AUDIT.md)。官方流没有节点身份，
+也不保留所有边 token；`deserialize()`／`restore_input_metadata()`／`decode_graph()`
+对该协议抛出 `NotImplementedError`，不保证图 round trip。
 
-### 节点引用与置换保证
+### 独立可选的可逆协议
 
-Feuler 的节点引用 token 使用最终组件顺序及遍历中的首次访问顺序，从 0 开始连续编号。
-重复访问同一节点复用引用，不同组件共享一套局部编号。token stream 单独可恢复同构的带标签图；
-完整 serializer/tokenizer result 中的 `local_to_original` metadata 可恢复原始节点编号。
-原始编号只在该 provenance metadata 中，训练 `input_ids` 不含原始编号。
-缺少节点特征（`x=None`）的图使用统一的零节点标签；反序列化后的 `x` 也是零标签，
-不表示恢复了原本不存在的特征。
-若 held-out 图出现未见标签，模型 `input_ids` 可能含 `UNK`，不能单独逆转；完整 result
-保留未损失的 `serialized_token_ids`，可结合 metadata 恢复。
+仅显式 `--token-protocol local_refs` 才会在 trainer 中使用 GammaGL 可逆引用协议。
+API 对应 `FrequencyGuidedEulerianSerializer(protocol="local_refs")` 或
+`EulerianSerializer(protocol="local_refs")`。该协议以首次访问顺序分配连续局部引用，
+重复访问复用引用，跨组件共享编号；裸 token 可恢复同构图，完整 result 的
+`local_to_original` 可恢复原始编号。缺少 `x` 时以全零标签替代，不能恢复不存在的特征；
+模型输入中的 UNK 不可逆，完整 result 仍保留原序列。该协议不提供任意图的全局同构
+规范化，结构签名平局时仍可能依赖节点编号。现有 round-trip、置换示例及旧协议拒绝测试
+均显式运行这个协议，不能作为官方协议可逆性的证据。
 
-序列化器不提供任意图的全局同构规范化。完整 token 与
-`input_ids` 的置换一致性已对三节点示例、带标签路径和环、非连通图及孤立节点验证；显式
-`start_node` 比较使用重编号后的对应节点。结构签名或组件排序键出现平局时仍可能依赖原始编号：
-例如五节点同标签图的边为 `(0,1),(0,2),(0,4),(1,2),(1,3)`，按
-`0→1,1→2,2→3,3→0,4→4` 重编号后，完整输入不同，多起点选择也不能逐项对应。
-四环与三角形中的节点还可具有相同的结构签名，却属于不同拓扑的组件；不能仅凭签名相同
-视为可互换。等长度的路径组件与三角形组件也可在组件排序键上打平。
+### 产物兼容性
 
-### 输入协议与产物兼容性
+当前 serializer protocol／tokenizer schema 为 **5**，预处理缓存格式为 **6**。
+这是本次协议修复的代码版本，与六组成绩的运行版本没有已核实的绑定关系。
 
-协议审计基线为 `18f6ebf6c94d9738ea0b51b1ccd42d16ae4e2722`；当前 serializer protocol 为 **4**、
-tokenizer schema 为 **4**、预处理缓存格式为 **5**。这个代码基线不等同于
-六组实验已经核实的运行 commit。
-
-旧 protocol 2 把原始节点编号写入引用 token；`21d93d7` 引入 protocol／schema 3，改为
-遍历局部引用并修复 AQSOL 按 serialization 数量加权的归一化。`18f6ebf` 再将缺少节点特征
-的默认标签从原始编号改为全零，并修复缓存对实际 processed 数据来源的跟踪。
-显式整数节点标签仍按输入保留；benchmark Dataset 要求提供节点特征，`x=None` 的默认行为
-是通用 serializer 的接口约定。
-
-| 产物 | 当前代码实际执行的检查与处理 |
+| 产物 | 实际检查 |
 | :-- | :-- |
-| 已拟合 tokenizer | 编码／解码前检查 `schema_version == 4`；旧版本或缺失字段会抛出 `RuntimeError`，需重新 fit。`original_token_ids` 缺失也会被拒绝。 |
-| 完整 serializer／tokenizer result | 反序列化检查 metadata 中的 protocol／schema，不匹配会抛出 `ValueError`。裸 token 列表没有版本 metadata，无法据此自动识别旧协议，应从原图重新生成。 |
-| 预处理缓存 | 键包含数据／split 内容摘要、输入协议和预处理配置；加载时再检查缓存格式 5 与 tokenizer schema 4。旧键不命中，旧格式 payload 不复用，重新预处理；通过临时文件和 `os.replace` 原子写入。 |
-| 下游微调 checkpoint | `restore_checkpoint()` 在载入模型权重前检查 `tokenizer_schema_version == 4`，缺失或不一致会抛出 `ValueError`。相同 embedding 形状不能替代协议与词表对应关系。 |
+| 已拟合 tokenizer | 编码／解码前检查 schema、训练原始 token 集及拟合时配置；协议／serializer 改动须重新 fit。 |
+| serializer／tokenizer result | 检查协议／schema；可逆结果还检查协议名称及 method。官方结果不可反序列化。 |
+| 预处理缓存 | 键包含协议、serializer、dataset、BPE 模式、版本、数据／split 内容及预处理参数；payload 再检查配置及拟合 tokenizer 指纹，错配时重新构建。 |
+| 下游 checkpoint | 正式 trainer 绑定具体 tokenizer 指纹；恢复权重前检查 schema 和指纹，拒绝跨协议、serializer、BPE、词表或拟合统计复用。 |
 
-不存在旧词表、缓存或下游 checkpoint 的自动迁移。`GraphBPE.load_codebook()` 只加载 BPE
-规则，不校验 tokenizer 协议；下游 checkpoint 的 schema 检查也不验证具体词表或数据摘要。
-同一 schema 的产物仍须与其拟合 tokenizer、配置和数据配套使用。正式 GTE 来源 checkpoint
-是独立的预训练编码器初始化，其 revision／SHA-256／架构／tensor shape／覆盖率校验见下文。
+指纹涵盖 serializer 配置与官方 revision、频率统计、BPE 规则、原始 token 集、词表、
+special IDs、编码模式及拟合图 ID／变体数。不自动迁移旧 tokenizer、缓存或下游 checkpoint。
+`GraphBPE.load_codebook()` 仅加载独立压缩规则，不代表可配套替换 tokenizer；正式
+checkpoint 的指纹来自实际已拟合 tokenizer。直接调用低层 checkpoint helper 的无绑定
+模型不提供这项训练输入配套保证。正式 GTE 来源 checkpoint 是独立的编码器初始化，
+其 revision／SHA-256／架构／shape／覆盖率校验保持原有行为。
 
 ## 固定的六组实验 preset
 
 `PAPER_CONFIGS` 基于固定的
 [GraphTokenizer 官方源码 revision
 `98343a6b025a48fbb6859cd812a12b81ec3ac3cc`](https://github.com/BUPT-GAMMA/Graph-Tokenization-for-Bridging-Graphs-and-Transformers/tree/98343a6b025a48fbb6859cd812a12b81ec3ac3cc)
-整理为六组 benchmark presets。训练使用统一的 serializer/tokenization pipeline，默认使用
-Python BPE，`cpp` 是可选 backend。
+整理为六组 benchmark presets。默认使用 Python BPE，`cpp` 是可选 backend。
 下表描述当前代码默认配置，不能替代每次运行的完整生效配置及配套记录。
+
+| 实验 | Serializer | 实际 BPE 编码 | 官方配置来源 |
+| :-- | :-- | :-- | :-- |
+| Mutagenicity + BERT | feuler | all | default_config.yml |
+| Mutagenicity + GTE | feuler | none（raw） | default + config/mutagenicity/feuler/gte/config.json |
+| DBLP_v1 + BERT | feuler | all | default_config.yml |
+| DBLP_v1 + GTE | eulerian | none（raw） | default + config/dblp/eulerian/gte/config.json |
+| AQSOL + BERT | feuler | all | default_config.yml |
+| AQSOL + GTE | feuler | all | default_config.yml，encoder 切换到 GTE |
+
+固定 revision 没有其余四组的专属 JSON；它们继承 default 的 serializer／BPE 模式。
+100 次序列化是这里显式启用的多起点配置，default YAML 的 multiple_sampling.enabled 本身为 false。
+`--serializer`、`--token-protocol`、`--bpe-encode-mode` 可覆盖 preset，并参与真实构造和缓存键。
+`none` 仍拟合 BPE 规则并构建覆盖全部规则的词表，仅跳过送入模型前的 BPE 编码。
+分类验证选优与最终测试均先逐 serialization softmax，再按 graph_id 平均概率并 argmax；
+回归平均预测后计算原尺度 MAE。
+
 
 所有 preset 均使用 `max_length=8096`、BPE `2000` merges / 最小频率 `2`、100 次序列化、
 MLM mask 概率 `0.09`、warm-up `0.12 / 0.025`、梯度裁剪 `2.0 / 0.5`、默认 seeds `42–46`，

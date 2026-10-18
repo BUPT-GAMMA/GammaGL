@@ -1573,11 +1573,19 @@ def test_empty_mlm_window_still_rejects_nonfinite_logits(trainer, monkeypatch, b
                                 torch.device("cpu"), seed=7)
 
 
-def test_evaluation_rejects_overflow_when_grouping_finite_class_logits(trainer):
+def test_evaluation_softmax_handles_finite_class_logits_without_sum_overflow(trainer):
     loader = trainer.make_loader(torch, [_record(0, [0.0]), _record(0, [0.0])], 2, 0, False, False)
+    result = trainer.evaluate_downstream(
+        torch, FixedLogits([[3e38, 0.0], [3e38, 0.0]]), loader,
+        trainer.resolve_dataset("mutagenicity"), None, torch.device("cpu"))
+    assert result["accuracy"] == 1.0
+
+
+def test_evaluation_rejects_overflow_when_grouping_finite_regression_predictions(trainer):
+    loader = trainer.make_loader(torch, [_record(0, [3e38]), _record(0, [3e38])], 2, 0, False, False)
     with pytest.raises(FloatingPointError, match="evaluation.*logits"):
-        trainer.evaluate_downstream(torch, FixedLogits([[3e38, 0.0], [3e38, 0.0]]), loader,
-                                    trainer.resolve_dataset("mutagenicity"), None, torch.device("cpu"))
+        trainer.evaluate_downstream(torch, FixedLogits([[3e38], [3e38]]), loader,
+                                    trainer.resolve_dataset("aqsol"), None, torch.device("cpu"))
 
 
 def test_main_does_not_mark_explicitly_failed_run_complete(trainer, monkeypatch, tmp_path):

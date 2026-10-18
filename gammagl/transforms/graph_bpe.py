@@ -26,10 +26,12 @@ class GraphBPE:
         min_frequency: int = 2,
         backend: str = "python",
         protected_token_ids=None,
+        merge_id_offset: int = 0,
     ):
         self.num_merges = int(num_merges)
         self.min_frequency = int(min_frequency)
         self.backend = backend
+        self.merge_id_offset = int(merge_id_offset)
         self.protected_token_ids = {
             int(token) for token in (protected_token_ids or ())}
         self.codebook = BPECodebook()
@@ -241,7 +243,7 @@ class GraphBPE:
         return max_token + 1
 
     def _initial_vocab_size(self, sequences: Iterable[List[int]]) -> int:
-        return max(
+        return self.merge_id_offset + max(
             self._next_token_id(sequences),
             max(self.protected_token_ids, default=-1) + 1,
         )

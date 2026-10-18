@@ -25,7 +25,7 @@ def _edges(edge_index, edge_attr):
 
 
 def _round_trip(graph):
-    serializer = FrequencyGuidedEulerianSerializer().fit([graph])
+    serializer = FrequencyGuidedEulerianSerializer(protocol="local_refs").fit([graph])
     result = serializer.serialize(graph)
     restored = serializer.restore_input_metadata(result)
     assert restored["num_nodes"] == graph.num_nodes
@@ -50,7 +50,7 @@ def _relabel(graph, old_to_new):
 )
 def test_serializer_accepts_equivalent_undirected_coo(edge_index, edge_attr):
     graph = SimpleGraph(edge_index, [7, 8], edge_attr)
-    serializer = FrequencyGuidedEulerianSerializer().fit([graph])
+    serializer = FrequencyGuidedEulerianSerializer(protocol="local_refs").fit([graph])
 
     result = serializer.serialize(graph)
 
@@ -63,8 +63,8 @@ def test_serializer_normalizes_single_and_symmetric_coo_identically():
     single = SimpleGraph([[0], [1]], [7, 8], [3])
     symmetric = SimpleGraph([[0, 1], [1, 0]], [7, 8], [3, 3])
 
-    assert FrequencyGuidedEulerianSerializer().fit([single]).serialize(single).token_ids == (
-        FrequencyGuidedEulerianSerializer().fit([symmetric]).serialize(symmetric).token_ids)
+    assert FrequencyGuidedEulerianSerializer(protocol="local_refs").fit([single]).serialize(single).token_ids == (
+        FrequencyGuidedEulerianSerializer(protocol="local_refs").fit([symmetric]).serialize(symmetric).token_ids)
 
 
 @pytest.mark.parametrize(
@@ -84,7 +84,7 @@ def test_serializer_round_trip(graph):
 def test_serializer_permutation_regression():
     graph = SimpleGraph(
         [[0, 1, 1, 3], [1, 2, 3, 4]], [9, 1, 4, 7, 4], [3, 2, 5, 6])
-    serializer = FrequencyGuidedEulerianSerializer().fit([graph])
+    serializer = FrequencyGuidedEulerianSerializer(protocol="local_refs").fit([graph])
     expected = serializer.serialize(graph).token_ids
     permutation = list(range(graph.num_nodes))
     random.Random(7).shuffle(permutation)
@@ -98,7 +98,7 @@ def test_missing_node_features_match_explicit_zero_labels_in_full_input():
     unlabeled = SimpleGraph([[0, 1], [1, 2]], None, [4, 5], num_nodes=3)
     zero_labeled = SimpleGraph([[0, 1], [1, 2]], [0, 0, 0], [4, 5])
     relabeled = SimpleGraph([[2, 0], [0, 1]], None, [4, 5], num_nodes=3)
-    tokenizer = GraphTokenizer(bpe=GraphBPE(num_merges=2, min_frequency=2)).fit(
+    tokenizer = GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs"), bpe=GraphBPE(num_merges=2, min_frequency=2)).fit(
         [zero_labeled])
 
     original = tokenizer.encode_graph(unlabeled)
@@ -119,7 +119,7 @@ def test_missing_node_features_match_explicit_zero_labels_in_full_input():
 def test_missing_node_features_restore_default_labels_and_structure(
         edge_index, num_nodes, expected_edges):
     graph = SimpleGraph(edge_index, None, num_nodes=num_nodes)
-    tokenizer = GraphTokenizer().fit([graph])
+    tokenizer = GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs")).fit([graph])
     encoded = tokenizer.encode_graph(graph)
 
     for restored in (tokenizer.decode_graph(encoded),
@@ -131,7 +131,7 @@ def test_missing_node_features_restore_default_labels_and_structure(
 
 def test_explicit_integer_node_labels_are_preserved():
     graph = SimpleGraph([[0], [1]], [7, -2], [3])
-    tokenizer = GraphTokenizer().fit([graph])
+    tokenizer = GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs")).fit([graph])
 
     assert tokenizer.decode_graph(tokenizer.encode_graph(graph))["x"] == [7, -2]
 
@@ -148,7 +148,7 @@ def test_explicit_integer_node_labels_are_preserved():
 ], ids=("three_node", "labeled_path", "labeled_cycle", "disconnected", "isolated"))
 def test_full_serialized_tokens_and_input_ids_match_under_relabeling(graph, permutation):
     relabeled = _relabel(graph, permutation)
-    tokenizer = GraphTokenizer(bpe=GraphBPE(num_merges=2, min_frequency=2)).fit([graph])
+    tokenizer = GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs"), bpe=GraphBPE(num_merges=2, min_frequency=2)).fit([graph])
     original = tokenizer.encode_graph(graph)
     permuted = tokenizer.encode_graph(relabeled)
 
@@ -162,7 +162,7 @@ def test_corresponding_explicit_starts_match_full_input_ids():
     graph = SimpleGraph([[0, 1], [1, 2]], [10, 20, 30], [1, 2])
     permutation = {0: 2, 1: 1, 2: 0}
     relabeled = _relabel(graph, permutation)
-    tokenizer = GraphTokenizer().fit([graph, relabeled])
+    tokenizer = GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs")).fit([graph, relabeled])
 
     assert tokenizer.encode_graph(graph, start_node=0).input_ids == (
         tokenizer.encode_graph(relabeled, start_node=permutation[0]).input_ids)
@@ -172,7 +172,7 @@ def test_multiple_start_nodes_follow_local_traversal_order_under_relabeling():
     graph = SimpleGraph([[0, 1], [1, 2]], [10, 20, 30], [1, 2])
     permutation = {0: 2, 1: 1, 2: 0}
     relabeled = _relabel(graph, permutation)
-    tokenizer = GraphTokenizer().fit([graph, relabeled], num_realizations=2)
+    tokenizer = GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs")).fit([graph, relabeled], num_realizations=2)
     starts = tokenizer.realization_start_nodes(graph, 2)
     relabeled_starts = tokenizer.realization_start_nodes(relabeled, 2)
 
@@ -184,7 +184,7 @@ def test_multiple_start_nodes_follow_local_traversal_order_under_relabeling():
 
 def test_tokenizer_result_restores_original_ids_but_stream_restores_local_ids():
     graph = SimpleGraph([[2, 1], [1, 0]], [30, 20, 10], [1, 2])
-    tokenizer = GraphTokenizer().fit([graph])
+    tokenizer = GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs")).fit([graph])
     result = tokenizer.encode_graph(graph)
     original = tokenizer.decode_graph(result)
     local = tokenizer.decode_graph(result.input_ids)
@@ -202,7 +202,7 @@ def test_tokenizer_result_restores_original_ids_but_stream_restores_local_ids():
     SimpleGraph([[], []], [], [], num_nodes=0),
 ], ids=("components", "isolated", "zero_nodes"))
 def test_tokenizer_recovery_handles_components_isolates_and_empty_graph(graph):
-    tokenizer = GraphTokenizer().fit([graph])
+    tokenizer = GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs")).fit([graph])
     result = tokenizer.encode_graph(graph)
     restored = tokenizer.decode_graph(result)
     stream_only = tokenizer.decode_graph(result.input_ids)
@@ -216,7 +216,7 @@ def test_tokenizer_recovery_handles_components_isolates_and_empty_graph(graph):
 def test_full_result_restores_held_out_labels_even_when_input_uses_unk():
     train = SimpleGraph([[0], [1]], [1, 2], [1])
     held_out = SimpleGraph([[0], [1]], [101, 2], [1])
-    tokenizer = GraphTokenizer().fit([train])
+    tokenizer = GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs")).fit([train])
     result = tokenizer.encode_graph(held_out)
 
     assert tokenizer.special_tokens.unk_token_id in result.input_ids
@@ -230,7 +230,7 @@ def test_full_result_restores_held_out_labels_even_when_input_uses_unk():
     SimpleGraph([[], []], [], [], num_nodes=0),
 ], ids=("path", "components", "isolated", "zero_nodes"))
 def test_local_references_and_both_recovery_contracts(graph):
-    serializer = FrequencyGuidedEulerianSerializer().fit([graph])
+    serializer = FrequencyGuidedEulerianSerializer(protocol="local_refs").fit([graph])
     result = serializer.serialize(graph)
     local = serializer.deserialize(result.token_ids)
     original = serializer.restore_input_metadata(result)
@@ -258,7 +258,7 @@ def test_local_references_and_both_recovery_contracts(graph):
 
 def test_old_pickled_tokenizer_and_result_are_rejected():
     graph = SimpleGraph([[0], [1]], [10, 20], [1])
-    tokenizer = GraphTokenizer().fit([graph])
+    tokenizer = GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs")).fit([graph])
     old = pickle.loads(pickle.dumps(tokenizer))
     old.schema_version = 2
     with pytest.raises(RuntimeError, match="protocol|schema"):
@@ -277,7 +277,7 @@ def test_old_pickled_tokenizer_and_result_are_rejected():
 
 def test_previous_unlabeled_tokenizer_schema_cannot_encode_new_default_labels():
     graph = SimpleGraph([[0], [1]], None, num_nodes=2)
-    old = pickle.loads(pickle.dumps(GraphTokenizer().fit([graph])))
+    old = pickle.loads(pickle.dumps(GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs")).fit([graph])))
     old.schema_version = 3
 
     with pytest.raises(RuntimeError, match="protocol|schema"):
@@ -290,7 +290,7 @@ def test_signature_tie_can_leave_full_input_dependent_on_numbering():
                         [1] * 5, [1] * 5)
     permutation = {0: 1, 1: 2, 2: 3, 3: 0, 4: 4}
     relabeled = _relabel(graph, permutation)
-    tokenizer = GraphTokenizer().fit([graph, relabeled], num_realizations=2)
+    tokenizer = GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs")).fit([graph, relabeled], num_realizations=2)
     signature = tokenizer.serializer._read_graph(graph)["node_signatures"]
 
     assert signature[0] == signature[1]
@@ -307,7 +307,7 @@ def test_component_sort_tie_can_leave_full_input_dependent_on_numbering():
                         [1] * 7, [1] * 6)
     permutation = {0: 3, 1: 4, 2: 5, 3: 6, 4: 0, 5: 1, 6: 2}
     relabeled = _relabel(graph, permutation)
-    tokenizer = GraphTokenizer().fit([graph, relabeled])
+    tokenizer = GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs")).fit([graph, relabeled])
 
     assert tokenizer.serializer.serialize(graph).token_ids != (
         tokenizer.serializer.serialize(relabeled).token_ids)
@@ -318,7 +318,7 @@ def test_equal_structure_signatures_do_not_prove_nodes_interchangeable():
     # A 4-cycle and a triangle: every vertex has identical one-hop refinement.
     graph = SimpleGraph([[0, 1, 2, 0, 4, 5, 4], [1, 2, 3, 3, 5, 6, 6]],
                         [1] * 7, [1] * 7)
-    serializer = FrequencyGuidedEulerianSerializer()
+    serializer = FrequencyGuidedEulerianSerializer(protocol="local_refs")
     signatures = serializer._read_graph(graph)["node_signatures"]
 
     assert len(set(signatures.values())) == 1
@@ -336,7 +336,7 @@ def test_equal_structure_signatures_do_not_prove_nodes_interchangeable():
     ids=("self_loop", "parallel_edge", "bad_node_features"),
 )
 def test_serializer_rejects_invalid_graphs(graph, operation, error):
-    serializer = FrequencyGuidedEulerianSerializer()
+    serializer = FrequencyGuidedEulerianSerializer(protocol="local_refs")
 
     with pytest.raises(ValueError, match=error):
         getattr(serializer, operation)([graph] if operation == "fit" else graph)
@@ -346,11 +346,11 @@ def test_serializer_rejects_explicit_directed_graphs():
     graph = {"edge_index": [[0], [1]], "x": [4, 5], "edge_attr": [1], "directed": True}
 
     with pytest.raises(ValueError, match="directed graph semantics"):
-        FrequencyGuidedEulerianSerializer().serialize(graph)
+        FrequencyGuidedEulerianSerializer(protocol="local_refs").serialize(graph)
 
 
 def test_serializer_accepts_explicit_undirected_native_graph_with_single_coo():
-    serializer = FrequencyGuidedEulerianSerializer()
+    serializer = FrequencyGuidedEulerianSerializer(protocol="local_refs")
     graph = Graph(
         edge_index=np.array([[0], [1]]),
         x=np.array([4, 5]),
@@ -374,7 +374,7 @@ def test_serializer_accepts_native_graph_with_single_coo_without_direction_decla
         to_tensor=False,
     )
 
-    assert FrequencyGuidedEulerianSerializer().serialize(graph).token_ids
+    assert FrequencyGuidedEulerianSerializer(protocol="local_refs").serialize(graph).token_ids
 
 
 @pytest.mark.parametrize(
@@ -387,13 +387,13 @@ def test_serializer_accepts_native_graph_with_single_coo_without_direction_decla
 )
 def test_serializer_rejects_non_integer_labels(graph):
     with pytest.raises(ValueError, match="labels must be integers"):
-        FrequencyGuidedEulerianSerializer().serialize(graph)
+        FrequencyGuidedEulerianSerializer(protocol="local_refs").serialize(graph)
 
 
 @pytest.mark.parametrize("separator", [0, 7, -1.5, True])
 def test_serializer_rejects_component_separators_outside_negative_integer_domain(separator):
     with pytest.raises(ValueError, match="component_sep_token_id"):
-        FrequencyGuidedEulerianSerializer(component_sep_token_id=separator)
+        FrequencyGuidedEulerianSerializer(protocol="local_refs", component_sep_token_id=separator)
 
 
 def test_bpe_fits_encodes_and_builds_a_deterministic_codebook(tmp_path):
@@ -451,7 +451,7 @@ def test_cpp_bpe_matches_python_when_extension_is_available():
 
 def test_tokenizer_encodes_special_tokens_and_pads():
     graph = SimpleGraph([[0], [1]], [1, 2], [5])
-    tokenizer = GraphTokenizer(bpe=GraphBPE(num_merges=1, min_frequency=2)).fit([graph, graph])
+    tokenizer = GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs"), bpe=GraphBPE(num_merges=1, min_frequency=2)).fit([graph, graph])
 
     encoded = tokenizer.encode_graph(graph)
     padded, attention = tokenizer.pad_token_sequences([encoded.input_ids], max_length=12)
@@ -465,7 +465,7 @@ def test_tokenizer_encodes_special_tokens_and_pads():
 def test_tokenizer_does_not_expand_train_vocabulary_for_held_out_tokens():
     train = SimpleGraph([[0], [1]], [1, 2], [5])
     held_out = SimpleGraph([[0], [1]], [101, 102], [5])
-    tokenizer = GraphTokenizer(bpe=GraphBPE(num_merges=1, min_frequency=2)).fit([train, train])
+    tokenizer = GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs"), bpe=GraphBPE(num_merges=1, min_frequency=2)).fit([train, train])
     vocabulary = dict(tokenizer.vocabulary)
 
     encoded = tokenizer.encode_graph(held_out)
@@ -481,7 +481,7 @@ def _token_collision_graphs():
 
 def test_tokenizer_maps_unknown_raw_tokens_to_unk_before_bpe_merges():
     train, held_out = _token_collision_graphs()
-    tokenizer = GraphTokenizer().fit([train, train])
+    tokenizer = GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs")).fit([train, train])
     held_out_tokens = tokenizer._normalize_serialized_tokens(
         tokenizer.serializer.serialize(held_out).token_ids)
     collision_id = next(token for token in held_out_tokens
@@ -496,7 +496,7 @@ def test_tokenizer_maps_unknown_raw_tokens_to_unk_before_bpe_merges():
 
 def test_tokenizer_unknown_tokens_and_special_tokens_are_bpe_boundaries():
     train, _ = _token_collision_graphs()
-    tokenizer = GraphTokenizer().fit([train, train])
+    tokenizer = GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs")).fit([train, train])
     left, right, merged = tokenizer.bpe.codebook.merge_rules[0]
     tokenizer.bpe.codebook.merge_rules.extend([
         (merged, tokenizer.special_tokens.unk_token_id, merged + 100),
@@ -521,7 +521,7 @@ def test_tokenizer_unknown_tokens_and_special_tokens_are_bpe_boundaries():
 )
 def test_tokenizer_uses_configured_unk_for_non_colliding_unknown_tokens(special_tokens):
     train, held_out = _token_collision_graphs()
-    tokenizer = GraphTokenizer(special_tokens=special_tokens).fit([train, train])
+    tokenizer = GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs"), special_tokens=special_tokens).fit([train, train])
     non_colliding = {**held_out, "x": [1, 101]}
 
     encoded = tokenizer.encode_graph(non_colliding)
@@ -532,7 +532,7 @@ def test_tokenizer_uses_configured_unk_for_non_colliding_unknown_tokens(special_
 
 def test_tokenizer_batch_encoding_and_persistence_reuse_original_token_ids():
     train, held_out = _token_collision_graphs()
-    tokenizer = GraphTokenizer().fit([train, train])
+    tokenizer = GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs")).fit([train, train])
     restored = pickle.loads(pickle.dumps(tokenizer))
 
     single = [tokenizer.encode_graph(graph).input_ids for graph in (train, held_out)]
@@ -548,7 +548,7 @@ def test_tokenizer_batch_encoding_and_persistence_reuse_original_token_ids():
 
 def test_tokenizer_rejects_unfitted_and_overlong_sequences():
     graph = SimpleGraph([[0], [1]], [1, 2], [5])
-    tokenizer = GraphTokenizer()
+    tokenizer = GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs"))
 
     with pytest.raises(RuntimeError, match="must be fit"):
         tokenizer.encode_graph(graph)
@@ -557,7 +557,7 @@ def test_tokenizer_rejects_unfitted_and_overlong_sequences():
 
 
 def test_tokenizer_validates_token_sequence_lengths_without_truncating():
-    tokenizer = GraphTokenizer()
+    tokenizer = GraphTokenizer(serializer=FrequencyGuidedEulerianSerializer(protocol="local_refs"))
 
     assert tokenizer.validate_token_sequences([[3, 8, 9, 10, 11, 12, 13, 4]], max_length=8) is None
     with pytest.raises(ValueError, match="exceeds max_length"):

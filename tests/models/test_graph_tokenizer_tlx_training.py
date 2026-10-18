@@ -234,6 +234,25 @@ def test_tlx_scheduler_counts_only_real_optimizer_updates(trainer):
     assert optimizer.lr == pytest.approx(0.1)
 
 
+@pytest.mark.parametrize("batch_size", [1, 2, 6])
+def test_tlx_classification_averages_probabilities_across_batches(trainer, batch_size):
+    class Classifier(tlx.nn.Module):
+        def forward(self, inputs, attention=None, task=None):
+            table = tlx.convert_to_tensor([[10., 0.], [0., 5.], [0., 2.],
+                                           [5., 0.], [0., 2.], [0., 5.]])
+            return tlx.gather(table, inputs[:, 1] - 8)
+
+    gids, labels = [8, 3, 8, 12, 8, 3], [1., 1., 1., 0., 1., 1.]
+    records = [dict(input_ids=[3, 8 + i, 4], labels=[label], graph_id=gid)
+               for i, (gid, label) in enumerate(zip(gids, labels))]
+    for phase in ["validation", "test"]:
+        result = trainer.evaluate_downstream(tlx, Classifier(),
+            trainer.make_loader(tlx, records, batch_size, 0, False, False),
+            trainer.resolve_dataset("dblp"), None, "cpu", phase)
+        assert result["num_graphs"] == 3
+        assert result["accuracy"] == 1.
+
+
 @pytest.mark.parametrize("phase", ["pretrain", "finetune", "validation"])
 def test_tlx_main_numerical_failure_keeps_summary_incomplete(trainer, monkeypatch, tmp_path, phase):
     class PipelineFault(ScalarModel):

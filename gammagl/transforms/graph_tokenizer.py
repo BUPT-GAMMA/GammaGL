@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
+import json
 import random
 from typing import Any, Dict, List
 
@@ -11,7 +12,7 @@ from .graph_serializer import (FrequencyGuidedEulerianSerializer,
                                GraphSerializationResult, SERIALIZER_PROTOCOL_VERSION)
 
 
-TOKENIZER_SCHEMA_VERSION = 4
+TOKENIZER_SCHEMA_VERSION = 5
 
 
 @dataclass(frozen=True)
@@ -60,9 +61,16 @@ class GraphTokenizer(BaseTransform):
         bpe: GraphBPE | None = None,
         special_tokens: GraphTokenizerSpecialTokens | None = None,
         add_special_tokens: bool = True,
+        bpe_encode_mode: str = "all",
     ):
         self.serializer = serializer or FrequencyGuidedEulerianSerializer()
         self.bpe = bpe or GraphBPE()
+        if bpe_encode_mode not in ("all", "none"):
+            raise ValueError("bpe_encode_mode must be all or none.")
+        self.bpe_encode_mode = bpe_encode_mode
+        if self.serializer.protocol == "official":
+            # The pinned minBPE reserves max(base)+1 as a virtual separator.
+            self.bpe.merge_id_offset = 1
         self.special_tokens = special_tokens or GraphTokenizerSpecialTokens()
         self._protect_special_tokens()
         self.add_special_tokens = bool(add_special_tokens)
@@ -108,14 +116,39 @@ class GraphTokenizer(BaseTransform):
         # BPE rules or admitting evaluation graphs into vocabulary fitting.
         base_ids = {int(token) for sequence in serialized_sequences for token in sequence}
         merge_ids = {int(rule[2]) for rule in self.bpe.codebook.merge_rules}
-        special_ids = set(vars(self.special_tokens).values())
+        special_ids = set() if self.serializer.protocol == "official" else self._special_token_ids()
         token_ids = sorted((base_ids | merge_ids) - special_ids)
+        if self.serializer.protocol == "official" and 0 in token_ids:
+            # Official VocabManager reserves -pad_id=0, aliasing ordinary 0.
+            token_ids.remove(0)
         start = self._reserved_token_count()
         self.vocabulary = {token: start + index for index, token in enumerate(token_ids)}
+        if self.serializer.protocol == "official":
+            self.vocabulary[0] = self.special_tokens.pad_token_id
         self.id_to_vocabulary_token = {
             vocab_id: token for token, vocab_id in self.vocabulary.items()}
         self._fitted = True
+        self._fit_configuration = self._configuration()
         return self
+
+    def _configuration(self):
+        return dict(serializer=self.serializer.configuration(),
+                    bpe_encode_mode=self.bpe_encode_mode,
+                    special_tokens=vars(self.special_tokens), add_special_tokens=self.add_special_tokens,
+                    merge_id_offset=self.bpe.merge_id_offset,
+                    protected_token_ids=sorted(self.bpe.protected_token_ids))
+
+    def fingerprint(self):
+        """Bind artifacts to the actual protocol, fitted statistics, BPE and vocabulary."""
+        self._require_fitted()
+        payload = dict(configuration=self._configuration(), schema=self.schema_version,
+                       frequencies=sorted(self.serializer.frequency_map.items()),
+                       vocabulary=sorted(self.vocabulary.items()),
+                       merge_rules=self.bpe.codebook.merge_rules,
+                       original_token_ids=sorted(self.original_token_ids),
+                       fit_graph_ids_hash=self.fit_graph_ids_hash,
+                       fit_num_realizations=self.fit_num_realizations)
+        return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
     def encode_tokens(self, token_ids: List[int]) -> List[int]:
         encoded = self._encode_token_sequences([token_ids])[0]
@@ -173,6 +206,14 @@ class GraphTokenizer(BaseTransform):
         num_realizations = int(num_realizations)
         if num_realizations <= 0:
             raise ValueError("num_realizations must be positive.")
+        if self.serializer.protocol == "official":
+            total_nodes = self.serializer._infer_num_nodes(
+                graph, self.serializer._edge_pairs(self.serializer._get_graph_attr(graph, "edge_index")))
+            if total_nodes <= 0:
+                raise ValueError("Graph has no nodes, cannot serialize.")
+            samples = min(num_realizations, total_nodes)
+            step = max(1, total_nodes // samples)
+            return [(index * step) % total_nodes for index in range(samples)]
         if num_realizations == 1:
             return [None]
         order = self.serializer.serialize(graph).metadata.get("local_to_original")
@@ -190,7 +231,7 @@ class GraphTokenizer(BaseTransform):
         return [order[(index * step) % total_nodes] for index in range(actual_samples)]
 
     def decode_graph(self, encoding) -> Dict[str, Any]:
-        """Invert BPE; a full result also restores original node IDs."""
+        """Reconstruct only local_refs; official streams have no node identity."""
         self._require_fitted()
         if isinstance(encoding, GraphTokenizationResult):
             serializer_metadata = encoding.metadata.get("serializer", {})
@@ -200,6 +241,10 @@ class GraphTokenizer(BaseTransform):
             input_ids = encoding.input_ids
         else:
             input_ids = list(encoding)
+        if self.serializer.protocol == "official":
+            raise NotImplementedError(
+                "Official tokens omit node identity; cannot reconstruct a graph. "
+                "Use the explicit local_refs protocol for graph round trips.")
         if self.add_special_tokens:
             if (
                     len(input_ids) < 2
@@ -261,6 +306,8 @@ class GraphTokenizer(BaseTransform):
         return results
 
     def _normalize_serialized_tokens(self, token_ids: List[int]) -> List[int]:
+        if self.serializer.protocol == "official":
+            return list(map(int, token_ids))
         reserved_token_count = self._reserved_token_count()
         component_sep_token_id = getattr(
             self.serializer,
@@ -280,12 +327,20 @@ class GraphTokenizer(BaseTransform):
         self._require_fitted()
         prepared_sequences = [
             self._prepare_bpe_tokens(token_ids) for token_ids in token_sequences]
+        encoded = (prepared_sequences if self.bpe_encode_mode == "none"
+                   else self.bpe.batch_encode(prepared_sequences))
         return [
             self._vocabulary_encode(token_ids)
-            for token_ids in self.bpe.batch_encode(prepared_sequences)
+            for token_ids in encoded
         ]
 
     def _prepare_bpe_tokens(self, token_ids: List[int]) -> List[int]:
+        if self.serializer.protocol == "official":
+            # Training merge IDs share the numeric alphabet with raw labels.
+            # An unseen raw label must not impersonate a learned merge token.
+            # Official raw IDs are non-negative; -1 never has a vocabulary entry.
+            return [int(token) if int(token) == 0 or int(token) in self.original_token_ids else -1
+                    for token in token_ids]
         special_ids = self._special_token_ids()
         return [
             token if token in self.original_token_ids or token in special_ids
@@ -324,10 +379,11 @@ class GraphTokenizer(BaseTransform):
     def _protect_special_tokens(self) -> None:
         if not hasattr(self.bpe, "protected_token_ids"):
             self.bpe.protected_token_ids = set()
-        self.bpe.protected_token_ids.update(self._special_token_ids())
+        if self.serializer.protocol == "local_refs":
+            self.bpe.protected_token_ids.update(self._special_token_ids())
 
     def _vocabulary_encode(self, token_ids: List[int]) -> List[int]:
-        special_ids = self._special_token_ids()
+        special_ids = set() if self.serializer.protocol == "official" else self._special_token_ids()
         return [
             int(token) if int(token) in special_ids
             else self.vocabulary.get(int(token), self.special_tokens.unk_token_id)
@@ -443,6 +499,8 @@ class GraphTokenizer(BaseTransform):
         if getattr(self, "original_token_ids", None) is None:
             raise RuntimeError(
                 "GraphTokenizer lacks training original token ids; re-fit or rebuild it before encoding.")
+        if getattr(self, "_fit_configuration", None) != self._configuration():
+            raise RuntimeError("Incompatible tokenizer protocol or serializer configuration; re-fit.")
 
     def __call__(self, data: Any):
         encoding = self.encode_graph(data)

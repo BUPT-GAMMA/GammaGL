@@ -57,13 +57,15 @@ DATASETS = (
 )
 
 DEFAULT_SEEDS = (42, 43, 44, 45, 46)
-PREPROCESSING_CACHE_VERSION = 5
+PREPROCESSING_CACHE_VERSION = 6
 
 
 # GammaGL presets derived from the pinned official GraphTokenizer implementation.
 # CLI values override every item below.  ``max_length`` is the final input
 # limit, distinct from the model's ``max_position_embeddings`` capacity.
 _BASE_CONFIG = {
+    "token_protocol": "official",
+    "bpe_encode_mode": "all",
     "pretrain_batch_size": 32,
     "finetune_batch_size": 32,
     "learning_rate": 1e-5,
@@ -97,20 +99,22 @@ _BASE_CONFIG = {
     "pooling": "mean",
 }
 PAPER_CONFIGS = {
-    ("mutagenicity", "bert"): {**_BASE_CONFIG},
+    ("mutagenicity", "bert"): {**_BASE_CONFIG, "serializer": "feuler"},
     ("mutagenicity", "gte"): {
-        **_BASE_CONFIG, "finetune_batch_size": 64, "learning_rate": 5e-5,
+        **_BASE_CONFIG, "serializer": "feuler", "bpe_encode_mode": "none",
+        "finetune_batch_size": 64, "learning_rate": 5e-5,
         "finetune_epochs": 100, "finetune_weight_decay": 0.01,
         "early_stopping_patience": 10, "max_position_embeddings": 8192,
     },
-    ("dblp", "bert"): {**_BASE_CONFIG},
+    ("dblp", "bert"): {**_BASE_CONFIG, "serializer": "feuler"},
     ("dblp", "gte"): {
-        **_BASE_CONFIG, "finetune_batch_size": 64, "learning_rate": 5e-5,
+        **_BASE_CONFIG, "serializer": "eulerian", "bpe_encode_mode": "none",
+        "finetune_batch_size": 64, "learning_rate": 5e-5,
         "finetune_epochs": 100, "finetune_weight_decay": 0.01,
         "early_stopping_patience": 10, "max_position_embeddings": 8192,
     },
-    ("aqsol", "bert"): {**_BASE_CONFIG},
-    ("aqsol", "gte"): {**_BASE_CONFIG, "max_position_embeddings": 8192},
+    ("aqsol", "bert"): {**_BASE_CONFIG, "serializer": "feuler"},
+    ("aqsol", "gte"): {**_BASE_CONFIG, "serializer": "feuler", "max_position_embeddings": 8192},
 }
 
 
@@ -392,6 +396,7 @@ def preprocessing_cache_path(args, spec: DatasetSpec) -> Path:
         "dataset": spec.name,
         "dataset_spec": spec.__dict__,
         "encoder": args.encoder,
+        "input_configuration": tokenizer_configuration(args),
         "serializer_protocol": SERIALIZER_PROTOCOL_VERSION,
         "tokenizer_schema": TOKENIZER_SCHEMA_VERSION,
         "bpe_merges": args.bpe_merges,
@@ -422,9 +427,18 @@ def load_or_prepare_preprocessing(args, spec: DatasetSpec):
     if cached is not None and (
             not isinstance(cached, dict)
             or cached.get("preprocessing_cache_version") != PREPROCESSING_CACHE_VERSION
-            or getattr(cached.get("tokenizer"), "schema_version", None) != TOKENIZER_SCHEMA_VERSION):
+            or getattr(cached.get("tokenizer"), "schema_version", None) != TOKENIZER_SCHEMA_VERSION
+            or cached.get("input_configuration") != tokenizer_configuration(args)):
         cache_path.unlink(missing_ok=True)
         cached = None
+    if cached is not None:
+        try:
+            valid = cached.get("tokenizer_fingerprint") == cached["tokenizer"].fingerprint()
+        except (AttributeError, RuntimeError):
+            valid = False
+        if not valid:
+            cache_path.unlink(missing_ok=True)
+            cached = None
     if cached is not None:
         emit_event("preprocessing_cache", status="hit", path=str(cache_path))
         return (cached["tokenizer"], cached["encoded"], cached["normalizer"],
@@ -441,6 +455,8 @@ def load_or_prepare_preprocessing(args, spec: DatasetSpec):
     temporary = cache_path.with_name(f".{cache_path.name}.tmp-{os.getpid()}")
     with temporary.open("wb") as handle:
         pickle.dump({"preprocessing_cache_version": PREPROCESSING_CACHE_VERSION,
+                     "input_configuration": tokenizer_configuration(args),
+                     "tokenizer_fingerprint": tokenizer.fingerprint(),
                      "tokenizer": tokenizer, "encoded": encoded,
                      "normalizer": normalizer, "output_dim": output_dim}, handle,
                     protocol=pickle.HIGHEST_PROTOCOL)
@@ -449,21 +465,34 @@ def load_or_prepare_preprocessing(args, spec: DatasetSpec):
     return tokenizer, encoded, normalizer, output_dim
 
 
+def tokenizer_configuration(args):
+    dataset = resolve_dataset(getattr(args, "dataset", "aqsol")).name
+    preset = PAPER_CONFIGS[(dataset, getattr(args, "encoder", "bert"))]
+    return dict(dataset=dataset,
+                serializer=getattr(args, "serializer", None) or preset["serializer"],
+                protocol=getattr(args, "token_protocol", None) or "official",
+                bpe_encode_mode=getattr(args, "bpe_encode_mode", None) or preset["bpe_encode_mode"])
+
+
 def make_tokenizer(args, train_graphs: Sequence[GraphRecord]):
     ensure_repo_on_path()
     from gammagl.transforms.graph_bpe import GraphBPE
-    from gammagl.transforms.graph_serializer import FrequencyGuidedEulerianSerializer
+    from gammagl.transforms.graph_serializer import FrequencyGuidedEulerianSerializer, EulerianSerializer
     from gammagl.transforms.graph_tokenizer import GraphTokenizer, GraphTokenizerSpecialTokens
 
     special_tokens = GraphTokenizerSpecialTokens()
     if getattr(args, "encoder", "bert") == "gte":
         special_tokens = GraphTokenizerSpecialTokens(pad_token_id=1, unk_token_id=0)
 
+    configuration = tokenizer_configuration(args)
+    serializer_cls = {"feuler": FrequencyGuidedEulerianSerializer, "eulerian": EulerianSerializer}[
+        configuration["serializer"]]
     tokenizer = GraphTokenizer(
-        serializer=FrequencyGuidedEulerianSerializer(),
+        serializer=serializer_cls(protocol=configuration["protocol"], dataset=configuration["dataset"]),
         bpe=GraphBPE(num_merges=args.bpe_merges, min_frequency=args.bpe_min_frequency,
                      backend=args.bpe_backend),
         special_tokens=special_tokens,
+        bpe_encode_mode=configuration["bpe_encode_mode"],
     )
     # The only tokenizer fit in this program receives the downstream train split.
     tokenizer.fit(train_graphs, graph_ids=list(range(len(train_graphs))),
@@ -546,25 +575,25 @@ def group_records(records: Sequence[Dict[str, Any]]) -> List[List[Dict[str, Any]
 
 def random_swap_serialized_tokens(tokens, special_ids, probability, ratio, window, rng):
     augmented = list(tokens)
-    if probability <= 0.0 or rng.random() >= float(probability):
+    if rng.random() > float(probability) or len(augmented) <= 1:
         return augmented
     positions = [index for index, token in enumerate(augmented) if int(token) not in special_ids]
     for _ in range(int(len(positions) * float(ratio))):
-        first = rng.choice(positions)
+        center = rng.choice(positions)
         nearby = [index for index in positions
-                  if index != first and abs(index - first) <= int(window) // 2]
-        if nearby:
-            second = rng.choice(nearby)
+                  if abs(index - center) <= int(window) // 2]
+        if len(nearby) >= 2:
+            first, second = rng.sample(nearby, 2)
             augmented[first], augmented[second] = augmented[second], augmented[first]
     return augmented
 
 
 def sequence_mask_serialized_tokens(tokens, special_ids, mask_token_id, probability, ratio, rng):
     augmented = list(tokens)
-    if probability <= 0.0 or rng.random() >= float(probability):
+    if rng.random() > float(probability) or len(augmented) <= 1:
         return augmented
     positions = [index for index, token in enumerate(augmented) if int(token) not in special_ids]
-    count = min(len(positions), max(1, int(len(positions) * float(ratio))))
+    count = min(len(positions), max(1, min(int(len(positions) * float(ratio)), len(augmented) - 1)))
     for index in rng.sample(positions, count):
         augmented[index] = int(mask_token_id)
     return augmented
@@ -623,9 +652,12 @@ def make_loader(
                 raise ValueError("Training augmentation requires tokenizer and max_length.")
             config = dict(augmentation)
             config["mask_token_id"] = tokenizer.special_tokens.mask_token_id
+            # These are raw loader tokens, whose IDs may overlap model special IDs.
+            protected_ids = (set() if tokenizer.serializer.protocol == "official"
+                             else mlm_special_token_ids(tokenizer))
             sequences.append(augment_record_input_ids(
                 tokenizer, item["input_ids"], item["serialized_token_ids"],
-                mlm_special_token_ids(tokenizer), config, max_length, rng))
+                protected_ids, config, max_length, rng))
         length = max(len(sequence) for sequence in sequences)
         input_ids = np.full((len(items), length), int(pad_token_id), dtype=np.int64)
         attention = np.zeros_like(input_ids)
@@ -781,7 +813,8 @@ def save_checkpoint(backend, path: Path, model, epoch: int, score: float) -> Non
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp-{os.getpid()}")
     state = {"epoch": int(epoch), "score": float(score),
-             "tokenizer_schema_version": TOKENIZER_SCHEMA_VERSION}
+             "tokenizer_schema_version": TOKENIZER_SCHEMA_VERSION,
+             "tokenizer_fingerprint": getattr(model, "tokenizer_fingerprint", None)}
     if tlx.BACKEND == "tensorflow":
         arrays = {str(index): tlx.convert_to_numpy(weight)
                   for index, weight in enumerate(model.all_weights)}
@@ -809,6 +842,9 @@ def restore_checkpoint(backend, path: Path, model, device):
             state = torch_backend.load(path, map_location=device)
     if state.get("tokenizer_schema_version") != TOKENIZER_SCHEMA_VERSION:
         raise ValueError("Incompatible checkpoint input protocol; retrain with the current tokenizer schema.")
+    if ("tokenizer_fingerprint" not in state
+            or state["tokenizer_fingerprint"] != getattr(model, "tokenizer_fingerprint", None)):
+        raise ValueError("Incompatible checkpoint tokenizer fingerprint; protocol, serializer or vocabulary differ.")
     if tlx.BACKEND == "tensorflow":
         if len(weights) != len(model.all_weights) or any(
                 tuple(value.shape) != tuple(weight.shape) for value, weight in zip(weights, model.all_weights)):
@@ -956,8 +992,9 @@ def evaluate_downstream(backend, model, loader, spec, normalizer, device, phase=
             require_finite_tensor(backend, loss, f"{context} loss")
             total_loss += float(tlx.convert_to_numpy(loss)) * len(input_ids)
             count += len(input_ids)
+            predictions = tlx.softmax(logits, axis=-1) if spec.num_classes else logits
             for graph_id, label, prediction in zip(tlx.convert_to_numpy(graph_ids).tolist(),
-                    tlx.convert_to_numpy(labels), tlx.convert_to_numpy(logits)):
+                    tlx.convert_to_numpy(labels), tlx.convert_to_numpy(predictions)):
                 grouped.setdefault(graph_id, {"label": label, "predictions": []})["predictions"].append(prediction)
     labels = np.stack([item["label"] for item in grouped.values()])
     predictions = np.stack([np.stack(item["predictions"]).mean(0) for item in grouped.values()])
@@ -1068,6 +1105,7 @@ def run_single_experiment(args, config, seed, run_index=0):
     if tlx.BACKEND == "tensorflow":
         tlx.set_device("CPU" if args.device == "cpu" else "GPU", 0)
     model = make_model(args, tokenizer.max_token_id + 1, tokenizer.special_tokens.pad_token_id, output_dim)
+    model.tokenizer_fingerprint = tokenizer.fingerprint()
     if tlx.BACKEND == "torch":
         model = model.to(device)
     loader_args = {"backend": backend, "pad_token_id": tokenizer.special_tokens.pad_token_id}
@@ -1138,6 +1176,9 @@ def build_parser():
     parser.add_argument("--bpe-merges", "--num-merges", dest="bpe_merges", type=int)
     parser.add_argument("--bpe-min-frequency", "--min-frequency", dest="bpe_min_frequency", type=int)
     parser.add_argument("--bpe-backend", choices=("python", "auto", "cpp"), default="python")
+    parser.add_argument("--serializer", choices=("feuler", "eulerian"))
+    parser.add_argument("--token-protocol", choices=("official", "local_refs"))
+    parser.add_argument("--bpe-encode-mode", choices=("all", "none"))
     parser.add_argument("--preprocessing-cache-dir")
     parser.add_argument("--num-serializations", "--num-realizations", dest="num_serializations", type=int)
     parser.add_argument("--early-stopping-patience", "--patience", dest="early_stopping_patience", type=int)

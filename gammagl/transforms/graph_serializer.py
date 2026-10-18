@@ -4,11 +4,13 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 import tensorlayerx as tlx
+import numpy as np
 
 from gammagl.data import Graph
 
 
-SERIALIZER_PROTOCOL_VERSION = 4
+SERIALIZER_PROTOCOL_VERSION = 5
+OFFICIAL_REVISION = "98343a6b025a48fbb6859cd812a12b81ec3ac3cc"
 
 
 def validate_undirected_graph_semantics(graph: Any) -> None:
@@ -41,13 +43,17 @@ class GraphSerializationResult:
 
 
 class FrequencyGuidedEulerianSerializer:
-    """Reversible Feuler serializer for undirected simple graphs only.
+    """Feuler for simple undirected graphs, with two explicit input protocols.
+
+    ``official`` follows the pinned source's traversal and loader token rules.
+    It has no node identity tokens and cannot reconstruct a graph. ``local_refs``
+    is the optional reversible GammaGL protocol described below.
 
     ``edge_index`` may contain one or both directions of an undirected edge,
     but every direction must carry the same edge label. Directed graphs,
     parallel edges, and self-loops are not representable by this serializer.
 
-    The token grammar is self-describing: a component starts with a node-label
+    The ``local_refs`` grammar is self-describing: a component starts with a node-label
     token and a node-reference token, then contains repeated
     ``edge-label, node-label, node-reference`` triples. Components are joined
     by ``component_sep_token_id``. Node labels, edge labels, and node
@@ -61,24 +67,43 @@ class FrequencyGuidedEulerianSerializer:
         self,
         name: str = "feuler",
         include_edge_tokens: bool = True,
-        component_sep_token_id: int = -1,
+        component_sep_token_id: Optional[int] = None,
+        protocol: str = "official",
+        dataset: Optional[str] = None,
     ):
         self.name = name
+        if protocol not in ("official", "local_refs"):
+            raise ValueError("protocol must be official or local_refs.")
+        self.protocol = protocol
+        self.dataset = dataset
         self.include_edge_tokens = include_edge_tokens
+        if component_sep_token_id is None:
+            component_sep_token_id = 7 if protocol == "official" else -1
         self.component_sep_token_id = self._strict_integer(
             component_sep_token_id,
             "component_sep_token_id must be an integer.",
         )
-        if self.component_sep_token_id >= 0:
+        if protocol == "local_refs" and self.component_sep_token_id >= 0:
             raise ValueError("component_sep_token_id must be a negative integer.")
         self.frequency_map: Dict[Any, int] = {}
+
+    def configuration(self):
+        return dict(method=self.name, protocol=self.protocol, dataset=self.dataset,
+                    include_edge_tokens=self.include_edge_tokens,
+                    component_sep_token_id=self.component_sep_token_id,
+                    official_revision=OFFICIAL_REVISION)
 
     def fit(self, graphs: Sequence[Any]):
         counts: Dict[Tuple[int, int, int], int] = defaultdict(int)
         for graph in graphs:
             graph_view = self._read_graph(graph)
-            for src, dst, edge_label in graph_view["canonical_edges"]:
-                counts[self._edge_pattern(graph_view, src, dst, edge_label)] += 1
+            edges = (graph_view["input_edges"] if self.protocol == "official"
+                     else graph_view["canonical_edges"])
+            for src, dst, edge_label in edges:
+                pattern = ((graph_view["node_labels"][src], edge_label,
+                            graph_view["node_labels"][dst]) if self.protocol == "official"
+                           else self._edge_pattern(graph_view, src, dst, edge_label))
+                counts[pattern] += 1
         self.frequency_map = dict(counts)
         return self
 
@@ -90,6 +115,8 @@ class FrequencyGuidedEulerianSerializer:
             start_node = int(start_node)
             if not 0 <= start_node < graph_view["num_nodes"]:
                 raise ValueError("start_node must identify a node in the graph.")
+        if self.protocol == "official":
+            return self._serialize_official(graph_view, start_node)
         components = self._connected_components(graph_view["num_nodes"], graph_view["arcs"])
         component_results = []
 
@@ -119,6 +146,7 @@ class FrequencyGuidedEulerianSerializer:
             metadata={
                 "method": self.name,
                 "protocol_version": SERIALIZER_PROTOCOL_VERSION,
+                "protocol": self.protocol,
                 "num_nodes": graph_view["num_nodes"],
                 "num_components": len(component_results),
                 "num_edges_traversed": sum(
@@ -127,6 +155,84 @@ class FrequencyGuidedEulerianSerializer:
                 "local_to_original": list(local_references),
             },
         )
+
+    def _serialize_official(self, view, start_node):
+        """Port of the pinned Eulerian/Feuler and base path-to-token methods.
+
+        Preserve input COO arcs: the official DGL implementation does not
+        synthesize reverse arcs for Feuler. Eulerian sorts IDs ascending and
+        pops the largest; Feuler sorts by descending directional triplet count,
+        then ascending neighbor ID. Disconnected starts are reset per component.
+        """
+        if view["num_nodes"] == 0:
+            raise ValueError("Graph has no nodes, cannot serialize.")
+        components = self._connected_components(view["num_nodes"], view["input_edges"])
+        components.sort(key=len, reverse=True)
+        tokens, paths = [], []
+        classification_loader = self.dataset in ("mutagenicity", "dblp")
+        for component in components:
+            # Match NetworkX component sets passed to dgl.node_subgraph.
+            nodes = list(set(component))
+            local_id = {node: i for i, node in enumerate(nodes)}
+            start = (0 if start_node is None else start_node) if len(components) == 1 else nodes[0]
+            adjacency = {node: [] for node in nodes}
+            edge_labels = {}
+            for src, dst, label in view["input_edges"]:
+                if src in local_id and dst in local_id:
+                    adjacency[src].append(dst)
+                    edge_labels[src, dst] = label
+            if self.name == "eulerian":
+                for neighbors in adjacency.values():
+                    neighbors.sort(key=local_id.get)
+                degrees = dict.fromkeys(nodes, 0)
+                for src, neighbors in adjacency.items():
+                    degrees[src] += len(neighbors)
+                    for dst in neighbors:
+                        degrees[dst] += 1
+                if any(degree % 2 for degree in degrees.values()):
+                    doubled = {node: [] for node in nodes}
+                    for src in nodes:
+                        for dst in adjacency[src]:
+                            doubled[src].append(dst)
+                            doubled[dst].append(src)
+                    adjacency = doubled
+            else:
+                for src, neighbors in adjacency.items():
+                    neighbors.sort(key=lambda dst: (
+                        -float(np.log10(np.float32(max(1, self.frequency_map.get((view["node_labels"][src],
+                             edge_labels[src, dst], view["node_labels"][dst]), 0))))), local_id[dst]))
+                    neighbors.reverse()
+                if not adjacency[start] and len(nodes) > 1:
+                    start = next(node for node in nodes if adjacency[node])
+            stack, path = [start], []
+            while stack:
+                current = stack[-1]
+                if adjacency[current]:
+                    stack.append(adjacency[current].pop())
+                else:
+                    path.append(stack.pop())
+            path.reverse()
+            if tokens:
+                tokens.append(self.component_sep_token_id)  # ordinary official BPE alphabet
+            for i, node in enumerate(path):
+                # Official TU loaders differ between their scalar singleton
+                # getter and whole-graph getter; preserve this observable rule.
+                label = view["node_labels"][node]
+                tokens.append(2 * label + 1 if classification_loader and len(nodes) > 1 else label)
+                if i + 1 < len(path) and self.include_edge_tokens:
+                    key = node, path[i + 1]
+                    if key not in edge_labels:
+                        raise ValueError(f"Official traversal requires an input COO edge {key}.")
+                    edge = edge_labels[key]
+                    omitted = 2 if self.dataset == "aqsol" else 0
+                    if edge != omitted:
+                        tokens.append(2 * edge if classification_loader else edge)
+            paths.append(path)
+        return GraphSerializationResult(tokens, dict(
+            method=self.name, protocol=self.protocol, protocol_version=SERIALIZER_PROTOCOL_VERSION,
+            official_revision=OFFICIAL_REVISION, num_nodes=view["num_nodes"],
+            num_components=len(components), start_node=start_node,
+            num_edges_traversed=sum(len(path) - 1 for path in paths)))
 
     def restore_input_metadata(self, result: GraphSerializationResult) -> Dict[str, List[int]]:
         """Restore original node IDs from a full result and its provenance map."""
@@ -153,11 +259,16 @@ class FrequencyGuidedEulerianSerializer:
 
     def deserialize(self, result: GraphSerializationResult) -> Dict[str, List[int]]:
         """Reconstruct a graph from a Feuler token stream without metadata."""
+        if self.protocol == "official":
+            raise NotImplementedError(
+                "Official tokens omit node identity and common edge tokens; cannot reconstruct a graph.")
         if not self.include_edge_tokens:
             raise ValueError("Feuler deserialization requires include_edge_tokens=True.")
         if isinstance(result, GraphSerializationResult):
             if result.metadata.get("protocol_version") != SERIALIZER_PROTOCOL_VERSION:
                 raise ValueError("Incompatible serializer protocol version; rebuild the result.")
+            if result.metadata.get("protocol") != self.protocol or result.metadata.get("method") != self.name:
+                raise ValueError("Incompatible serializer protocol or method.")
             token_ids = result.token_ids
         else:
             token_ids = result
@@ -282,6 +393,8 @@ class FrequencyGuidedEulerianSerializer:
                     "edge_index contains an endpoint outside the declared graph nodes.")
         node_labels = self._node_labels(self._get_graph_attr(graph, "x"), num_nodes)
         edge_labels = self._edge_labels(self._get_graph_attr(graph, "edge_attr"), len(edge_pairs))
+        if self.protocol == "official" and any(label < 0 for label in node_labels + edge_labels):
+            raise ValueError("Official node and edge token IDs must be non-negative.")
         input_edges = [(int(src), int(dst), int(edge_labels[i])) for i, (src, dst) in enumerate(edge_pairs)]
         canonical_edges = self._canonicalize_undirected_edges(input_edges)
         arcs = self._undirected_arcs(canonical_edges)
@@ -289,9 +402,10 @@ class FrequencyGuidedEulerianSerializer:
             "num_nodes": num_nodes,
             "node_labels": node_labels,
             "canonical_edges": canonical_edges,
+            "input_edges": input_edges,
             "arcs": arcs,
-            "node_signatures": self._node_structure_signatures(
-                num_nodes, node_labels, arcs),
+            "node_signatures": (self._node_structure_signatures(
+                num_nodes, node_labels, arcs) if self.protocol == "local_refs" else {}),
         }
 
     def _validate_graph_kind(self, graph: Any) -> None:
@@ -594,13 +708,15 @@ class FrequencyGuidedEulerianSerializer:
 
 
 class EulerianSerializer(FrequencyGuidedEulerianSerializer):
-    """Deterministic Eulerian serializer without corpus frequency guidance."""
+    """Eulerian traversal without corpus frequency guidance (same protocols)."""
 
-    def __init__(self, include_edge_tokens: bool = True, component_sep_token_id: int = -1):
+    def __init__(self, include_edge_tokens: bool = True, component_sep_token_id: Optional[int] = None,
+                 protocol: str = "official", dataset: Optional[str] = None):
         super().__init__(
             name="eulerian",
             include_edge_tokens=include_edge_tokens,
             component_sep_token_id=component_sep_token_id,
+            protocol=protocol, dataset=dataset,
         )
 
     def fit(self, graphs: Sequence[Any]):
