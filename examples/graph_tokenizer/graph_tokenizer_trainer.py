@@ -24,6 +24,23 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Sequence
 
 import numpy as np
+
+# A direct CLI invocation must select TF devices before importing TLX, whose
+# imports may initialize TensorFlow. Programmatic entry points also configure
+# before seeds/data below and reject an incompatible preinitialized runtime.
+_SOURCE_ROOT = str(Path(__file__).resolve().parents[2])
+if _SOURCE_ROOT not in sys.path:
+    sys.path.insert(0, _SOURCE_ROOT)
+from examples.graph_tokenizer.runtime import configure_device
+from examples.graph_tokenizer.artifacts import ARTIFACT_VERSION, atomic_write
+
+if __name__ == '__main__' and os.environ.get('TL_BACKEND') == 'tensorflow':
+    if not any(flag in sys.argv[1:] for flag in ('--help', '-h', '--prepare-data')):
+        _device_parser = argparse.ArgumentParser(add_help=False)
+        _device_parser.add_argument('--device', default='cuda' if os.environ.get('CUDA_VISIBLE_DEVICES') else 'cpu')
+        _device_args, _ = _device_parser.parse_known_args()
+        configure_device('tensorflow', _device_args.device)
+
 import tensorlayerx as tlx
 
 
@@ -862,6 +879,8 @@ def save_checkpoint(backend, path: Path, model, epoch: int, score: float) -> Non
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp-{os.getpid()}")
     state = {"epoch": int(epoch), "score": float(score),
+             "artifact_version": ARTIFACT_VERSION,
+             "artifact_fingerprint": getattr(model, "artifact_fingerprint", None),
              "tokenizer_schema_version": TOKENIZER_SCHEMA_VERSION,
              "tokenizer_fit_scope": getattr(model, "tokenizer_fit_scope", None),
              "tokenizer_fingerprint": getattr(model, "tokenizer_fingerprint", None)}
@@ -898,6 +917,10 @@ def restore_checkpoint(backend, path: Path, model, device):
             or state["tokenizer_fingerprint"] != getattr(model, "tokenizer_fingerprint", None)):
         raise ValueError("Incompatible checkpoint tokenizer fingerprint; protocol, serializer or vocabulary differ.")
     require_finite_metrics(state["score"], "checkpoint score")
+    expected_artifacts = getattr(model, "artifact_fingerprint", None)
+    if state.get("artifact_fingerprint") != expected_artifacts or (
+            expected_artifacts is not None and state.get("artifact_version") != ARTIFACT_VERSION):
+        raise ValueError("Checkpoint artifact fingerprint mismatch; model configuration or normalizer differ.")
     values = enumerate(weights) if tlx.BACKEND == "tensorflow" else state["model"].items()
     for name, weight in values:
         require_finite_tensor(backend, weight, f"checkpoint weight {name}")
@@ -1172,6 +1195,8 @@ def run_single_experiment(args, config, seed, run_index=0):
     args = apply_preset(argparse.Namespace(**vars(args)), config)
     args.seed = int(seed)
     backend = ensure_tlx_backend()
+    runtime = configure_device(tlx.BACKEND, args.device)
+    emit_event("runtime", **runtime)
     set_seed(backend, args.seed)
     spec = resolve_dataset(args.dataset)
     emit_event("stage", stage="tokenizer_fit", status="started")
@@ -1187,8 +1212,6 @@ def run_single_experiment(args, config, seed, run_index=0):
     emit_event("stage", stage="encoding", status="completed")
     tokenizer.validate_model_vocab(tokenizer.max_token_id + 1)
     device = args.device
-    if tlx.BACKEND == "tensorflow":
-        tlx.set_device("CPU" if args.device == "cpu" else "GPU", 0)
     model = make_model(args, tokenizer.max_token_id + 1, tokenizer.special_tokens.pad_token_id, output_dim, tokenizer)
     model.tokenizer_fingerprint = tokenizer.fingerprint()
     model.tokenizer_fit_scope = tokenizer.fit_scope
@@ -1209,6 +1232,9 @@ def run_single_experiment(args, config, seed, run_index=0):
                               shuffle=False, choose_variant=False)
     directory = run_output_directory(args, spec, run_index, args.seed)
     checkpoint = directory / ("best_finetune.npz" if tlx.BACKEND == "tensorflow" else "best_finetune.pt")
+    from examples.graph_tokenizer import artifacts
+    artifacts.save_run(directory, args, spec, model, tokenizer, normalizer, encoded, runtime,
+                       synthetic=splits if args.smoke else None)
     mlm = run_mlm(backend, model, pretrain_loader, tokenizer, args, device)
     finetune = run_finetuning(backend, model, train_loader, val_loader, test_loader, spec, normalizer,
                               args, device, checkpoint)
@@ -1218,6 +1244,7 @@ def run_single_experiment(args, config, seed, run_index=0):
             "tokenizer_fit_split": tokenizer.fit_scope, "tokenizer_fit_scope": tokenizer.fit_scope,
             "tokenizer_fingerprint": tokenizer.fingerprint(),
             "normalization_fit_split": "train",
+            "artifacts": artifacts.completed_run(directory, checkpoint),
             "mlm": mlm, "finetune": finetune,
             "checkpoints": {"finetune": str(checkpoint)}}
     if args.encoder == "gte":
@@ -1320,6 +1347,7 @@ def build_parser():
 def main(argv=None):
     parser = build_parser()
     args = parser.parse_args(argv)
+    args._cli_args = list(sys.argv[1:] if argv is None else argv)
     if args.seed is not None:
         args.seeds = [args.seed]
     if args.prepare_data:
@@ -1353,8 +1381,7 @@ def main(argv=None):
             serialized_result = json.dumps(result, indent=2, allow_nan=False)
             directory = run_output_directory(args, spec, run_index, seed)
             directory.mkdir(parents=True, exist_ok=True)
-            (directory / "summary.json").write_text(
-                serialized_result, encoding="utf-8")
+            atomic_write(directory / "summary.json", serialized_result.encode("utf-8"))
             results.append(result)
             print(f"=== Run {run_index + 1}/{len(args.seeds)} completed ===\n"
                   f"{result['metric_name']}: {result['metric']}", flush=True)
@@ -1370,9 +1397,9 @@ def main(argv=None):
         summary_path.parent.mkdir(parents=True, exist_ok=True)
         # Only fully validated successful runs enter results. Do not serialize
         # the rejected result (which may itself contain NaN/Inf) on this path.
-        summary_path.write_text(json.dumps(partial, indent=2, allow_nan=False), encoding="utf-8")
+        atomic_write(summary_path, json.dumps(partial, indent=2, allow_nan=False).encode("utf-8"))
         raise
-    summary_path.write_text(serialized, encoding="utf-8")
+    atomic_write(summary_path, serialized.encode("utf-8"))
     print(serialized, flush=True)
     return summary
 

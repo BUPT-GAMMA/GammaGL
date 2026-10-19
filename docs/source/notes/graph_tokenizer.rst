@@ -131,7 +131,31 @@ attention mask explicitly to hide padding. Excessive sequence lengths raise
 :class:`ValueError`; no model mode groups serializations automatically.
 
 The supported training paths are TLX torch and TensorFlow eager. Other TLX
-backends are not validated for this pipeline. GTE constructors initialize
+backends are not validated for this pipeline. Device selection occurs before
+seeding/data operations (and before TLX import for the direct TensorFlow CLI).
+``cpu`` hides TensorFlow GPUs; ``cuda:N`` selects the Nth OS-visible GPU and
+uses logical GPU 0 after selection, with memory growth enabled. Invalid or
+unavailable devices and incompatible initialized runtimes raise an error.
+
+The native trainer exports a per-seed ``run_manifest.json`` before training,
+with resolved arguments, source hashes/version, backend/runtime and the actual
+model constructor configuration. A relative, content-addressed preprocessing
+bundle stores the fitted tokenizer (including BPE/vocabulary), train-only label
+normalizer and input-file/split summaries. The independent artifact version is
+1; tokenizer schema 7 and cache 9 are unchanged. Checkpoints bind the bundle
+fingerprint; successful summaries also record manifest/checkpoint hashes.
+
+Copy the complete dataset/encoder output directory, then use
+``examples.graph_tokenizer.artifacts.load_run(run_directory, device="cpu")``
+in a new process with the same TLX backend. It returns the evaluation-mode
+model, tokenizer, normalizer and run manifest, without raw data, preprocessing
+caches or Hugging Face access. Loading restores full downstream weights and
+does not refit the tokenizer or fetch encoder initialization. Corrupted/mixed
+assets are rejected. Legacy runs without export manifests require their
+original paired assets through the low-level helpers. Pickles/checkpoints must
+be trusted; file hashes detect mismatches, not malicious provenance.
+
+GTE constructors initialize
 random weights. :meth:`~gammagl.models.GraphGTE.from_pretrained` loads the
 `pinned GTE encoder
 <https://huggingface.co/Alibaba-NLP/gte-multilingual-base/tree/9bbca17d9273fd0d03d5725c7a4b0f6b45142062>`_,

@@ -270,17 +270,24 @@ def test_tlx_classification_averages_probabilities_across_batches(trainer, batch
 @pytest.mark.parametrize("phase", ["pretrain", "finetune", "validation", "weight"])
 @pytest.mark.parametrize("fit_scope", ["all", "train"])
 def test_tlx_main_numerical_failure_keeps_summary_incomplete(trainer, monkeypatch, tmp_path, phase, fit_scope):
-    class PipelineFault(ScalarModel):
+    from gammagl.models import GraphBERT
+
+    class PipelineFault(GraphBERT):
         def __init__(self):
-            super().__init__()
+            super().__init__(64, 1, hidden_size=4, num_hidden_layers=1,
+                             num_attention_heads=1, intermediate_size=8, max_position_embeddings=32)
+            self.weight = self._get_weights('weight', shape=(1,), init=tlx.initializers.Constant(1.0))
             if phase == "weight":
                 self.unused = self._get_weights(
                     "unused", shape=(1,), init=tlx.initializers.Constant(float("nan")))
 
+        def _task_logits(self, pooled):
+            return pooled
+
         def forward(self, inputs, attention=None, task=None):
             value = self.weight
             if ((phase == "pretrain" and task == "mlm") or
-                    (phase == "finetune" and task == "supervised" and self.is_train) or
+                    (phase == "finetune" and task in ("supervised", "pooled") and self.is_train) or
                     (phase == "validation" and not self.is_train)):
                 value = value * float("nan")
             if task == "mlm":
@@ -466,9 +473,13 @@ def test_rdrop_rejects_invalid_alpha_before_training(trainer, alpha):
 
 @pytest.mark.parametrize("fault", ["second_logits_nan", "second_logits_inf", "gradient", "total_loss"])
 def test_tlx_rdrop_failure_keeps_main_incomplete_without_checkpoint(trainer, monkeypatch, tmp_path, fault):
-    class FaultModel(ScalarModel):
+    from gammagl.models import GraphBERT
+
+    class FaultModel(GraphBERT):
         def __init__(self):
-            super().__init__()
+            super().__init__(64, 2, hidden_size=4, num_hidden_layers=1,
+                             num_attention_heads=1, intermediate_size=8, max_position_embeddings=32)
+            self.weight = self._get_weights('weight', shape=(1,), init=tlx.initializers.Constant(1.0))
             self.calls = 0
 
         def forward(self, inputs, attention=None, task=None):

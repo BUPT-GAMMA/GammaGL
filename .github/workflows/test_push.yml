@@ -88,6 +88,8 @@ jobs:
             tests/models/test_graph_gte_backend_conversion.py \
             tests/models/test_graph_tokenizer_dataset_metadata.py \
             tests/models/test_graph_tokenizer_tlx_training.py \
+            tests/models/test_graph_tokenizer_runtime.py \
+            tests/models/test_graph_tokenizer_artifacts.py \
             tests/models/test_graph_tokenizer_official_protocol.py \
             tests/models/test_graph_tokenizer_pipeline.py \
             tests/models/test_graph_tokenizer_fit_scope.py
@@ -138,6 +140,8 @@ jobs:
             tests/models/test_graph_gte_backend_conversion.py \
             tests/models/test_graph_tokenizer_dataset_metadata.py \
             tests/models/test_graph_tokenizer_tlx_training.py \
+            tests/models/test_graph_tokenizer_runtime.py \
+            tests/models/test_graph_tokenizer_artifacts.py \
             tests/models/test_graph_tokenizer_official_protocol.py \
             tests/models/test_graph_tokenizer_pipeline.py \
             tests/models/test_graph_tokenizer_fit_scope.py

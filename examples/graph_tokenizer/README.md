@@ -407,6 +407,48 @@ torch 最佳 checkpoint 保持原有 `.pt` 格式；TensorFlow 使用不含 pick
 权重和 schema／epoch／score metadata，并通过 TLX 恢复权重。两种 checkpoint 不跨后端互载。
 成功结果仍使用相同 JSON 字段，非有限训练／评估结果会使运行失败。
 
+设备参数接受 `cpu`、`cuda` 和 `cuda:N`。TensorFlow 在设置随机种子和读取数据前
+配置设备；直接 CLI 调用还会在导入 TLX 前配置。`cpu` 隐藏全部 GPU，`cuda:N`
+选择 `CUDA_VISIBLE_DEVICES` 限定范围内的第 N 张 GPU，之后它在 TensorFlow 内部
+编号为 GPU 0。GPU 使用按需显存增长。不存在的 GPU、非法参数，以及运行时已经
+初始化而无法执行的设备切换都会报错退出，不静默回退。相同配置可以重复使用；
+程序化调用者必须在创建 TensorFlow 张量前选择设备。
+
+### 原生运行产物与独立恢复
+
+每个 seed 在训练前保存 `run_XX_seed_YY/run_manifest.json`，包含实际生效配置、CLI、
+seed、请求／解析后的设备、依赖版本、实际模型构造参数及初始化来源。代码来源记录
+Git commit／dirty 状态与相关源码 SHA-256；无 `.git` 的源码快照记录源码摘要，
+不推测 commit。数据清单记录 raw／实际 processed 文件 SHA-256、划分图数与编码数量；
+smoke 则明确记录 synthetic 输入，不能作为真实 benchmark 的运行记录。
+
+同组共享的 `preprocessing/<fingerprint>/` 包含 `tokenizer.pkl`（含 BPE、词表、
+序列化频率与官方词表行映射）、`normalizer.json`、`data_manifest.json` 和
+`bundle.json`。normalizer 继续只用训练标签，分类任务明确保存 null。
+目录指纹同时绑定这些文件与模型构造配置；checkpoint 除原 tokenizer schema／
+fingerprint／fit_scope 外，还保存独立 `artifact_version=1` 与产物指纹。
+这不改变 serializer protocol 5、tokenizer schema 7 或 cache 9。
+summary 记录 run manifest 和 checkpoint 的哈希。配套文件写入或校验失败时，
+本次运行不会写成功 seed summary，组 summary 保持 incomplete。
+
+复制整个 `<dataset>/<encoder>/` 目录后，在同一 TLX 后端的新进程中恢复：
+
+```python
+from examples.graph_tokenizer.artifacts import load_run
+
+run = load_run("copied/aqsol/bert/run_01_seed_42", device="cpu")
+model = run["model"]             # 已恢复最佳权重，处于 eval 模式
+tokenizer = run["tokenizer"]     # 直接加载拟合状态，不重新 fit
+normalizer = run["normalizer"]   # AQSOL 用于还原原尺度；分类为 None
+```
+
+恢复不需要原始数据、预处理缓存或 Hugging Face 下载；GTE 直接按保存的实际架构
+构造并加载完整下游权重，不重新应用来源编码器初始化。文件哈希、版本、模型配置、
+tokenizer、normalizer 或 backend 不匹配时拒绝加载。pickle 和 torch checkpoint
+仅用于可信本地产物，哈希不提供来源认证。旧 checkpoint 没有配套导出清单时，
+`load_run` 明确拒绝；原低层 helper 仍可在提供原配套 tokenizer、schema／指纹兼容的前提下恢复旧格式，
+不会据此宣称产物完整，也不会自动重新拟合或补默认 normalizer。
+
 [CI workflow](../../.github/workflows/test_push.yml) 按 `suite={core,graph-tokenizer}` 和
 `backend={torch,tensorflow}` 展开四个独立单元，关闭 fail-fast。core 运行 public API、
 data、utils 和 compileall；GraphTokenizer 单元额外安装转换测试依赖，运行真实后端张量、

@@ -1308,10 +1308,12 @@ def test_single_run_uses_every_downstream_training_graph_for_mlm(trainer, monkey
                             {"epoch": 2, "train_loss": 0.1}]}
 
     monkeypatch.setattr(trainer, "run_mlm", run_mlm)
-    monkeypatch.setattr(
-        trainer, "run_finetuning",
-        lambda *_args: {"best_epoch": 1, "best_validation_metric": 0.1,
-                        "history": [], "test": {"metric": 0.1}})
+    def finetune(backend, model, train, val, test, spec, normalizer, args, device, checkpoint):
+        trainer.save_checkpoint(backend, checkpoint, model, 1, 0.1)
+        return {"best_epoch": 1, "best_validation_metric": 0.1,
+                "history": [], "test": {"metric": 0.1}}
+
+    monkeypatch.setattr(trainer, "run_finetuning", finetune)
 
     trainer.main([
         "--smoke", "--dataset", "aqsol", "--encoder", "bert", "--device", "cpu",
@@ -1517,19 +1519,25 @@ def test_main_keeps_only_successful_seeds_when_result_is_nonfinite(trainer, monk
 @pytest.mark.parametrize("phase", ["pretrain", "finetune", "validation", "test"])
 def test_numerical_failure_flows_through_main_without_best_or_success_summary(
         trainer, monkeypatch, tmp_path, phase):
-    class FaultyPipelineModel(torch.nn.Module):
+    from gammagl.models import GraphBERT
+
+    class FaultyPipelineModel(GraphBERT):
         def __init__(self):
-            super().__init__()
+            super().__init__(64, 1, hidden_size=4, num_hidden_layers=1,
+                             num_attention_heads=1, intermediate_size=8, max_position_embeddings=32)
             self.weight = torch.nn.Parameter(torch.tensor(0.0))
             self.evaluations = 0
 
+        def _task_logits(self, pooled):
+            return pooled
+
         def forward(self, inputs, attention=None, task=None):
             value = self.weight
-            if not self.training:
+            if not self.is_train:
                 self.evaluations += 1
             if ((phase == "pretrain" and task == "mlm") or
-                    (phase == "finetune" and task == "supervised" and self.training) or
-                    (phase == "validation" and not self.training) or
+                    (phase == "finetune" and task in ("supervised", "pooled") and self.is_train) or
+                    (phase == "validation" and not self.is_train) or
                     (phase == "test" and self.evaluations == 3)):
                 value = value + float("nan")
             if task == "mlm":
