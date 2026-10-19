@@ -158,6 +158,3 @@ def test_heterogeneous_neighbor_loader(directed=True):
         assert is_subset(batch['author', 'paper'].edge_index,
                          graph['author', 'paper'].edge_index,
                          batch['author'].x - 100, batch['paper'].x)
-
-test_homogeneous_neighbor_loader()
-test_heterogeneous_neighbor_loader()

@@ -139,7 +139,10 @@ unavailable devices and incompatible initialized runtimes raise an error.
 
 The native trainer exports a per-seed ``run_manifest.json`` before training,
 with resolved arguments, source hashes/version, backend/runtime and the actual
-model constructor configuration. A relative, content-addressed preprocessing
+model constructor configuration. Git checkouts record the commit and dirty
+status; source snapshots record relevant file hashes without inferring a
+commit. Full logs and the complete dirty diff must still be archived separately.
+A relative, content-addressed preprocessing
 bundle stores the fitted tokenizer (including BPE/vocabulary), train-only label
 normalizer and input-file/split summaries. The independent artifact version is
 1; tokenizer schema 7 and cache 9 are unchanged. Checkpoints bind the bundle

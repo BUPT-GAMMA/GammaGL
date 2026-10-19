@@ -4,8 +4,6 @@ import random as rd
 import scipy.sparse as sp
 from time import time
 import json
-from utility.parser import parse_args
-args = parse_args()
 
 class Data(object):
     def __init__(self, path, batch_size):
@@ -54,7 +52,7 @@ class Data(object):
         self.n_items += 1
         self.n_users += 1
 
-        text_feats = np.load(args.data_path + args.dataset + '/text_feat.npy')
+        text_feats = np.load(self.path + '/text_feat.npy')
         self.n_items = text_feats.shape[0]
 
 

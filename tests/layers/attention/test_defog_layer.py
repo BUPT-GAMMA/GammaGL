@@ -1,5 +1,3 @@
-import os
-os.environ['TL_BACKEND'] = 'torch'
 import tensorlayerx as tlx
 from gammagl.layers.attention.defog_layer import XEyTransformerLayer
 

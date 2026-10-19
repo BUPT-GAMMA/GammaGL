@@ -345,8 +345,9 @@ python examples/graph_tokenizer/graph_tokenizer_trainer.py \
   --seeds 42 43 44 45 46
 ```
 
-Mutagenicity 和 DBLP_v1 使用两个 logits 的 CrossEntropy，并在每个图的多次 serialization
-logits 平均后取 `argmax` 计算 Accuracy。AQSOL 使用 MSE 训练；其标签归一化只用 train split
+Mutagenicity 和 DBLP_v1 使用两个 logits 的 CrossEntropy；评估时每次 serialization
+先计算 softmax 概率，再按图平均概率并取 `argmax` 计算 Accuracy。AQSOL 使用 MSE 训练；
+其标签归一化只用 train split
 中每个唯一 graph_id 的标签统计一次，评估将预测和标签恢复到原始尺度后计算 MAE。
 标签归一化使用训练标签的总体标准差（除以训练图数），与五 seed 指标汇总的样本标准差
 （`ddof=1`）区分。
@@ -361,10 +362,10 @@ logits 平均后取 `argmax` 计算 Accuracy。AQSOL 使用 MSE 训练；其标�
 每次运行将 checkpoint 与 summary 写入 `run_01_seed_42/`、`run_02_seed_43/` 等目录；父级
 `summary.json` 保存聚合结果。early stopping 的方向由 dataset metadata 驱动：Accuracy 取最大值，
 MAE 取最小值。
-当前 summary 会保存 seed、指标、阶段 history、checkpoint 路径及 GTE 初始化信息；不会自动
-保存 Git commit、dirty diff、完整 CLI、生效配置或数据／split 内容摘要。正式记录需要另行
-归档这些信息，并绑定该次 tokenizer、缓存及 checkpoint。这些是记录归档要求，
-不代表当前 trainer 已实现自动归档。
+summary 保存 seed、指标、阶段 history、checkpoint 路径及 GTE 初始化信息，并通过哈希
+绑定 `run_manifest.json` 和 checkpoint。完整 CLI、生效配置、代码及数据来源记录在 manifest
+及配套 preprocessing bundle 中，详见下文“原生运行产物与独立恢复”。这些自动记录只覆盖
+新版 trainer 的运行，不补证此前成绩；完整日志与 dirty diff 仍需另行归档。
 
 ## 极小 smoke 测试
 
@@ -418,8 +419,8 @@ torch 最佳 checkpoint 保持原有 `.pt` 格式；TensorFlow 使用不含 pick
 
 每个 seed 在训练前保存 `run_XX_seed_YY/run_manifest.json`，包含实际生效配置、CLI、
 seed、请求／解析后的设备、依赖版本、实际模型构造参数及初始化来源。代码来源记录
-Git commit／dirty 状态与相关源码 SHA-256；无 `.git` 的源码快照记录源码摘要，
-不推测 commit。数据清单记录 raw／实际 processed 文件 SHA-256、划分图数与编码数量；
+Git commit／dirty 状态与相关源码 SHA-256，不自动归档完整 dirty diff；无 `.git` 的源码快照
+记录源码摘要，不推测 commit。数据清单记录 raw／实际 processed 文件 SHA-256、划分图数与编码数量；
 smoke 则明确记录 synthetic 输入，不能作为真实 benchmark 的运行记录。
 
 同组共享的 `preprocessing/<fingerprint>/` 包含 `tokenizer.pkl`（含 BPE、词表、
@@ -448,6 +449,47 @@ tokenizer、normalizer 或 backend 不匹配时拒绝加载。pickle 和 torch c
 仅用于可信本地产物，哈希不提供来源认证。旧 checkpoint 没有配套导出清单时，
 `load_run` 明确拒绝；原低层 helper 仍可在提供原配套 tokenizer、schema／指纹兼容的前提下恢复旧格式，
 不会据此宣称产物完整，也不会自动重新拟合或补默认 normalizer。
+
+### 真实数据、正式 GTE 权重与 GPU 集成验证
+
+以下检查不报告 benchmark 成绩。默认 CI 不下载数据或模型，也不申请 GPU；本地验证显式
+提供资源后运行，配置了不存在的路径会报错，不静默跳过。
+
+在安装 paper extra 的独立环境中，将 `GAMMAGL_GRAPH_TOKENIZER_DATA_BUNDLE` 指向官方
+release archive（自动校验固定 SHA-256），或已准备的可信 release 目录，然后运行：
+
+```bash
+python -m pytest tests/datasets/test_graph_tokenizer_datasets.py \
+  -k real_release_bundle -q -rs
+```
+
+该测试检查三个数据集的真实加载、官方划分、节点／边标签和序列化。正式 GTE 检查另需
+`GAMMAGL_GRAPH_TOKENIZER_INTEGRATION_DATA_ROOT`（包含已准备的 `mutagenicity/raw/`）和
+`GAMMAGL_GRAPH_TOKENIZER_GTE_CACHE`（Hugging Face 缓存目录）。缓存中必须已有固定 revision
+`9bbca17d9273fd0d03d5725c7a4b0f6b45142062` 的 config 和 safetensors，测试不联网下载：
+
+```bash
+HF_HUB_OFFLINE=1 python -m pytest tests/models/test_graph_tokenizer_release_integration.py \
+  -q -rs -o junit_family=legacy --junitxml=gte-integration.xml
+```
+
+该检查保留真实 split 成员关系，按边数选择每个 split 最小的一张 Mutagenicity 图；使用
+train-only tokenizer 和完整正式 GTE 架构／预训练权重，验证 100% 编码器映射、MLM、微调、
+配套产物保存及新进程离线恢复输出一致。清单明确记录 `validation_only`、小样本索引和配置，
+不能将这次运行标为正式复现。两个后端读取原始 DGL release 时都需要可选 DGL 环境；
+新进程恢复不需要 DGL 或模型下载。
+
+GPU 检查只能在预留两张空闲 GPU 后显式启用，将它们的 UUID 以逗号分隔写入
+`GAMMAGL_GRAPH_TOKENIZER_TEST_GPU_UUIDS`。分别在 CUDA PyTorch 和 GPU TensorFlow 独立环境中运行：
+
+```bash
+python -m pytest tests/models/test_graph_tokenizer_gpu_integration.py -q -rs
+```
+
+测试在新进程中设置 `CUDA_VISIBLE_DEVICES`，验证 CPU、`cuda:1`、实际张量／权重位置、
+TensorFlow 逻辑 GPU 0 映射、重复配置、非法 GPU、初始化后切换错误，以及 tiny 训练和恢复。
+PyTorch 显存上限为单卡的 10%，TensorFlow 启用按需增长，每个子进程限时 300 秒。
+这些检查不会寻找、停止或修改其他实验进程。CPU CI 中它们会明确 skip，不代表 GPU 已验证。
 
 [CI workflow](../../.github/workflows/test_push.yml) 按 `suite={core,graph-tokenizer}` 和
 `backend={torch,tensorflow}` 展开四个独立单元，关闭 fail-fast。core 运行 public API、

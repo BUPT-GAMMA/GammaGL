@@ -1,8 +1,9 @@
-import os
-os.environ['TL_BACKEND'] = 'torch'
+import pytest
 import tensorlayerx as tlx
+if tlx.BACKEND != 'torch':
+    pytest.skip('DeFoG tests use torch tensor mutation and assertions', allow_module_level=True)
 from gammagl.models.defog import DeFoGModel
-import torch
+torch = pytest.importorskip('torch')
 
 def test_defog_model_shape_and_mask():
     input_dims = {'X': 5, 'E': 4, 'y': 2}

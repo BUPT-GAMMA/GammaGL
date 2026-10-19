@@ -73,7 +73,25 @@ jobs:
         if: matrix.suite == 'core'
         run: |
           python -m compileall -q gammagl tests examples
-          python -m pytest tests/test_public_api.py tests/data tests/utils -q -rs
+          python - <<'PY'
+          import os
+          import pytest
+          import tensorlayerx as tlx
+
+          keys = ("TL_BACKEND", "CUDA_VISIBLE_DEVICES")
+          environment = {key: os.environ.get(key) for key in keys}
+          result = pytest.main(["--collect-only", "-q"])
+          assert {key: os.environ.get(key) for key in keys} == environment
+          assert tlx.BACKEND == environment["TL_BACKEND"]
+          raise SystemExit(result)
+          PY
+          python -m pytest tests/test_public_api.py tests/data tests/utils tests/examples/test_llmrec_evaluation.py -q -rs
+
+      - name: Verify native sampling extension and loaders
+        if: matrix.suite == 'core'
+        run: |
+          python -c "from gammagl.ops.sparse._sparse import c_sample_adj, c_neighbor_sample, c_hetero_neighbor_sample"
+          python -m pytest tests/loader/test_neighbor_sampler.py tests/loader/test_node_neighbor_loader.py -q -rs
 
       - name: Run native GraphTokenizer regressions
         if: matrix.suite == 'graph-tokenizer'
@@ -90,6 +108,8 @@ jobs:
             tests/models/test_graph_tokenizer_tlx_training.py \
             tests/models/test_graph_tokenizer_runtime.py \
             tests/models/test_graph_tokenizer_artifacts.py \
+            tests/models/test_graph_tokenizer_release_integration.py \
+            tests/models/test_graph_tokenizer_gpu_integration.py \
             tests/models/test_graph_tokenizer_official_protocol.py \
             tests/models/test_graph_tokenizer_pipeline.py \
             tests/models/test_graph_tokenizer_fit_scope.py
@@ -142,6 +162,8 @@ jobs:
             tests/models/test_graph_tokenizer_tlx_training.py \
             tests/models/test_graph_tokenizer_runtime.py \
             tests/models/test_graph_tokenizer_artifacts.py \
+            tests/models/test_graph_tokenizer_release_integration.py \
+            tests/models/test_graph_tokenizer_gpu_integration.py \
             tests/models/test_graph_tokenizer_official_protocol.py \
             tests/models/test_graph_tokenizer_pipeline.py \
             tests/models/test_graph_tokenizer_fit_scope.py
