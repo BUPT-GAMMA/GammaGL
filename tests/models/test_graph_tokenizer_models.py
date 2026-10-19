@@ -140,7 +140,8 @@ def test_converter_loads_synthetic_checkpoint_with_full_coverage(tmp_path):
 
     assert report["coverage"] == 1.0
     assert report["missing"] == report["shape_mismatches"] == report["unexpected"] == []
-    assert "text-vocabulary embedding" in report["ignored"]["new.embeddings.word_embeddings.weight"]
+    assert "new.embeddings.word_embeddings.weight" in report["loaded"]
+    assert "new.embeddings.word_embeddings.weight" not in report["ignored"]
     np.testing.assert_array_equal(
         tlx.convert_to_numpy(target.encoder_layers[0].attention.qkv_proj.weights),
         tensors["new.encoder.layer.0.attention.qkv_proj.weight"].numpy())

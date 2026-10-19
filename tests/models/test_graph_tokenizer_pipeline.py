@@ -1137,10 +1137,11 @@ def test_non_smoke_gte_does_not_require_random_initialization(trainer, tmp_path,
 def test_formal_gte_preset_uses_the_official_loader(trainer, monkeypatch):
     from gammagl.models.graph_gte import GraphGTE
 
-    args = trainer.build_parser().parse_args(["--dataset", "aqsol", "--encoder", "gte"])
+    args = trainer.build_parser().parse_args(["--dataset", "dblp", "--encoder", "gte"])
     args = trainer.apply_preset(args)
-    calls, loaded = {}, SimpleNamespace(pretrained_manifest={
-        "pretrained": True, "reproduction": True, "encoder_coverage": 1.0,
+    calls, loaded = {}, SimpleNamespace(initialization_manifest={
+        "pretrained": True, "reproduction": False, "encoder_coverage": 1.0,
+        "mode": "official_pretrained", "graph_embedding_init": "official_resize_and_remap",
         "missing": [], "unexpected": [], "shape_mismatches": [],
     })
 
@@ -1153,7 +1154,8 @@ def test_formal_gte_preset_uses_the_official_loader(trainer, monkeypatch):
     assert trainer.make_model(args, vocab_size=31, pad_token_id=0, output_dim=1) is loaded
     assert calls["vocab_size"] == 31
     assert calls["max_position_embeddings"] == 8192
-    assert trainer.gte_initialization_summary(loaded, args)["reproduction"] is True
+    assert trainer.gte_initialization_summary(loaded, args)["initialization_matches_preset"] is True
+    assert trainer.gte_initialization_summary(loaded, args)["reproduction"] is False
 
 
 def test_formal_gte_tokenizer_uses_the_official_padding_id(trainer):
@@ -1165,13 +1167,14 @@ def test_formal_gte_tokenizer_uses_the_official_padding_id(trainer):
 
     assert tokenizer.special_tokens.pad_token_id == 1
     assert tokenizer.special_tokens.unk_token_id == 0
+    assert tokenizer.model_id_to_official_id[1] == 0
 
 
 def test_formal_gte_loader_failure_is_not_replaced_with_random_initialization(trainer, monkeypatch):
     from gammagl.models.graph_gte import GraphGTE
 
     args = trainer.apply_preset(trainer.build_parser().parse_args([
-        "--dataset", "aqsol", "--encoder", "gte",
+        "--dataset", "dblp", "--encoder", "gte",
     ]))
 
     def rejected_loader(_cls, **_kwargs):
@@ -1199,13 +1202,14 @@ def test_explicit_random_gte_development_mode_is_not_a_reproduction(trainer, mon
     assert isinstance(model, GraphGTE)
     assert trainer.gte_initialization_summary(model, args) == {
         "pretrained": False, "reproduction": False, "mode": "random_development",
+        "initialization_matches_preset": False,
     }
 
 
 def test_train_only_bpe_and_normalization_do_not_use_validation_or_test(trainer):
     train = _aqsol_graphs(trainer, 2)
     held_out = trainer.GraphRecord([[0], [1]], [101, 102], [5], [1000.0])
-    args = SimpleNamespace(bpe_merges=2, bpe_min_frequency=2, bpe_backend="python",
+    args = SimpleNamespace(fit_scope="train", bpe_merges=2, bpe_min_frequency=2, bpe_backend="python",
                            num_serializations=1)
     tokenizer = trainer.make_tokenizer(args, train)
     before = (dict(tokenizer.vocabulary), list(tokenizer.bpe.codebook.merge_rules))

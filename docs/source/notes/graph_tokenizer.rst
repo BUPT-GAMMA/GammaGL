@@ -10,6 +10,18 @@ Its actual serializer and loader behavior determines this API's input contract.
 The paper's general reversibility description does not imply that the default
 official token stream here can reconstruct graph identities.
 
+API reference
+-------------
+
+The API catalogs link to the complete constructor and method contracts:
+
+* :doc:`Models </api/gammagl.layers>`: :class:`~gammagl.models.GraphBERT`,
+  :class:`~gammagl.models.GraphTokenTransformer` and :class:`~gammagl.models.GraphGTE`.
+* :doc:`Datasets </api/gammagl.datasets>`: :class:`~gammagl.datasets.Mutagenicity`,
+  :class:`~gammagl.datasets.GraphTokenizerDBLP` and :class:`~gammagl.datasets.AQSOL`.
+* :doc:`Transforms </api/gammagl.transforms>`: serializers, :class:`~gammagl.transforms.GraphBPE`,
+  :class:`~gammagl.transforms.GraphTokenizer` and their result containers.
+
 Inputs and protocol
 -------------------
 
@@ -61,10 +73,14 @@ The trainer's six presets explicitly select the following construction path:
 The two TU GTE configurations override the default YAML; the other four inherit
 its serializer / BPE mode. The trainer explicitly enables multiple starts.
 ``none`` still fits BPE rules and a covering vocabulary, then skips rule
-application before model input. GammaGL fits frequencies, BPE, vocabulary and
-regression normalization on the training split. The official preprocessing
-chain uses the full corpus; matching protocol does not establish matching
-statistics, training runs or benchmark scores.
+application before model input. All six presets default to ``--fit-scope all``:
+frequencies, BPE and vocabulary use train, val, then test graphs in the pinned
+official loader's concatenation order. This is transductive preprocessing;
+regression normalization and model optimization still use training labels only.
+The explicit ``--fit-scope train`` inductive variant writes under ``train_only/``
+and cannot be aggregated with all-scope runs. Generic ``GraphTokenizer.fit``
+defaults to ``fit_scope="train"``; its caller supplies the corresponding corpus.
+These protocol checks do not establish full training or benchmark equivalence.
 
 The separate, opt-in ``protocol="local_refs"`` grammar supports graph recovery.
 Only it normalizes single / symmetric undirected COO equivalently and emits
@@ -120,12 +136,19 @@ random weights. :meth:`~gammagl.models.GraphGTE.from_pretrained` loads the
 `pinned GTE encoder
 <https://huggingface.co/Alibaba-NLP/gte-multilingual-base/tree/9bbca17d9273fd0d03d5725c7a4b0f6b45142062>`_,
 checks its configuration, checkpoint SHA-256, tensor shapes and complete
-coverage, and leaves graph embeddings / MLM / graph heads newly initialized.
+coverage including resized word embeddings. Existing rows are retained and
+new rows use N(0, 0.02). The fitted model-to-official vocabulary permutation
+aligns embedding and MLM weight / bias rows together; PAD is zero and has no
+lookup gradient. MLM and graph task heads are newly initialized.
 The API signature's random-model defaults differ from some pretrained values.
-The pinned official default also sets ``encoder.reset_weights=true``, which
-reaches AQSOL / GTE's random encoder construction. GammaGL's formal GTE path
-loads pretrained encoder weights for all three datasets; this initialization
-difference is outside the input-protocol fixture comparison.
+The pinned default sets ``encoder.reset_weights=true``. The AQSOL / GTE preset
+therefore uses :meth:`~gammagl.models.GraphGTE.from_official_config` to construct
+the official architecture with random normal weights; it does not load a
+checkpoint. The two TU / GTE presets load pretrained weights. Initialization
+summaries distinguish ``official_random`` / ``official_pretrained`` and record
+``initialization_matches_preset``. They keep ``reproduction=false``: initialization
+checks alone do not establish a reproduced experiment. Explicit development
+overrides use ``random_development`` instead.
 
 The example trainer validates single-label classification by softmaxing each
 serialization's logits, averaging probabilities per ``graph_id``, then taking
@@ -136,14 +159,24 @@ computes raw-scale MAE. Non-finite logits, losses, gradients, updated weights
 or metrics raise :class:`FloatingPointError`; failed runs are not saved as
 successful summaries. These are trainer checks, not guarantees of model forward.
 
+Fine-tuning enables R-Drop with weight 1.0 for the Mutagenicity / GTE and
+DBLP / GTE presets; the other four presets disable it. Classification averages
+two stochastic cross-entropies and adds the weighted symmetric KL, retaining
+both gradient paths. Regression uses MSE between predictions when explicitly
+enabled. Accumulation normalizes by the actual targets once. Override with
+``--finetune-use-consistency-regularization``,
+``--no-finetune-use-consistency-regularization`` and
+``--finetune-consistency-alpha`` (finite and non-negative). The fine-tuning
+summary records the effective switch and weight; evaluation remains unchanged.
+
 Artifacts and data preparation
 ------------------------------
 
-Tokenizer schema and serializer protocol are 5; preprocessing cache format is 7.
+Tokenizer schema is 7, serializer protocol is 5; preprocessing cache format is 9.
 Rebuild obsolete tokenizers and caches. Formal checkpoints bind the actual
 tokenizer's :meth:`~gammagl.transforms.GraphTokenizer.fingerprint`, including
-protocol, serializer, rules, vocabulary and fitted statistics. Loading checks
-schema and fingerprint before assigning weights. Equal embedding shapes are
+protocol, serializer, rules, vocabulary, fit scope and fitted statistics. Loading checks
+schema, explicit fit scope and fingerprint before assigning weights. Equal embedding shapes are
 insufficient; standalone BPE rule loading is not tokenizer migration. Bare
 token lists have no schema provenance.
 

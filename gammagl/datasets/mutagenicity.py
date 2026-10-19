@@ -11,10 +11,47 @@ class Mutagenicity(PreprocessedGraphBenchmark):
     This is Mutagenicity, not the 188-graph MUTAG dataset. Missing edge
     features use token 0; scalar node features are required.
 
-    All constructor parameters and defaults, item shapes, split methods,
-    required file layout and exceptions are documented in
+    Parameters
+    ----------
+    root: str
+        Dataset root. Prepared files are read from root/mutagenicity/raw/:
+        data.pkl (or data.pkl.gz), train_index.json, val_index.json and
+        test_index.json. Construction can materialize a prepared local bundle;
+        it does not download the official release. See
+        :doc:`/notes/graph_tokenizer` for data preparation.
+    transform: ``callable``
+        Applied to each :class:`~gammagl.data.Graph` on access.
+        (default: :obj:`None`)
+    pre_transform: ``callable``
+        Applied before saving processed graphs. Must preserve scalar tokens
+        and official graph ordering. (default: :obj:`None`)
+    pre_filter: ``callable``
+        Must be None to preserve the official split indices.
+        (default: :obj:`None`)
+    force_reload: bool
+        Reprocess existing raw data. (default: :obj:`False`)
+
+    Raises
+    ------
+    FileNotFoundError
+        If required raw files or a prepared local bundle are unavailable.
+    ValueError
+        If required scalar features or labels are invalid, split indices
+        overlap or are out of range, directed metadata is present, or
+        pre_filter is not None.
+
+    Notes
+    -----
+    Indexing returns a :class:`~gammagl.data.Graph`: integer x (N,), edge_index
+    (2, E), integer edge_attr (E,), and floating y (1, 1). Labels retain their
+    original scale. Feature tokens follow the loader rules described in
     :class:`~gammagl.datasets._graph_tokenizer_benchmark.PreprocessedGraphBenchmark`.
-    Each graph has y of shape (1, 1); use the supplied official split files.
+    Pickles must be trusted; DGL release objects require the paper extra.
+    Processed files are specific to the selected TLX backend.
+
+    :meth:`~gammagl.datasets._graph_tokenizer_benchmark.PreprocessedGraphBenchmark.get_idx_split` returns copies of the official train / val / test
+    indices. :meth:`~gammagl.datasets._graph_tokenizer_benchmark.PreprocessedGraphBenchmark.get_split` returns graphs in their fixed split order;
+    filtering or generating a new random split changes the experiment.
 
     Examples
     --------

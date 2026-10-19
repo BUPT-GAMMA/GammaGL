@@ -114,18 +114,32 @@ def test_tlx_empty_mlm_windows_skip_optimizer_and_scheduler(trainer):
 
 
 @pytest.mark.parametrize("encoder", ["bert", "gte"])
-def test_tlx_tiny_native_pipeline(trainer, tmp_path, encoder):
-    argv = ["--smoke", "--dataset", "aqsol", "--encoder", encoder, "--device", "cpu",
-            "--seeds", "42", "--gradient-accumulation-steps", "2", "--output-dir", str(tmp_path)]
+@pytest.mark.parametrize("dataset", ["aqsol", "mutagenicity"])
+@pytest.mark.parametrize("fit_scope", ["all", "train"])
+def test_tlx_tiny_native_pipeline(trainer, tmp_path, encoder, dataset, fit_scope):
+    argv = ["--smoke", "--dataset", dataset, "--encoder", encoder, "--device", "cpu",
+            "--seeds", "42", "--fit-scope", fit_scope,
+            "--gradient-accumulation-steps", "2", "--output-dir", str(tmp_path)]
     if encoder == "gte":
         argv += ["--allow-random-gte-init"]
+    if dataset == "mutagenicity":
+        argv += ["--finetune-use-consistency-regularization"]
     summary = trainer.main(argv)
     assert summary["complete"] is True
     assert math.isfinite(summary["mean"])
-    path = tmp_path / "aqsol" / encoder / "run_01_seed_42" / "summary.json"
+    assert summary["tokenizer_fit_scope"] == fit_scope
+    directory = tmp_path / dataset / encoder
+    if fit_scope == "train":
+        directory /= "train_only"
+    path = directory / "run_01_seed_42" / "summary.json"
     result = json.loads(path.read_text(), parse_constant=lambda s: pytest.fail(s))
+    assert result["tokenizer_fit_scope"] == fit_scope
+    assert result["tokenizer_fit_split"] == fit_scope
+    assert result["normalization_fit_split"] == "train"
     assert Path(result["checkpoints"]["finetune"]).is_file()
-    assert result["finetune"]["test"]["metric_space"] == "raw_label"
+    assert result["finetune"]["test"]["metric_space"] == ("raw_label" if dataset == "aqsol" else "class_label")
+    assert result["finetune"]["use_consistency_regularization"] is (dataset == "mutagenicity")
+    assert result["finetune"]["consistency_alpha"] == 1.0
     if encoder == "gte":
         assert result["gte_initialization"]["reproduction"] is False
 
@@ -254,7 +268,8 @@ def test_tlx_classification_averages_probabilities_across_batches(trainer, batch
 
 
 @pytest.mark.parametrize("phase", ["pretrain", "finetune", "validation", "weight"])
-def test_tlx_main_numerical_failure_keeps_summary_incomplete(trainer, monkeypatch, tmp_path, phase):
+@pytest.mark.parametrize("fit_scope", ["all", "train"])
+def test_tlx_main_numerical_failure_keeps_summary_incomplete(trainer, monkeypatch, tmp_path, phase, fit_scope):
     class PipelineFault(ScalarModel):
         def __init__(self):
             super().__init__()
@@ -275,9 +290,13 @@ def test_tlx_main_numerical_failure_keeps_summary_incomplete(trainer, monkeypatc
     monkeypatch.setattr(trainer, "make_model", lambda *_args: PipelineFault())
     context = "pretrain.*epoch=1.*batch=1.*weight" if phase == "weight" else rf"{phase}.*epoch=1.*batch=1.*logits"
     with pytest.raises(FloatingPointError, match=context):
-        trainer.main(["--smoke", "--dataset", "aqsol", "--seeds", "42", "--output-dir", str(tmp_path)])
+        trainer.main(["--smoke", "--dataset", "aqsol", "--seeds", "42",
+                      "--fit-scope", fit_scope, "--output-dir", str(tmp_path)])
     directory = tmp_path / "aqsol" / "bert"
+    if fit_scope == "train":
+        directory /= "train_only"
     partial = json.loads((directory / "summary.json").read_text(), parse_constant=lambda s: pytest.fail(s))
+    assert partial["tokenizer_fit_scope"] == fit_scope
     assert partial["complete"] is False and partial["run_metrics"] == []
     assert not list(directory.rglob("best_finetune.*"))
     assert not (directory / "run_01_seed_42" / "summary.json").exists()
@@ -349,3 +368,195 @@ def test_tlx_checkpoint_rejects_nonfinite_payload_before_assigning(trainer, tmp_
     with pytest.raises(FloatingPointError, match="checkpoint.*weight"):
         trainer.restore_checkpoint(tlx, checkpoint, model, "cpu")
     np.testing.assert_array_equal(tlx.convert_to_numpy(model.weight), [1.0])
+
+
+RDROP_REFERENCE = json.loads((Path(__file__).parent / "fixtures" /
+                              "graph_tokenizer_rdrop_official.json").read_text())
+
+
+class FixedRDropModel(ScalarModel):
+    """Fixed stochastic realizations let both backends use the official oracle."""
+    def __init__(self, case):
+        super().__init__()
+        self.case, self.calls = case, 0
+
+    def forward(self, inputs, attention=None, task=None):
+        branch = "first" if not self.case["enabled"] or self.calls % 2 == 0 else "second"
+        self.calls += 1
+        table = tlx.convert_to_tensor(self.case[branch], dtype=tlx.float32)
+        return tlx.gather(table, inputs[:, 0]) * self.weight
+
+
+def rdrop_batches(case, sizes):
+    result, start = [], 0
+    for size in sizes:
+        labels = np.asarray(case["labels"][start:start + size]).reshape(size, -1)
+        result.append((tlx.convert_to_tensor(np.arange(start, start + size).reshape(-1, 1), dtype=tlx.int64),
+                       tlx.ones((size, 1), dtype=tlx.int64),
+                       tlx.convert_to_tensor(labels, dtype=tlx.float32),
+                       tlx.zeros((size,), dtype=tlx.int64)))
+        start += size
+    return result
+
+
+@pytest.mark.parametrize("case", RDROP_REFERENCE["cases"],
+                         ids=lambda c: f"{c['task']}-{c['enabled']}-{c['alpha']}")
+@pytest.mark.parametrize("sizes,accumulation", [([3], 1), ([2, 1], 2), ([1, 1, 1], 2)])
+def test_tlx_rdrop_matches_official_loss_and_gradient_with_tail_windows(trainer, case, sizes, accumulation):
+    model = FixedRDropModel(case)
+    optimizer = trainer.make_optimizer(0.0, 0.0)
+    captured, steps = [], []
+    original = optimizer.apply_gradients
+
+    def apply(pairs):
+        pairs = list(pairs)
+        captured.append(float(tlx.convert_to_numpy(pairs[0][0]).reshape(-1)[0]))
+        return original(pairs)
+
+    optimizer.apply_gradients = apply
+    config = args(gradient_accumulation_steps=accumulation,
+                  finetune_use_consistency_regularization=case["enabled"],
+                  finetune_consistency_alpha=case["alpha"])
+    loss = trainer.train_downstream_epoch(
+        tlx, model, rdrop_batches(case, sizes), optimizer,
+        SimpleNamespace(step=lambda: steps.append(1)),
+        trainer.resolve_dataset("aqsol" if case["task"] == "regression" else "dblp"),
+        config, "cpu", seed=7, epoch=1)
+    expected, start = [], 0
+    for batch in range(0, len(sizes), accumulation):
+        count = sum(sizes[batch:batch + accumulation])
+        expected.append(np.mean(case["sample_weight_gradients"][start:start + count]))
+        start += count
+    assert loss == pytest.approx(np.mean(case["sample_losses"]), rel=2e-6)
+    assert captured == pytest.approx(expected, rel=2e-6, abs=1e-7)
+    assert len(steps) == len(expected)
+    assert model.calls == len(sizes) * (2 if case["enabled"] else 1)
+
+
+@pytest.mark.parametrize("preset", RDROP_REFERENCE["presets"],
+                         ids=lambda p: f"{p['dataset']}-{p['encoder']}")
+@pytest.mark.parametrize("override", [None, False, True])
+def test_tlx_rdrop_official_presets_and_cli_reach_training(trainer, preset, override):
+    argv = ["--dataset", preset["dataset"], "--encoder", preset["encoder"],
+            "--finetune-noise-probability", "0", "--finetune-max-grad-norm", "1000000"]
+    if override is not None:
+        argv += ["--finetune-use-consistency-regularization" if override else
+                 "--no-finetune-use-consistency-regularization"]
+    config = trainer.apply_preset(trainer.build_parser().parse_args(argv))
+    case = RDROP_REFERENCE["cases"][3 if (preset["enabled"] if override is None else override) else 0]
+    if preset["dataset"] == "aqsol":
+        # This test concerns whether the selected training branch is reached.
+        case = {**case, "first": [[1.], [2.], [3.]], "second": [[2.], [3.], [4.]],
+                "labels": [[0.], [0.], [0.]]}
+    model = FixedRDropModel(case)
+    optimizer = trainer.make_optimizer(0.0, 0.0)
+    trainer.train_downstream_epoch(tlx, model, rdrop_batches(case, [3]), optimizer,
+        SimpleNamespace(step=lambda: None), trainer.resolve_dataset(preset["dataset"]),
+        config, "cpu", seed=7, epoch=1)
+    assert model.calls == (2 if case["enabled"] else 1)
+    assert config.finetune_consistency_alpha == preset["alpha"]
+
+
+@pytest.mark.parametrize("alpha", ["nan", "inf", "-1"])
+def test_rdrop_rejects_invalid_alpha_before_training(trainer, alpha):
+    config = trainer.build_parser().parse_args(["--finetune-consistency-alpha", alpha])
+    with pytest.raises(ValueError, match="consistency.*alpha"):
+        trainer.apply_preset(config)
+
+
+@pytest.mark.parametrize("fault", ["second_logits_nan", "second_logits_inf", "gradient", "total_loss"])
+def test_tlx_rdrop_failure_keeps_main_incomplete_without_checkpoint(trainer, monkeypatch, tmp_path, fault):
+    class FaultModel(ScalarModel):
+        def __init__(self):
+            super().__init__()
+            self.calls = 0
+
+        def forward(self, inputs, attention=None, task=None):
+            if task == "mlm":
+                return tlx.ones((*inputs.shape, 64)) * self.weight
+            self.calls += 1
+            value = self.weight
+            if self.is_train and self.calls % 2 == 0:
+                if fault.startswith("second_logits"):
+                    value = value * float(fault.rsplit("_", 1)[1])
+                elif fault == "gradient":
+                    value = tlx.sqrt(value - tlx.detach(value)) + 1.0
+                value = -value
+            values = tlx.ones((len(inputs), 1)) * value
+            return tlx.concat((values, -values), axis=-1)
+
+    monkeypatch.setattr(trainer, "make_model", lambda *_args: FaultModel())
+    argv = ["--smoke", "--dataset", "mutagenicity", "--finetune-use-consistency-regularization",
+            "--finetune-noise-probability", "0", "--seed", "42", "--output-dir", str(tmp_path)]
+    if fault == "total_loss":
+        argv += ["--finetune-consistency-alpha", "1e308"]
+    with pytest.raises(FloatingPointError, match="finetune.*epoch=1.*batch=1"):
+        trainer.main(argv)
+    directory = tmp_path / "mutagenicity" / "bert"
+    summary = json.loads((directory / "summary.json").read_text(), parse_constant=lambda s: pytest.fail(s))
+    assert summary["complete"] is False and summary["run_metrics"] == []
+    assert not list(directory.rglob("best_finetune.*"))
+    assert not (directory / "run_01_seed_42" / "summary.json").exists()
+
+
+def test_tokenizer_binds_official_vocabulary_row_mapping(trainer):
+    reference = json.loads((Path(__file__).parent / "fixtures" / "graph_tokenizer_official.json").read_text())
+    for case in reference["cases"]:
+        config = trainer.apply_preset(trainer.build_parser().parse_args([
+            "--dataset", case["dataset"], "--encoder", case["encoder"],
+            "--bpe-merges", str(case["num_merges"]),
+            "--num-serializations", str(case["num_serializations"])]))
+        graphs = [trainer.GraphRecord(g["edge_index"], g["x"], g["edge_attr"], [0.]) for g in case["graphs"]]
+        tokenizer = trainer.make_tokenizer(config, graphs)
+        expected = [None] * (tokenizer.max_token_id + 1)
+        for official, local in case["official_to_gammagl_model_id"].items():
+            expected[local] = int(official)
+        assert tokenizer.model_id_to_official_id == expected
+        before = tokenizer.fingerprint()
+        tokenizer.model_id_to_official_id[8:10] = tokenizer.model_id_to_official_id[8:10][::-1]
+        assert tokenizer.fingerprint() != before
+
+
+@pytest.mark.parametrize("swapped", [False, True])
+def test_zero_only_corpus_keeps_complete_reserved_vocabulary_mapping(swapped):
+    from gammagl.transforms import GraphTokenizer, GraphTokenizerSpecialTokens
+    special = GraphTokenizerSpecialTokens(pad_token_id=1, unk_token_id=0) if swapped else GraphTokenizerSpecialTokens()
+    tokenizer = GraphTokenizer(special_tokens=special).fit([
+        dict(edge_index=[[], []], x=[0], num_nodes=1)])
+    expected = [1, 0, 2, 3, 4, 5, 6, 7] if swapped else list(range(8))
+    assert tokenizer.model_id_to_official_id == expected
+    assert tokenizer.encode_graph(dict(edge_index=[[], []], x=[0], num_nodes=1)).input_ids == [3, special.pad_token_id, 4]
+
+
+@pytest.mark.parametrize("dataset,mode", [("aqsol", "official_random"),
+                                          ("mutagenicity", "official_pretrained"),
+                                          ("dblp", "official_pretrained")])
+def test_formal_gte_initialization_matches_each_preset(trainer, monkeypatch, tmp_path, dataset, mode):
+    from gammagl.models import graph_gte_pretrained as pretrained
+    fixture = json.loads((Path(__file__).parent / "fixtures" / "graph_gte_initialization_official.json").read_text())
+    monkeypatch.setattr(pretrained, "load_official_gte_config", lambda **_k: fixture["config"])
+    if mode == "official_random":
+        monkeypatch.setattr(pretrained, "download_official_gte_checkpoint",
+                            lambda **_k: pytest.fail("AQSOL official random path downloaded weights"))
+    else:
+        safetensors_numpy = pytest.importorskip("safetensors.numpy")
+        checkpoint = tmp_path / "source.safetensors"
+        safetensors_numpy.save_file({key: np.asarray(value, np.float32)
+                                    for key, value in fixture["source"].items()}, str(checkpoint))
+        monkeypatch.setattr(pretrained, "download_official_gte_checkpoint", lambda **_k: (checkpoint, pretrained.sha256_file(checkpoint)))
+    config = trainer.apply_preset(trainer.build_parser().parse_args([
+        "--dataset", dataset, "--encoder", "gte", "--max-length", "16",
+        "--max-position-embeddings", "16", "--num-serializations", "1", "--bpe-merges", "0"]))
+    graph = trainer.GraphRecord([[0, 1], [1, 0]], [1, 2], [0, 0], [0.])
+    tokenizer = trainer.make_tokenizer(config, [graph])
+    model = trainer.make_model(config, tokenizer.max_token_id + 1,
+                               tokenizer.special_tokens.pad_token_id, 2, tokenizer)
+    info = trainer.gte_initialization_summary(model, config)
+    assert info["mode"] == mode
+    assert info["pretrained"] is (mode == "official_pretrained")
+    assert info["initialization_matches_preset"] is True
+    assert info["reproduction"] is False
+    assert model.model_id_to_official_id == tokenizer.model_id_to_official_id
+    model.set_eval()
+    ids = tlx.convert_to_tensor([tokenizer.encode_graph(graph).input_ids], dtype=tlx.int64)
+    assert tuple(model(ids, tlx.ones_like(ids), task="supervised").shape) == (1, 2)

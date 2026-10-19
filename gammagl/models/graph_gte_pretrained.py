@@ -3,6 +3,8 @@ import hashlib
 import json
 from pathlib import Path
 
+import numpy as np
+
 
 GTE_MODEL_ID = "Alibaba-NLP/gte-multilingual-base"
 GTE_REVISION = "9bbca17d9273fd0d03d5725c7a4b0f6b45142062"
@@ -41,6 +43,7 @@ def load_official_gte_config(cache_dir=None):
                 "rope_theta": 20000, "max_position_embeddings": 8192,
                 "hidden_act": "gelu", "layer_norm_type": "layer_norm",
                 "attention_probs_dropout_prob": 0.0,
+                "initializer_range": 0.02,
                 "use_memory_efficient_attention": False}
     for key, value in required.items():
         if config.get(key) != value:
@@ -71,15 +74,28 @@ def _assign_tensor(target, value, key, transpose=False):
         target.data.copy_(value)
 
 
+def remap_vocabulary(model, model_id_to_official_id):
+    """Apply a complete vocabulary permutation to embeddings and MLM outputs."""
+    import tensorlayerx as tlx
+
+    mapping = list(model_id_to_official_id)
+    if (len(mapping) != model.vocab_size or any(type(value) is not int for value in mapping)
+            or sorted(mapping) != list(range(model.vocab_size))):
+        raise ValueError("GTE vocabulary mapping must be a complete integer bijection.")
+    for weight in (model.token_embeddings.embeddings, model.mlm_head.weights, model.mlm_head.biases):
+        values = tlx.convert_to_numpy(weight)[mapping].copy()
+        _assign_tensor(weight, values, "vocabulary permutation")
+    model.pad_token_id = mapping.index(model.pad_token_id)
+    model.model_id_to_official_id = mapping
+
+
 def load_pretrained_encoder(model, checkpoint_path):
-    """Load the explicitly mapped official encoder tensors into ``GraphGTE``."""
+    """Load the encoder, resizing word embeddings in official model-ID order."""
     from safetensors import safe_open
 
     with safe_open(str(checkpoint_path), framework="np", device="cpu") as handle:
         source = {key: handle.get_tensor(key) for key in handle.keys()}
     ignored = {
-        "new.embeddings.word_embeddings.weight":
-            "text-vocabulary embedding is incompatible with Graph BPE tokens",
         "classifier.weight": "official classification head is not a GraphTokenizer task head",
         "classifier.bias": "official classification head is not a GraphTokenizer task head",
     }
@@ -88,6 +104,7 @@ def load_pretrained_encoder(model, checkpoint_path):
     # Linear kernels as [out_features, in_features], hence transpose=False
     # is deliberate rather than inferred from shape.
     mapping = {
+        "new.embeddings.word_embeddings.weight": (model.token_embeddings.embeddings, False, "resized_embedding"),
         "new.embeddings.token_type_embeddings.weight": (model.token_type_embeddings.embeddings, False, "embedding"),
         "new.embeddings.LayerNorm.weight": (model.embedding_norm.gamma, False, "layer_norm_gamma"),
         "new.embeddings.LayerNorm.bias": (model.embedding_norm.beta, False, "layer_norm_beta"),
@@ -116,7 +133,17 @@ def load_pretrained_encoder(model, checkpoint_path):
         if key not in source:
             continue
         try:
-            _assign_tensor(target, source[key], key, transpose=transpose)
+            value = source[key]
+            if _semantic == "resized_embedding":
+                if value.ndim != 2 or value.shape[1] != model.hidden_size:
+                    raise ValueError("Incompatible GTE embedding width.")
+                import tensorlayerx as tlx
+                resized = tlx.convert_to_numpy(target).copy()
+                count = min(len(value), model.vocab_size)
+                resized[:count] = value[:count]
+                resized[model.pad_token_id] = 0
+                value = resized
+            _assign_tensor(target, value, key, transpose=transpose)
         except ValueError:
             mismatches.append({"key": key, "source": tuple(source[key].shape),
                                "target": tuple(target.shape), "transpose": transpose})

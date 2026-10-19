@@ -2,17 +2,22 @@
 
 from __future__ import annotations
 
-import math
-
 import tensorlayerx as tlx
 
-from .graph_bert import (
-    _linear,
+from ._graph_transformer import (
     _parameter_count,
-    _truncated_normal,
-    additive_attention_bias,
     masked_mean,
+    merge_heads,
+    scaled_dot_product_attention,
+    split_heads,
 )
+
+
+def _linear(in_features, out_features, bias=True):
+    # NewPreTrainedModel._init_weights uses an untruncated normal distribution.
+    return tlx.nn.Linear(in_features=in_features, out_features=out_features,
+                         W_init=tlx.initializers.RandomNormal(stddev=0.02),
+                         b_init=tlx.initializers.Constant(0.0) if bias else None)
 
 
 def rotate_half(value):
@@ -97,37 +102,19 @@ class GraphGTESelfAttention(tlx.nn.Module):
         self.out_proj = _linear(self.hidden_size, self.hidden_size)
         self.attention_dropout = tlx.nn.Dropout(p=float(attention_dropout_rate))
 
-    def _split_heads(self, value):
-        batch_size, sequence_length = tlx.get_tensor_shape(value)[:2]
-        value = tlx.reshape(
-            value,
-            [batch_size, sequence_length, self.num_attention_heads, self.head_size],
-        )
-        return tlx.transpose(value, [0, 2, 1, 3])
-
-    def _merge_heads(self, value):
-        value = tlx.transpose(value, [0, 2, 1, 3])
-        batch_size, sequence_length = tlx.get_tensor_shape(value)[:2]
-        return tlx.reshape(value, [batch_size, sequence_length, self.hidden_size])
-
     def forward(self, hidden_states, attention_mask=None, rope_embeddings=None):
         if rope_embeddings is None:
             raise ValueError("GTE attention requires rotary embeddings.")
         query, key, value = tlx.split(
             self.qkv_proj(hidden_states), 3, axis=-1)
-        query = self._split_heads(query)
-        key = self._split_heads(key)
-        value = self._split_heads(value)
+        query = split_heads(query, self.num_attention_heads, self.head_size)
+        key = split_heads(key, self.num_attention_heads, self.head_size)
+        value = split_heads(value, self.num_attention_heads, self.head_size)
         query, key = apply_rotary_pos_emb(
             query, key, rope_embeddings[0], rope_embeddings[1])
-        key_transposed = tlx.transpose(key, [0, 1, 3, 2])
-        scores = tlx.matmul(query, key_transposed) / math.sqrt(self.head_size)
-        bias = additive_attention_bias(attention_mask)
-        if bias is not None:
-            scores = scores + bias
-        probabilities = self.attention_dropout(tlx.softmax(scores, axis=-1))
-        context = tlx.matmul(probabilities, value)
-        return self.out_proj(self._merge_heads(context))
+        context = scaled_dot_product_attention(
+            query, key, value, attention_mask, dropout=self.attention_dropout)
+        return self.out_proj(merge_heads(context, self.hidden_size))
 
 
 class GraphGatedMLP(tlx.nn.Module):
@@ -217,7 +204,9 @@ class GraphGTE(tlx.nn.Module):
     <https://huggingface.co/Alibaba-NLP/gte-multilingual-base/tree/9bbca17d9273fd0d03d5725c7a4b0f6b45142062>`_.
     Supports the TLX torch and TensorFlow eager training paths. Construction
     is random initialization; use :meth:`from_pretrained` for official
-    encoder weights. Graph embeddings, MLM head and graph head remain new.
+    encoder weights, including resized and vocabulary-aligned word embeddings.
+    MLM and graph heads remain new. :meth:`from_official_config` constructs
+    the pinned architecture randomly, as in the AQSOL/GTE preset.
 
     Parameters
     ----------
@@ -245,8 +234,9 @@ class GraphGTE(tlx.nn.Module):
     layer_norm_eps: float
         Layer normalization epsilon. (default: ``1e-12``)
     pad_token_id: int
-        Model metadata; attention_mask controls padding visibility. The
-        pinned pretrained config uses 1. (default: ``0``)
+        Zero embedding row with no lookup gradient. attention_mask separately
+        controls attention / pooling visibility. The pinned pretrained config
+        uses 1. (default: ``0``)
     type_vocab_size: int
         Token-type embedding vocabulary; inputs use type 0.
         (default: ``1``)
@@ -339,12 +329,12 @@ class GraphGTE(tlx.nn.Module):
         self.token_embeddings = tlx.nn.Embedding(
             num_embeddings=self.vocab_size,
             embedding_dim=self.hidden_size,
-            E_init=_truncated_normal(),
+            E_init=tlx.initializers.RandomNormal(stddev=0.02),
         )
         self.token_type_embeddings = tlx.nn.Embedding(
             num_embeddings=self.type_vocab_size,
             embedding_dim=self.hidden_size,
-            E_init=_truncated_normal(),
+            E_init=tlx.initializers.RandomNormal(stddev=0.02),
         )
         self.embedding_norm = tlx.nn.LayerNorm(
             normalized_shape=self.hidden_size,
@@ -370,26 +360,136 @@ class GraphGTE(tlx.nn.Module):
             )
             for _ in range(self.num_hidden_layers)
         ])
-        self.mlm_head = _linear(self.hidden_size, self.vocab_size, bias=False)
+        self.mlm_head = _linear(self.hidden_size, self.vocab_size)
         task_hidden_size = max(1, self.hidden_size // 2)
         self.task_head_in = _linear(self.hidden_size, task_hidden_size)
         self.task_head_dropout = tlx.nn.Dropout(p=self.task_dropout_rate)
         self.task_head_out = _linear(task_hidden_size, self.output_dim)
         self.pretrained_manifest = None
+        self.initialization_manifest = None
+        self.model_id_to_official_id = list(range(self.vocab_size))
+        if not 0 <= self.pad_token_id < self.vocab_size:
+            raise ValueError("pad_token_id must be inside the model vocabulary.")
+        from .graph_gte_pretrained import _assign_tensor
+        embeddings = tlx.convert_to_numpy(self.token_embeddings.embeddings).copy()
+        embeddings[self.pad_token_id] = 0
+        _assign_tensor(self.token_embeddings.embeddings, embeddings, "zero PAD embedding")
 
     @classmethod
-    def from_pretrained(cls, vocab_size: int, output_dim: int, cache_dir=None, **kwargs):
+    def _from_official_configuration(cls, vocab_size, output_dim, cache_dir, model_id_to_official_id, kwargs):
+        from .graph_gte_pretrained import load_official_gte_config
+
+        config = load_official_gte_config(cache_dir=cache_dir)
+        mapping = list(range(vocab_size)) if model_id_to_official_id is None else list(model_id_to_official_id)
+        if (len(mapping) != vocab_size or any(type(value) is not int for value in mapping)
+                or sorted(mapping) != list(range(vocab_size))):
+            raise ValueError("GTE vocabulary mapping must be a complete integer bijection.")
+        pad_token_id = kwargs.pop("pad_token_id", config["pad_token_id"])
+        if not 0 <= pad_token_id < vocab_size:
+            raise ValueError("pad_token_id must be inside the model vocabulary.")
+        architecture = {
+            "hidden_size": config["hidden_size"],
+            "num_hidden_layers": config["num_hidden_layers"],
+            "num_attention_heads": config["num_attention_heads"],
+            "intermediate_size": config["intermediate_size"],
+            "max_position_embeddings": config["max_position_embeddings"],
+            "dropout_rate": config["hidden_dropout_prob"],
+            "attention_dropout_rate": config["attention_probs_dropout_prob"],
+            "layer_norm_eps": config["layer_norm_eps"],
+            "pad_token_id": mapping[pad_token_id],
+            "type_vocab_size": config["type_vocab_size"],
+            "rope_theta": config["rope_theta"],
+            "rope_scaling_factor": config["rope_scaling"]["factor"],
+        }
+        for key, value in kwargs.items():
+            if key in architecture and architecture[key] != value:
+                raise RuntimeError(
+                    f"Official GTE config mismatch for {key}: "
+                    f"expected {architecture[key]!r}, got {value!r}.")
+        architecture.update(kwargs)
+        return cls(vocab_size=vocab_size, output_dim=output_dim, **architecture), mapping
+
+    @classmethod
+    def from_official_config(cls, vocab_size: int, output_dim: int, cache_dir=None,
+                             model_id_to_official_id=None, **kwargs):
+        r"""Construct the pinned GTE architecture with random normal weights.
+
+        Only config.json is retrieved; no checkpoint is loaded. This matches
+        encoder.reset_weights for AQSOL/GTE. Embeddings / linear kernels use
+        N(0, 0.02), linear
+        biases are zero, normalization scales are one and PAD is zero with
+        no lookup gradient. Vocabulary parameters are permuted together.
+
+        Parameters
+        ----------
+        vocab_size: int
+            Graph model vocabulary size including special IDs.
+        output_dim: int
+            Number of graph targets or classes.
+        cache_dir: str or ``path-like``
+            Hugging Face configuration cache. (default: :obj:`None`)
+        model_id_to_official_id: list[int]
+            Complete vocabulary permutation, as in :meth:`from_pretrained`.
+            None uses identity. (default: :obj:`None`)
+        **kwargs
+            Constructor options; architecture overrides must match the pinned
+            configuration. pad_token_id uses model IDs.
+
+        Returns
+        -------
+        GraphGTE
+            Random model with initialization_manifest.mode=official_random.
+            This metadata does not assert a reproduced benchmark. The forward
+            input / output shapes are those documented on the class.
+
+        Raises
+        ------
+        RuntimeError
+            If the pinned configuration or architecture overrides differ.
+        ValueError
+            If vocabulary mapping or padding ID is invalid.
+        ImportError
+            If the optional huggingface-hub package is unavailable.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            # Fetches the pinned config if it is not already cached.
+            model = GraphGTE.from_official_config(32, 1, pad_token_id=0)
+        """
+        from .graph_gte_pretrained import GTE_MODEL_ID, GTE_REVISION, remap_vocabulary
+
+        model, mapping = cls._from_official_configuration(
+            vocab_size, output_dim, cache_dir, model_id_to_official_id, kwargs)
+        remap_vocabulary(model, mapping)
+        model.initialization_manifest = {
+            "model_id": GTE_MODEL_ID, "revision": GTE_REVISION,
+            "mode": "official_random", "pretrained": False, "reproduction": False,
+            "model_id_to_official_id": mapping,
+            "graph_embedding_init": "normal(stddev=0.02); zero PAD",
+            "task_head_init": "normal(stddev=0.02); zero bias",
+        }
+        return model
+
+    @classmethod
+    def from_pretrained(cls, vocab_size: int, output_dim: int, cache_dir=None,
+                        model_id_to_official_id=None, **kwargs):
         r"""Load the pinned official encoder into a native TLX GraphGTE.
 
         Parameters
         ----------
         vocab_size: int
-            Size of the newly initialized graph embedding / MLM vocabulary.
+            Size of the resized graph embedding / MLM vocabulary.
         output_dim: int
             Width of the newly initialized graph task head.
         cache_dir: str or ``path-like``
             Hugging Face download cache. Missing config and safetensors files
             are downloaded. (default: :obj:`None`)
+        model_id_to_official_id: list[int]
+            Complete model-ID to official vocabulary-ID permutation. Applied
+            to resized embeddings and MLM weight / bias rows together. None
+            uses identity. pad_token_id uses model IDs. (default: :obj:`None`)
         **kwargs
             Constructor options. Architecture fields must exactly match the
             pinned official configuration; task_type, pooling, task_dropout and
@@ -399,14 +499,18 @@ class GraphGTE(tlx.nn.Module):
         -------
         GraphGTE
             Native model with pretrained_manifest recording revision, SHA-256
-            and complete encoder tensor coverage. Graph vocabulary embeddings,
-            MLM head and task head are randomly initialized.
+            and complete encoder tensor coverage, including resized embeddings.
+            Rows in the source vocabulary are retained; added rows and the MLM
+            / graph task heads use normal initialization. PAD is zero with no
+            lookup gradient. Initialization alone does not establish reproduction.
 
         Raises
         ------
         RuntimeError
             If the config / requested architecture or checkpoint hash differs,
             or required encoder tensors are missing, unexpected or incompatible.
+        ValueError
+            If vocabulary mapping or padding ID is invalid.
         ImportError
             If optional huggingface-hub or safetensors dependencies are absent.
 
@@ -418,37 +522,18 @@ class GraphGTE(tlx.nn.Module):
         """
         from .graph_gte_pretrained import (
             GTE_CHECKPOINT, GTE_MODEL_ID, GTE_REVISION,
-            download_official_gte_checkpoint, load_official_gte_config,
-            load_pretrained_encoder,
+            download_official_gte_checkpoint, load_pretrained_encoder, remap_vocabulary,
         )
-        config = load_official_gte_config(cache_dir=cache_dir)
-        architecture = {
-            "hidden_size": config["hidden_size"],
-            "num_hidden_layers": config["num_hidden_layers"],
-            "num_attention_heads": config["num_attention_heads"],
-            "intermediate_size": config["intermediate_size"],
-            "max_position_embeddings": config["max_position_embeddings"],
-            "dropout_rate": config["hidden_dropout_prob"],
-            "attention_dropout_rate": config["attention_probs_dropout_prob"],
-            "layer_norm_eps": config["layer_norm_eps"],
-            "pad_token_id": config["pad_token_id"],
-            "type_vocab_size": config["type_vocab_size"],
-            "rope_theta": config["rope_theta"],
-            "rope_scaling_factor": config["rope_scaling"]["factor"],
-        }
-        for key, value in kwargs.items():
-            if key in architecture and architecture[key] != value:
-                raise RuntimeError(
-                    f"Official GTE config mismatch for {key}: "
-                    f"expected {architecture[key]!r}, got {value!r}.")
-        architecture.update(kwargs)
-        model = cls(vocab_size=vocab_size, output_dim=output_dim, **architecture)
+        model, mapping = cls._from_official_configuration(
+            vocab_size, output_dim, cache_dir, model_id_to_official_id, kwargs)
         path, actual_hash = download_official_gte_checkpoint(cache_dir=cache_dir)
         report = load_pretrained_encoder(model, path)
+        remap_vocabulary(model, mapping)
         model.pretrained_manifest = {
             "model_id": GTE_MODEL_ID, "revision": GTE_REVISION,
             "checkpoint_files": [GTE_CHECKPOINT], "checkpoint_sha256": {GTE_CHECKPOINT: actual_hash},
-            "pretrained": True,
+            "pretrained": True, "mode": "official_pretrained",
+            "model_id_to_official_id": mapping,
             "encoder_expected_tensors": len(report["expected"]),
             "encoder_loaded_tensors": len(report["loaded"]),
             "encoder_coverage": report["coverage"],
@@ -456,10 +541,11 @@ class GraphGTE(tlx.nn.Module):
             "ignored": report["ignored"],
             "ignored_checkpoint_keys": report["ignored"],
             "shape_mismatches": report["shape_mismatches"],
-            "graph_embedding_init": "new_truncated_normal(stddev=0.02)",
-            "task_head_init": "new_truncated_normal(stddev=0.02)",
-            "reproduction": True,
+            "graph_embedding_init": "official_resize_and_remap",
+            "task_head_init": "normal(stddev=0.02); zero bias",
+            "reproduction": False,
         }
+        model.initialization_manifest = model.pretrained_manifest
         return model
 
     def _embed(self, input_ids):
@@ -467,6 +553,10 @@ class GraphGTE(tlx.nn.Module):
         if sequence_length > self.max_position_embeddings:
             raise ValueError("Input sequence length exceeds max_position_embeddings.")
         word_embeddings = self.token_embeddings(input_ids)
+        # Match torch.nn.Embedding(padding_idx=...): PAD stays zero and receives
+        # no lookup gradient, including an ordinary raw-0 token aliased to PAD.
+        visible = tlx.cast(tlx.expand_dims(input_ids != self.pad_token_id, -1), word_embeddings.dtype)
+        word_embeddings = word_embeddings * visible
         token_type_embeddings = self.token_type_embeddings(input_ids * 0)
         return self.embedding_dropout(
             self.embedding_norm(word_embeddings + token_type_embeddings))
@@ -533,12 +623,39 @@ class GraphGTE(tlx.nn.Module):
         return self.task_head_out(hidden)
 
     def forward(self, input_ids, attention_mask=None, task: str | None = None):
-        r"""Encode model IDs using the task modes and output shapes documented in
-        :meth:`GraphTokenTransformer.forward`.
+        r"""Encode a batch and select the requested prediction head.
 
-        input_ids has shape (B, L), attention_mask is optional with shape (B, L),
-        and task defaults to None. Returns raw scores; aggregation is performed
-        by the trainer. Raises ValueError for unsupported task or excessive L.
+        Parameters
+        ----------
+        input_ids: ``Tensor``
+            Integer model IDs of shape (B, L), in [0, vocab_size).
+            The model consumes sequences, not edge_index or raw node features.
+        attention_mask: ``Tensor``
+            Shape (B, L); 1 marks visible tokens and 0 padding. None makes all
+            positions visible. (default: :obj:`None`)
+        task: str
+            "mlm", "supervised", "pooled", or None. (default: :obj:`None`)
+
+        Returns
+        -------
+        ``Tensor`` or dict
+            "mlm": logits (B, L, vocab_size); "supervised": raw graph outputs
+            (B, output_dim); "pooled": representations (B, hidden_size).
+            None returns a dict with logits, mlm_logits, pooled_output, and
+            last_hidden_state (B, L, hidden_size). No mode applies softmax.
+
+        Raises
+        ------
+        ValueError
+            If task is unsupported or L exceeds max_position_embeddings.
+
+        Notes
+        -----
+        Classification aggregation belongs to the example trainer: softmax
+        each serialization's logits, average probabilities by graph_id, then
+        argmax. Regression averages predictions and reports raw-scale MAE.
+        The trainer raises FloatingPointError on non-finite numerical results;
+        this forward method itself does not perform those training checks.
         """
         if task not in {None, "mlm", "supervised", "pooled"}:
             raise ValueError(
@@ -566,9 +683,12 @@ class GraphGTE(tlx.nn.Module):
     def manifest(self):
         r"""Return architecture, parameter counts and initialization provenance.
 
-        The returned dict distinguishes random initialization from an official
-        encoder load, including its revision, hash and coverage report when
-        available. It does not identify a fitted tokenizer or downstream run.
+        Returns
+        -------
+        dict
+            The returned dict distinguishes random initialization from an official
+            encoder load, including its revision, hash and coverage report when
+            available. It does not identify a fitted tokenizer or downstream run.
         """
         manifest = {
             "encoder_type": self.encoder_type,
@@ -596,14 +716,14 @@ class GraphGTE(tlx.nn.Module):
             "weight_source": "random_initialization",
             "official_checkpoint": None,
         }
-        if self.pretrained_manifest is not None:
-            manifest.update(self.pretrained_manifest)
-            manifest["weight_source"] = "official_gte_encoder"
+        if self.initialization_manifest is not None:
+            manifest.update(self.initialization_manifest)
+            manifest["weight_source"] = self.initialization_manifest["mode"]
         else:
             manifest.update({
                 "pretrained": False,
                 "reproduction": False,
-                "graph_embedding_init": "new_truncated_normal(stddev=0.02)",
-                "task_head_init": "new_truncated_normal(stddev=0.02)",
+                "graph_embedding_init": "normal(stddev=0.02); zero PAD",
+                "task_head_init": "normal(stddev=0.02); zero bias",
             })
         return manifest

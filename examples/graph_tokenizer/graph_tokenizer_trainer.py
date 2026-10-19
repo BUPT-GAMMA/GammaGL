@@ -3,8 +3,8 @@
 The trainer deliberately owns only the train/validation/test pipeline.  It
 uses GammaGL's serializers, BPE implementation, tokenizer, datasets, and
 native TensorLayerX GraphBERT/GraphGTE models; it does not orchestrate paper
-benchmarks. Formal GTE runs load the pinned official encoder through GammaGL's
-native HF-to-TLX converter.
+benchmarks. Formal GTE presets select official random initialization for AQSOL
+and the native HF-to-TLX pretrained converter for the two TU datasets.
 """
 
 from __future__ import annotations
@@ -57,13 +57,14 @@ DATASETS = (
 )
 
 DEFAULT_SEEDS = (42, 43, 44, 45, 46)
-PREPROCESSING_CACHE_VERSION = 7
+PREPROCESSING_CACHE_VERSION = 9
 
 
 # GammaGL presets derived from the pinned official GraphTokenizer implementation.
 # CLI values override every item below.  ``max_length`` is the final input
 # limit, distinct from the model's ``max_position_embeddings`` capacity.
 _BASE_CONFIG = {
+    "fit_scope": "all",
     "token_protocol": "official",
     "bpe_encode_mode": "all",
     "pretrain_batch_size": 32,
@@ -95,8 +96,11 @@ _BASE_CONFIG = {
     "finetune_mask_ratio": 0.05,
     "finetune_noise_probability": 0.3,
     "finetune_noise_std": 0.01,
+    "finetune_use_consistency_regularization": False,
+    "finetune_consistency_alpha": 1.0,
     "gradient_accumulation_steps": 1,
     "pooling": "mean",
+    "gte_reset_weights": True,
 }
 PAPER_CONFIGS = {
     ("mutagenicity", "bert"): {**_BASE_CONFIG, "serializer": "feuler"},
@@ -105,6 +109,8 @@ PAPER_CONFIGS = {
         "finetune_batch_size": 64, "learning_rate": 5e-5,
         "finetune_epochs": 100, "finetune_weight_decay": 0.01,
         "early_stopping_patience": 10, "max_position_embeddings": 8192,
+        "finetune_use_consistency_regularization": True,
+        "gte_reset_weights": False,
     },
     ("dblp", "bert"): {**_BASE_CONFIG, "serializer": "feuler"},
     ("dblp", "gte"): {
@@ -112,6 +118,8 @@ PAPER_CONFIGS = {
         "finetune_batch_size": 64, "learning_rate": 5e-5,
         "finetune_epochs": 100, "finetune_weight_decay": 0.01,
         "early_stopping_patience": 10, "max_position_embeddings": 8192,
+        "finetune_use_consistency_regularization": True,
+        "gte_reset_weights": False,
     },
     ("aqsol", "bert"): {**_BASE_CONFIG, "serializer": "feuler"},
     ("aqsol", "gte"): {**_BASE_CONFIG, "serializer": "feuler", "max_position_embeddings": 8192},
@@ -429,7 +437,8 @@ def load_or_prepare_preprocessing(args, spec: DatasetSpec):
             not isinstance(cached, dict)
             or cached.get("preprocessing_cache_version") != PREPROCESSING_CACHE_VERSION
             or getattr(cached.get("tokenizer"), "schema_version", None) != TOKENIZER_SCHEMA_VERSION
-            or cached.get("input_configuration") != tokenizer_configuration(args)):
+            or cached.get("input_configuration") != tokenizer_configuration(args)
+            or getattr(cached.get("tokenizer"), "fit_scope", None) != tokenizer_configuration(args)["fit_scope"]):
         cache_path.unlink(missing_ok=True)
         cached = None
     if cached is not None:
@@ -449,7 +458,7 @@ def load_or_prepare_preprocessing(args, spec: DatasetSpec):
     # A first load can generate processed files. Store under their fingerprint
     # so the next call reaches this cache instead of rebuilding indefinitely.
     cache_path = preprocessing_cache_path(args, spec)
-    tokenizer = make_tokenizer(args, splits["train"])
+    tokenizer = fit_tokenizer(args, splits)
     encoded = encode_splits(tokenizer, splits, args)
     normalizer, output_dim = normalize_labels(encoded, spec)
     cache_path.parent.mkdir(parents=True, exist_ok=True)
@@ -469,13 +478,25 @@ def load_or_prepare_preprocessing(args, spec: DatasetSpec):
 def tokenizer_configuration(args):
     dataset = resolve_dataset(getattr(args, "dataset", "aqsol")).name
     preset = PAPER_CONFIGS[(dataset, getattr(args, "encoder", "bert"))]
-    return dict(dataset=dataset,
+    fit_scope = getattr(args, "fit_scope", None) or preset["fit_scope"]
+    if fit_scope not in ("train", "all"):
+        raise ValueError("fit_scope must be train or all.")
+    return dict(dataset=dataset, fit_scope=fit_scope,
                 serializer=getattr(args, "serializer", None) or preset["serializer"],
                 protocol=getattr(args, "token_protocol", None) or "official",
                 bpe_encode_mode=getattr(args, "bpe_encode_mode", None) or preset["bpe_encode_mode"])
 
 
-def make_tokenizer(args, train_graphs: Sequence[GraphRecord]):
+def fit_tokenizer(args, splits):
+    # Official BaseDataLoader.load_data concatenates in this exact order,
+    # regardless of raw file order; stable frequency ties depend on it.
+    names = ("train", "val", "test") if tokenizer_configuration(args)["fit_scope"] == "all" else ("train",)
+    graphs = [graph for name in names for graph in splits[name]]
+    ids = [(name, index) for name in names for index in range(len(splits[name]))]
+    return make_tokenizer(args, graphs, graph_ids=ids)
+
+
+def make_tokenizer(args, fit_graphs: Sequence[GraphRecord], graph_ids=None):
     ensure_repo_on_path()
     from gammagl.transforms.graph_bpe import GraphBPE
     from gammagl.transforms.graph_serializer import FrequencyGuidedEulerianSerializer, EulerianSerializer
@@ -495,9 +516,8 @@ def make_tokenizer(args, train_graphs: Sequence[GraphRecord]):
         special_tokens=special_tokens,
         bpe_encode_mode=configuration["bpe_encode_mode"],
     )
-    # The only tokenizer fit in this program receives the downstream train split.
-    tokenizer.fit(train_graphs, graph_ids=list(range(len(train_graphs))),
-                  num_realizations=args.num_serializations)
+    tokenizer.fit(fit_graphs, graph_ids=(list(range(len(fit_graphs))) if graph_ids is None else graph_ids),
+                  num_realizations=args.num_serializations, fit_scope=configuration["fit_scope"])
     return tokenizer
 
 
@@ -682,7 +702,7 @@ def set_model_mode(model, training: bool) -> None:
         (model.train if training else model.eval)()
 
 
-def make_model(args, vocab_size: int, pad_token_id: int, output_dim: int):
+def make_model(args, vocab_size: int, pad_token_id: int, output_dim: int, tokenizer=None):
     ensure_repo_on_path()
     from gammagl.models.graph_bert import GraphBERT
     from gammagl.models.graph_gte import GraphGTE
@@ -696,7 +716,12 @@ def make_model(args, vocab_size: int, pad_token_id: int, output_dim: int):
         if value is not None:
             kwargs[name] = value
     if args.encoder == "gte" and not args.allow_random_gte_init:
-        model = GraphGTE.from_pretrained(cache_dir=args.gte_checkpoint_cache_dir, **kwargs)
+        if tokenizer is not None:
+            if tokenizer.model_id_to_official_id is None:
+                raise ValueError("Formal GTE requires an official tokenizer vocabulary mapping.")
+            kwargs["model_id_to_official_id"] = tokenizer.model_id_to_official_id
+        constructor = GraphGTE.from_official_config if args.gte_reset_weights else GraphGTE.from_pretrained
+        model = constructor(cache_dir=args.gte_checkpoint_cache_dir, **kwargs)
         gte_initialization_summary(model, args)
         return model
     return (GraphBERT if args.encoder == "bert" else GraphGTE)(**kwargs)
@@ -705,19 +730,21 @@ def make_model(args, vocab_size: int, pad_token_id: int, output_dim: int):
 def gte_initialization_summary(model, args):
     if args.encoder != "gte":
         return None
-    manifest = getattr(model, "pretrained_manifest", None)
-    if manifest is None:
-        if args.allow_random_gte_init:
-            return {"pretrained": False, "reproduction": False,
-                    "mode": "random_development"}
-        raise RuntimeError("Formal GTE training requires the pinned official checkpoint.")
-    valid = (manifest.get("pretrained") is True and manifest.get("reproduction") is True
-             and manifest.get("encoder_coverage") == 1.0
-             and not manifest.get("missing") and not manifest.get("unexpected")
-             and not manifest.get("shape_mismatches"))
-    if not valid:
-        raise RuntimeError("Formal GTE training requires complete official checkpoint conversion.")
-    return manifest
+    if args.allow_random_gte_init:
+        return {"pretrained": False, "reproduction": False, "mode": "random_development",
+                "initialization_matches_preset": False}
+    manifest = getattr(model, "initialization_manifest", None)
+    mode = "official_random" if args.gte_reset_weights else "official_pretrained"
+    if manifest is None or manifest.get("mode") != mode:
+        raise RuntimeError(f"Formal GTE training requires {mode} initialization.")
+    if mode == "official_pretrained":
+        valid = (manifest.get("pretrained") is True and manifest.get("encoder_coverage") == 1.0
+                 and manifest.get("graph_embedding_init") == "official_resize_and_remap"
+                 and not manifest.get("missing") and not manifest.get("unexpected")
+                 and not manifest.get("shape_mismatches"))
+        if not valid:
+            raise RuntimeError("Formal GTE training requires complete official checkpoint conversion.")
+    return {**manifest, "initialization_matches_preset": True, "reproduction": False}
 
 
 def mlm_special_token_ids(tokenizer) -> set[int]:
@@ -806,6 +833,21 @@ def supervised_loss(backend, logits, labels, spec: DatasetSpec, reduction="mean"
     return tlx.losses.mean_squared_error(logits, labels, reduction=reduction)
 
 
+def consistency_loss(logits, other_logits, spec: DatasetSpec):
+    """Return a target-summed consistency penalty, retaining both gradient paths.
+
+    Classification uses the official symmetric KL (sum over classes and
+    samples); regression uses summed squared differences. train_epoch divides
+    by the actual target count once, including in accumulation tail windows.
+    """
+    if spec.num_classes:
+        log_p = tlx.logsoftmax(logits, dim=-1)
+        log_q = tlx.logsoftmax(other_logits, dim=-1)
+        p, q = tlx.softmax(logits, axis=-1), tlx.softmax(other_logits, axis=-1)
+        return tlx.reduce_sum((p - q) * (log_p - log_q)) * 0.5
+    return tlx.losses.mean_squared_error(logits, other_logits, reduction="sum")
+
+
 def save_checkpoint(backend, path: Path, model, epoch: int, score: float) -> None:
     require_finite_metrics(score, f"checkpoint epoch={epoch} score")
     ensure_repo_on_path()
@@ -821,6 +863,7 @@ def save_checkpoint(backend, path: Path, model, epoch: int, score: float) -> Non
     temporary = path.with_name(f".{path.name}.tmp-{os.getpid()}")
     state = {"epoch": int(epoch), "score": float(score),
              "tokenizer_schema_version": TOKENIZER_SCHEMA_VERSION,
+             "tokenizer_fit_scope": getattr(model, "tokenizer_fit_scope", None),
              "tokenizer_fingerprint": getattr(model, "tokenizer_fingerprint", None)}
     if tlx.BACKEND == "tensorflow":
         arrays = {name: tlx.convert_to_numpy(weight) for name, weight in weights.items()}
@@ -848,6 +891,9 @@ def restore_checkpoint(backend, path: Path, model, device):
             state = torch_backend.load(path, map_location=device)
     if state.get("tokenizer_schema_version") != TOKENIZER_SCHEMA_VERSION:
         raise ValueError("Incompatible checkpoint input protocol; retrain with the current tokenizer schema.")
+    if ("tokenizer_fit_scope" not in state
+            or state["tokenizer_fit_scope"] != getattr(model, "tokenizer_fit_scope", None)):
+        raise ValueError("Incompatible checkpoint tokenizer fit scope; retrain with the selected corpus.")
     if ("tokenizer_fingerprint" not in state
             or state["tokenizer_fingerprint"] != getattr(model, "tokenizer_fingerprint", None)):
         raise ValueError("Incompatible checkpoint tokenizer fingerprint; protocol, serializer or vocabulary differ.")
@@ -932,6 +978,16 @@ def train_epoch(backend, model, loader, optimizer, scheduler, args, device, seed
                 args.finetune_noise_probability, args.finetune_noise_std, generator)
             require_finite_tensor(backend, logits, f"{context} logits")
             loss = supervised_loss(backend, logits, labels, spec, reduction="sum")
+            require_finite_tensor(backend, loss, f"{context} task loss")
+            if getattr(args, "finetune_use_consistency_regularization", False):
+                other_logits = supervised_logits(backend, model, input_ids, attention,
+                    args.finetune_noise_probability, args.finetune_noise_std, generator)
+                require_finite_tensor(backend, other_logits, f"{context} second logits")
+                other_loss = supervised_loss(backend, other_logits, labels, spec, reduction="sum")
+                require_finite_tensor(backend, other_loss, f"{context} second task loss")
+                penalty = consistency_loss(logits, other_logits, spec)
+                require_finite_tensor(backend, penalty, f"{context} consistency loss")
+                loss = (loss + other_loss) * 0.5 + getattr(args, "finetune_consistency_alpha", 1.0) * penalty
             target_count = (math.prod(labels.shape) if spec.num_classes else
                             math.prod(np.broadcast_shapes(tuple(logits.shape), tuple(labels.shape))))
         require_finite_tensor(backend, loss, f"{context} loss")
@@ -1072,6 +1128,8 @@ def run_finetuning(backend, model, train_loader, val_loader, test_loader, spec, 
     test = evaluate_downstream(backend, model, test_loader, spec, normalizer, device, "test", state["epoch"])
     require_finite_metrics(test, f"test epoch={state['epoch']}")
     return {"best_epoch": state["epoch"], "best_validation_metric": state["score"],
+            "use_consistency_regularization": bool(getattr(args, "finetune_use_consistency_regularization", False)),
+            "consistency_alpha": float(getattr(args, "finetune_consistency_alpha", 1.0)),
             "history": history, "test": test}
 
 
@@ -1081,7 +1139,7 @@ def apply_preset(args, config=None):
     pretrain_batch_size = args.pretrain_batch_size
     finetune_batch_size = args.finetune_batch_size
     for name, value in config.items():
-        if getattr(args, name) is None:
+        if getattr(args, name, None) is None:
             setattr(args, name, value)
     if args.batch_size is not None:
         if pretrain_batch_size is None:
@@ -1092,6 +1150,8 @@ def apply_preset(args, config=None):
         raise ValueError(
             "max_length must not exceed max_position_embeddings.")
     gradient_accumulation_steps(args)
+    if not math.isfinite(args.finetune_consistency_alpha) or args.finetune_consistency_alpha < 0.0:
+        raise ValueError("finetune consistency alpha must be finite and non-negative.")
     return args
 
 
@@ -1099,9 +1159,13 @@ def metric_name_for_dataset(spec):
     return spec.metric
 
 
+def experiment_output_directory(args, spec):
+    directory = Path(args.output_dir) / spec.name / args.encoder
+    return directory / "train_only" if tokenizer_configuration(args)["fit_scope"] == "train" else directory
+
+
 def run_output_directory(args, spec, run_index, seed):
-    return (Path(args.output_dir) / spec.name / args.encoder /
-            f"run_{run_index + 1:02d}_seed_{seed}")
+    return experiment_output_directory(args, spec) / f"run_{run_index + 1:02d}_seed_{seed}"
 
 
 def run_single_experiment(args, config, seed, run_index=0):
@@ -1113,7 +1177,7 @@ def run_single_experiment(args, config, seed, run_index=0):
     emit_event("stage", stage="tokenizer_fit", status="started")
     if args.smoke:
         splits = synthetic_splits(spec)
-        tokenizer = make_tokenizer(args, splits["train"])
+        tokenizer = fit_tokenizer(args, splits)
         encoded = encode_splits(tokenizer, splits, args)
         normalizer, output_dim = normalize_labels(encoded, spec)
     else:
@@ -1125,8 +1189,9 @@ def run_single_experiment(args, config, seed, run_index=0):
     device = args.device
     if tlx.BACKEND == "tensorflow":
         tlx.set_device("CPU" if args.device == "cpu" else "GPU", 0)
-    model = make_model(args, tokenizer.max_token_id + 1, tokenizer.special_tokens.pad_token_id, output_dim)
+    model = make_model(args, tokenizer.max_token_id + 1, tokenizer.special_tokens.pad_token_id, output_dim, tokenizer)
     model.tokenizer_fingerprint = tokenizer.fingerprint()
+    model.tokenizer_fit_scope = tokenizer.fit_scope
     if tlx.BACKEND == "torch":
         model = model.to(device)
     loader_args = {"backend": backend, "pad_token_id": tokenizer.special_tokens.pad_token_id}
@@ -1150,7 +1215,9 @@ def run_single_experiment(args, config, seed, run_index=0):
     summary = {"dataset": spec.name, "encoder": args.encoder, "seed": args.seed,
             "run_index": run_index, "metric_name": metric_name_for_dataset(spec),
             "metric": finetune["test"]["metric"],
-            "tokenizer_fit_split": "train", "normalization_fit_split": "train",
+            "tokenizer_fit_split": tokenizer.fit_scope, "tokenizer_fit_scope": tokenizer.fit_scope,
+            "tokenizer_fingerprint": tokenizer.fingerprint(),
+            "normalization_fit_split": "train",
             "mlm": mlm, "finetune": finetune,
             "checkpoints": {"finetune": str(checkpoint)}}
     if args.encoder == "gte":
@@ -1163,6 +1230,9 @@ def aggregate_run_results(results):
         raise ValueError("Cannot aggregate zero GraphTokenizer runs")
     for result in results:
         validate_run_result(result)
+    scopes = {result.get("tokenizer_fit_scope") for result in results}
+    if len(scopes) != 1:
+        raise ValueError("Cannot aggregate runs with different tokenizer fit scopes.")
     metrics = [result["metric"] for result in results]
     mean = statistics.mean(metrics)
     try:
@@ -1172,6 +1242,7 @@ def aggregate_run_results(results):
     require_finite_metrics({"mean": mean, "std": std}, "aggregate")
     first = results[0]
     return {"dataset": first["dataset"], "encoder": first["encoder"],
+            "tokenizer_fit_scope": first.get("tokenizer_fit_scope"),
             "seeds": [result["seed"] for result in results], "num_runs": len(results),
             "metric_name": first["metric_name"], "run_metrics": metrics,
             "mean": mean, "std": std, "std_ddof": 1,
@@ -1182,6 +1253,8 @@ def build_parser():
     parser = argparse.ArgumentParser(description="Train GraphTokenizer with validation-selected checkpoints.")
     parser.add_argument("--dataset", default="mutagenicity")
     parser.add_argument("--encoder", "--model", dest="encoder", choices=("bert", "gte"), default="bert")
+    parser.add_argument("--fit-scope", choices=("train", "all"),
+                        help="Tokenizer fitting corpus: all (official preset) or train (inductive variant).")
     parser.add_argument("--data-root", default="data")
     parser.add_argument("--output-dir", default="runs/graph_tokenizer")
     parser.add_argument("--device", default="cuda" if os.environ.get("CUDA_VISIBLE_DEVICES") else "cpu")
@@ -1220,6 +1293,10 @@ def build_parser():
     parser.add_argument("--finetune-mask-ratio", type=float)
     parser.add_argument("--finetune-noise-probability", type=float)
     parser.add_argument("--finetune-noise-std", type=float)
+    parser.add_argument("--finetune-use-consistency-regularization", action=argparse.BooleanOptionalAction,
+                        help="Use two stochastic supervised passes and the official consistency loss.")
+    parser.add_argument("--finetune-consistency-alpha", type=float,
+                        help="Non-negative consistency loss weight (official default: 1.0).")
     parser.add_argument("--gradient-accumulation-steps", type=int)
     parser.add_argument("--pooling", choices=("mean", "cls"))
     seed_options = parser.add_mutually_exclusive_group()
@@ -1267,7 +1344,7 @@ def main(argv=None):
     spec = resolve_dataset(args.dataset)
     config = PAPER_CONFIGS[(spec.name, args.encoder)]
     results = []
-    summary_path = Path(args.output_dir) / spec.name / args.encoder / "summary.json"
+    summary_path = experiment_output_directory(args, spec) / "summary.json"
     try:
         for run_index, seed in enumerate(args.seeds):
             print(f"=== Run {run_index + 1}/{len(args.seeds)} | seed={seed} ===", flush=True)
@@ -1285,6 +1362,7 @@ def main(argv=None):
         serialized = json.dumps(summary, indent=2, allow_nan=False)
     except Exception:
         partial = {"dataset": spec.name, "encoder": args.encoder,
+                   "tokenizer_fit_scope": tokenizer_configuration(args)["fit_scope"],
                    "seeds": list(args.seeds), "num_runs": len(args.seeds),
                    "metric_name": metric_name_for_dataset(spec),
                    "run_metrics": [result["metric"] for result in results],

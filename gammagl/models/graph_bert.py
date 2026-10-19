@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
-import math
-
 import tensorlayerx as tlx
+
+from ._graph_transformer import (
+    _parameter_count,
+    masked_mean,
+    merge_heads,
+    scaled_dot_product_attention,
+    split_heads,
+)
 
 
 def _truncated_normal():
@@ -18,34 +24,6 @@ def _linear(in_features: int, out_features: int, bias: bool = True):
         W_init=_truncated_normal(),
         b_init=tlx.initializers.Constant(0.0) if bias else None,
     )
-
-
-def _parameter_count(weights) -> int:
-    total = 0
-    for weight in weights:
-        size = 1
-        for dimension in tlx.get_tensor_shape(weight):
-            size *= int(dimension)
-        total += size
-    return total
-
-
-def masked_mean(hidden_states, attention_mask=None):
-    if attention_mask is None:
-        return tlx.reduce_mean(hidden_states, axis=1)
-    mask = tlx.expand_dims(tlx.cast(attention_mask, tlx.float32), axis=-1)
-    numerator = tlx.reduce_sum(hidden_states * mask, axis=1)
-    denominator = tlx.reduce_sum(mask, axis=1)
-    denominator = tlx.maximum(denominator, tlx.ones_like(denominator))
-    return numerator / denominator
-
-
-def additive_attention_bias(attention_mask):
-    if attention_mask is None:
-        return None
-    mask = tlx.cast(attention_mask, tlx.float32)
-    mask = tlx.expand_dims(tlx.expand_dims(mask, axis=1), axis=1)
-    return (1.0 - mask) * -10000.0
 
 
 class GraphTokenSelfAttention(tlx.nn.Module):
@@ -70,32 +48,13 @@ class GraphTokenSelfAttention(tlx.nn.Module):
         self.out_proj = _linear(self.hidden_size, self.hidden_size)
         self.attention_dropout = tlx.nn.Dropout(p=float(attention_dropout_rate))
 
-    def _split_heads(self, value):
-        batch_size, sequence_length = tlx.get_tensor_shape(value)[:2]
-        value = tlx.reshape(
-            value,
-            [batch_size, sequence_length, self.num_attention_heads, self.head_size],
-        )
-        return tlx.transpose(value, [0, 2, 1, 3])
-
-    def _merge_heads(self, value):
-        value = tlx.transpose(value, [0, 2, 1, 3])
-        batch_size, sequence_length = tlx.get_tensor_shape(value)[:2]
-        return tlx.reshape(value, [batch_size, sequence_length, self.hidden_size])
-
     def forward(self, hidden_states, attention_mask=None):
-        query = self._split_heads(self.q_proj(hidden_states))
-        key = self._split_heads(self.k_proj(hidden_states))
-        value = self._split_heads(self.v_proj(hidden_states))
-        key_transposed = tlx.transpose(key, [0, 1, 3, 2])
-        scores = tlx.matmul(query, key_transposed) / math.sqrt(self.head_size)
-        bias = additive_attention_bias(attention_mask)
-        if bias is not None:
-            scores = scores + bias
-        probabilities = tlx.softmax(scores, axis=-1)
-        probabilities = self.attention_dropout(probabilities)
-        context = tlx.matmul(probabilities, value)
-        return self.out_proj(self._merge_heads(context))
+        query = split_heads(self.q_proj(hidden_states), self.num_attention_heads, self.head_size)
+        key = split_heads(self.k_proj(hidden_states), self.num_attention_heads, self.head_size)
+        value = split_heads(self.v_proj(hidden_states), self.num_attention_heads, self.head_size)
+        context = scaled_dot_product_attention(
+            query, key, value, attention_mask, dropout=self.attention_dropout)
+        return self.out_proj(merge_heads(context, self.hidden_size))
 
 
 class GraphTokenTransformerLayer(tlx.nn.Module):
@@ -388,10 +347,13 @@ class GraphTokenTransformer(tlx.nn.Module):
         }
 
     def manifest(self):
-        r"""Return a dict of architecture, backend and parameter-count metadata.
+        r"""Return architecture, framework and parameter-count metadata.
 
-        Counts refer to the model's current all_weights and trainable_weights.
-        This manifest does not bind a tokenizer or validate checkpoint compatibility.
+        Returns
+        -------
+        dict
+            Counts refer to the model's current all_weights and trainable_weights.
+            This manifest does not bind a tokenizer or validate checkpoint compatibility.
         """
         return {
             "encoder_type": self.encoder_type,
@@ -418,9 +380,76 @@ class GraphBERT(GraphTokenTransformer):
     r"""BERT-Small graph token encoder from the `GraphTokenizer paper
     <https://arxiv.org/abs/2603.11099>`_.
 
-    Inherits all parameters, defaults, forward modes, shapes and exceptions
-    from :class:`GraphTokenTransformer`. Uses learned absolute positions,
-    GELU blocks and randomly initialized MLM / graph task heads. The
-    constructor does not load a text BERT checkpoint. See the parent class
-    for a minimal executable example.
+    Uses learned absolute positions, GELU blocks and randomly initialized MLM
+    and graph task heads. This constructor does not load a text BERT checkpoint.
+    The native TLX implementation supports torch and TensorFlow eager.
+
+    Parameters
+    ----------
+    vocab_size: int
+        Number of model token IDs. Must exceed every input ID; use
+        :meth:`gammagl.transforms.GraphTokenizer.validate_model_vocab`.
+    output_dim: int
+        Number of graph targets, or number of classes for classification.
+    hidden_size: int
+        Token embedding and encoder width. (default: ``512``)
+    num_hidden_layers: int
+        Number of encoder blocks. (default: ``4``)
+    num_attention_heads: int
+        Attention heads; must divide hidden_size. (default: ``4``)
+    intermediate_size: int
+        Feed-forward hidden width. (default: ``2048``)
+    max_position_embeddings: int
+        Maximum input length including special tokens. This API default is
+        distinct from the trainer's 8096-token preset. (default: ``768``)
+    dropout_rate: float
+        Embedding and encoder hidden dropout. (default: ``0.1``)
+    attention_dropout_rate: float
+        Attention probability dropout; None uses dropout_rate.
+        (default: :obj:`None`)
+    layer_norm_eps: float
+        Layer normalization epsilon. (default: ``1e-12``)
+    pad_token_id: int
+        Padding ID recorded in model metadata. Supply attention_mask to
+        exclude padding from attention and mean pooling. (default: ``0``)
+    type_vocab_size: int
+        Token-type embedding vocabulary; all inputs use type 0.
+        (default: ``2``)
+    task_type: str
+        Task metadata, usually "regression" or "classification"; it does
+        not select a loss or apply softmax. (default: ``"regression"``)
+    pooling: str
+        "mean" for masked mean pooling or "cls" for the first token.
+        (default: ``"mean"``)
+    task_dropout: float
+        Graph task head dropout. (default: ``0.1``)
+    name: str
+        TensorLayerX module name. (default: :obj:`None`)
+
+    Raises
+    ------
+    ValueError
+        If pooling is unsupported, position capacity is nonpositive, or
+        hidden_size is not divisible by the attention head count.
+
+    Notes
+    -----
+    Inputs are integer model IDs of shape (B, L), with an optional visibility
+    mask of the same shape. Raw graph features must first pass through
+    :class:`~gammagl.transforms.GraphTokenizer`. The inherited :meth:`forward`
+    returns MLM logits (B, L, vocab_size), graph outputs (B, output_dim), pooled
+    features (B, hidden_size), or a dict of all outputs according to task.
+    Outputs are raw scores; classification softmax and graph-wise aggregation
+    belong to the trainer. See :doc:`/notes/graph_tokenizer` for the protocol.
+
+    Examples
+    --------
+    >>> import tensorlayerx as tlx
+    >>> from gammagl.models import GraphBERT
+    >>> model = GraphBERT(32, 2, hidden_size=16, num_hidden_layers=1,
+    ...     num_attention_heads=4, intermediate_size=32)
+    >>> model.set_eval()
+    >>> ids = tlx.convert_to_tensor([[3, 8, 4]], dtype=tlx.int64)
+    >>> tuple(model(ids, tlx.ones_like(ids), task="supervised").shape)
+    (1, 2)
     """

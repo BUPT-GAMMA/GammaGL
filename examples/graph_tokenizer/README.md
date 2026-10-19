@@ -3,10 +3,15 @@
 `graph_tokenizer_trainer.py` 是训练入口。它使用 GammaGL 的 Eulerian／Feuler 序列化器、Graph BPE、
 tokenizer、数据集以及原生 TensorLayerX `GraphBERT` / `GraphGTE`。
 
-正式路径默认以种子 `42 43 44 45 46` 完成五次彼此独立的完整训练：仅在训练集拟合
-BPE／标签归一化，在完整训练集上进行 MLM，再微调、验证、恢复最佳微调 checkpoint 并最终
+正式路径默认以种子 `42 43 44 45 46` 完成五次彼此独立的完整训练：按官方预处理入口，
+以 `train → val → test` 的顺序使用全部图结构／token 拟合频率、BPE 和词表（`--fit-scope all`）。
+标签归一化只用训练标签，在完整训练集上进行 MLM，再微调、验证、恢复最佳微调 checkpoint 并最终
 测试。最终指标为五次最终测试的 `mean ± std`（样本标准差，`ddof=1`）。测试集只会在恢复
-最佳 checkpoint 后评估。
+最佳 checkpoint 后评估；预处理会使用验证／测试图结构，因此属于 transductive 协议。
+
+`--fit-scope train` 是显式的 inductive 变体，仅用训练图拟合 tokenizer，不属于同组官方
+复现实验。它的 checkpoint 和 summary 独立写入 `<output-dir>/<dataset>/<encoder>/train_only/`；
+默认 all 路径仍为 `<output-dir>/<dataset>/<encoder>/`，两种范围不能混合汇总。
 
 长度超过 `max_length` 的序列化图会被拒绝而非截断，因为截断会丢失图结构。CLI 参数会覆盖
 `PAPER_CONFIGS` 中对应 preset 的值。
@@ -67,18 +72,19 @@ API 对应 `FrequencyGuidedEulerianSerializer(protocol="local_refs")` 或
 
 ### 产物兼容性
 
-当前 serializer protocol／tokenizer schema 为 **5**，预处理缓存格式为 **6**。
+当前 serializer protocol 为 **5**、tokenizer schema 为 **7**，预处理缓存格式为 **9**。
 这是本次协议修复的代码版本，与六组成绩的运行版本没有已核实的绑定关系。
 
 | 产物 | 实际检查 |
 | :-- | :-- |
-| 已拟合 tokenizer | 编码／解码前检查 schema、训练原始 token 集及拟合时配置；协议／serializer 改动须重新 fit。 |
+| 已拟合 tokenizer | 编码／解码前检查 schema、拟合原始 token 集及拟合时配置；协议／serializer／范围改动须重新 fit。 |
 | serializer／tokenizer result | 检查协议／schema；可逆结果还检查协议名称及 method。官方结果不可反序列化。 |
-| 预处理缓存 | 键包含协议、serializer、dataset、BPE 模式、版本、数据／split 内容及预处理参数；payload 再检查配置及拟合 tokenizer 指纹，错配时重新构建。 |
-| 下游 checkpoint | 正式 trainer 绑定具体 tokenizer 指纹；恢复权重前检查 schema 和指纹，拒绝跨协议、serializer、BPE、词表或拟合统计复用。 |
+| 预处理缓存 | 键包含协议、serializer、dataset、BPE 模式、fit_scope、版本、数据／split 内容及预处理参数；payload 再检查配置、tokenizer 实际范围及指纹，错配时重新构建。 |
+| 下游 checkpoint | 正式 trainer 绑定具体 tokenizer 指纹和 fit_scope；恢复权重前检查 schema、范围和指纹，拒绝跨协议、serializer、BPE、词表或拟合统计复用。 |
 
 指纹涵盖 serializer 配置与官方 revision、频率统计、BPE 规则、原始 token 集、词表、
-special IDs、编码模式及拟合图 ID／变体数。不自动迁移旧 tokenizer、缓存或下游 checkpoint。
+special IDs、编码模式、模型到官方词表的编号双射及拟合范围、图 ID／变体数。
+不自动迁移旧 tokenizer、缓存或下游 checkpoint。
 `GraphBPE.load_codebook()` 仅加载独立压缩规则，不代表可配套替换 tokenizer；正式
 checkpoint 的指纹来自实际已拟合 tokenizer。直接调用低层 checkpoint helper 的无绑定
 模型不提供这项训练输入配套保证。正式 GTE 来源 checkpoint 是独立的编码器初始化，
@@ -111,7 +117,7 @@ checkpoint 的指纹来自实际已拟合 tokenizer。直接调用低层 checkpo
 
 所有 preset 均使用 `max_length=8096`、BPE `2000` merges / 最小频率 `2`、100 次序列化、
 MLM mask 概率 `0.09`、warm-up `0.12 / 0.025`、梯度裁剪 `2.0 / 0.5`、默认 seeds `42–46`，
-并使用 `gradient_accumulation_steps=1`。Graph BPE 仅在训练集拟合，故词表大小为运行时派生值。
+并使用 `gradient_accumulation_steps=1`、`fit_scope=all`。词表大小由拟合语料在运行时派生。
 
 | 实验 | 预训练 / 微调 batch | MLM / 微调 LR | MLM / 微调 epoch | 预训练 / 微调 weight decay | 耐心值 | 位置容量 | 架构 / checkpoint |
 | :-- | --: | :-- | :-- | :-- | --: | --: | :-- |
@@ -129,6 +135,23 @@ loss sum 反向传播，在窗口结束时按实际目标总数归一化梯度�
 其他批次的梯度；整个窗口没有有效目标时清空梯度，跳过 optimizer 与 scheduler 更新。
 两者实际 step 数保持一致，全空 epoch 的训练 loss 记为 0。
 
+### 微调一致性损失（R-Drop）
+
+按固定官方配置，Mutagenicity/GTE 和 DBLP/GTE 默认启用 R-Drop，权重为 `1.0`；
+其余四组默认关闭。启用后，同一输入做两次独立的 dropout／噪声前向，分类训练使用
+两次 CrossEntropy 的均值，加上 `alpha * (KL(p1 || p2) + KL(p2 || p1)) / 2`。
+两个概率分支均保留梯度；每个样本先对类别求和，再按实际样本数归一化。
+回归显式启用时使用两次 MSE 的均值，加上预测间 MSE 的加权项。
+梯度累积和尾窗口按实际目标数归一化，不因两次前向把目标数翻倍。
+
+CLI 使用 `--finetune-use-consistency-regularization` 启用，
+`--no-finetune-use-consistency-regularization` 关闭，
+`--finetune-consistency-alpha VALUE` 覆盖权重（必须有限且非负）。
+微调结果记录 `use_consistency_regularization` 和 `consistency_alpha`；
+验证及测试继续使用原有的概率平均，不计算 R-Drop 损失。
+任一次前向、任务损失、一致性损失、总损失或梯度出现 NaN／Inf 都终止该次实验，
+不写入成功结果。离线官方 loss／梯度对照及范围说明见 [协议审计](PROTOCOL_AUDIT.md)。
+
 ### 序列长度与位置容量
 
 `max_length` 是包含 special token 的最终 GraphTokenizer 输入上限；模型另有
@@ -141,16 +164,30 @@ GTE 的最终输入上限为 8096、位置容量为 8192；后者来自固定源
 
 ### GTE checkpoint 与 BPE
 
-正式 `--encoder gte` 运行构建原生 TLX GraphGTE，并通过 GammaGL HF-to-TLX converter 加载
+正式 GTE 初始化由 preset 决定：AQSOL/GTE 对应官方 `encoder.reset_weights=true`，通过
+`GraphGTE.from_official_config()` 加载固定架构配置并随机初始化，不读取 checkpoint；
+Mutagenicity/GTE 和 DBLP/GTE 对应 `reset_weights=false`，通过 HF-to-TLX converter 加载
 `Alibaba-NLP/gte-multilingual-base` revision
 `9bbca17d9273fd0d03d5725c7a4b0f6b45142062`。它验证 checkpoint SHA-256
-`f5a35a10faa54da7717870af1517c9b41e9bd8e3880bc5a8e9363d4c3c63e9b0`、官方架构、135/135
-parameter coverage 和 tensor shape；任一校验失败都会停止运行。`--allow-random-gte-init`
-仅用于开发，会标记 `reproduction: false`，不是论文复现实验命令。
+`f5a35a10faa54da7717870af1517c9b41e9bd8e3880bc5a8e9363d4c3c63e9b0`、官方架构、136/136
+parameter coverage（包含词嵌入）和 tensor shape；任一校验失败都会停止运行。
+resize 保留已有词嵌入行，扩展行使用 `N(0, 0.02)`；随机构造的线性／嵌入权重也使用该
+正态分布，MLM 含独立零 bias。PAD 行清零且查表梯度为零。
+
+现有 GammaGL 词表编号保持不变。tokenizer 在训练时额外重建官方按词频稳定排序的编号，
+形成完整双射；GTE 在官方编号下初始化／resize，然后同时重排词嵌入和 MLM weight／bias。
+该映射进入 tokenizer 指纹，正式路径拒绝没有官方映射的 tokenizer。
+
+summary 将两种正式初始化分别记录为 `official_random` / `official_pretrained`，
+并记录 `initialization_matches_preset: true`。初始化匹配或权重覆盖率不等于实验复现，
+`reproduction` 均为 false。`--allow-random-gte-init` 保留给开发用 tiny／自定义架构，
+记录为 `random_development`、`initialization_matches_preset: false`；AQSOL 的正式随机
+初始化不需要该开关。以上只对齐初始化，其他训练／预处理差异仍见协议审计。
 
 `--bpe-backend python` 是默认值；`auto` 在可用时使用可选的 `graph_bpe_cpp` 原生扩展，否则
-回退 Python；`cpp` 则要求该扩展并在缺失时 fail fast。无论 backend，BPE 只在训练 split 拟合，
-验证与测试从不参与词表或回归标签统计。
+回退 Python；`cpp` 则要求该扩展并在缺失时 fail fast。无论 backend，频率、BPE 和词表
+都按 `fit_scope` 选择语料；默认 all 使用全部 split 图，train 仅用训练图。
+回归标签统计始终仅使用训练标签。
 
 ## 安装
 
@@ -370,6 +407,17 @@ torch 最佳 checkpoint 保持原有 `.pt` 格式；TensorFlow 使用不含 pick
 权重和 schema／epoch／score metadata，并通过 TLX 恢复权重。两种 checkpoint 不跨后端互载。
 成功结果仍使用相同 JSON 字段，非有限训练／评估结果会使运行失败。
 
-公共 CI 继续使用原有 torch 后端，负责核心安装与公共测试；新增 paper 环境在独立 job
-安装固定版本及 `graph-tokenizer-paper` extra、运行 DGL smoke 与 GraphTokenizer 回归。
-两个 job 相互独立，公共检查不以 paper extra 安装成功为前提。
+[CI workflow](../../.github/workflows/test_push.yml) 按 `suite={core,graph-tokenizer}` 和
+`backend={torch,tensorflow}` 展开四个独立单元，关闭 fail-fast。core 运行 public API、
+data、utils 和 compileall；GraphTokenizer 单元额外安装转换测试依赖，运行真实后端张量、
+训练／恢复、官方离线 fixtures、R-Drop、GTE 初始化和拟合范围回归，不下载模型或数据。
+公共检查不依赖这些转换测试包，也不安装 DGL 或 paper extra。
+
+矩阵使用独立的 CPU 构建基线 PyTorch 2.5.1／torchvision 0.20.1；TensorFlow 单元运行
+TensorFlow CPU 2.15.1。现有 setup.py 仍需 torch 编译扩展，因此 TensorFlow 单元在安装
+GammaGL 后卸载 torch／torchvision，并在测试前断言所选 TLX 后端及 torch／DGL 缺席。
+torch 单元也检查 DGL 缺席。安装时的 torch 构建依赖不表示 TensorFlow 运行依赖。
+
+独立 `graph-tokenizer-paper` job 保留 PyTorch 2.1.2／DGL 2.1.0／torchdata 0.7.1 的固定组合，
+安装 paper extra、运行 DGL／GraphBolt smoke 和完整 GraphTokenizer 回归（包括拟合范围测试）。
+它与矩阵单元没有 `needs` 依赖。
