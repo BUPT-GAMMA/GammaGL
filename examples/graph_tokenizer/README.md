@@ -5,8 +5,9 @@ tokenizer、数据集以及原生 TensorLayerX `GraphBERT` / `GraphGTE`。
 
 正式路径默认以种子 `42 43 44 45 46` 完成五次彼此独立的完整训练：按官方预处理入口，
 以 `train → val → test` 的顺序使用全部图结构／token 拟合频率、BPE 和词表（`--fit-scope all`）。
-标签归一化只用训练标签，在完整训练集上进行 MLM，再微调、验证、恢复最佳微调 checkpoint 并最终
-测试。最终指标为五次最终测试的 `mean ± std`（样本标准差，`ddof=1`）。测试集只会在恢复
+标签归一化只用训练标签，在完整训练集上进行 MLM，按 MLM 验证 loss 早停并恢复最佳预训练
+checkpoint，再微调、验证、恢复最佳微调 checkpoint 并最终测试。
+最终指标为五次最终测试的 `mean ± std`（样本标准差，`ddof=1`）。测试集只会在恢复
 最佳 checkpoint 后评估；预处理会使用验证／测试图结构，因此属于 transductive 协议。
 
 `--fit-scope train` 是显式的 inductive 变体，仅用训练图拟合 tokenizer，不属于同组官方
@@ -16,13 +17,14 @@ tokenizer、数据集以及原生 TensorLayerX `GraphBERT` / `GraphGTE`。
 长度超过 `max_length` 的序列化图会被拒绝而非截断，因为截断会丢失图结构。CLI 参数会覆盖
 `PAPER_CONFIGS` 中对应 preset 的值。
 
-## 正式 benchmark 与结果
+## Benchmark 参考与待验证历史记录
 
-以下六组 GammaGL reproduction 按用户确认，保留为此前报告的最新版五 seed 最终测试
-成绩。本次安装验证和梯度累积修复没有重新运行这六组正式训练。报告 `mean ± std`，
-跨 seed 标准差使用样本标准差（`ddof=1`）。论文／官方参考成绩独立列出，不作为 GammaGL 的实验记录。
+以下保留此前报告的六组数值，标记为**待验证历史报告值**。这些数值尚未绑定精确运行
+commit、完整配置、五个 seed 原始指标、日志及 checkpoint，不作为当前训练协议的
+reproduction 成绩。协议修复后尚未重跑正式 benchmark。历史记录的报告形式为
+`mean ± std`（样本标准差，`ddof=1`）；论文／官方参考独立列出。
 
-| 数据集 | Encoder | 指标 | 论文／官方参考 | 当前 GammaGL reproduction |
+| 数据集 | Encoder | 指标 | 论文／官方参考 | 历史报告值（待验证） |
 | :-- | :-- | :-- | :-- | :-- |
 | Mutagenicity | BERT | Accuracy (%) ↑ | 87.5 ± 0.9 | 76.73 ± 1.75 |
 | Mutagenicity | GTE | Accuracy (%) ↑ | 90.1 ± 0.7 | 68.11 ± 5.88 |
@@ -37,9 +39,9 @@ Accuracy 的均值用百分数表示，`±` 后的标准差单位为**百分点*
 
 ### 实验记录与可追溯性
 
-本次没有建立这六组成绩与精确运行 commit、完整生效配置、五个 seed 原始指标、日志及
-checkpoint 的对应关系，不把本次 smoke 或单元测试作为这些成绩的运行凭据，也不据此
-将成绩改标为旧协议结果。后续补充版本追溯时应提供可核实的原始记录。
+历史记录的运行协议尚未核实，不推测其属于某个旧版本。后续应为每次正式运行保存精确
+commit／源码摘要、完整配置、五个 seed 的原始指标、完整日志、配套预处理产物及两阶段
+checkpoint，再发布该版本的 reproduction 成绩。smoke 和单元测试不能作为成绩凭据。
 
 Trainer 接受 `mutag` 和 `muta` 作为 **Mutagenicity** 的 aliases，不指 188-graph `MUTAG`。
 `dblp` 对应 **DBLP_v1 graph-classification** benchmark，数据集类为 `GraphTokenizerDBLP`，
@@ -111,8 +113,28 @@ checkpoint 的指纹来自实际已拟合 tokenizer。直接调用低层 checkpo
 100 次序列化是这里显式启用的多起点配置，default YAML 的 multiple_sampling.enabled 本身为 false。
 `--serializer`、`--token-protocol`、`--bpe-encode-mode` 可覆盖 preset，并参与真实构造和缓存键。
 `none` 仍拟合 BPE 规则并构建覆盖全部规则的词表，仅跳过送入模型前的 BPE 编码。
-分类验证选优与最终测试均先逐 serialization softmax，再按 graph_id 平均概率并 argmax；
-回归平均预测后计算原尺度 MAE。
+MLM 与下游验证均按官方配置，每轮每图随机选择一个序列变体，不启用训练增强。
+分类验证对所选变体做 softmax／argmax，用于最佳微调 checkpoint 选择；最终测试
+评估全部变体，先逐 serialization softmax，再按 graph_id 平均概率并 argmax。
+回归验证使用所选预测；最终测试平均全部变体预测，再计算原尺度 MAE。
+
+### MLM 验证与最佳预训练权重
+
+MLM masking 按固定官方 `MLMDataset`：仅保护 CLS／SEP／PAD 和 attention-masked 位置，
+其他特殊 ID 也可被选为目标。选中位置以 80% 概率替换为 MASK，剩余位置以 50% 概率
+从完整模型词表均匀替换（包含特殊 ID），其余保持原值。两种后端使用相同概率规则；
+不保证跨框架随机数轨迹逐 seed 相同。
+
+每轮 MLM 验证对各有效 batch 的 masked-token 平均 loss 再求均值，沿用官方选优口径。
+无有效目标的 batch 不参与均值；整轮无目标则记录 `loss: null`，跳过选优和早停计数。
+如果整个预训练阶段没有有效验证目标，则明确失败，不读取既有 checkpoint 或进入微调。
+非有限 loss／logits 立即失败，不沿用官方跳过 NaN／Inf batch 的行为。
+
+六组 preset 的 MLM 早停耐心值均为 20，使用
+`--pretrain-early-stopping-patience` 独立覆盖；表中的耐心值仍指微调。
+`--pretrain-epochs` 是最大轮数。`best_pretrain.pt`（TensorFlow 为 `.npz`）保存验证最优
+权重，微调前恢复该权重。summary 的 `mlm` 包含实际轮数、最佳轮次、最佳验证 loss
+以及逐轮训练／验证记录，`checkpoints.pretrain` 指向配套文件。
 
 
 所有 preset 均使用 `max_length=8096`、BPE `2000` merges / 最小频率 `2`、100 次序列化、
@@ -148,7 +170,7 @@ CLI 使用 `--finetune-use-consistency-regularization` 启用，
 `--no-finetune-use-consistency-regularization` 关闭，
 `--finetune-consistency-alpha VALUE` 覆盖权重（必须有限且非负）。
 微调结果记录 `use_consistency_regularization` 和 `consistency_alpha`；
-验证及测试继续使用原有的概率平均，不计算 R-Drop 损失。
+验证使用每图所选变体，测试平均全部变体的概率；两者均不计算 R-Drop 损失。
 任一次前向、任务损失、一致性损失、总损失或梯度出现 NaN／Inf 都终止该次实验，
 不写入成功结果。离线官方 loss／梯度对照及范围说明见 [协议审计](PROTOCOL_AUDIT.md)。
 
@@ -429,7 +451,11 @@ smoke 则明确记录 synthetic 输入，不能作为真实 benchmark 的运行�
 目录指纹同时绑定这些文件与模型构造配置；checkpoint 除原 tokenizer schema／
 fingerprint／fit_scope 外，还保存独立 `artifact_version=1` 与产物指纹。
 这不改变 serializer protocol 5、tokenizer schema 7 或 cache 9。
-summary 记录 run manifest 和 checkpoint 的哈希。配套文件写入或校验失败时，
+新运行在 manifest、seed／组 summary 中记录 `training_protocol.version=2` 及验证采样、
+测试聚合、MLM masking／选优规则。checkpoint 记录相同版本；恢复前检查版本匹配。
+缺少协议记录的历史运行不能与新运行混合汇总，输入 tokenizer／缓存格式不因此升级。
+已有完整导出的旧运行仍可按其原协议恢复推理，不据此重新标为新协议实验。
+summary 记录 run manifest、最佳预训练及最佳微调 checkpoint 的哈希。配套文件写入或校验失败时，
 本次运行不会写成功 seed summary，组 summary 保持 incomplete。
 
 复制整个 `<dataset>/<encoder>/` 目录后，在同一 TLX 后端的新进程中恢复：

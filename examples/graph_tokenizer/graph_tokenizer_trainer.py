@@ -75,6 +75,17 @@ DATASETS = (
 
 DEFAULT_SEEDS = (42, 43, 44, 45, 46)
 PREPROCESSING_CACHE_VERSION = 9
+TRAINING_PROTOCOL_VERSION = 2
+
+
+def training_protocol():
+    return dict(version=TRAINING_PROTOCOL_VERSION,
+                validation_sampling="random_one_per_graph",
+                test_sampling="all_variants",
+                classification_aggregation="probability_mean",
+                regression_aggregation="prediction_mean_raw_mae",
+                mlm_masking="official_cls_sep_pad_full_vocabulary",
+                mlm_selection="best_validation_batch_mean")
 
 
 # GammaGL presets derived from the pinned official GraphTokenizer implementation.
@@ -96,6 +107,7 @@ _BASE_CONFIG = {
     "bpe_min_frequency": 2,
     "num_serializations": 100,
     "early_stopping_patience": 20,
+    "pretrain_early_stopping_patience": 20,
     "mask_probability": 0.09,
     "pretrain_weight_decay": 0.1,
     "finetune_weight_decay": 0.1,
@@ -769,32 +781,34 @@ def mlm_special_token_ids(tokenizer) -> set[int]:
 
 
 def mlm_random_token_ids(tokenizer) -> List[int]:
-    special_ids = mlm_special_token_ids(tokenizer)
-    token_ids = sorted({int(token_id) for token_id in tokenizer.vocabulary.values()} - special_ids)
-    if not token_ids:
-        raise ValueError("MLM random replacement requires a non-special tokenizer vocabulary.")
-    return token_ids
+    # Official MLMDataset samples all model IDs, including special tokens.
+    return list(range(max(mlm_special_token_ids(tokenizer) |
+                          {int(i) for i in tokenizer.vocabulary.values()}) + 1))
 
 
 def mask_for_mlm(backend, input_ids, attention, tokenizer, probability, generator):
+    protected = {int(getattr(tokenizer.special_tokens, name))
+                 for name in ("pad_token_id", "cls_token_id", "sep_token_id")
+                 if hasattr(tokenizer.special_tokens, name)}
+    vocab_size = len(mlm_random_token_ids(tokenizer))
     if backend is tlx:
         ids = tlx.convert_to_numpy(input_ids)
         valid = tlx.convert_to_numpy(attention).astype(bool)
-        for token in mlm_special_token_ids(tokenizer):
+        for token in protected:
             valid &= ids != token
         selected = (generator.random(ids.shape) < probability) & valid
         labels, masked = ids.copy(), ids.copy()
         labels[~selected] = -100
-        corruption = generator.random(ids.shape)
-        masked[selected & (corruption < 0.8)] = int(tokenizer.special_tokens.mask_token_id)
-        random_replaced = selected & (corruption >= 0.8) & (corruption < 0.9)
-        if random_replaced.any():
-            masked[random_replaced] = generator.choice(mlm_random_token_ids(tokenizer), size=int(random_replaced.sum()))
+        replaced = generator.random(ids.shape) < 0.8
+        masked[selected & replaced] = int(tokenizer.special_tokens.mask_token_id)
+        random_replaced = selected & ~replaced & (generator.random(ids.shape) < 0.5)
+        random_words = generator.integers(0, vocab_size, size=ids.shape)
+        masked[random_replaced] = random_words[random_replaced]
         return (move_tensor(tlx.convert_to_tensor(masked, dtype=tlx.int64), getattr(input_ids, "device", None)),
                 move_tensor(tlx.convert_to_tensor(labels, dtype=tlx.int64), getattr(input_ids, "device", None)))
     labels = input_ids.clone()
     blocked = ~attention.bool()
-    for token in mlm_special_token_ids(tokenizer):
+    for token in protected:
         blocked |= input_ids.eq(int(token))
     selected = backend.rand(input_ids.shape, generator=generator, device=input_ids.device) < probability
     selected &= ~blocked
@@ -802,14 +816,12 @@ def mask_for_mlm(backend, input_ids, attention, tokenizer, probability, generato
     masked = input_ids.clone()
     corruption = backend.rand(input_ids.shape, generator=generator, device=input_ids.device)
     mask_replaced = selected & (corruption < 0.8)
-    random_replaced = selected & (corruption >= 0.8) & (corruption < 0.9)
+    random_replaced = selected & ~mask_replaced & (
+        backend.rand(input_ids.shape, generator=generator, device=input_ids.device) < 0.5)
     masked[mask_replaced] = int(tokenizer.special_tokens.mask_token_id)
-    if random_replaced.any():
-        candidates = backend.as_tensor(mlm_random_token_ids(tokenizer), dtype=backend.long,
-                                     device=input_ids.device)
-        random_indices = backend.randint(len(candidates), input_ids.shape, generator=generator,
-                                       device=input_ids.device)
-        masked[random_replaced] = candidates[random_indices[random_replaced]]
+    random_words = backend.randint(vocab_size, input_ids.shape, generator=generator,
+                                   device=input_ids.device)
+    masked[random_replaced] = random_words[random_replaced]
     return masked, labels
 
 
@@ -879,6 +891,7 @@ def save_checkpoint(backend, path: Path, model, epoch: int, score: float) -> Non
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp-{os.getpid()}")
     state = {"epoch": int(epoch), "score": float(score),
+             "training_protocol_version": getattr(model, "training_protocol_version", None),
              "artifact_version": ARTIFACT_VERSION,
              "artifact_fingerprint": getattr(model, "artifact_fingerprint", None),
              "tokenizer_schema_version": TOKENIZER_SCHEMA_VERSION,
@@ -910,6 +923,8 @@ def restore_checkpoint(backend, path: Path, model, device):
             state = torch_backend.load(path, map_location=device)
     if state.get("tokenizer_schema_version") != TOKENIZER_SCHEMA_VERSION:
         raise ValueError("Incompatible checkpoint input protocol; retrain with the current tokenizer schema.")
+    if state.get("training_protocol_version") != getattr(model, "training_protocol_version", None):
+        raise ValueError("Incompatible checkpoint training protocol.")
     if ("tokenizer_fit_scope" not in state
             or state["tokenizer_fit_scope"] != getattr(model, "tokenizer_fit_scope", None)):
         raise ValueError("Incompatible checkpoint tokenizer fit scope; retrain with the selected corpus.")
@@ -1049,20 +1064,65 @@ def train_mlm_epoch(backend, model, loader, optimizer, scheduler, tokenizer, arg
                        "pretrain", tokenizer=tokenizer)
 
 
-def run_mlm(backend, model, train_loader, tokenizer, args, device):
+def evaluate_mlm(backend, model, loader, tokenizer, args, device, seed, epoch):
+    """Official mean of per-batch masked-token losses; empty batches cannot select a model."""
+    set_model_mode(model, False)
+    generator = (np.random.default_rng(seed) if backend is tlx else
+                 backend.Generator(device=device).manual_seed(seed))
+    if tlx.BACKEND == "torch":
+        import torch
+        evaluation_context = torch.no_grad()
+    else:
+        evaluation_context = nullcontext()
+    total, steps, targets = 0.0, 0, 0
+    with evaluation_context:
+        for index, (input_ids, attention, _, _) in enumerate(loader):
+            context = f"pretrain validation epoch={epoch} batch={index + 1}"
+            input_ids, attention = (move_tensor(value, device) for value in (input_ids, attention))
+            loss, count = mlm_loss(backend, model, input_ids, attention, tokenizer,
+                                   args.mask_probability, generator, context)
+            require_finite_tensor(backend, loss, f"{context} loss")
+            if count:
+                total += float(tlx.convert_to_numpy(loss)) / count
+                targets += count
+                steps += 1
+    result = dict(loss=total / steps if steps else None, steps=steps, num_masked_tokens=targets)
+    require_finite_metrics(result, f"pretrain validation epoch={epoch}")
+    return result
+
+
+def run_mlm(backend, model, train_loader, tokenizer, args, device, *, val_loader, checkpoint):
     optimizer = make_optimizer(args.pretrain_learning_rate,
         getattr(args, "pretrain_weight_decay", getattr(args, "weight_decay", 0.0)))
     scheduler = build_warmup_cosine_scheduler(
         backend, optimizer, total_steps=optimizer_steps_per_epoch(train_loader, args) * args.pretrain_epochs,
         warmup_ratio=args.pretrain_warmup_ratio)
-    history = []
+    history, best, stale = [], None, 0
     for epoch in range(1, args.pretrain_epochs + 1):
         train_loss = train_mlm_epoch(backend, model, train_loader, optimizer, scheduler, tokenizer,
                                      args, device, args.seed + epoch, epoch)
         require_finite_metrics(train_loss, f"pretrain epoch={epoch} train_loss")
-        history.append({"epoch": epoch, "train_loss": train_loss})
-        emit_event("epoch", phase="pretrain", epoch=epoch, train_loss=train_loss)
+        validation = evaluate_mlm(backend, model, val_loader, tokenizer, args, device,
+                                  args.seed + 100000 + epoch, epoch)
+        require_finite_metrics(validation, f"pretrain validation epoch={epoch}")
+        score = validation["loss"]
+        history.append({"epoch": epoch, "train_loss": train_loss, "validation": validation})
+        emit_event("epoch", phase="pretrain", epoch=epoch, train_loss=train_loss,
+                   validation_loss=score)
+        if score is None:
+            continue
+        if best is None or score < best:
+            best, stale = score, 0
+            save_checkpoint(backend, checkpoint, model, epoch, score)
+        else:
+            stale += 1
+            if stale >= args.pretrain_early_stopping_patience:
+                break
+    if best is None:
+        raise RuntimeError("MLM validation has no valid masked targets; no best pretraining checkpoint.")
+    state = restore_checkpoint(backend, checkpoint, model, device)
     return {"epochs_completed": len(history), "final_loss": history[-1]["train_loss"],
+            "best_epoch": state["epoch"], "best_validation_loss": state["score"],
             "history": history}
 
 
@@ -1173,6 +1233,10 @@ def apply_preset(args, config=None):
         raise ValueError(
             "max_length must not exceed max_position_embeddings.")
     gradient_accumulation_steps(args)
+    if args.pretrain_epochs < 1 or args.finetune_epochs < 1:
+        raise ValueError("Training epochs must be positive.")
+    if args.pretrain_early_stopping_patience < 1:
+        raise ValueError("Pretraining early stopping patience must be positive.")
     if not math.isfinite(args.finetune_consistency_alpha) or args.finetune_consistency_alpha < 0.0:
         raise ValueError("finetune consistency alpha must be finite and non-negative.")
     return args
@@ -1215,6 +1279,7 @@ def run_single_experiment(args, config, seed, run_index=0):
     model = make_model(args, tokenizer.max_token_id + 1, tokenizer.special_tokens.pad_token_id, output_dim, tokenizer)
     model.tokenizer_fingerprint = tokenizer.fingerprint()
     model.tokenizer_fit_scope = tokenizer.fit_scope
+    model.training_protocol_version = TRAINING_PROTOCOL_VERSION
     if tlx.BACKEND == "torch":
         model = model.to(device)
     loader_args = {"backend": backend, "pad_token_id": tokenizer.special_tokens.pad_token_id}
@@ -1222,31 +1287,37 @@ def run_single_experiment(args, config, seed, run_index=0):
         **loader_args, batch_size=args.pretrain_batch_size, records=encoded["train"], shuffle=True, choose_variant=True,
         tokenizer=tokenizer, augmentation=augmentation_config(args, "pretrain"),
         max_length=args.max_length, seed=args.seed)
+    pretrain_val_loader = make_loader(
+        **loader_args, batch_size=args.pretrain_batch_size, records=encoded["val"],
+        shuffle=False, choose_variant=True, seed=args.seed + 2)
     train_loader = make_loader(
         **loader_args, batch_size=args.finetune_batch_size, records=encoded["train"], shuffle=True, choose_variant=True,
         tokenizer=tokenizer, augmentation=augmentation_config(args, "finetune"),
         max_length=args.max_length, seed=args.seed + 1)
     val_loader = make_loader(**loader_args, batch_size=args.finetune_batch_size, records=encoded["val"],
-                             shuffle=False, choose_variant=False)
+                             shuffle=False, choose_variant=True, seed=args.seed + 3)
     test_loader = make_loader(**loader_args, batch_size=args.finetune_batch_size, records=encoded["test"],
                               shuffle=False, choose_variant=False)
     directory = run_output_directory(args, spec, run_index, args.seed)
     checkpoint = directory / ("best_finetune.npz" if tlx.BACKEND == "tensorflow" else "best_finetune.pt")
+    pretrain_checkpoint = directory / ("best_pretrain.npz" if tlx.BACKEND == "tensorflow" else "best_pretrain.pt")
     from examples.graph_tokenizer import artifacts
     artifacts.save_run(directory, args, spec, model, tokenizer, normalizer, encoded, runtime,
                        synthetic=splits if args.smoke else None)
-    mlm = run_mlm(backend, model, pretrain_loader, tokenizer, args, device)
+    mlm = run_mlm(backend, model, pretrain_loader, tokenizer, args, device,
+                  val_loader=pretrain_val_loader, checkpoint=pretrain_checkpoint)
     finetune = run_finetuning(backend, model, train_loader, val_loader, test_loader, spec, normalizer,
                               args, device, checkpoint)
     summary = {"dataset": spec.name, "encoder": args.encoder, "seed": args.seed,
+            "training_protocol": training_protocol(),
             "run_index": run_index, "metric_name": metric_name_for_dataset(spec),
             "metric": finetune["test"]["metric"],
             "tokenizer_fit_split": tokenizer.fit_scope, "tokenizer_fit_scope": tokenizer.fit_scope,
             "tokenizer_fingerprint": tokenizer.fingerprint(),
             "normalization_fit_split": "train",
-            "artifacts": artifacts.completed_run(directory, checkpoint),
+            "artifacts": artifacts.completed_run(directory, checkpoint, pretrain_checkpoint=pretrain_checkpoint),
             "mlm": mlm, "finetune": finetune,
-            "checkpoints": {"finetune": str(checkpoint)}}
+            "checkpoints": {"pretrain": str(pretrain_checkpoint), "finetune": str(checkpoint)}}
     if args.encoder == "gte":
         summary["gte_initialization"] = gte_initialization_summary(model, args)
     return summary
@@ -1257,6 +1328,9 @@ def aggregate_run_results(results):
         raise ValueError("Cannot aggregate zero GraphTokenizer runs")
     for result in results:
         validate_run_result(result)
+    protocols = {json.dumps(result.get("training_protocol"), sort_keys=True) for result in results}
+    if len(protocols) != 1:
+        raise ValueError("Cannot aggregate runs with different training protocols.")
     scopes = {result.get("tokenizer_fit_scope") for result in results}
     if len(scopes) != 1:
         raise ValueError("Cannot aggregate runs with different tokenizer fit scopes.")
@@ -1269,6 +1343,7 @@ def aggregate_run_results(results):
     require_finite_metrics({"mean": mean, "std": std}, "aggregate")
     first = results[0]
     return {"dataset": first["dataset"], "encoder": first["encoder"],
+            "training_protocol": first.get("training_protocol"),
             "tokenizer_fit_scope": first.get("tokenizer_fit_scope"),
             "seeds": [result["seed"] for result in results], "num_runs": len(results),
             "metric_name": first["metric_name"], "run_metrics": metrics,
@@ -1303,6 +1378,7 @@ def build_parser():
     parser.add_argument("--preprocessing-cache-dir")
     parser.add_argument("--num-serializations", "--num-realizations", dest="num_serializations", type=int)
     parser.add_argument("--early-stopping-patience", "--patience", dest="early_stopping_patience", type=int)
+    parser.add_argument("--pretrain-early-stopping-patience", type=int)
     parser.add_argument("--mask-probability", "--mask-prob", dest="mask_probability", type=float)
     parser.add_argument("--pretrain-weight-decay", type=float)
     parser.add_argument("--finetune-weight-decay", type=float)
@@ -1389,6 +1465,7 @@ def main(argv=None):
         serialized = json.dumps(summary, indent=2, allow_nan=False)
     except Exception:
         partial = {"dataset": spec.name, "encoder": args.encoder,
+                   "training_protocol": training_protocol(),
                    "tokenizer_fit_scope": tokenizer_configuration(args)["fit_scope"],
                    "seeds": list(args.seeds), "num_runs": len(args.seeds),
                    "metric_name": metric_name_for_dataset(spec),

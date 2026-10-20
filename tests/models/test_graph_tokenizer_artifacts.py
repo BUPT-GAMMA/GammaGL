@@ -162,6 +162,57 @@ def test_legacy_run_requires_explicit_original_assets(tmp_path):
         load_run(tmp_path, device='cpu')
 
 
+def test_exported_pretraining_checkpoint_is_checked_on_restore(trainer, tmp_path):
+    from examples.graph_tokenizer.artifacts import load_run
+    trainer.main(['--smoke', '--dataset', 'aqsol', '--seed', '42', '--output-dir', str(tmp_path)])
+    run = tmp_path / 'aqsol/bert/run_01_seed_42'
+    summary = json.loads((run / 'summary.json').read_text())
+    checkpoint = run / summary['artifacts']['pretrain_checkpoint']
+    checkpoint.write_bytes(checkpoint.read_bytes() + b'corruption')
+    with pytest.raises(ValueError, match='Pretraining checkpoint hash'):
+        load_run(run)
+
+
+def test_v2_export_requires_pretraining_checkpoint_metadata(trainer, tmp_path):
+    from examples.graph_tokenizer import artifacts
+    trainer.main(['--smoke', '--dataset', 'aqsol', '--seed', '42', '--output-dir', str(tmp_path)])
+    run = tmp_path / 'aqsol/bert/run_01_seed_42'
+    summary = json.loads((run / 'summary.json').read_text())
+    for key in ('pretrain_checkpoint', 'pretrain_checkpoint_sha256'):
+        summary['artifacts'].pop(key)
+    artifacts.atomic_write(run / 'summary.json', artifacts.json_bytes(summary))
+    with pytest.raises(ValueError, match='pretraining checkpoint'):
+        artifacts.load_run(run)
+    checkpoint = run / ('best_finetune.npz' if tlx.BACKEND == 'tensorflow' else 'best_finetune.pt')
+    with pytest.raises(ValueError, match='pretraining checkpoint'):
+        artifacts.completed_run(run, checkpoint)
+
+
+def test_complete_legacy_export_remains_restorable_for_inference(trainer, tmp_path):
+    from examples.graph_tokenizer import artifacts
+    trainer.main(['--smoke', '--dataset', 'aqsol', '--seed', '42', '--output-dir', str(tmp_path)])
+    run = tmp_path / 'aqsol/bert/run_01_seed_42'
+    restored = artifacts.load_run(run)
+    model = restored['model']
+    del model.training_protocol_version
+    checkpoint = run / ('best_finetune.npz' if tlx.BACKEND == 'tensorflow' else 'best_finetune.pt')
+    trainer.save_checkpoint(tlx, checkpoint, model, 1, .1)
+    manifest = json.loads((run / 'run_manifest.json').read_text())
+    manifest.pop('training_protocol')
+    artifacts.atomic_write(run / 'run_manifest.json', artifacts.json_bytes(manifest))
+    summary = json.loads((run / 'summary.json').read_text())
+    summary.pop('training_protocol')
+    for key in ('pretrain_checkpoint', 'pretrain_checkpoint_sha256'):
+        summary['artifacts'].pop(key)
+    summary['artifacts'].update(manifest_sha256=artifacts.digest(run / 'run_manifest.json'),
+                                 checkpoint_sha256=artifacts.digest(checkpoint))
+    artifacts.atomic_write(run / 'summary.json', artifacts.json_bytes(summary))
+    legacy = artifacts.load_run(run)
+    assert legacy['manifest'].get('training_protocol') is None
+    for old, new in zip(model.all_weights, legacy['model'].all_weights):
+        np.testing.assert_array_equal(tlx.convert_to_numpy(old), tlx.convert_to_numpy(new))
+
+
 def test_interrupted_preprocessing_export_can_retry_without_publishing_partial_bundle(
         trainer, monkeypatch, tmp_path):
     from examples.graph_tokenizer import artifacts

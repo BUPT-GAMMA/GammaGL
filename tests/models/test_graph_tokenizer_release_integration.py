@@ -31,6 +31,7 @@ def test_real_gte_checkpoint_training_and_offline_restore(tmp_path, record_prope
         '--data-root', data_root, '--gte-checkpoint-cache-dir', cache,
         '--fit-scope', 'train', '--bpe-merges', '8', '--num-serializations', '1',
         '--pretrain-epochs', '1', '--finetune-epochs', '1', '--batch-size', '1',
+        '--mask-probability', '1',
         '--max-length', '128', '--no-finetune-use-consistency-regularization',
     ]))
     args.seed = 42
@@ -65,13 +66,16 @@ def test_real_gte_checkpoint_training_and_offline_restore(tmp_path, record_prope
     record_property('gte_initialization', json.dumps(initialization))
     model.tokenizer_fingerprint = tokenizer.fingerprint()
     model.tokenizer_fit_scope = tokenizer.fit_scope
+    model.training_protocol_version = trainer.TRAINING_PROTOCOL_VERSION
     run = tmp_path / 'original' / 'run_01_seed_42'
     artifacts.save_run(run, args, spec, model, tokenizer, normalizer, encoded, runtime)
     loaders = {name: trainer.make_loader(tlx, rows, 1, tokenizer.special_tokens.pad_token_id,
                                          shuffle=False, choose_variant=False) for name, rows in encoded.items()}
     # Both stages exercise finite loss/gradient checks and actual optimizer updates.
     encoder_before = tlx.convert_to_numpy(model.encoder_layers[0].attention.qkv_proj.weights).copy()
-    mlm = trainer.run_mlm(tlx, model, loaders['train'], tokenizer, args, 'cpu')
+    pretrain_checkpoint = run / ('best_pretrain.npz' if tlx.BACKEND == 'tensorflow' else 'best_pretrain.pt')
+    mlm = trainer.run_mlm(tlx, model, loaders['train'], tokenizer, args, 'cpu',
+                          val_loader=loaders['val'], checkpoint=pretrain_checkpoint)
     assert np.isfinite(mlm['final_loss']) and mlm['final_loss'] > 0
     assert not np.array_equal(encoder_before, tlx.convert_to_numpy(model.encoder_layers[0].attention.qkv_proj.weights))
     head_before = tlx.convert_to_numpy(model.task_head_out.weights).copy()
@@ -80,7 +84,8 @@ def test_real_gte_checkpoint_training_and_offline_restore(tmp_path, record_prope
                                      loaders['test'], spec, normalizer, args, 'cpu', checkpoint)
     assert not np.array_equal(head_before, tlx.convert_to_numpy(model.task_head_out.weights))
     summary = dict(seed=42, validation_only=True, mlm=mlm, finetune=finetune,
-                   artifacts=artifacts.completed_run(run, checkpoint))
+                   training_protocol=trainer.training_protocol(),
+                   artifacts=artifacts.completed_run(run, checkpoint, pretrain_checkpoint=pretrain_checkpoint))
     artifacts.atomic_write(run / 'summary.json', artifacts.json_bytes(summary))
     ids = np.array([encoded['test'][0]['input_ids']], dtype=np.int64)
     expected = tlx.convert_to_numpy(model(tlx.convert_to_tensor(ids),

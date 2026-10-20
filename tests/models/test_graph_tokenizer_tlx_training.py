@@ -25,6 +25,167 @@ def trainer():
     return module
 
 
+def test_mlm_masking_matches_unmodified_official_draws(trainer):
+    from gammagl.transforms import GraphTokenizerSpecialTokens
+    fixture = json.loads((Path(__file__).parent / 'fixtures/graph_tokenizer_training_official.json').read_text())['masking']
+    tokenizer = SimpleNamespace(special_tokens=GraphTokenizerSpecialTokens(),
+                                vocabulary={i: i for i in range(fixture['vocab_size'])})
+
+    class Draws:
+        def __init__(self):
+            self.draws = iter(fixture['draws'])
+
+        def random(self, shape):
+            return np.asarray(next(self.draws))
+
+        def integers(self, low, high, size):
+            assert low == 0 and high == fixture['vocab_size']
+            return np.asarray(fixture['replacements'])
+
+    masked, labels = trainer.mask_for_mlm(tlx,
+        tlx.convert_to_tensor(fixture['input_ids'], dtype=tlx.int64),
+        tlx.convert_to_tensor(fixture['attention'], dtype=tlx.int64), tokenizer, 1., Draws())
+    np.testing.assert_array_equal(tlx.convert_to_numpy(masked), fixture['masked'])
+    np.testing.assert_array_equal(tlx.convert_to_numpy(labels), fixture['labels'])
+
+
+def test_validation_loader_matches_official_graph_sampling_across_epochs(trainer):
+    fixture = json.loads((Path(__file__).parent / 'fixtures/graph_tokenizer_training_official.json').read_text())
+    for case in fixture['sampling']:
+        loader = trainer.make_loader(tlx, fixture['records'], 2, 0, False, True, seed=case['seed'])
+        for expected in case['epochs']:
+            actual = [row for batch in loader for row in tlx.convert_to_numpy(batch[0]).tolist()]
+            assert actual == expected
+
+
+def test_native_pipeline_samples_validation_but_keeps_all_test_variants(trainer, monkeypatch, tmp_path):
+    original = trainer.evaluate_downstream
+    counts = {}
+
+    def evaluate(backend, model, loader, spec, normalizer, device, phase='evaluation', epoch=None):
+        counts[phase] = sum(len(batch[0]) for batch in loader)
+        return original(backend, model, loader, spec, normalizer, device, phase, epoch)
+
+    monkeypatch.setattr(trainer, 'evaluate_downstream', evaluate)
+    trainer.main(['--smoke', '--dataset', 'aqsol', '--seed', '42', '--num-serializations', '3',
+                  '--mask-probability', '1', '--output-dir', str(tmp_path)])
+    assert counts == {'validation': 1, 'test': 3}
+    run = json.loads((tmp_path / 'aqsol/bert/run_01_seed_42/summary.json').read_text())
+    assert run['training_protocol']['version'] == 2
+    assert run['training_protocol']['validation_sampling'] == 'random_one_per_graph'
+    manifest = json.loads((tmp_path / 'aqsol/bert/run_01_seed_42/run_manifest.json').read_text())
+    assert manifest['training_protocol'] == run['training_protocol']
+    assert Path(run['checkpoints']['pretrain']).is_file()
+
+
+def test_mlm_restores_best_validation_weights_before_finetuning(trainer, monkeypatch, tmp_path):
+    model = ScalarModel()
+    epochs, scores = [], iter([2., 1., 3., 4.])
+
+    def train(*_args):
+        epochs.append(len(epochs) + 1)
+        trainer.training_helpers().assign(model.weight, tlx.ones_like(model.weight) * epochs[-1])
+        return .1
+
+    monkeypatch.setattr(trainer, 'train_mlm_epoch', train)
+    monkeypatch.setattr(trainer, 'evaluate_mlm', lambda *_a, **_k:
+                        dict(loss=next(scores), steps=1, num_masked_tokens=1), raising=False)
+    config = args(pretrain_learning_rate=.01, pretrain_weight_decay=0., pretrain_epochs=8,
+                  pretrain_warmup_ratio=0., pretrain_early_stopping_patience=2, seed=42)
+    checkpoint = tmp_path / ('best_pretrain.npz' if tlx.BACKEND == 'tensorflow' else 'best_pretrain.pt')
+    result = trainer.run_mlm(tlx, model, [None], None, config, 'cpu',
+                             val_loader=[None], checkpoint=checkpoint)
+    assert epochs == [1, 2, 3, 4]
+    assert result['best_epoch'] == 2 and result['best_validation_loss'] == 1.
+    np.testing.assert_array_equal(tlx.convert_to_numpy(model.weight), [2.])
+    assert checkpoint.is_file()
+
+
+def test_mlm_validation_uses_official_batch_means_and_ignores_empty_batches(trainer, monkeypatch):
+    model = ScalarModel()
+    values = iter([(2., 1), (12., 3), (0., 0)])
+    # Supply controlled loss sums/counts; exercise real evaluation and aggregation.
+    def loss(*_args):
+        total, count = next(values)
+        return tlx.convert_to_tensor(total), count
+    monkeypatch.setattr(trainer, 'mlm_loss', loss)
+    batch = batches()[0]
+    result = trainer.evaluate_mlm(tlx, model, [batch] * 3, None, args(), 'cpu', seed=42, epoch=1)
+    assert result == dict(loss=3., steps=2, num_masked_tokens=4)
+    assert not model.is_train
+
+
+@pytest.mark.parametrize('fault', ['empty', 'nonfinite', 'save', 'restore'])
+def test_mlm_selection_failure_keeps_main_incomplete(trainer, monkeypatch, tmp_path, fault):
+    if fault == 'empty':
+        monkeypatch.setattr(trainer, 'evaluate_mlm', lambda *_a, **_k:
+                            dict(loss=None, steps=0, num_masked_tokens=0), raising=False)
+    elif fault == 'nonfinite':
+        monkeypatch.setattr(trainer, 'evaluate_mlm', lambda *_a, **_k:
+                            dict(loss=float('nan'), steps=1, num_masked_tokens=1), raising=False)
+    else:
+        original = trainer.save_checkpoint if fault == 'save' else trainer.restore_checkpoint
+        def fail(backend, path, *a, **k):
+            if Path(path).stem == 'best_pretrain':
+                raise OSError('pretraining checkpoint failure')
+            return original(backend, path, *a, **k)
+        monkeypatch.setattr(trainer, 'save_checkpoint' if fault == 'save' else 'restore_checkpoint', fail)
+    with pytest.raises((RuntimeError, FloatingPointError, OSError)):
+        trainer.main(['--smoke', '--dataset', 'aqsol', '--seed', '42', '--mask-probability', '1',
+                      '--output-dir', str(tmp_path)])
+    directory = tmp_path / 'aqsol/bert'
+    assert json.loads((directory / 'summary.json').read_text())['complete'] is False
+    assert not list(directory.rglob('best_finetune.*'))
+    assert not (directory / 'run_01_seed_42/summary.json').exists()
+
+
+def test_aggregation_rejects_mixed_training_protocols(trainer):
+    common = dict(dataset='aqsol', encoder='bert', metric_name='MAE', metric=.1,
+                  tokenizer_fit_scope='all')
+    with pytest.raises(ValueError, match='training protocol'):
+        trainer.aggregate_run_results([dict(common, seed=42),
+            dict(common, seed=43, training_protocol={'version': 2})])
+
+
+def test_checkpoint_rejects_other_training_protocol_before_assigning(trainer, tmp_path):
+    source, target = ScalarModel(), ScalarModel()
+    source.training_protocol_version, target.training_protocol_version = 1, 2
+    trainer.training_helpers().assign(source.weight, tlx.ones_like(source.weight) * 9.)
+    path = tmp_path / ('best.npz' if tlx.BACKEND == 'tensorflow' else 'best.pt')
+    trainer.save_checkpoint(tlx, path, source, 1, .1)
+    with pytest.raises(ValueError, match='training protocol'):
+        trainer.restore_checkpoint(tlx, path, target, 'cpu')
+    np.testing.assert_array_equal(tlx.convert_to_numpy(target.weight), [1.])
+
+
+def test_sampled_validation_selects_the_official_checkpoint(trainer, monkeypatch, tmp_path):
+    class Classifier(ScalarModel):
+        def forward(self, inputs, attention=None, task=None):
+            table = tlx.convert_to_tensor([[10., 0.], [0., 2.], [0., 2.]])
+            return tlx.gather(table, inputs[:, 1] - 8) + self.weight * 0.
+
+    model = Classifier()
+    epoch = 0
+    def train(*_args):
+        nonlocal epoch
+        epoch += 1
+        trainer.training_helpers().assign(model.weight, tlx.ones_like(model.weight) * epoch)
+        return .1
+    monkeypatch.setattr(trainer, 'train_downstream_epoch', train)
+    records = [dict(input_ids=[3, 8 + i, 4], graph_id=0, labels=[1.]) for i in range(3)]
+    # The pinned official dataset with seed 1 chooses variants 0, then 2.
+    val = trainer.make_loader(tlx, records, 1, 0, False, True, seed=1)
+    test = trainer.make_loader(tlx, records, 2, 0, False, False)
+    config = args(learning_rate=.01, finetune_weight_decay=0., finetune_epochs=2,
+                  finetune_warmup_ratio=0., early_stopping_patience=2, seed=42)
+    checkpoint = tmp_path / ('best.npz' if tlx.BACKEND == 'tensorflow' else 'best.pt')
+    result = trainer.run_finetuning(tlx, model, [None], val, test,
+        trainer.resolve_dataset('dblp'), None, config, 'cpu', checkpoint)
+    assert [row['validation']['metric'] for row in result['history']] == [0., 1.]
+    assert result['best_epoch'] == 2 and result['test']['metric'] == 1.
+    np.testing.assert_array_equal(tlx.convert_to_numpy(model.weight), [2.])
+
+
 class ScalarModel(tlx.nn.Module):
     def __init__(self, fault=None):
         super().__init__()

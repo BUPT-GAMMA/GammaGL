@@ -864,33 +864,30 @@ def test_set_seed_controls_python_numpy_torch_cuda_and_cudnn(trainer, monkeypatc
     assert FakeTorch.backends.cudnn.benchmark is False
 
 
-def test_mlm_corruption_uses_80_10_10_and_excludes_special_tokens(trainer, monkeypatch):
+def test_raw_torch_mlm_corruption_matches_official_fixture(trainer, monkeypatch):
+    fixture = json.loads((Path(__file__).parent / 'fixtures/graph_tokenizer_training_official.json').read_text())['masking']
     tokenizer = SimpleNamespace(
         special_tokens=SimpleNamespace(
             pad_token_id=0, unk_token_id=1, mask_token_id=2, cls_token_id=3,
             sep_token_id=4, node_start_token_id=5, node_end_token_id=6,
             component_sep_token_id=7),
-        vocabulary={100: 8, 101: 9, 102: 10, 103: 11})
-    input_ids = torch.tensor([[0, 3, 8, 9, 10, 4, 2, 5, 6, 7]])
-    attention = torch.ones_like(input_ids)
-    draws = iter((
-        torch.zeros_like(input_ids, dtype=torch.float32),
-        torch.tensor([[0.0, 0.0, 0.1, 0.85, 0.95, 0.0, 0.0, 0.0, 0.0, 0.0]]),
-    ))
+        vocabulary={i: i for i in range(fixture['vocab_size'])})
+    input_ids = torch.tensor(fixture['input_ids'])
+    attention = torch.tensor(fixture['attention'])
+    draws = iter(torch.tensor(draw) for draw in fixture['draws'])
     monkeypatch.setattr(torch, "rand",
                         lambda _shape, generator=None, device=None: next(draws).to(device))
     monkeypatch.setattr(
         torch, "randint",
         lambda _high, shape, generator=None, device=None:
-        torch.zeros(shape, dtype=torch.long, device=device))
+        torch.tensor(fixture['replacements'], dtype=torch.long, device=device))
 
     corrupted, labels = trainer.mask_for_mlm(
-        torch, input_ids, attention, tokenizer, probability=0.09,
+        torch, input_ids, attention, tokenizer, probability=1.,
         generator=torch.Generator().manual_seed(7))
 
-    assert labels.tolist() == [[-100, -100, 8, 9, 10, -100, -100, -100, -100, -100]]
-    assert corrupted.tolist() == [[0, 3, 2, 8, 10, 4, 2, 5, 6, 7]]
-    assert corrupted[0, 3].item() not in set(vars(tokenizer.special_tokens).values())
+    assert labels.tolist() == fixture['labels']
+    assert corrupted.tolist() == fixture['masked']
 
 
 def test_random_swap_uses_local_window_and_preserves_special_positions(trainer):
@@ -1266,12 +1263,13 @@ def test_dblp_metric_uses_class_logits_and_accuracy(trainer):
     assert result["metric_space"] == "class_label"
 
 
-def test_mlm_runs_configured_epochs_without_validation_or_checkpoint_restore(trainer, monkeypatch):
+def test_raw_torch_mlm_restores_best_pretraining_checkpoint(trainer, monkeypatch, tmp_path):
     model = torch.nn.Linear(1, 1, bias=False)
     train_epochs = []
     scheduler_arguments = []
     args = SimpleNamespace(pretrain_learning_rate=1e-3, weight_decay=0.0,
-                           pretrain_epochs=5, pretrain_warmup_ratio=0.12, seed=7)
+                           pretrain_epochs=5, pretrain_warmup_ratio=0.12,
+                           pretrain_early_stopping_patience=1, seed=7)
 
     def train(*_args):
         train_epochs.append(len(train_epochs) + 1)
@@ -1279,16 +1277,22 @@ def test_mlm_runs_configured_epochs_without_validation_or_checkpoint_restore(tra
         return 0.1
 
     monkeypatch.setattr(trainer, "train_mlm_epoch", train)
+    scores = iter([2., 1., 3.])
+    monkeypatch.setattr(trainer, 'evaluate_mlm', lambda *_a:
+                        dict(loss=next(scores), steps=1, num_masked_tokens=1))
     monkeypatch.setattr(
         trainer, "build_warmup_cosine_scheduler",
         lambda _torch, _optimizer, total_steps, warmup_ratio:
         scheduler_arguments.append((total_steps, warmup_ratio)) or object())
-    result = trainer.run_mlm(torch, model, [None], None, args, torch.device("cpu"))
+    result = trainer.run_mlm(torch, model, [None], None, args, torch.device("cpu"),
+                             val_loader=[None], checkpoint=tmp_path / 'best_pretrain.pt')
 
-    assert train_epochs == [1, 2, 3, 4, 5]
-    assert result["epochs_completed"] == 5
+    assert train_epochs == [1, 2, 3]
+    assert result["epochs_completed"] == 3
+    assert result['best_epoch'] == 2 and result['best_validation_loss'] == 1.
+    assert float(model.weight.detach()) == 2.
     assert result["final_loss"] == 0.1
-    assert all(set(row) == {"epoch", "train_loss"} for row in result["history"])
+    assert all(set(row) == {"epoch", "train_loss", "validation"} for row in result["history"])
     assert scheduler_arguments == [(5, 0.12)]
 
 
@@ -1301,8 +1305,9 @@ def test_single_run_uses_every_downstream_training_graph_for_mlm(trainer, monkey
     observed = {}
     monkeypatch.setattr(trainer, "synthetic_splits", lambda _spec: splits)
 
-    def run_mlm(_torch, _model, train_loader, _tokenizer, _args, _device):
+    def run_mlm(_torch, _model, train_loader, _tokenizer, _args, _device, *, val_loader, checkpoint):
         observed["graph_ids"] = {group[0]["graph_id"] for group in train_loader.dataset}
+        trainer.save_checkpoint(_torch, checkpoint, _model, 1, .1)
         return {"epochs_completed": 2, "final_loss": 0.1,
                 "history": [{"epoch": 1, "train_loss": 0.1},
                             {"epoch": 2, "train_loss": 0.1}]}
@@ -1533,7 +1538,7 @@ def test_numerical_failure_flows_through_main_without_best_or_success_summary(
 
         def forward(self, inputs, attention=None, task=None):
             value = self.weight
-            if not self.is_train:
+            if not self.is_train and task == "supervised":
                 self.evaluations += 1
             if ((phase == "pretrain" and task == "mlm") or
                     (phase == "finetune" and task in ("supervised", "pooled") and self.is_train) or

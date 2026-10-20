@@ -1,8 +1,9 @@
 # PR #263：固定官方协议核对
 
 依据为 [官方 revision 98343a6b025a48fbb6859cd812a12b81ec3ac3cc](https://github.com/BUPT-GAMMA/Graph-Tokenization-for-Bridging-Graphs-and-Transformers/tree/98343a6b025a48fbb6859cd812a12b81ec3ac3cc)。修复前基线为 `78b92f5`。
-本阶段只验证协议与功能；不重跑完整 benchmark，不修改六组已报告数值或结果归属，
-也不将这些记录视为本次代码的验证结果。
+以下按阶段保留协议与功能审计记录，不重跑完整 benchmark。
+当前训练协议与历史数值归属以本文末尾的训练修复说明和 README 为准；
+历史数值统一标记为待验证报告值，不作为当前代码的复现结果。
 
 实际调用链已检查：`ProjectConfig` 加载 `default_config.yml`，`config_override.py`
 递归覆盖 JSON；`UnifiedDataInterface._build_and_persist_serialization()` 创建 serializer，
@@ -23,7 +24,7 @@ fixtures 记录了这些源码文件与配置文件的 SHA-256。
 | BPE 学习对象 | 原始完整序列；首个 merge ID 为 max(base)+2；词表另编码 | 引用流、偏移后的标签、受保护低编号及 max(base)+1 | 原始流、无低编号保护、相同 merge 规则和编号 |
 | 词表特殊边界 | 官方 VocabManager 永久预留 -pad_id=0，所以普通原始 0 也映射 PAD | 标签被包装，绕过该实际行为 | 保留该 alias，即使训练语料未出现原始 0 |
 | 训练增强 | 对原始序列所有位置做窗口内 swap／mask，再编码 | 把模型特殊 ID 集用于原始序列，错误保护普通 token；swap 抽样也不同 | raw 无该保护；窗口和 mask 抽样按实际官方实现，fixtures 比较 loader 最终输入 |
-| 分类 avg | 每个 serialization softmax，按 graph_id 平均概率，再 argmax | 平均 logits | 验证选优、最终测试共用概率平均 |
+| 分类 avg | 每个 serialization softmax，按 graph_id 平均概率，再 argmax | 平均 logits | 聚合核函数使用概率平均；正式验证集采样见文末修复 |
 | 回归 | 平均标准化预测后还原原尺度并计算 MAE | 已正确 | 保持，覆盖不等变体数量及 batch 边界 |
 | 图恢复 | 官方 base deserialize 抛 NotImplementedError；标签流没有节点身份 | 声称默认流可完整恢复 | official 的三个恢复接口明确拒绝；可逆引用仅为显式 local_refs 协议 |
 | 拟合语料 | BaseDataLoader.load_data 拼接 train + val + test；UDI 对全部图拟合统计并生成 BPE 训练序列 | 仅 train | 六组 preset 默认 all，保持上述顺序；train-only 为独立变体；标签归一化仍只用训练标签 |
@@ -239,4 +240,50 @@ torch 缺席；Hugging Face 离线且缓存为空。paper job 的 DGL smoke 及
 - 仅支持简单无向语义和标量 token；不扩展官方实现可接受的多维 token／多重图范围。
   GammaGL 超长输入明确拒绝，增强后超长回退原输入；官方词表编码器会截断。
 - 本次未验证 GPU、真实 release bundle，没有重跑六组 benchmark。
-  旧成绩保持原记录，不能证明修复后的代码达到相同结果。
+  历史成绩仅作待验证记录，不能证明修复后的代码达到相同结果。
+
+## 2026-10-20：训练与验证协议修复
+
+固定官方 revision 的 `tasks.py` 将 `apply_graph_level_to_val=true`、
+`graph_variant_selection=random` 传入验证数据集，每轮每图只随机选择一个变体；
+最终测试 `apply_graph_level_to_test=false`，评估全部变体。此前只对齐 softmax
+聚合函数仍不充分。当前 MLM／下游验证 loader 均按图抽样，不做训练增强；
+下游最佳 checkpoint 依赖该抽样后的验证指标，测试继续概率平均／原尺度 MAE。
+
+官方 `MLMDataset._create_mlm_mask` 仅排除 CLS／SEP／PAD 和 attention-masked
+位置，MASK／UNK／节点边界／组件 token 均可成为目标。随机替换从完整词表采样。
+当前两种后端按相同三阶段概率执行：选择目标、80% MASK、剩余的 50% 随机替换。
+随机数由各后端提供，不声明跨框架随机轨迹一致。
+
+MLM 每轮验证，按官方有效 batch 平均 loss 的均值选优，独立 patience 默认 20。
+保存并在微调前恢复 `best_pretrain`；summary 保存实际轮数、最佳轮次／验证 loss、
+两阶段 checkpoint 和 SHA-256。训练梯度／训练日志仍按有效目标数归一化。
+保持数值失败防护：NaN／Inf 直接终止，空验证 batch 不参与均值，整轮空目标记 null
+且跳过选优／早停计数；所有轮均无有效目标则失败，不将零 loss 记为最佳。
+
+[`graph_tokenizer_training_official.json`](../../tests/models/fixtures/graph_tokenizer_training_official.json)
+由配套生成器执行未修改的官方数据集代码产生，无 GammaGL 导入或在线下载。
+记录源码 SHA-256、六组验证采样配置与 MLM patience、交错 graph_id／不等变体数的
+三 seed 多轮采样结果，以及受控随机抽样下的完整 masking 输入／标签／输出。
+随机 provider 只控制抽样值；no-BPE provider 只返回原序列，采样与 masking 逻辑不修改。
+回归核对两个 TLX 后端及原生 torch 调用路径，并验证采样会改变最佳 checkpoint、
+最佳 MLM 权重恢复、数值／空目标／产物写入及恢复异常不会生成成功结果。
+
+新增独立 `training_protocol.version=2`，在 manifest、seed／组 summary 和 checkpoint
+记录并校验；缺少该记录的旧结果不能与新协议混合汇总。输入协议／tokenizer schema／
+cache 仍为 5／7／9；完整旧导出可用于原协议推理，不自动转换结果归属。
+README 和 PR 描述中的六组数值改为待验证历史记录，需要正式重跑及可核验原始产物
+才能发布当前版本成绩。此阶段不修改 CI，不报告正式 benchmark 性能。
+
+本轮最终本地回归：torch **511 passed / 5 skipped**，TensorFlow
+**288 passed / 8 skipped**。真实 release bundle／正式 GTE 训练和 GPU 集成未启用；
+其余跳过为明确的后端专属测试。两个后端均执行 tiny BERT／开发 GTE 流程、
+双阶段最佳 checkpoint、移目录新进程离线恢复、旧导出推理以及新旧协议隔离检查。
+独立只读复核发现的 v2 预训练元数据可选缺口已补齐，并在两个后端复核通过。
+公共 API／data／utils／loader 检查分别为 59 passed / 2 skipped 和
+58 passed / 3 skipped，原生采样复用匹配环境已构建的扩展。
+compileall、全库测试收集、git diff --check 通过；Sphinx HTML 构建成功，
+报告 1457 条仓库文档警告。全库离线执行在既有
+`tests/datasets/test_amazon.py::test_amazon_dataset` 停止：工作区
+`data/Computers/raw/amazon_electronics_computers.npz` 为 0 字节，读取报 EOFError。
+未修改或重新下载该数据，也不声明全库测试通过。

@@ -160,6 +160,7 @@ def save_run(directory, args, spec, model, tokenizer, normalizer, encoded, runti
                 # Another writer may have published the same complete bundle.
                 _read_bundle(bundle, fingerprint)
     manifest = dict(artifact_version=ARTIFACT_VERSION,
+                    training_protocol=trainer.training_protocol(),
                     started_at=datetime.now(timezone.utc).isoformat(),
                     effective_config={k: v for k, v in vars(args).items() if not k.startswith('_')},
                     cli_args=getattr(args, '_cli_args', None), runtime=runtime,
@@ -173,13 +174,19 @@ def save_run(directory, args, spec, model, tokenizer, normalizer, encoded, runti
     return manifest
 
 
-def completed_run(directory, checkpoint):
+def completed_run(directory, checkpoint, *, pretrain_checkpoint=None):
     """Require every paired file to exist and match before reporting success."""
     manifest = json.loads((directory / 'run_manifest.json').read_text())
     _read_bundle(directory / manifest['preprocessing'], manifest['preprocessing_fingerprint'])
-    return dict(manifest='run_manifest.json', manifest_sha256=digest(directory / 'run_manifest.json'),
+    if (manifest.get('training_protocol') or {}).get('version') == 2 and pretrain_checkpoint is None:
+        raise ValueError('Incomplete v2 export: pretraining checkpoint is required.')
+    result = dict(manifest='run_manifest.json', manifest_sha256=digest(directory / 'run_manifest.json'),
                 checkpoint=checkpoint.name, checkpoint_sha256=digest(checkpoint),
                 preprocessing_fingerprint=manifest['preprocessing_fingerprint'])
+    if pretrain_checkpoint is not None:
+        result.update(pretrain_checkpoint=pretrain_checkpoint.name,
+                      pretrain_checkpoint_sha256=digest(pretrain_checkpoint))
+    return result
 
 
 def load_run(directory, device='cpu'):
@@ -223,6 +230,11 @@ def load_run(directory, device='cpu'):
     manifest = json.loads((directory / 'run_manifest.json').read_text())
     if manifest.get('artifact_version') != ARTIFACT_VERSION:
         raise ValueError('Unsupported run artifact version.')
+    if summary.get('training_protocol') != manifest.get('training_protocol'):
+        raise ValueError('Run training protocol differs from its manifest.')
+    if ((manifest.get('training_protocol') or {}).get('version') == 2
+            and not {'pretrain_checkpoint', 'pretrain_checkpoint_sha256'} <= artifacts.keys()):
+        raise ValueError('Incomplete v2 export: pretraining checkpoint metadata is required.')
     if manifest['environment']['backend'] != trainer.tlx.BACKEND:
         raise ValueError('Checkpoint backend differs from the active TLX backend.')
     bundle = (directory / manifest['preprocessing']).resolve()
@@ -246,6 +258,12 @@ def load_run(directory, device='cpu'):
     checkpoint = directory / checkpoint_name
     if digest(checkpoint) != artifacts['checkpoint_sha256']:
         raise ValueError('Checkpoint hash mismatch.')
+    if 'pretrain_checkpoint' in artifacts:
+        expected = checkpoint_name.replace('finetune', 'pretrain')
+        if artifacts['pretrain_checkpoint'] != expected:
+            raise ValueError('Unexpected pretraining checkpoint filename.')
+        if digest(directory / expected) != artifacts['pretrain_checkpoint_sha256']:
+            raise ValueError('Pretraining checkpoint hash mismatch.')
     # Complete downstream weights include embeddings/MLM/task heads: do not
     # fetch or reapply the encoder's original pretrained initialization.
     model = model_class(**config['kwargs'])
@@ -253,6 +271,7 @@ def load_run(directory, device='cpu'):
     model.tokenizer_fingerprint = tokenizer.fingerprint()
     model.tokenizer_fit_scope = tokenizer.fit_scope
     model.artifact_fingerprint = manifest['preprocessing_fingerprint']
+    model.training_protocol_version = (manifest.get('training_protocol') or {}).get('version')
     if config['encoder'] == 'gte':
         model.model_id_to_official_id = tokenizer.model_id_to_official_id
     if trainer.tlx.BACKEND == 'torch':

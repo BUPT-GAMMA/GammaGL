@@ -146,7 +146,11 @@ A relative, content-addressed preprocessing
 bundle stores the fitted tokenizer (including BPE/vocabulary), train-only label
 normalizer and input-file/split summaries. The independent artifact version is
 1; tokenizer schema 7 and cache 9 are unchanged. Checkpoints bind the bundle
-fingerprint; successful summaries also record manifest/checkpoint hashes.
+fingerprint; successful summaries also record manifest and both best-checkpoint hashes.
+Training protocol version 2 is recorded independently in manifests, summaries
+and checkpoints. Runs with different or missing protocol metadata cannot be
+aggregated together; existing complete legacy exports remain usable for
+inference under their recorded protocol.
 
 Copy the complete dataset/encoder output directory, then use
 ``examples.graph_tokenizer.artifacts.load_run(run_directory, device="cpu")``
@@ -177,12 +181,25 @@ summaries distinguish ``official_random`` / ``official_pretrained`` and record
 checks alone do not establish a reproduced experiment. Explicit development
 overrides use ``random_development`` instead.
 
-The example trainer validates single-label classification by softmaxing each
-serialization's logits, averaging probabilities per ``graph_id``, then taking
-argmax. Validation selection and final testing use the same rule across batch
-boundaries and unequal variant counts. For example, ``[[10, 0], [0, 2], [0, 2]]``
-predicts class 1. Regression averages predictions, inverse-normalizes and
-computes raw-scale MAE. Non-finite logits, losses, gradients, updated weights
+The example trainer samples one random serialization per graph on each MLM
+and downstream validation pass, following the pinned official configuration.
+Final testing evaluates every variant: classification softmaxes each variant,
+averages probabilities per ``graph_id`` and takes argmax, across batch boundaries
+and unequal variant counts. For example, ``[[10, 0], [0, 2], [0, 2]]`` predicts
+class 1 when all three variants are evaluated. Regression averages test
+predictions, inverse-normalizes and computes raw-scale MAE.
+
+MLM protects only CLS/SEP/PAD and attention-masked positions, applies 80/10/10
+corruption and samples random replacements from the full vocabulary, including
+special IDs. Its validation loss is the mean of valid batch means; empty
+batches are excluded. An epoch with no masked targets records a null loss
+without selecting a model. Pretraining fails if no epoch provides a valid
+selection score. The best MLM checkpoint is restored before fine-tuning;
+``--pretrain-early-stopping-patience`` defaults to 20 and is independent of
+fine-tuning patience. Summaries record the best epoch/loss and both stages'
+checkpoints. Cross-backend random trajectories need not match.
+
+Non-finite logits, losses, gradients, updated weights
 or metrics raise :class:`FloatingPointError`; failed runs are not saved as
 successful summaries. These are trainer checks, not guarantees of model forward.
 
