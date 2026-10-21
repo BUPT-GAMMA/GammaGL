@@ -287,3 +287,30 @@ compileall、全库测试收集、git diff --check 通过；Sphinx HTML 构建�
 `tests/datasets/test_amazon.py::test_amazon_dataset` 停止：工作区
 `data/Computers/raw/amazon_electronics_computers.npz` 为 0 字节，读取报 EOFError。
 未修改或重新下载该数据，也不声明全库测试通过。
+
+## 2026-10-21：BERT 初始化与 MLM head 对齐
+
+BERT 的 MLM head 改为带独立可训练 bias 的 Linear，bias 初始为零。
+词／位置／类型嵌入及所有 Linear 权重改为普通正态 N(0, 0.02)，不再使用截断正态。
+PAD 词嵌入行在初始化时清零，并按 input ID 屏蔽查表梯度；attention_mask=1 的
+普通 raw-0／PAD alias 同样适用。位置和类型嵌入仍正常相加。
+
+新增独立 `model_protocol_version=2`，写入 BERT model manifest、导出模型配置、
+运行 manifest、两阶段 checkpoint 和成功／失败组 summary；成功 seed summary 也记录。
+恢复在赋权重前检查版本，导出恢复在构造模型前检查版本；缺失／旧／未知 BERT
+版本需使用原代码推理，不静默补 bias 或改写旧权重。不同模型协议不能混合汇总。
+输入协议、训练协议、tokenizer schema 和缓存版本不变；GTE 完整旧导出继续兼容。
+
+`tests/models/fixtures/graph_bert_official.json` 由配套生成器直接执行未修改的固定
+官方 BertEncoder／UnifiedTaskHead 生成，无 GammaGL 导入或在线下载。使用 tiny
+配置及 Transformers 4.40.2，记录官方源码、HF BERT 源码 SHA-256 和运行版本。
+保存完整权重、embedding／hidden／MLM／task 输出及有效参数梯度；输入同时包含
+attention_mask=1 的 PAD 和 attention_mask=0 的普通 token。
+
+新增模型测试先在修复前观察到 7 项失败，协议守卫测试先观察到 7 项失败；修复后
+两个 TLX 后端均通过官方输出／梯度对照、bias 更新、PAD 零梯度／优化后零行、
+正态尾部、协议拒绝与旧 GTE 兼容测试。失败 summary 版本字段另有失败到通过验证。
+相关全回归：torch 2.5.1 CPU 和 paper torch 2.1.2 CPU 均为 **526 passed / 5 skipped**，
+无 torch 的 TensorFlow 2.15.1 为 **303 passed / 8 skipped**。
+三套真实 release bundle 的离线加载测试另为 **1 passed**。
+独立只读复核未发现阻塞问题；以上不代表正式 benchmark、GPU 或远端 CI 验证。

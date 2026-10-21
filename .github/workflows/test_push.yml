@@ -102,6 +102,7 @@ jobs:
             tests/transforms/test_graph_tokenizer_backend.py \
             tests/datasets/test_graph_tokenizer_datasets.py \
             tests/models/test_graph_tokenizer_models.py \
+            tests/models/test_graph_bert_official.py \
             tests/models/test_graph_tokenizer_components.py \
             tests/models/test_graph_gte_backend_conversion.py \
             tests/models/test_graph_tokenizer_dataset_metadata.py \
@@ -156,6 +157,7 @@ jobs:
             tests/transforms/test_graph_tokenizer_backend.py \
             tests/datasets/test_graph_tokenizer_datasets.py \
             tests/models/test_graph_tokenizer_models.py \
+            tests/models/test_graph_bert_official.py \
             tests/models/test_graph_tokenizer_components.py \
             tests/models/test_graph_gte_backend_conversion.py \
             tests/models/test_graph_tokenizer_dataset_metadata.py \

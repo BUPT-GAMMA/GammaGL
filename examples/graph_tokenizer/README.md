@@ -87,6 +87,14 @@ API 对应 `FrequencyGuidedEulerianSerializer(protocol="local_refs")` 或
 指纹涵盖 serializer 配置与官方 revision、频率统计、BPE 规则、原始 token 集、词表、
 special IDs、编码模式、模型到官方词表的编号双射及拟合范围、图 ID／变体数。
 不自动迁移旧 tokenizer、缓存或下游 checkpoint。
+
+BERT 模型协议为 `model_protocol_version=2`：词嵌入和 Linear 使用普通正态
+`N(0, 0.02)`，MLM head 带独立可训练零初始化 bias，PAD 词嵌入行清零且无查表梯度。
+位置／类型嵌入继续正常相加，包括 attention_mask=1 的普通 raw-0／PAD alias。
+manifest、checkpoint 和 seed／组 summary 记录模型协议；恢复及汇总检查版本。
+缺少该版本或版本不同的旧 BERT checkpoint 需使用原代码推理，不能自动补 bias、
+清零旧 PAD 权重后当作新模型。GTE 模型及其旧导出兼容规则不变。
+
 `GraphBPE.load_codebook()` 仅加载独立压缩规则，不代表可配套替换 tokenizer；正式
 checkpoint 的指纹来自实际已拟合 tokenizer。直接调用低层 checkpoint helper 的无绑定
 模型不提供这项训练输入配套保证。正式 GTE 来源 checkpoint 是独立的编码器初始化，
@@ -454,7 +462,8 @@ fingerprint／fit_scope 外，还保存独立 `artifact_version=1` 与产物指�
 新运行在 manifest、seed／组 summary 中记录 `training_protocol.version=2` 及验证采样、
 测试聚合、MLM masking／选优规则。checkpoint 记录相同版本；恢复前检查版本匹配。
 缺少协议记录的历史运行不能与新运行混合汇总，输入 tokenizer／缓存格式不因此升级。
-已有完整导出的旧运行仍可按其原协议恢复推理，不据此重新标为新协议实验。
+模型协议兼容的完整旧导出仍可按其原训练协议恢复推理，不据此重新标为新协议实验；
+旧 BERT 模型需使用原代码，当前恢复入口明确拒绝不兼容的模型协议。
 summary 记录 run manifest、最佳预训练及最佳微调 checkpoint 的哈希。配套文件写入或校验失败时，
 本次运行不会写成功 seed summary，组 summary 保持 incomplete。
 

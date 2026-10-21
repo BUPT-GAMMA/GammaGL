@@ -13,15 +13,15 @@ from ._graph_transformer import (
 )
 
 
-def _truncated_normal():
-    return tlx.initializers.TruncatedNormal(stddev=0.02)
+def _normal():
+    return tlx.initializers.RandomNormal(stddev=0.02)
 
 
 def _linear(in_features: int, out_features: int, bias: bool = True):
     return tlx.nn.Linear(
         in_features=in_features,
         out_features=out_features,
-        W_init=_truncated_normal(),
+        W_init=_normal(),
         b_init=tlx.initializers.Constant(0.0) if bias else None,
     )
 
@@ -113,6 +113,9 @@ class GraphTokenTransformer(tlx.nn.Module):
     :doc:`GraphTokenizer guide </notes/graph_tokenizer>` for the pinned
     official implementation and the supported TLX torch / TensorFlow eager
     training paths. This constructor initializes weights randomly.
+    Embedding and linear weights use N(0, 0.02); biases start at zero.
+    The PAD word-embedding row is zero and receives no lookup gradient.
+    MLM uses an independent linear projection with a trainable bias.
 
     Parameters
     ----------
@@ -140,7 +143,7 @@ class GraphTokenTransformer(tlx.nn.Module):
     layer_norm_eps: float
         Layer normalization epsilon. (default: ``1e-12``)
     pad_token_id: int
-        Padding ID recorded in model metadata. Supply attention_mask to
+        Padding ID with a zero, frozen word-embedding row. Supply attention_mask to
         exclude padding from attention and mean pooling. (default: ``0``)
     type_vocab_size: int
         Token-type embedding vocabulary; all inputs use type 0.
@@ -160,7 +163,8 @@ class GraphTokenTransformer(tlx.nn.Module):
     ------
     ValueError
         If pooling is unsupported, position capacity is nonpositive, or
-        hidden_size is not divisible by the attention head count.
+        hidden_size is not divisible by the attention head count, or
+        pad_token_id is outside the vocabulary.
 
     Examples
     --------
@@ -176,6 +180,7 @@ class GraphTokenTransformer(tlx.nn.Module):
     """
 
     encoder_type = "bert"
+    model_protocol_version = 2
     model_name = "bert-small"
     position_embedding_type = "absolute"
     hidden_act = "gelu"
@@ -223,21 +228,28 @@ class GraphTokenTransformer(tlx.nn.Module):
         self.task_type = str(task_type)
         self.pooling = pooling
         self.task_dropout_rate = float(task_dropout)
+        if not 0 <= self.pad_token_id < self.vocab_size:
+            raise ValueError("pad_token_id must be inside the model vocabulary.")
+
+        def word_embedding_initializer(shape, dtype=tlx.float32):
+            values = _normal()(shape, dtype=dtype)
+            visible = tlx.cast(tlx.arange(0, self.vocab_size, dtype=tlx.int64) != self.pad_token_id, dtype)
+            return values * tlx.expand_dims(visible, -1)
 
         self.token_embeddings = tlx.nn.Embedding(
             num_embeddings=self.vocab_size,
             embedding_dim=self.hidden_size,
-            E_init=_truncated_normal(),
+            E_init=word_embedding_initializer,
         )
         self.position_embeddings = tlx.nn.Embedding(
             num_embeddings=self.max_position_embeddings,
             embedding_dim=self.hidden_size,
-            E_init=_truncated_normal(),
+            E_init=_normal(),
         )
         self.token_type_embeddings = tlx.nn.Embedding(
             num_embeddings=self.type_vocab_size,
             embedding_dim=self.hidden_size,
-            E_init=_truncated_normal(),
+            E_init=_normal(),
         )
         self.embedding_norm = tlx.nn.LayerNorm(
             normalized_shape=self.hidden_size,
@@ -259,7 +271,7 @@ class GraphTokenTransformer(tlx.nn.Module):
         ])
         # Retain the standard BERT pooler parameters used by the canonical architecture.
         self.encoder_pooler = _linear(self.hidden_size, self.hidden_size)
-        self.mlm_head = _linear(self.hidden_size, self.vocab_size, bias=False)
+        self.mlm_head = _linear(self.hidden_size, self.vocab_size)
         task_hidden_size = max(1, self.hidden_size // 2)
         self.task_head_in = _linear(self.hidden_size, task_hidden_size)
         self.task_head_dropout = tlx.nn.Dropout(p=self.task_dropout_rate)
@@ -271,6 +283,9 @@ class GraphTokenTransformer(tlx.nn.Module):
         if sequence_length > self.max_position_embeddings:
             raise ValueError("Input sequence length exceeds max_position_embeddings.")
         word_embeddings = self.token_embeddings(input_ids)
+        # Match Embedding(padding_idx=...), including raw-0 tokens aliased to PAD.
+        visible = tlx.cast(tlx.expand_dims(input_ids != self.pad_token_id, -1), word_embeddings.dtype)
+        word_embeddings = word_embeddings * visible
         positions = tlx.cumsum(tlx.ones_like(input_ids), axis=1) - 1
         position_embeddings = self.position_embeddings(positions)
         token_type_ids = input_ids * 0
@@ -357,6 +372,7 @@ class GraphTokenTransformer(tlx.nn.Module):
         """
         return {
             "encoder_type": self.encoder_type,
+            "model_protocol_version": self.model_protocol_version,
             "model_name": self.model_name,
             "pooling": self.pooling,
             "vocab_size": self.vocab_size,
@@ -410,7 +426,7 @@ class GraphBERT(GraphTokenTransformer):
     layer_norm_eps: float
         Layer normalization epsilon. (default: ``1e-12``)
     pad_token_id: int
-        Padding ID recorded in model metadata. Supply attention_mask to
+        Padding ID with a zero, frozen word-embedding row. Supply attention_mask to
         exclude padding from attention and mean pooling. (default: ``0``)
     type_vocab_size: int
         Token-type embedding vocabulary; all inputs use type 0.
@@ -430,7 +446,8 @@ class GraphBERT(GraphTokenTransformer):
     ------
     ValueError
         If pooling is unsupported, position capacity is nonpositive, or
-        hidden_size is not divisible by the attention head count.
+        hidden_size is not divisible by the attention head count, or
+        pad_token_id is outside the vocabulary.
 
     Notes
     -----

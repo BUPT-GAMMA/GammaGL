@@ -57,7 +57,10 @@ def model_configuration(model):
         fields += ['rope_theta', 'rope_scaling_factor']
     kwargs = {name: getattr(model, name) for name in fields}
     kwargs['task_dropout'] = model.task_dropout_rate
-    return dict(encoder=encoder, kwargs=kwargs)
+    config = dict(encoder=encoder, kwargs=kwargs)
+    if encoder == 'bert':
+        config['model_protocol_version'] = model.model_protocol_version
+    return config
 
 
 def code_provenance(source):
@@ -161,6 +164,7 @@ def save_run(directory, args, spec, model, tokenizer, normalizer, encoded, runti
                 _read_bundle(bundle, fingerprint)
     manifest = dict(artifact_version=ARTIFACT_VERSION,
                     training_protocol=trainer.training_protocol(),
+                    model_protocol_version=getattr(model, 'model_protocol_version', None),
                     started_at=datetime.now(timezone.utc).isoformat(),
                     effective_config={k: v for k, v in vars(args).items() if not k.startswith('_')},
                     cli_args=getattr(args, '_cli_args', None), runtime=runtime,
@@ -232,6 +236,14 @@ def load_run(directory, device='cpu'):
         raise ValueError('Unsupported run artifact version.')
     if summary.get('training_protocol') != manifest.get('training_protocol'):
         raise ValueError('Run training protocol differs from its manifest.')
+    if summary.get('model_protocol_version') != manifest.get('model_protocol_version'):
+        raise ValueError('Run model protocol differs from its manifest.')
+    if manifest['model_config']['encoder'] == 'bert' and any(
+            version != GraphBERT.model_protocol_version for version in (
+                manifest.get('model_protocol_version'),
+                manifest['model_config'].get('model_protocol_version'),
+                manifest['model_manifest'].get('model_protocol_version'))):
+        raise ValueError('Unsupported BERT model protocol; use the original code for legacy inference.')
     if ((manifest.get('training_protocol') or {}).get('version') == 2
             and not {'pretrain_checkpoint', 'pretrain_checkpoint_sha256'} <= artifacts.keys()):
         raise ValueError('Incomplete v2 export: pretraining checkpoint metadata is required.')

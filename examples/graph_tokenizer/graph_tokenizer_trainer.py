@@ -891,6 +891,7 @@ def save_checkpoint(backend, path: Path, model, epoch: int, score: float) -> Non
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp-{os.getpid()}")
     state = {"epoch": int(epoch), "score": float(score),
+             "model_protocol_version": getattr(model, "model_protocol_version", None),
              "training_protocol_version": getattr(model, "training_protocol_version", None),
              "artifact_version": ARTIFACT_VERSION,
              "artifact_fingerprint": getattr(model, "artifact_fingerprint", None),
@@ -925,6 +926,8 @@ def restore_checkpoint(backend, path: Path, model, device):
         raise ValueError("Incompatible checkpoint input protocol; retrain with the current tokenizer schema.")
     if state.get("training_protocol_version") != getattr(model, "training_protocol_version", None):
         raise ValueError("Incompatible checkpoint training protocol.")
+    if state.get("model_protocol_version") != getattr(model, "model_protocol_version", None):
+        raise ValueError("Incompatible BERT model protocol; use the original code for legacy inference.")
     if ("tokenizer_fit_scope" not in state
             or state["tokenizer_fit_scope"] != getattr(model, "tokenizer_fit_scope", None)):
         raise ValueError("Incompatible checkpoint tokenizer fit scope; retrain with the selected corpus.")
@@ -1309,6 +1312,7 @@ def run_single_experiment(args, config, seed, run_index=0):
     finetune = run_finetuning(backend, model, train_loader, val_loader, test_loader, spec, normalizer,
                               args, device, checkpoint)
     summary = {"dataset": spec.name, "encoder": args.encoder, "seed": args.seed,
+            "model_protocol_version": getattr(model, "model_protocol_version", None),
             "training_protocol": training_protocol(),
             "run_index": run_index, "metric_name": metric_name_for_dataset(spec),
             "metric": finetune["test"]["metric"],
@@ -1331,6 +1335,9 @@ def aggregate_run_results(results):
     protocols = {json.dumps(result.get("training_protocol"), sort_keys=True) for result in results}
     if len(protocols) != 1:
         raise ValueError("Cannot aggregate runs with different training protocols.")
+    model_protocols = {result.get("model_protocol_version") for result in results}
+    if len(model_protocols) != 1:
+        raise ValueError("Cannot aggregate runs with different model protocols.")
     scopes = {result.get("tokenizer_fit_scope") for result in results}
     if len(scopes) != 1:
         raise ValueError("Cannot aggregate runs with different tokenizer fit scopes.")
@@ -1343,6 +1350,7 @@ def aggregate_run_results(results):
     require_finite_metrics({"mean": mean, "std": std}, "aggregate")
     first = results[0]
     return {"dataset": first["dataset"], "encoder": first["encoder"],
+            "model_protocol_version": first.get("model_protocol_version"),
             "training_protocol": first.get("training_protocol"),
             "tokenizer_fit_scope": first.get("tokenizer_fit_scope"),
             "seeds": [result["seed"] for result in results], "num_runs": len(results),
@@ -1447,6 +1455,8 @@ def main(argv=None):
                 setattr(args, name, value)
     spec = resolve_dataset(args.dataset)
     config = PAPER_CONFIGS[(spec.name, args.encoder)]
+    from gammagl.models.graph_bert import GraphBERT
+    model_protocol_version = GraphBERT.model_protocol_version if args.encoder == "bert" else None
     results = []
     summary_path = experiment_output_directory(args, spec) / "summary.json"
     try:
@@ -1465,6 +1475,7 @@ def main(argv=None):
         serialized = json.dumps(summary, indent=2, allow_nan=False)
     except Exception:
         partial = {"dataset": spec.name, "encoder": args.encoder,
+                   "model_protocol_version": model_protocol_version,
                    "training_protocol": training_protocol(),
                    "tokenizer_fit_scope": tokenizer_configuration(args)["fit_scope"],
                    "seeds": list(args.seeds), "num_runs": len(args.seeds),

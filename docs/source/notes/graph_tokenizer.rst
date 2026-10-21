@@ -149,8 +149,15 @@ normalizer and input-file/split summaries. The independent artifact version is
 fingerprint; successful summaries also record manifest and both best-checkpoint hashes.
 Training protocol version 2 is recorded independently in manifests, summaries
 and checkpoints. Runs with different or missing protocol metadata cannot be
-aggregated together; existing complete legacy exports remain usable for
-inference under their recorded protocol.
+aggregated together. BERT independently records ``model_protocol_version=2``
+in the model configuration, manifest, checkpoint and seed/group summaries.
+It uses N(0, 0.02) embedding/linear initialization, a trainable zero-initialized
+MLM bias and a zero PAD word-embedding row with no lookup gradient, including
+PAD aliases with attention_mask=1. Position/type embeddings still contribute.
+Restore rejects missing or incompatible BERT model versions before assigning
+weights; aggregation rejects mixed model versions. Old BERT checkpoints require
+their original code for inference. Complete legacy exports with a compatible
+model (including GTE) remain usable under their recorded training protocol.
 
 Copy the complete dataset/encoder output directory, then use
 ``examples.graph_tokenizer.artifacts.load_run(run_directory, device="cpu")``

@@ -135,6 +135,7 @@ def test_mlm_selection_failure_keeps_main_incomplete(trainer, monkeypatch, tmp_p
                       '--output-dir', str(tmp_path)])
     directory = tmp_path / 'aqsol/bert'
     assert json.loads((directory / 'summary.json').read_text())['complete'] is False
+    assert json.loads((directory / 'summary.json').read_text())['model_protocol_version'] == 2
     assert not list(directory.rglob('best_finetune.*'))
     assert not (directory / 'run_01_seed_42/summary.json').exists()
 

@@ -40,6 +40,10 @@ def test_native_run_exports_relocatable_artifacts_and_fresh_process_predictions(
     assert manifest['effective_config']['max_length'] == 32
     assert manifest['code']['files_sha256']
     assert manifest['environment']['backend'] == tlx.BACKEND
+    if encoder == 'bert':
+        assert manifest['model_protocol_version'] == manifest['model_config']['model_protocol_version'] == 2
+        summary = json.loads((run / 'summary.json').read_text())
+        assert summary['model_protocol_version'] == 2
     assert manifest['model_config']['kwargs']['output_dim'] == (2 if dataset == 'mutagenicity' else 1)
     bundle = (run / manifest['preprocessing']).resolve()
     normalizer = json.loads((bundle / 'normalizer.json').read_text())
@@ -112,7 +116,7 @@ def test_constructor_export_preserves_nondefault_dropout_norm_and_rope(encoder):
     if encoder == 'gte':
         kwargs.update(rope_theta=1234.0, rope_scaling_factor=2.5)
     config = model_configuration(model_class(**kwargs))
-    assert config == {'encoder': encoder, 'kwargs': kwargs}
+    assert config['encoder'] == encoder and config['kwargs'] == kwargs
     rebuilt = model_class(**config['kwargs'])
     assert rebuilt.task_dropout_rate == 0.41
     assert rebuilt.attention_dropout_rate == 0.31
@@ -188,10 +192,15 @@ def test_v2_export_requires_pretraining_checkpoint_metadata(trainer, tmp_path):
         artifacts.completed_run(run, checkpoint)
 
 
-def test_complete_legacy_export_remains_restorable_for_inference(trainer, tmp_path):
+@pytest.mark.parametrize('encoder', ['bert', 'gte'])
+def test_legacy_training_protocol_with_compatible_model_remains_restorable(trainer, tmp_path, encoder):
     from examples.graph_tokenizer import artifacts
-    trainer.main(['--smoke', '--dataset', 'aqsol', '--seed', '42', '--output-dir', str(tmp_path)])
-    run = tmp_path / 'aqsol/bert/run_01_seed_42'
+    argv = ['--smoke', '--dataset', 'aqsol', '--encoder', encoder, '--seed', '42',
+            '--output-dir', str(tmp_path)]
+    if encoder == 'gte':
+        argv.append('--allow-random-gte-init')
+    trainer.main(argv)
+    run = tmp_path / 'aqsol' / encoder / 'run_01_seed_42'
     restored = artifacts.load_run(run)
     model = restored['model']
     del model.training_protocol_version
@@ -202,6 +211,10 @@ def test_complete_legacy_export_remains_restorable_for_inference(trainer, tmp_pa
     artifacts.atomic_write(run / 'run_manifest.json', artifacts.json_bytes(manifest))
     summary = json.loads((run / 'summary.json').read_text())
     summary.pop('training_protocol')
+    if encoder == 'gte':
+        manifest.pop('model_protocol_version')
+        summary.pop('model_protocol_version')
+        artifacts.atomic_write(run / 'run_manifest.json', artifacts.json_bytes(manifest))
     for key in ('pretrain_checkpoint', 'pretrain_checkpoint_sha256'):
         summary['artifacts'].pop(key)
     summary['artifacts'].update(manifest_sha256=artifacts.digest(run / 'run_manifest.json'),
@@ -211,6 +224,51 @@ def test_complete_legacy_export_remains_restorable_for_inference(trainer, tmp_pa
     assert legacy['manifest'].get('training_protocol') is None
     for old, new in zip(model.all_weights, legacy['model'].all_weights):
         np.testing.assert_array_equal(tlx.convert_to_numpy(old), tlx.convert_to_numpy(new))
+
+
+@pytest.mark.parametrize('version', [None, 1, 3])
+def test_unsupported_bert_export_rejected_before_model_construction(trainer, monkeypatch, tmp_path, version):
+    from examples.graph_tokenizer import artifacts
+    from gammagl.models import GraphBERT
+    trainer.main(['--smoke', '--dataset', 'aqsol', '--seed', '42', '--output-dir', str(tmp_path)])
+    run = tmp_path / 'aqsol/bert/run_01_seed_42'
+    manifest = json.loads((run / 'run_manifest.json').read_text())
+    summary = json.loads((run / 'summary.json').read_text())
+    if version is None:
+        manifest.pop('model_protocol_version', None)
+        summary.pop('model_protocol_version', None)
+    else:
+        manifest['model_protocol_version'] = summary['model_protocol_version'] = version
+    artifacts.atomic_write(run / 'run_manifest.json', artifacts.json_bytes(manifest))
+    summary['artifacts']['manifest_sha256'] = artifacts.digest(run / 'run_manifest.json')
+    artifacts.atomic_write(run / 'summary.json', artifacts.json_bytes(summary))
+    monkeypatch.setattr(GraphBERT, '__init__', lambda *_a, **_k: pytest.fail('constructed incompatible BERT'))
+    with pytest.raises(ValueError, match='BERT model protocol'):
+        artifacts.load_run(run)
+
+
+@pytest.mark.parametrize('version', [None, 1, 3])
+def test_bert_checkpoint_rejects_other_model_protocol_before_assigning(trainer, tmp_path, version):
+    from gammagl.models import GraphBERT
+    kwargs = dict(vocab_size=11, output_dim=2, hidden_size=4, num_hidden_layers=1,
+                  num_attention_heads=2, intermediate_size=6, max_position_embeddings=8)
+    source, target = GraphBERT(**kwargs), GraphBERT(**kwargs)
+    source.model_protocol_version = version
+    before = [tlx.convert_to_numpy(weight).copy() for weight in target.all_weights]
+    checkpoint = tmp_path / ('old.npz' if tlx.BACKEND == 'tensorflow' else 'old.pt')
+    trainer.save_checkpoint(tlx, checkpoint, source, 1, .1)
+    with pytest.raises(ValueError, match='BERT model protocol'):
+        trainer.restore_checkpoint(tlx, checkpoint, target, 'cpu')
+    for weight, expected in zip(target.all_weights, before):
+        np.testing.assert_array_equal(tlx.convert_to_numpy(weight), expected)
+
+
+def test_aggregation_rejects_mixed_bert_model_protocols(trainer):
+    common = dict(dataset='aqsol', encoder='bert', metric_name='MAE', metric=.1,
+                  tokenizer_fit_scope='all', training_protocol=trainer.training_protocol())
+    with pytest.raises(ValueError, match='model protocol'):
+        trainer.aggregate_run_results([dict(common, seed=42),
+                                      dict(common, seed=43, model_protocol_version=2)])
 
 
 def test_interrupted_preprocessing_export_can_retry_without_publishing_partial_bundle(
