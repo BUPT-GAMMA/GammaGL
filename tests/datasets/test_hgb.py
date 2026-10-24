@@ -1,7 +1,3 @@
-import os
-
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
-os.environ['TL_BACKEND'] = 'torch'
 import tensorlayerx as tlx
 from gammagl.datasets.hgb import HGBDataset
 import os.path as osp

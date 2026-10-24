@@ -1,0 +1,290 @@
+{
+  "revision": "98343a6b025a48fbb6859cd812a12b81ec3ac3cc",
+  "torch": "2.1.2+cpu",
+  "source_sha256": {
+    "src/training/task_handler.py": "c821ece8e8e009324768cbf17de95c205334bf4e100d5b751262432ef4247c81",
+    "config/default_config.yml": "4c66dbc89aba457a83688b9c5f092dfeb9cfe70939cdda06efa26d98f3aec364",
+    "config/mutagenicity/feuler/gte/config.json": "cc134db3ba1bf7a640b7538e187cfbd096bc136eb0f5c4a94b5a1728f90577c9",
+    "config/dblp/eulerian/gte/config.json": "40c8e15292f21c07d071d40ecfda8189881f8abcff23a4db314a377048bc02cf"
+  },
+  "presets": [
+    {
+      "dataset": "mutagenicity",
+      "encoder": "bert",
+      "enabled": false,
+      "alpha": 1.0
+    },
+    {
+      "dataset": "mutagenicity",
+      "encoder": "gte",
+      "enabled": true,
+      "alpha": 1.0
+    },
+    {
+      "dataset": "dblp",
+      "encoder": "bert",
+      "enabled": false,
+      "alpha": 1.0
+    },
+    {
+      "dataset": "dblp",
+      "encoder": "gte",
+      "enabled": true,
+      "alpha": 1.0
+    },
+    {
+      "dataset": "aqsol",
+      "encoder": "bert",
+      "enabled": false,
+      "alpha": 1.0
+    },
+    {
+      "dataset": "aqsol",
+      "encoder": "gte",
+      "enabled": false,
+      "alpha": 1.0
+    }
+  ],
+  "cases": [
+    {
+      "task": "classification",
+      "enabled": false,
+      "alpha": 1.0,
+      "first": [
+        [
+          2.0,
+          -1.0
+        ],
+        [
+          0.5,
+          1.5
+        ],
+        [
+          -2.0,
+          1.0
+        ]
+      ],
+      "second": [
+        [
+          0.25,
+          1.75
+        ],
+        [
+          2.0,
+          -0.5
+        ],
+        [
+          1.0,
+          -2.0
+        ]
+      ],
+      "labels": [
+        0,
+        1,
+        0
+      ],
+      "sample_losses": [
+        0.048587351573741965,
+        0.31326168751822286,
+        3.048587351573742
+      ],
+      "sample_weight_gradients": [
+        -0.14227761953270027,
+        -0.2689414213699951,
+        2.8577223804672998
+      ]
+    },
+    {
+      "task": "classification",
+      "enabled": true,
+      "alpha": 0.0,
+      "first": [
+        [
+          2.0,
+          -1.0
+        ],
+        [
+          0.5,
+          1.5
+        ],
+        [
+          -2.0,
+          1.0
+        ]
+      ],
+      "second": [
+        [
+          0.25,
+          1.75
+        ],
+        [
+          2.0,
+          -0.5
+        ],
+        [
+          1.0,
+          -2.0
+        ]
+      ],
+      "labels": [
+        0,
+        1,
+        0
+      ],
+      "sample_losses": [
+        0.8750003147782472,
+        1.4460757109053863,
+        1.548587351573742
+      ],
+      "sample_weight_gradients": [
+        0.5420420473788827,
+        1.020706564288448,
+        1.3577223804672998
+      ]
+    },
+    {
+      "task": "classification",
+      "enabled": true,
+      "alpha": 0.7,
+      "first": [
+        [
+          2.0,
+          -1.0
+        ],
+        [
+          0.5,
+          1.5
+        ],
+        [
+          -2.0,
+          1.0
+        ]
+      ],
+      "second": [
+        [
+          0.25,
+          1.75
+        ],
+        [
+          2.0,
+          -0.5
+        ],
+        [
+          1.0,
+          -2.0
+        ]
+      ],
+      "labels": [
+        0,
+        1,
+        0
+      ],
+      "sample_losses": [
+        2.0879843645285687,
+        2.248696199201119,
+        3.449398684227962
+      ],
+      "sample_weight_gradients": [
+        2.320844307373924,
+        2.27886930272439,
+        3.8277596257310122
+      ]
+    },
+    {
+      "task": "classification",
+      "enabled": true,
+      "alpha": 1.0,
+      "first": [
+        [
+          2.0,
+          -1.0
+        ],
+        [
+          0.5,
+          1.5
+        ],
+        [
+          -2.0,
+          1.0
+        ]
+      ],
+      "second": [
+        [
+          0.25,
+          1.75
+        ],
+        [
+          2.0,
+          -0.5
+        ],
+        [
+          1.0,
+          -2.0
+        ]
+      ],
+      "labels": [
+        0,
+        1,
+        0
+      ],
+      "sample_losses": [
+        2.6078346715644205,
+        2.5926764084707186,
+        4.2640321125083425
+      ],
+      "sample_weight_gradients": [
+        3.0831881330860855,
+        2.818081904911222,
+        4.886347016558318
+      ]
+    },
+    {
+      "task": "regression",
+      "enabled": true,
+      "alpha": 0.7,
+      "first": [
+        [
+          2.0
+        ],
+        [
+          0.5
+        ],
+        [
+          -2.0
+        ]
+      ],
+      "second": [
+        [
+          0.25
+        ],
+        [
+          2.0
+        ],
+        [
+          1.0
+        ]
+      ],
+      "labels": [
+        [
+          0.0
+        ],
+        [
+          1.0
+        ],
+        [
+          0.0
+        ]
+      ],
+      "sample_losses": [
+        4.175,
+        2.2,
+        8.8
+      ],
+      "sample_weight_gradients": [
+        8.349999999999998,
+        4.8999999999999995,
+        17.599999999999998
+      ]
+    }
+  ]
+}

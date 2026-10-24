@@ -1,34 +1,171 @@
 name: Build and Test
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   build-and-test:
+    name: ${{ matrix.suite }} (${{ matrix.backend }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        backend: [torch, tensorflow]
+        suite: [core, graph-tokenizer]
+    env:
+      TL_BACKEND: ${{ matrix.backend }}
+      MAX_JOBS: '2'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           submodules: 'recursive'
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v7
         with:
           python-version: '3.10'
 
       - name: Install base dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install setuptools==69.5.1 wheel "numpy>=1.24,<2" pybind11 ninja
+          # Core CPU build baseline, independent of the paper runtime below.
+          # setup.py builds a torch extension even for other runtime backends.
+          pip install torch==2.5.1 torchvision==0.20.1 \
+            --index-url https://download.pytorch.org/whl/cpu
+          if [ "$TL_BACKEND" = tensorflow ]; then
+            pip install tensorflow-cpu==2.15.1
+          fi
           pip install -r requirements.txt
-          pip install pybind11 ninja
 
       - name: Install package
         run: |
           GAMMAGL_WITH_CUDA=0 pip install -e ".[dev]" --no-build-isolation
 
-      - name: Run checks
+      - name: Remove torch build dependencies from TensorFlow runtime
+        if: matrix.backend == 'tensorflow'
+        run: python -m pip uninstall -y torch torchvision
+
+      - name: Install GraphTokenizer conversion test dependencies
+        if: matrix.suite == 'graph-tokenizer'
+        run: python -m pip install "safetensors>=0.4" "huggingface-hub>=0.20" "PyYAML>=5.4"
+
+      - name: Verify isolated backend runtime
         run: |
-          TL_BACKEND=torch python -m compileall -q gammagl tests examples
-          TL_BACKEND=torch python -m pytest tests/test_public_api.py tests/data tests/utils -q
+          python - <<'PY'
+          import importlib.util
+          import os
+          import tensorlayerx as tlx
+
+          assert tlx.BACKEND == os.environ["TL_BACKEND"]
+          assert importlib.util.find_spec("dgl") is None
+          if tlx.BACKEND == "tensorflow":
+              assert importlib.util.find_spec("torch") is None
+          PY
+
+      - name: Run public checks
+        if: matrix.suite == 'core'
+        run: |
+          python -m compileall -q gammagl tests examples
+          python - <<'PY'
+          import os
+          import pytest
+          import tensorlayerx as tlx
+
+          keys = ("TL_BACKEND", "CUDA_VISIBLE_DEVICES")
+          environment = {key: os.environ.get(key) for key in keys}
+          result = pytest.main(["--collect-only", "-q"])
+          assert {key: os.environ.get(key) for key in keys} == environment
+          assert tlx.BACKEND == environment["TL_BACKEND"]
+          raise SystemExit(result)
+          PY
+          python -m pytest tests/test_public_api.py tests/data tests/utils -q -rs
+
+      - name: Verify native sampling extension and loaders
+        if: matrix.suite == 'core'
+        run: |
+          python -c "from gammagl.ops.sparse._sparse import c_sample_adj, c_neighbor_sample, c_hetero_neighbor_sample"
+          python -m pytest tests/loader/test_neighbor_sampler.py tests/loader/test_node_neighbor_loader.py -q -rs
+
+      - name: Run native GraphTokenizer regressions
+        if: matrix.suite == 'graph-tokenizer'
+        run: |
+          python -c "from third_party import graph_bpe_cpp; assert graph_bpe_cpp.is_available()"
+          python -m pytest -q -rs \
+            tests/transforms/test_graph_tokenizer.py \
+            tests/transforms/test_graph_tokenizer_backend.py \
+            tests/datasets/test_graph_tokenizer_datasets.py \
+            tests/models/test_graph_tokenizer_models.py \
+            tests/models/test_graph_bert_official.py \
+            tests/models/test_graph_tokenizer_components.py \
+            tests/models/test_graph_gte_backend_conversion.py \
+            tests/models/test_graph_tokenizer_dataset_metadata.py \
+            tests/models/test_graph_tokenizer_tlx_training.py \
+            tests/models/test_graph_tokenizer_runtime.py \
+            tests/models/test_graph_tokenizer_artifacts.py \
+            tests/models/test_graph_tokenizer_release_integration.py \
+            tests/models/test_graph_tokenizer_gpu_integration.py \
+            tests/models/test_graph_tokenizer_official_protocol.py \
+            tests/models/test_graph_tokenizer_pipeline.py \
+            tests/models/test_graph_tokenizer_fit_scope.py
+
+  graph-tokenizer-paper:
+    runs-on: ubuntu-latest
+    env:
+      TL_BACKEND: torch
+      DGLBACKEND: pytorch
+      MAX_JOBS: '2'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.10'
+
+      - name: Install base dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install setuptools==69.5.1 wheel "numpy>=1.24,<2" pybind11 ninja
+          pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 \
+            --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+
+      - name: Install GraphTokenizer paper extra
+        run: |
+          GAMMAGL_WITH_CUDA=0 pip install -e ".[dev,graph-tokenizer-paper]" --no-build-isolation
+
+      - name: Verify GraphTokenizer DGL runtime
+        run: python tests/datasets/graph_tokenizer_dgl_smoke.py
+
+      - name: Run GraphTokenizer regressions
+        run: |
+          python -m pytest -q -rs \
+            tests/transforms/test_graph_tokenizer.py \
+            tests/transforms/test_graph_tokenizer_backend.py \
+            tests/datasets/test_graph_tokenizer_datasets.py \
+            tests/models/test_graph_tokenizer_models.py \
+            tests/models/test_graph_bert_official.py \
+            tests/models/test_graph_tokenizer_components.py \
+            tests/models/test_graph_gte_backend_conversion.py \
+            tests/models/test_graph_tokenizer_dataset_metadata.py \
+            tests/models/test_graph_tokenizer_tlx_training.py \
+            tests/models/test_graph_tokenizer_runtime.py \
+            tests/models/test_graph_tokenizer_artifacts.py \
+            tests/models/test_graph_tokenizer_release_integration.py \
+            tests/models/test_graph_tokenizer_gpu_integration.py \
+            tests/models/test_graph_tokenizer_official_protocol.py \
+            tests/models/test_graph_tokenizer_pipeline.py \
+            tests/models/test_graph_tokenizer_fit_scope.py

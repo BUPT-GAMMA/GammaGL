@@ -1,0 +1,435 @@
+{
+  "revision": "98343a6b025a48fbb6859cd812a12b81ec3ac3cc",
+  "torch": "2.5.1+cpu",
+  "presets": [
+    {
+      "dataset": "mutagenicity",
+      "encoder": "bert",
+      "pretrain": true,
+      "finetune": true,
+      "variant_selection": "random",
+      "pretrain_patience": 20
+    },
+    {
+      "dataset": "mutagenicity",
+      "encoder": "gte",
+      "pretrain": true,
+      "finetune": true,
+      "variant_selection": "random",
+      "pretrain_patience": 20
+    },
+    {
+      "dataset": "dblp",
+      "encoder": "bert",
+      "pretrain": true,
+      "finetune": true,
+      "variant_selection": "random",
+      "pretrain_patience": 20
+    },
+    {
+      "dataset": "dblp",
+      "encoder": "gte",
+      "pretrain": true,
+      "finetune": true,
+      "variant_selection": "random",
+      "pretrain_patience": 20
+    },
+    {
+      "dataset": "aqsol",
+      "encoder": "bert",
+      "pretrain": true,
+      "finetune": true,
+      "variant_selection": "random",
+      "pretrain_patience": 20
+    },
+    {
+      "dataset": "aqsol",
+      "encoder": "gte",
+      "pretrain": true,
+      "finetune": true,
+      "variant_selection": "random",
+      "pretrain_patience": 20
+    }
+  ],
+  "source_sha256": {
+    "src/models/bert/data.py": "d76a4785e99d5459df4e78ebaf24f8f5a9a1042d7aae4133efd3173b5391e327",
+    "src/models/bert/vocab_manager.py": "4f25c2f0b34623e3fdd3588a21c226c5d63f1b6e1defc5c54a973dffbc77dc23",
+    "src/training/tasks.py": "97d600c0d6d96f92585f823183ae939590026c9e610af191b1f3bef140b344d5",
+    "src/training/loops.py": "4bc020e5bd839a52b5ec85dca0611274d049de1b23ecb9ad3c36eaba1854f972",
+    "src/training/pretrain_pipeline.py": "72adb7b93449b194c405b646a03655d2cc08237257ce21f7d58de97bb321e515",
+    "config/default_config.yml": "4c66dbc89aba457a83688b9c5f092dfeb9cfe70939cdda06efa26d98f3aec364",
+    "config/mutagenicity/feuler/gte/config.json": "cc134db3ba1bf7a640b7538e187cfbd096bc136eb0f5c4a94b5a1728f90577c9",
+    "config/dblp/eulerian/gte/config.json": "40c8e15292f21c07d071d40ecfda8189881f8abcff23a4db314a377048bc02cf"
+  },
+  "records": [
+    {
+      "input_ids": [
+        3,
+        8,
+        4
+      ],
+      "graph_id": 4,
+      "labels": [
+        1.0
+      ]
+    },
+    {
+      "input_ids": [
+        3,
+        9,
+        4
+      ],
+      "graph_id": 9,
+      "labels": [
+        1.0
+      ]
+    },
+    {
+      "input_ids": [
+        3,
+        10,
+        4
+      ],
+      "graph_id": 4,
+      "labels": [
+        1.0
+      ]
+    },
+    {
+      "input_ids": [
+        3,
+        11,
+        4
+      ],
+      "graph_id": 2,
+      "labels": [
+        1.0
+      ]
+    },
+    {
+      "input_ids": [
+        3,
+        12,
+        4
+      ],
+      "graph_id": 9,
+      "labels": [
+        1.0
+      ]
+    },
+    {
+      "input_ids": [
+        3,
+        13,
+        4
+      ],
+      "graph_id": 4,
+      "labels": [
+        1.0
+      ]
+    }
+  ],
+  "sampling": [
+    {
+      "seed": 1,
+      "epochs": [
+        [
+          [
+            3,
+            8,
+            4
+          ],
+          [
+            3,
+            9,
+            4
+          ],
+          [
+            3,
+            11,
+            4
+          ]
+        ],
+        [
+          [
+            3,
+            8,
+            4
+          ],
+          [
+            3,
+            12,
+            4
+          ],
+          [
+            3,
+            11,
+            4
+          ]
+        ],
+        [
+          [
+            3,
+            10,
+            4
+          ],
+          [
+            3,
+            12,
+            4
+          ],
+          [
+            3,
+            11,
+            4
+          ]
+        ]
+      ]
+    },
+    {
+      "seed": 7,
+      "epochs": [
+        [
+          [
+            3,
+            10,
+            4
+          ],
+          [
+            3,
+            9,
+            4
+          ],
+          [
+            3,
+            11,
+            4
+          ]
+        ],
+        [
+          [
+            3,
+            13,
+            4
+          ],
+          [
+            3,
+            9,
+            4
+          ],
+          [
+            3,
+            11,
+            4
+          ]
+        ],
+        [
+          [
+            3,
+            13,
+            4
+          ],
+          [
+            3,
+            9,
+            4
+          ],
+          [
+            3,
+            11,
+            4
+          ]
+        ]
+      ]
+    },
+    {
+      "seed": 42,
+      "epochs": [
+        [
+          [
+            3,
+            13,
+            4
+          ],
+          [
+            3,
+            9,
+            4
+          ],
+          [
+            3,
+            11,
+            4
+          ]
+        ],
+        [
+          [
+            3,
+            13,
+            4
+          ],
+          [
+            3,
+            12,
+            4
+          ],
+          [
+            3,
+            11,
+            4
+          ]
+        ],
+        [
+          [
+            3,
+            8,
+            4
+          ],
+          [
+            3,
+            9,
+            4
+          ],
+          [
+            3,
+            11,
+            4
+          ]
+        ]
+      ]
+    }
+  ],
+  "masking": {
+    "input_ids": [
+      [
+        3,
+        8,
+        9,
+        10,
+        7,
+        2,
+        1,
+        5,
+        6,
+        4,
+        0,
+        11
+      ]
+    ],
+    "attention": [
+      [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0
+      ]
+    ],
+    "draws": [
+      [
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      [
+        [
+          0.0,
+          0.10000000149011612,
+          0.8999999761581421,
+          0.8999999761581421,
+          0.8999999761581421,
+          0.10000000149011612,
+          0.10000000149011612,
+          0.10000000149011612,
+          0.10000000149011612,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      [
+        [
+          0.0,
+          0.0,
+          0.10000000149011612,
+          0.8999999761581421,
+          0.10000000149011612,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ]
+    ],
+    "replacements": [
+      [
+        0,
+        0,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "vocab_size": 14,
+    "masked": [
+      [
+        3,
+        2,
+        3,
+        10,
+        0,
+        2,
+        2,
+        2,
+        2,
+        4,
+        0,
+        11
+      ]
+    ],
+    "labels": [
+      [
+        -100,
+        8,
+        9,
+        10,
+        7,
+        2,
+        1,
+        5,
+        6,
+        -100,
+        -100,
+        -100
+      ]
+    ]
+  }
+}

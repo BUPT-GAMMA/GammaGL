@@ -109,3 +109,19 @@ Model
     gammagl.models.Specformer
     gammagl.models.PreModel
     gammagl.models.ReModel
+
+GraphTokenizer Models
+~~~~~~~~~~~~~~~~~~~~~
+
+Graph token encoders with MLM and graph prediction heads. See the
+:doc:`GraphTokenizer guide </notes/graph_tokenizer>` for data preparation,
+tokenization, supported backends and evaluation semantics.
+
+.. autosummary::
+   :nosignatures:
+   :toctree: ../generated
+   :template: autosummary/graph_tokenizer_model.rst
+
+    GraphTokenTransformer
+    GraphBERT
+    GraphGTE

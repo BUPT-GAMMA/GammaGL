@@ -1,6 +1,3 @@
-import os
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['TL_BACKEND'] = 'tensorflow'
 from gammagl.layers.attention.edge_encoder import EdgeEncoding
 import tensorlayerx as tlx
 
@@ -21,6 +18,3 @@ def test_edge_encoder():
     }
     cij = edge_encoder(x, edge_attr, edge_paths)
     assert cij.shape == (5, 5)
-
-
-test_edge_encoder()

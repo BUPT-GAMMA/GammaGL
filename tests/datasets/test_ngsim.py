@@ -1,7 +1,3 @@
-import os
-
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
-os.environ['TL_BACKEND'] = 'torch'
 from gammagl.datasets import NGSIM_US_101
 
 
