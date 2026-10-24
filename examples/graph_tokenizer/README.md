@@ -53,10 +53,19 @@ Trainer 接受 `mutag` 和 `muta` 作为 **Mutagenicity** 的 aliases，不指 1
 单向 COO 不保证与双向 COO 等价。Eulerian 在官方度数条件下复制弧，随后若路径需要
 不存在的输入边，会明确报错，不静默生成错误结构。
 
-官方批量 getter、单节点 getter、常见边省略、组件排序、起点和 BPE 规则的逐项依据、
-本地参考 fixtures 及剩余差异见 [协议审计](PROTOCOL_AUDIT.md)。官方流没有节点身份，
-也不保留所有边 token；`deserialize()`／`restore_input_metadata()`／`decode_graph()`
-对该协议抛出 `NotImplementedError`，不保证图 round trip。
+Feuler 使用定向 triplet 频率、float32 log10 权重及官方编号排序。TU 批量与 singleton
+getter 分别按官方规则编码；AQSOL 使用原子序数和键类型，保留官方常见边类型省略、
+组件排序及普通 token 7 分隔规则。BPE 在原始完整序列上学习，首个 merge ID 为 max(base)+2；
+训练增强先对原始 token 做窗口 swap／mask，再 BPE 和词表编码。
+
+GammaGL 普通 token 按 ID 排序，官方按词频排序，通过完整词表双射对照模型输入。
+保留普通 raw-0／PAD alias；未见原始 token 使用独立 OOV sentinel 后映射 UNK，避免冒充 merge ID。
+词表双射绑定具体拟合语料；独立 GraphBPE 的 `vocab_size` 表示 ID 上界。
+超长输入明确拒绝，增强后超长回退原输入；官方词表编码器会截断。
+
+官方流没有节点身份，也不保留所有边 token；`deserialize()`／`restore_input_metadata()`／
+`decode_graph()` 对该协议抛出 `NotImplementedError`，不保证图 round trip。
+逐项对照依据见[官方离线参考与再生成](#官方离线参考与再生成)。
 
 ### 独立可选的可逆协议
 
@@ -177,7 +186,7 @@ CLI 使用 `--finetune-use-consistency-regularization` 启用，
 微调结果记录 `use_consistency_regularization` 和 `consistency_alpha`；
 验证使用每图所选变体，测试平均全部变体的概率；两者均不计算 R-Drop 损失。
 任一次前向、任务损失、一致性损失、总损失或梯度出现 NaN／Inf 都终止该次实验，
-不写入成功结果。离线官方 loss／梯度对照及范围说明见 [协议审计](PROTOCOL_AUDIT.md)。
+不写入成功结果。离线官方 loss／梯度对照见[官方离线参考与再生成](#官方离线参考与再生成)。
 
 ### 序列长度与位置容量
 
@@ -209,7 +218,7 @@ summary 将两种正式初始化分别记录为 `official_random` / `official_pr
 并记录 `initialization_matches_preset: true`。初始化匹配或权重覆盖率不等于实验复现，
 `reproduction` 均为 false。`--allow-random-gte-init` 保留给开发用 tiny／自定义架构，
 记录为 `random_development`、`initialization_matches_preset: false`；AQSOL 的正式随机
-初始化不需要该开关。以上只对齐初始化，其他训练／预处理差异仍见协议审计。
+初始化不需要该开关。初始化及训练行为的离线对照见[官方离线参考与再生成](#官方离线参考与再生成)。
 
 `--bpe-backend python` 是默认值；`auto` 在可用时使用可选的 `graph_bpe_cpp` 原生扩展，否则
 回退 Python；`cpp` 则要求该扩展并在缺失时 fail fast。无论 backend，频率、BPE 和词表
@@ -537,3 +546,43 @@ torch 单元也检查 DGL 缺席。安装时的 torch 构建依赖不表示 Tens
 独立 `graph-tokenizer-paper` job 保留 PyTorch 2.1.2／DGL 2.1.0／torchdata 0.7.1 的固定组合，
 安装 paper extra、运行 DGL／GraphBolt smoke 和完整 GraphTokenizer 回归（包括拟合范围测试）。
 它与矩阵单元没有 `needs` 依赖。
+
+## 官方离线参考与再生成
+
+六份 JSON 均由对应生成器执行固定 revision 的官方代码生成，不导入 GammaGL；
+记录官方源码 SHA-256、配置、输入和参考输出。普通 CI 直接读取这些本地文件。
+
+| Fixture | 对照范围 | 生成器 |
+| :-- | :-- | :-- |
+| [graph_tokenizer_official.json](../../tests/models/fixtures/graph_tokenizer_official.json) | 六组 serializer、实际 loader getter、C++ BPE、完整词表映射及增强后的模型输入 | [generate_graph_tokenizer_official.py](../../tests/models/fixtures/generate_graph_tokenizer_official.py) |
+| [graph_tokenizer_fit_scope_official.json](../../tests/models/fixtures/graph_tokenizer_fit_scope_official.json) | 官方预处理入口的语料顺序、统计、BPE、词表和最终输入 | [generate_graph_tokenizer_fit_scope_official.py](../../tests/models/fixtures/generate_graph_tokenizer_fit_scope_official.py) |
+| [graph_tokenizer_training_official.json](../../tests/models/fixtures/graph_tokenizer_training_official.json) | 六组验证采样配置、MLM patience、逐图采样与受控 masking 输出 | [generate_graph_tokenizer_training_official.py](../../tests/models/fixtures/generate_graph_tokenizer_training_official.py) |
+| [graph_tokenizer_rdrop_official.json](../../tests/models/fixtures/graph_tokenizer_rdrop_official.json) | 官方 TaskHandler 的逐样本损失和公共标量权重梯度 | [generate_graph_tokenizer_rdrop_official.py](../../tests/models/fixtures/generate_graph_tokenizer_rdrop_official.py) |
+| [graph_gte_initialization_official.json](../../tests/models/fixtures/graph_gte_initialization_official.json) | GTE resize、词嵌入、隐藏态、MLM 输出及嵌入／QKV 梯度 | [generate_graph_gte_initialization_official.py](../../tests/models/fixtures/generate_graph_gte_initialization_official.py) |
+| [graph_bert_official.json](../../tests/models/fixtures/graph_bert_official.json) | BERT 完整权重、embedding／hidden／MLM／task 输出及有效参数梯度 | [generate_graph_bert_official.py](../../tests/models/fixtures/generate_graph_bert_official.py) |
+
+GTE 参考仅将 Hugging Face 配置／checkpoint 获取替换为本地 tiny provider；
+GTEEncoder、NewModel、resize 和任务头仍执行官方代码。BERT 与 GTE 初始化参考使用
+Transformers 4.40.2，并记录相关实现摘要。训练参考仅控制随机抽样值和 no-BPE provider，
+保留官方采样与 masking 逻辑。拟合范围参考覆盖交错 split 索引与 held-out 图影响。
+
+### 再生成参考数据
+
+在安装官方项目依赖的独立环境中，准备上述固定 revision 的干净源码，设置
+`OFFICIAL_ROOT` 为其路径，并从 GammaGL 仓库根目录运行：
+
+```bash
+TG_THREADS_FORCE=0 python tests/models/fixtures/generate_graph_tokenizer_official.py "$OFFICIAL_ROOT"
+TG_THREADS_FORCE=0 python tests/models/fixtures/generate_graph_tokenizer_fit_scope_official.py "$OFFICIAL_ROOT"
+python tests/models/fixtures/generate_graph_tokenizer_training_official.py "$OFFICIAL_ROOT"
+python tests/models/fixtures/generate_graph_tokenizer_rdrop_official.py "$OFFICIAL_ROOT"
+python tests/models/fixtures/generate_graph_gte_initialization_official.py "$OFFICIAL_ROOT"
+python tests/models/fixtures/generate_graph_bert_official.py "$OFFICIAL_ROOT"
+```
+
+生成器检查官方 revision 与相关源码状态；序列化／拟合参考会在临时目录编译官方 BPE。
+模型参考使用 tiny 配置，不下载大型 checkpoint。对应回归同时覆盖 torch 与 TensorFlow
+后端；测试命令和可选真实数据／GPU 集成入口见上文。
+
+离线输出／梯度参考验证给定输入与权重下的行为，不能保证跨框架随机初始化、dropout
+或完整训练的逐 seed 轨迹一致。功能回归、真实数据集成与 benchmark 成绩分别记录。
