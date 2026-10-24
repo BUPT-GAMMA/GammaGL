@@ -35,15 +35,13 @@ else : tlx.set_device('GPU')
 
 from utility.parser import parse_args
 from Models import MM_Model, Decoder  
-from utility import batch_test
-from utility.batch_test import test_model
+from utility.batch_test import *
 from utility.logging import Logger
 from utility.norm import build_sim, build_knn_normalized_graph
 
 import setproctitle
 
 args = parse_args()
-data_generator = batch_test.configure(args)
 
 
         

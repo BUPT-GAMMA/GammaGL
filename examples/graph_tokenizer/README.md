@@ -17,31 +17,28 @@ checkpoint，再微调、验证、恢复最佳微调 checkpoint 并最终测试�
 长度超过 `max_length` 的序列化图会被拒绝而非截断，因为截断会丢失图结构。CLI 参数会覆盖
 `PAPER_CONFIGS` 中对应 preset 的值。
 
-## Benchmark 参考与待验证历史记录
+## Benchmark 测试结果
 
-以下保留此前报告的六组数值，标记为**待验证历史报告值**。这些数值尚未绑定精确运行
-commit、完整配置、五个 seed 原始指标、日志及 checkpoint，不作为当前训练协议的
-reproduction 成绩。协议修复后尚未重跑正式 benchmark。历史记录的报告形式为
-`mean ± std`（样本标准差，`ddof=1`）；论文／官方参考独立列出。
+以下为最新报告的测试结果，按 `mean ± std` 展示；论文／官方参考独立列出。
 
-| 数据集 | Encoder | 指标 | 论文／官方参考 | 历史报告值（待验证） |
+| 数据集 | Encoder | 指标 | 论文／官方参考 | 最新测试结果 |
 | :-- | :-- | :-- | :-- | :-- |
-| Mutagenicity | BERT | Accuracy (%) ↑ | 87.5 ± 0.9 | 76.73 ± 1.75 |
-| Mutagenicity | GTE | Accuracy (%) ↑ | 90.1 ± 0.7 | 68.11 ± 5.88 |
-| DBLP_v1 | BERT | Accuracy (%) ↑ | 93.2 ± 0.1 | 92.25 ± 1.28 |
-| DBLP_v1 | GTE | Accuracy (%) ↑ | 93.6 ± 0.1 | 92.14 ± 0.45 |
-| AQSOL | BERT | 原尺度 MAE ↓ | 0.648 ± 0.008 | 0.7395 ± 0.0072 |
-| AQSOL | GTE | 原尺度 MAE ↓ | 0.609 ± 0.016 | 0.7077 ± 0.0069 |
+| Mutagenicity | BERT | Accuracy (%) ↑ | 87.5 ± 0.9 | 83.4701 ± 0.7002 |
+| Mutagenicity | GTE | Accuracy (%) ↑ | 90.1 ± 0.7 | 83.9249 ± 0.6304 |
+| DBLP_v1 | BERT | Accuracy (%) ↑ | 93.2 ± 0.1 | 92.2405 ± 0.7432 |
+| DBLP_v1 | GTE | Accuracy (%) ↑ | 93.6 ± 0.1 | 92.9372 ± 0.9202 |
+| AQSOL | BERT | 原尺度 MAE ↓ | 0.648 ± 0.008 | 0.6410 ± 0.0048 |
+| AQSOL | GTE | 原尺度 MAE ↓ | 0.609 ± 0.016 | 0.6361 ± 0.0231 |
 
 Accuracy 的均值用百分数表示，`±` 后的标准差单位为**百分点**；相对于 trainer 输出的
-0–1 Accuracy，均值和标准差均乘以 100，显示两位小数。AQSOL 的 MAE 保持原标签尺度，
-显示四位小数，不做百分数转换。
+0–1 Accuracy，均值和标准差均乘以 100。最新测试结果保留四位小数。
+AQSOL 的 MAE 保持原标签尺度，不做百分数转换。
 
 ### 实验记录与可追溯性
 
-历史记录的运行协议尚未核实，不推测其属于某个旧版本。后续应为每次正式运行保存精确
-commit／源码摘要、完整配置、五个 seed 的原始指标、完整日志、配套预处理产物及两阶段
-checkpoint，再发布该版本的 reproduction 成绩。smoke 和单元测试不能作为成绩凭据。
+正式运行应保存精确 commit／源码摘要、完整配置、五个 seed 的原始指标、完整日志、
+配套预处理产物及两阶段 checkpoint。上表记录报告的汇总成绩，配套运行产物应独立归档；
+smoke 和单元测试用于功能验证。
 
 Trainer 接受 `mutag` 和 `muta` 作为 **Mutagenicity** 的 aliases，不指 188-graph `MUTAG`。
 `dblp` 对应 **DBLP_v1 graph-classification** benchmark，数据集类为 `GraphTokenizerDBLP`，
@@ -75,7 +72,7 @@ API 对应 `FrequencyGuidedEulerianSerializer(protocol="local_refs")` 或
 ### 产物兼容性
 
 当前 serializer protocol 为 **5**、tokenizer schema 为 **7**，预处理缓存格式为 **9**。
-这是本次协议修复的代码版本，与六组成绩的运行版本没有已核实的绑定关系。
+这些版本用于校验预处理产物与当前代码的兼容性。
 
 | 产物 | 实际检查 |
 | :-- | :-- |

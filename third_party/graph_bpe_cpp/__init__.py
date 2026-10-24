@@ -52,42 +52,6 @@ def batch_encode(token_sequences, merge_rules: Sequence[Sequence[int]]) -> List[
     ]
 
 
-def _train_bpe_python(token_sequences, num_merges: int, min_frequency: int):
-    """Reference implementation used to verify the optional native backend."""
-    sequences = [[int(token) for token in sequence] for sequence in token_sequences]
-    next_token_id = max((token for sequence in sequences for token in sequence), default=-1) + 1
-    merge_rules = []
-    for _ in range(int(num_merges)):
-        counts = {}
-        for sequence in sequences:
-            for pair in zip(sequence, sequence[1:]):
-                counts[pair] = counts.get(pair, 0) + 1
-        if not counts:
-            break
-        pair = min(counts, key=lambda item: (-counts[item], item))
-        if counts[pair] < int(min_frequency):
-            break
-        rule = (*pair, next_token_id)
-        merge_rules.append(rule)
-        sequences = [_apply_merge(sequence, rule) for sequence in sequences]
-        next_token_id += 1
-    return {"merge_rules": merge_rules, "vocab_size": next_token_id}
-
-
-def _apply_merge(sequence, rule):
-    left, right, merged = rule
-    encoded = []
-    index = 0
-    while index < len(sequence):
-        if index + 1 < len(sequence) and sequence[index:index + 2] == [left, right]:
-            encoded.append(merged)
-            index += 2
-        else:
-            encoded.append(sequence[index])
-            index += 1
-    return encoded
-
-
 def _normalize_result(result, backend: str):
     merge_rules = [_as_merge_rule(rule) for rule in result.get("merge_rules", [])]
     return {

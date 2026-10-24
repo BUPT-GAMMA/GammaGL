@@ -1,6 +1,6 @@
-from . import metrics
-from .load_data import Data
-import ast
+import utility.metrics as metrics
+from utility.parser import parse_args
+from utility.load_data import Data
 import multiprocessing
 import heapq
 import tensorlayerx as tlx
@@ -10,16 +10,13 @@ from time import time
 
 cores = multiprocessing.cpu_count() // 5
 
-def configure(options):
-    """Initialize evaluation data explicitly from the trainer's CLI options."""
-    global args, Ks, data_generator, USR_NUM, ITEM_NUM, N_TRAIN, N_TEST, BATCH_SIZE
-    args = options
-    Ks = ast.literal_eval(args.Ks)
-    data_generator = Data(path=args.data_path + args.dataset, batch_size=args.batch_size)
-    USR_NUM, ITEM_NUM = data_generator.n_users, data_generator.n_items
-    N_TRAIN, N_TEST = data_generator.n_train, data_generator.n_test
-    BATCH_SIZE = args.batch_size
-    return data_generator
+args = parse_args()
+Ks = eval(args.Ks)
+
+data_generator = Data(path=args.data_path + args.dataset, batch_size=args.batch_size)
+USR_NUM, ITEM_NUM = data_generator.n_users, data_generator.n_items
+N_TRAIN, N_TEST = data_generator.n_train, data_generator.n_test
+BATCH_SIZE = args.batch_size
 
 def ranklist_by_heapq(user_pos_test, test_items, rating, Ks):
     item_score = {}

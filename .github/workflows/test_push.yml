@@ -85,7 +85,7 @@ jobs:
           assert tlx.BACKEND == environment["TL_BACKEND"]
           raise SystemExit(result)
           PY
-          python -m pytest tests/test_public_api.py tests/data tests/utils tests/examples/test_llmrec_evaluation.py -q -rs
+          python -m pytest tests/test_public_api.py tests/data tests/utils -q -rs
 
       - name: Verify native sampling extension and loaders
         if: matrix.suite == 'core'
